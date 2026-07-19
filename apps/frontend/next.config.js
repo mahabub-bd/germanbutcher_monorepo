@@ -7,6 +7,9 @@ const monorepoRoot = "/run/media/mahabub/Projects/Projects/germanbutcher";
 const nextConfig = {
   reactCompiler: true,
 
+  // Enable standalone output for Docker deployment
+  output: 'standalone',
+
   turbopack: {
     root: monorepoRoot,
   },
