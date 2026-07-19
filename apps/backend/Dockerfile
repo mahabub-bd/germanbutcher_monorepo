@@ -29,6 +29,9 @@ ENV NODE_ENV=production
 # Build the application
 RUN pnpm build
 
+# Ensure public directory exists (even if empty) for the COPY command
+RUN mkdir -p /app/public
+
 # Stage 3: Production Runner
 FROM node:20-alpine AS runner
 WORKDIR /app
@@ -48,8 +51,8 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 
-# Copy public assets if they exist
-COPY --from=builder /app/public ./public 2>/dev/null || true
+# Copy public assets (directory now guaranteed to exist from builder stage)
+COPY --from=builder /app/public ./public
 
 # Set ownership
 RUN chown -R nestjs:nodejs /app
