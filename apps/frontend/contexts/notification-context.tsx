@@ -1,0 +1,6 @@
+"use client";
+
+import { NotificationContextType } from "@/utils/types";
+import { createContext } from "react";
+
+export const NotificationContext = createContext<NotificationContextType | undefined>(undefined);

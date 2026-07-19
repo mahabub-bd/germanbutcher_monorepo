@@ -1,0 +1,29 @@
+{
+  "name": "germanbutcher-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "German Butcher E-commerce Platform - Monorepo with Frontend and Backend",
+  "scripts": {
+    "dev": "pnpm --filter \"./apps/**\" dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:backend": "pnpm --filter backend start:dev",
+    "build": "pnpm --filter \"./apps/**\" build",
+    "build:frontend": "pnpm --filter frontend build",
+    "build:backend": "pnpm --filter backend build",
+    "start": "pnpm --filter \"./apps/**\" start",
+    "docker:dev": "docker-compose up",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d --build",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "keywords": [
+    "ecommerce",
+    "nestjs",
+    "nextjs",
+    "monorepo",
+    "germanbutcher"
+  ],
+  "author": "Mahabub Hossain",
+  "license": "PROPRIETARY"
+}

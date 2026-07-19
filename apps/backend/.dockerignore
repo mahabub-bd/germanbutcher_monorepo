@@ -1,0 +1,40 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Build output
+dist
+build
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Testing
+coverage
+.nyc_output
+test
+
+# Misc
+*.log
+*.tsbuildinfo
+README.md
+database.dbml
+migrations

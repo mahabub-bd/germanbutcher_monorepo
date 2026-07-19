@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: germanbutcher-frontend
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+    env_file:
+      - ./apps/frontend/.env
+    restart: unless-stopped
+    networks:
+      - germanbutcher-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3002"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: germanbutcher-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    env_file:
+      - ./apps/backend/.env
+    restart: unless-stopped
+    networks:
+      - germanbutcher-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000/v1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  germanbutcher-network:
+    driver: bridge
+
+volumes:
+  frontend-cache:
+  backend-cache:

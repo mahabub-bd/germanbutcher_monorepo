@@ -1,0 +1,537 @@
+Enum "address_addresstype_enum" {
+  "BILLING"
+  "SHIPPING"
+  "OTHER"
+}
+
+Enum "address_type_enum" {
+  "shipping"
+  "billing"
+}
+
+Enum "banner_position_enum" {
+  "top"
+  "middle"
+  "bottom"
+  "sidebar"
+}
+
+Enum "banner_type_enum" {
+  "main"
+  "promotional"
+  "featured"
+}
+
+Enum "coupon_discounttype_enum" {
+  "percentage"
+  "fixed"
+}
+
+Enum "order_orderstatus_enum" {
+  "pending"
+  "processing"
+  "shipped"
+  "delivered"
+  "cancelled"
+}
+
+Enum "order_paymentstatus_enum" {
+  "pending"
+  "completed"
+  "partial"
+  "paid"
+  "failed"
+  "refunded"
+}
+
+Enum "order_status_track_status_enum" {
+  "pending"
+  "processing"
+  "shipped"
+  "delivered"
+  "cancelled"
+}
+
+Enum "product_discounttype_enum" {
+  "percentage"
+  "fixed"
+}
+
+Table "user" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar [not null]
+  "email" varchar [unique, not null]
+  "password" varchar
+  "isVerified" bool [not null, default: false]
+  "lastLoginAt" timestamp
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "mobileNumber" varchar
+  "otp" varchar
+  "otpExpiresAt" timestamp
+  "profilePhotoId" int4
+  "roleId" int4 [default: 3]
+  "cartId" int4 [unique]
+}
+
+Table "category" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar [unique, not null]
+  "slug" varchar [unique]
+  "description" varchar
+  "isActive" bool [not null, default: true]
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "attachmentId" int4
+  "parentId" int4
+  "createdBy" int4
+  "updatedBy" int4
+  "is_main_menu" bool [not null, default: false]
+}
+
+Table "product" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar [not null]
+  "slug" varchar [unique]
+  "description" text
+  "productSku" varchar(50) [unique]
+  "isActive" bool [not null, default: true]
+  "isFeatured" bool [not null, default: false]
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "attachmentId" int4
+  "categoryId" int4
+  "brandId" int4
+  "unitId" int4
+  "supplierId" int4
+  "sellingPrice" int4
+  "createdBy" int4
+  "updatedBy" int4
+  "purchasePrice" int4
+  "stock" int4 [not null, default: 0]
+  "totalValueBySalePrice" numeric(12,2) [not null, default: '0']
+  "totalValueByPurchasePrice" numeric(12,2) [not null, default: '0']
+  "discountType" product_discounttype_enum
+  "discountValue" numeric(6,2)
+  "discountStartDate" timestamp
+  "discountEndDate" timestamp
+  "weight" numeric(10,2) [default: '0']
+  "galleryId" int4 [unique]
+  "saleCount" int4 [not null, default: 0]
+}
+
+Table "brand" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar [unique, not null]
+  "slug" varchar [unique]
+  "description" varchar
+  "website" varchar
+  "isActive" bool [not null, default: true]
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "attachmentId" int4
+  "createdby" int4
+  "updatedby" int4
+}
+
+Table "attachment" {
+  "id" int4 [pk, not null, increment]
+  "fileName" varchar [not null]
+  "originalName" varchar [not null]
+  "mimeType" varchar [not null]
+  "size" int4 [not null]
+  "url" varchar [not null]
+  "key" varchar [not null]
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "gallery_id" int4
+}
+
+Table "menu" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar(100) [not null]
+  "parentId" int4
+  "icon" varchar(50)
+  "url" varchar(255)
+  "order" int4 [not null, default: 0]
+  "is_main_menu" bool [not null, default: false]
+  "is_active" bool [not null, default: true]
+  "is_admin_menu" bool [not null, default: false]
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+
+  Indexes {
+    parentId [type: btree, name: "IDX_23ac1b81a7bfb85b14e86bd23a"]
+  }
+}
+
+Table "unit" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar(50) [unique, not null]
+  "isActive" bool [not null, default: true]
+  "created_date" timestamp [not null, default: `now()`]
+  "updated_date" timestamp [not null, default: `now()`]
+  "createdby" int4
+  "updatedby" int4
+}
+
+Table "role" {
+  "id" int4 [pk, not null, increment]
+  "rolename" varchar(100) [unique, not null]
+  "description" text
+  "isActive" bool [not null, default: true]
+  "createdBy" int4
+  "updatedBy" int4
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+}
+
+Table "menu_permission" {
+  "id" int4 [pk, not null, increment]
+  "roleId" int4 [not null]
+  "menuId" int4 [not null]
+  "canView" bool [not null, default: false]
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+}
+
+Table "supplier" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar [not null]
+  "email" varchar
+  "phone" varchar
+  "address" varchar
+  "isActive" bool [not null, default: true]
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "createdBy" int4
+  "updatedBy" int4
+  "attachmentId" int4
+}
+
+Table "purchase" {
+  "id" int4 [pk, not null, increment]
+  "status" varchar [not null, default: 'pending']
+  "notes" text
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "supplierId" int4
+  "createdBy" int4
+  "updatedBy" int4
+  "purchaseNumber" varchar [unique, not null]
+  "totalValue" numeric(10,2) [not null, note: 'Total value of the purchase (sum of all items total)']
+  "paymentStatus" varchar [not null, default: 'due']
+  "amountPaid" numeric(10,2) [not null, default: '0']
+  "purchase_date" timestamp [not null, default: `now()`]
+}
+
+Table "payment" {
+  "id" int4 [pk, not null, increment]
+  "paymentNumber" varchar [unique, not null]
+  "amount" numeric(10,2) [not null]
+  "paymentDate" date [not null]
+  "referenceNumber" varchar
+  "notes" text
+  "status" varchar [not null, default: 'completed']
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "purchaseId" int4
+  "createdBy" int4
+  "updatedBy" int4
+  "paymentMethodId" int4
+}
+
+Table "payment_method" {
+  "id" int4 [pk, not null, increment]
+  "code" varchar [unique, not null]
+  "name" varchar [not null]
+  "description" text
+  "isActive" bool [not null, default: true]
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "createdBy" int4
+  "updatedBy" int4
+}
+
+Table "banner" {
+  "id" int4 [pk, not null, increment]
+  "title" varchar [not null]
+  "description" text
+  "targetUrl" varchar
+  "position" banner_position_enum [not null, default: 'top']
+  "type" banner_type_enum [not null, default: 'main']
+  "isActive" bool [not null, default: true]
+  "displayOrder" int4 [not null, default: 0]
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "imageId" int4
+  "createdBy" int4
+  "updatedBy" int4
+}
+
+Table "purchase_item" {
+  "id" int4 [pk, not null, increment]
+  "unitPrice" numeric(10,2) [not null]
+  "quantity" int4 [not null]
+  "total" numeric(10,2) [not null]
+  "purchaseId" int4
+  "productId" int4
+  "createdBy" int4
+  "updatedBy" int4
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+}
+
+Table "address" {
+  "id" int4 [pk, not null, increment]
+  "address" varchar
+  "area" varchar
+  "division" varchar
+  "city" varchar
+  "type" address_type_enum [not null, default: 'shipping']
+  "isDefault" bool [not null, default: false]
+  "user_id" int4 [not null]
+}
+
+Table "cart_item" {
+  "id" int4 [pk, not null, increment]
+  "quantity" int4 [not null, default: 1]
+  "cartId" int4
+  "productId" int4
+}
+
+Table "cart" {
+  "id" int4 [pk, not null, increment]
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "userId" int4 [unique]
+}
+
+Table "coupon" {
+  "code" varchar [unique, not null]
+  "discountType" coupon_discounttype_enum [not null]
+  "value" numeric(10,2) [not null]
+  "timesUsed" int4 [not null, default: 0]
+  "maxUsage" int4
+  "validFrom" timestamp [not null]
+  "validUntil" timestamp [not null]
+  "isActive" bool [not null, default: true]
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "id" int4 [pk, not null, increment]
+  "maxDiscountAmount" numeric(10,2)
+}
+
+Table "shipping_method" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar [unique, not null]
+  "cost" numeric(10,2) [not null]
+  "deliveryTime" varchar [not null]
+  "description" varchar
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "createdBy" int4
+  "updatedBy" int4
+}
+
+Table "order_payment_method" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar [unique, not null]
+  "code" varchar [unique, not null]
+  "isActive" bool [not null, default: true]
+  "description" text
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "createdBy" int4
+  "updatedBy" int4
+}
+
+Table "galleries" {
+  "name" varchar [not null]
+  "description" text
+  "id" int4 [pk, not null, increment]
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+}
+
+Table "order_payment" {
+  "id" int4 [pk, not null, increment]
+  "paymentNumber" varchar [unique, not null]
+  "amount" numeric(10,2) [not null]
+  "paymentDate" date [not null, default: `('now'::text)::date`]
+  "sslPaymentId" varchar
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "orderId" int4
+  "paymentMethodId" int4
+  "createdby" int4
+  "updatedby" int4
+}
+
+Table "order_status_track" {
+  "id" int4 [pk, not null, increment]
+  "status" order_status_track_status_enum [not null]
+  "note" text
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "orderId" int4
+  "updatedBy" int4
+}
+
+Table "order" {
+  "id" int4 [pk, not null, increment]
+  "orderNo" varchar [unique, not null]
+  "orderStatus" order_orderstatus_enum [not null, default: 'pending']
+  "paymentStatus" order_paymentstatus_enum [not null, default: 'pending']
+  "totalValue" int4 [not null]
+  "totalDiscount" numeric(10,2) [not null, default: '0']
+  "paidAmount" numeric(10,2) [not null, default: '0']
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "addressId" int4
+  "userId" int4
+  "shippingMethodId" int4
+  "couponId" int4
+  "paymentMethodId" int4
+}
+
+Table "order_item" {
+  "id" int4 [pk, not null, increment]
+  "productId" int4 [not null]
+  "quantity" int4 [not null]
+  "createdAt" timestamp [not null, default: `now()`]
+  "updatedAt" timestamp [not null, default: `now()`]
+  "orderId" int4
+}
+
+Ref "FK_35cd6c3fafec0bb5d072e24ea20":"user"."id" < "address"."user_id"
+
+Ref "FK_d894c5f1ee47a53cc1ab6882dfa":"galleries"."id" < "attachment"."gallery_id" [delete: cascade]
+
+Ref "FK_3282821e258d5550f29eeaad0c0":"user"."id" < "banner"."createdBy"
+
+Ref "FK_6a6cc2453a0675d3e2cad3070c0":"attachment"."id" < "banner"."imageId"
+
+Ref "FK_d7dbb829c4be94d7dd752a856ff":"user"."id" < "banner"."updatedBy"
+
+Ref "FK_14cce10d725f4ef96d439c22369":"user"."id" < "brand"."createdby"
+
+Ref "FK_95d3fcf6d171bab29aa78ce1935":"user"."id" < "brand"."updatedby"
+
+Ref "FK_faeb1d44c559aa06c5937628869":"attachment"."id" < "brand"."attachmentId"
+
+Ref "FK_756f53ab9466eb52a52619ee019":"user"."id" < "cart"."userId"
+
+Ref "FK_29e590514f9941296f3a2440d39":"cart"."id" < "cart_item"."cartId" [delete: cascade]
+
+Ref "FK_75db0de134fe0f9fe9e4591b7bf":"product"."id" < "cart_item"."productId"
+
+Ref "FK_00bcc17ae1cb987a45edc616240":"user"."id" < "category"."createdBy"
+
+Ref "FK_304a5bf60ced8b405d9f1c79841":"attachment"."id" < "category"."attachmentId"
+
+Ref "FK_d5456fd7e4c4866fec8ada1fa10":"category"."id" < "category"."parentId" [delete: set null]
+
+Ref "FK_dbec3186ea4b206ce9694e3bb88":"user"."id" < "category"."updatedBy"
+
+Ref "FK_23ac1b81a7bfb85b14e86bd23a5":"menu"."id" < "menu"."parentId"
+
+Ref "FK_9bce2463e2d2bf3d6292dfed1e4":"role"."id" < "menu_permission"."roleId"
+
+Ref "FK_c57de8fc6071e94f9fd4199980c":"menu"."id" < "menu_permission"."menuId"
+
+Ref "FK_4af424d3e7b2c3cb26e075e20fc":"shipping_method"."id" < "order"."shippingMethodId"
+
+Ref "FK_73f9a47e41912876446d047d015":"address"."id" < "order"."addressId"
+
+Ref "FK_89726ee65618314009b279e66e8":"order_payment_method"."id" < "order"."paymentMethodId"
+
+Ref "FK_8e2b018ed0091fa11714dd7b3e1":"coupon"."id" < "order"."couponId"
+
+Ref "FK_caabe91507b3379c7ba73637b84":"user"."id" < "order"."userId"
+
+Ref "FK_646bf9ece6f45dbe41c203e06e0":"order"."id" < "order_item"."orderId"
+
+Ref "FK_904370c093ceea4369659a3c810":"product"."id" < "order_item"."productId"
+
+Ref "FK_1da90a7ac8283d713adc94a9ad7":"order_payment_method"."id" < "order_payment"."paymentMethodId"
+
+Ref "FK_8a2c7b3ebff929fa3cb8b2d7ef8":"user"."id" < "order_payment"."updatedby"
+
+Ref "FK_8e5de5355bcad91a7769f16504c":"order"."id" < "order_payment"."orderId"
+
+Ref "FK_ab2029e81ab96ec1aa0302fb342":"user"."id" < "order_payment"."createdby"
+
+Ref "FK_9b27307bff78e622e38f7d563fe":"user"."id" < "order_payment_method"."updatedBy"
+
+Ref "FK_aa865832481efa25294c6529142":"user"."id" < "order_payment_method"."createdBy"
+
+Ref "FK_ce65a2b7418b42d2f7821b395a6":"order"."id" < "order_status_track"."orderId" [delete: cascade]
+
+Ref "FK_fbb0045c44db10230ff54609e92":"user"."id" < "order_status_track"."updatedBy"
+
+Ref "FK_14a474abdb8afcfe60e5eb55f34":"user"."id" < "payment"."createdBy"
+
+Ref "FK_6cb8bf25843458a9288c39b4a2a":"user"."id" < "payment"."updatedBy"
+
+Ref "FK_885283e0709e1a736ecca80cf3c":"purchase"."id" < "payment"."purchaseId"
+
+Ref "FK_fb76bf2f52ca15e599f50bb34ae":"payment_method"."id" < "payment"."paymentMethodId"
+
+Ref "FK_74d3455814751b20dffa8727fa0":"user"."id" < "payment_method"."updatedBy"
+
+Ref "FK_900f6f4ae060c45af5cefe6c945":"user"."id" < "payment_method"."createdBy"
+
+Ref "FK_2ee96d5eff55f14a6e37470b782":"unit"."id" < "product"."unitId"
+
+Ref "FK_40bc6db30ab65d60cd264561f10":"user"."id" < "product"."updatedBy"
+
+Ref "FK_4346e4adb741e80f3711ee09ba4":"supplier"."id" < "product"."supplierId"
+
+Ref "FK_6d4b5c2dc572e9117fb59a7c368":"attachment"."id" < "product"."attachmentId"
+
+Ref "FK_9ea2e1b2997a4bba4f7785fd94b":"galleries"."id" < "product"."galleryId"
+
+Ref "FK_bb7d3d9dc1fae40293795ae39d6":"brand"."id" < "product"."brandId"
+
+Ref "FK_c64061c08a8071ce5f3d369a383":"user"."id" < "product"."createdBy"
+
+Ref "FK_ff0c0301a95e517153df97f6812":"category"."id" < "product"."categoryId"
+
+Ref "FK_183441d86607569c48e58ce70b1":"user"."id" < "purchase"."updatedBy"
+
+Ref "FK_246388b484113222782d19e34ef":"user"."id" < "purchase"."createdBy"
+
+Ref "FK_b4ee84e23fdff57bb8bfefbf998":"supplier"."id" < "purchase"."supplierId"
+
+Ref "FK_0a3dd60e7f0694bbbc6bc301abb":"product"."id" < "purchase_item"."productId"
+
+Ref "FK_29ba18d69c81231e8ffabe478b4":"purchase"."id" < "purchase_item"."purchaseId"
+
+Ref "FK_66b837c6e8b914331cfe8233975":"user"."id" < "purchase_item"."createdBy"
+
+Ref "FK_b6af9dc8f17b7478577f4b41157":"user"."id" < "purchase_item"."updatedBy"
+
+Ref "FK_17be5172ac2f4c67687a2e7c67d":"user"."id" < "role"."createdBy"
+
+Ref "FK_64a1786ac86cd459077a53f411f":"user"."id" < "role"."updatedBy"
+
+Ref "FK_4b44b7de8df364d0c2895bd8b5b":"user"."id" < "shipping_method"."updatedBy"
+
+Ref "FK_765a7747ff6d360c0a5cfbf1067":"user"."id" < "shipping_method"."createdBy"
+
+Ref "FK_a2a1af9aaac595d73d53cb78352":"user"."id" < "supplier"."createdBy"
+
+Ref "FK_cd86d42976a0fe1e972e8ecb23c":"user"."id" < "supplier"."updatedBy"
+
+Ref "FK_eb8c9ab9b222ff1f36dda208d73":"attachment"."id" < "supplier"."attachmentId"
+
+Ref "FK_9e6e8d42e806fdf9b746b0b5a2a":"user"."id" < "unit"."updatedby"
+
+Ref "FK_aa2781784726770e7282007fbdd":"user"."id" < "unit"."createdby"
+
+Ref "FK_342497b574edb2309ec8c6b62aa":"cart"."id" < "user"."cartId"
+
+Ref "FK_87b40c02a70fd210bead07c854c":"attachment"."id" < "user"."profilePhotoId"
+
+Ref "FK_c28e52f758e7bbc53828db92194":"role"."id" < "user"."roleId"
