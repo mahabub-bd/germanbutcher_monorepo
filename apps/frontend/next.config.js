@@ -10,6 +10,11 @@ const nextConfig = {
   // Enable standalone output for Docker deployment
   output: 'standalone',
 
+  // Disable build cache to prevent hanging build trace collection in Docker/CI
+  experimental: {
+    cacheHandler: null,
+  },
+
   turbopack: {
     root: monorepoRoot,
   },

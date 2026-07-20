@@ -30,6 +30,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PRIVATE_DISABLE_BUILD_TRACES=1
 ENV CI=true
 ENV NODE_ENV=production
+ENV NEXT_PRIVATE_SKIP_CACHE=true
 
 # `NEXT_PUBLIC_*` values are embedded in the client bundle at build time. Pass
 # them as Docker build arguments from the deployment platform (Dokploy), then
