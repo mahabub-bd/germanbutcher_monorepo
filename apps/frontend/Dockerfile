@@ -21,7 +21,7 @@ COPY package.json pnpm-lock.yaml* ./
 COPY .npmrc* ./
 
 # Install dependencies with frozen lockfile for reproducible builds
-RUN pnpm install --frozen-lockfile --trust-lockfile
+RUN pnpm install --frozen-lockfile
 
 FROM deps AS builder
 
