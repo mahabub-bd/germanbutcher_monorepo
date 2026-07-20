@@ -1,18 +1,9 @@
-const path = require("path");
-
-// Try multiple paths for Turbopack
-const monorepoRoot = "/run/media/mahabub/Projects/Projects/germanbutcher";
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactCompiler: true,
 
   // Enable standalone output for Docker deployment
   output: 'standalone',
-
-  turbopack: {
-    root: monorepoRoot,
-  },
 
   // Transpile ESM packages
   transpilePackages: ["@react-pdf/renderer"],
