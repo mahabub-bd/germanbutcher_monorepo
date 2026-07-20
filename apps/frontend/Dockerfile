@@ -27,6 +27,7 @@ COPY . .
 
 # Set environment for build
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PRIVATE_DISABLE_BUILD_TRACE=1
 ENV NODE_ENV=production
 
 # `NEXT_PUBLIC_*` values are embedded in the client bundle at build time. Pass
@@ -52,6 +53,7 @@ RUN npm install -g pnpm@9
 # Set environment
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PRIVATE_DISABLE_BUILD_TRACE=1
 ENV PORT=3002
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_BASE_URL
