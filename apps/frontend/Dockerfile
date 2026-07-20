@@ -29,6 +29,16 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+# `NEXT_PUBLIC_*` values are embedded in the client bundle at build time. Pass
+# them as Docker build arguments from the deployment platform (Dokploy), then
+# expose them while `next build` generates static pages.
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_BASE_URL
+ARG NEXT_PUBLIC_SOCKET_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+ENV NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
+
 # Build the application
 RUN pnpm build
 
@@ -43,6 +53,12 @@ RUN npm install -g pnpm@9
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3002
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_BASE_URL
+ARG NEXT_PUBLIC_SOCKET_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+ENV NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
