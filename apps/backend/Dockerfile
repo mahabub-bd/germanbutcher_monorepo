@@ -43,19 +43,14 @@ RUN npm install -g pnpm@9
 ENV NODE_ENV=production
 
 # Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nestjs
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nestjs
 
-# Copy built files and dependencies
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
-
-# Copy public assets (directory now guaranteed to exist from builder stage)
-COPY --from=builder /app/public ./public
-
-# Set ownership
-RUN chown -R nestjs:nodejs /app
+# Copy built files and dependencies with correct ownership (much faster than chown -R)
+COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nestjs:nodejs /app/package.json ./
+COPY --from=builder --chown=nestjs:nodejs /app/public ./public
 
 USER nestjs
 

@@ -1,65 +1,77 @@
-# Multi-stage Dockerfile for Next.js Frontend
-# Stage 1: Dependencies
-FROM node:20-alpine AS deps
+# Base stage - minimal Alpine with Node.js only
+FROM node:22-alpine AS base
+
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
+# Build stage with tools for compiling native modules
+FROM base AS build-tools
+
+# Install build tools only for this stage
+RUN apk add --no-cache libc6-compat python3 make g++ \
+    && rm -rf /var/cache/apk/*
+
 # Install pnpm
 RUN npm install -g pnpm@9
+
+FROM build-tools AS deps
 
 # Copy dependency files
 COPY package.json pnpm-lock.yaml* ./
 COPY .npmrc* ./
 
-# Install dependencies
+# Install dependencies with frozen lockfile for reproducible builds
 RUN pnpm install --frozen-lockfile
 
-# Stage 2: Builder
-FROM node:20-alpine AS builder
-WORKDIR /app
+FROM deps AS builder
 
-# Install pnpm
-RUN npm install -g pnpm@9
-
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set environment for build
-ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV CI=true
+
+# Build arguments for public environment variables
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_BASE_URL
+ARG NEXT_PUBLIC_SOCKET_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+ENV NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
 
 # Build the application
-RUN pnpm build
+RUN pnpm run build
 
-# Stage 3: Production Runner
-FROM node:20-alpine AS runner
+# Production stage - start from clean base (no build tools)
+FROM node:22-alpine AS production
+
+ENV NODE_ENV=production
+ENV PORT=3002
+ENV HOSTNAME=0.0.0.0
+ENV NEXT_TELEMETRY_DISABLED=1
+
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm@9
+# Build arguments for runtime environment variables
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_BASE_URL
+ARG NEXT_PUBLIC_SOCKET_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+ENV NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
 
-# Set environment
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3002
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Copy built files
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-
-# Set ownership
-RUN chown -R nextjs:nodejs /app
+# Copy standalone output - this already includes only necessary production dependencies
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 USER nextjs
 
 EXPOSE 3002
-
-ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]
