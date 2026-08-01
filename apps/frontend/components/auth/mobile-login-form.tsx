@@ -239,7 +239,9 @@ export default function MobileLoginFormWithServerActions() {
                 <Input
                   key={index}
                   id={`otp-${index}`}
-                  ref={(el: HTMLInputElement | null) => (inputsRef.current[index] = el)}
+                  ref={(el) => {
+                    inputsRef.current[index] = el;
+                  }}
                   type="text"
                   inputMode="numeric"
                   maxLength={1}

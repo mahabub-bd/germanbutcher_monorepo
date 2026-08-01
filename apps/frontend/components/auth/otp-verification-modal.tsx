@@ -219,7 +219,9 @@ export const OtpVerificationModal = ({
                 <input
                   key={idx}
                   data-index={idx}
-                  ref={(el) => (inputsRef.current[idx] = el)}
+                  ref={(el) => {
+                    inputsRef.current[idx] = el;
+                  }}
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
