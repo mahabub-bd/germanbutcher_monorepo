@@ -221,6 +221,7 @@ export class AuthService {
     mobileNumber: string,
     otp: string,
     req?: any,
+    name?: string,
   ): Promise<{
     message: string;
     statusCode: number;
@@ -265,11 +266,19 @@ export class AuthService {
       });
     }
 
-    const data = await this.userService.update(user.id, {
+    // Update user data - include name if provided (for new users setting their name)
+    const updateData: any = {
       otp: null,
       otpExpiresAt: null,
       isVerified: true,
-    });
+    };
+
+    // ALWAYS update name if provided (for new users setting their name)
+    if (name && name.trim()) {
+      updateData.name = name.trim();
+    }
+
+    const data = await this.userService.update(user.id, updateData);
 
     if (!data) {
       throw new BadRequestException({
@@ -277,20 +286,30 @@ export class AuthService {
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }
-    const sanitizedUser = this.sanitizeUser(user);
+
+    // Fetch the updated user to get the latest data including the updated name
+    const updatedUser = await this.userService.findByMobileNumber(mobileNumber);
+    if (!updatedUser) {
+      throw new BadRequestException({
+        message: 'Failed to fetch updated user',
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+
+    const sanitizedUser = this.sanitizeUser(updatedUser);
 
     const tokens = await this.generateTokens(sanitizedUser as User);
 
-    await this.userService.updateLastLogin(user.id);
+    await this.userService.updateLastLogin(updatedUser.id);
 
     // Log mobile login activity
-    await this.logLoginActivity(user, req, 'mobile');
+    await this.logLoginActivity(updatedUser, req, 'mobile');
 
     const userResponse = {
-      id: user.id,
-      name: user.name,
-      mobileNumber: user.mobileNumber,
-      roles: user.role,
+      id: updatedUser.id,
+      name: sanitizedUser.name || updatedUser.name,
+      mobileNumber: updatedUser.mobileNumber,
+      roles: updatedUser.role,
       isVerified: true,
     };
 

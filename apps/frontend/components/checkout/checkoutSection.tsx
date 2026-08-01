@@ -138,9 +138,20 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
     }
   };
 
-  const handleOtpSuccess = () => {
+  const handleOtpSuccess = (data?: { userId?: string; user?: { name?: string; email?: string; mobileNumber?: string } }) => {
     setIsVerified(true);
     setShowOtpModal(false);
+
+    // Update form data with user info from OTP verification
+    if (data?.user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: data.user?.name || prev.name,
+        email: data.user?.email || prev.email,
+        phone: data.user?.mobileNumber || prev.phone,
+      }));
+    }
+
     toast.success("Phone number verified successfully");
     serverRevalidate("/");
 
@@ -400,6 +411,8 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
         onSuccess={handleOtpSuccess}
         onResendOtp={mobileLogin}
         onVerifyOtp={verifyOtp}
+        showNameInput={!user}
+        isNewUser={!user}
       />
     </div>
   );

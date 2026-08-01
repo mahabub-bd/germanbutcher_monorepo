@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function MobileLoginFormWithServerActions() {
@@ -18,6 +18,7 @@ export default function MobileLoginFormWithServerActions() {
   const [timer, setTimer] = useState(180); // 3 minutes
   const [isLoading, setIsLoading] = useState(false);
   const [otpExpiresAt, setOtpExpiresAt] = useState("");
+  const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -32,13 +33,20 @@ export default function MobileLoginFormWithServerActions() {
     return () => clearInterval(countdown);
   }, [showOtpForm, timer]);
 
+  useEffect(() => {
+    if (showOtpForm) {
+      // focus first otp input when form opens
+      setTimeout(() => inputsRef.current[0]?.focus(), 50);
+    }
+  }, [showOtpForm]);
+
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, "");
     setPhoneNumber(value);
   };
 
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendOtp = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e && 'preventDefault' in e) e.preventDefault();
 
     if (phoneNumber.length !== 10 || !phoneNumber.startsWith("1")) {
       toast.error("Invalid phone number", {
@@ -79,27 +87,37 @@ export default function MobileLoginFormWithServerActions() {
   const handleOtpChange = (index: number, value: string) => {
     value = value.replace(/\D/g, "");
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = value.slice(0, 1);
     setOtp(newOtp);
 
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      if (nextInput) {
-        (nextInput as HTMLInputElement).focus();
+    if (value && index < otp.length) {
+      inputsRef.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (otp[index]) {
+        // clear current
+        const newOtp = [...otp];
+        newOtp[index] = "";
+        setOtp(newOtp);
+      } else if (index > 0) {
+        inputsRef.current[index - 1]?.focus();
       }
     }
   };
 
-  const handleOtpKeyDown = (
-    index: number,
-    e: React.KeyboardEvent<HTMLInputElement>
-  ) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-${index - 1}`);
-      if (prevInput) {
-        (prevInput as HTMLInputElement).focus();
-      }
-    }
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const paste = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, otp.length);
+    if (!paste) return;
+    const newOtp = paste.split("").slice(0, otp.length);
+    while (newOtp.length < otp.length) newOtp.push("");
+    setOtp(newOtp);
+    // focus the last filled input
+    const focusIdx = Math.min(paste.length - 1, otp.length - 1);
+    inputsRef.current[focusIdx]?.focus();
+    e.preventDefault();
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
@@ -221,12 +239,14 @@ export default function MobileLoginFormWithServerActions() {
                 <Input
                   key={index}
                   id={`otp-${index}`}
+                  ref={(el: HTMLInputElement | null) => (inputsRef.current[index] = el)}
                   type="text"
                   inputMode="numeric"
                   maxLength={1}
                   value={digit}
                   onChange={(e) => handleOtpChange(index, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                  onPaste={handleOtpPaste}
                   className="w-12 h-12 text-center text-xl font-semibold border-gray-200 focus:border-primaryColor focus:ring-primaryColor/20"
                   required
                   disabled={isLoading}

@@ -279,13 +279,13 @@ export class AuthController {
   @ApiUnauthorizedResponse({
     description: 'Unauthorized - Invalid OTP',
   })
-  async verifyOtp(@Body() { mobileNumber, otp }: VerifyOtpDto, @Req() req) {
+  async verifyOtp(@Body() { mobileNumber, otp, name }: VerifyOtpDto, @Req() req) {
     if (!mobileNumber || !otp) {
       throw new BadRequestException({
         message: 'Mobile number and OTP are required',
         statusCode: HttpStatus.BAD_REQUEST,
       });
     }
-    return this.authService.verifyMobileOtp(mobileNumber, otp, req);
+    return this.authService.verifyMobileOtp(mobileNumber, otp, req, name);
   }
 }
