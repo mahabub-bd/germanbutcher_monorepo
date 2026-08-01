@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.5.6
 # Base stage - minimal Alpine with Node.js only
 FROM node:22-alpine AS base
 
@@ -22,8 +21,7 @@ COPY package.json pnpm-lock.yaml* ./
 COPY .npmrc* ./
 
 # Install dependencies with frozen lockfile for reproducible builds
-RUN --mount=type=cache,target=/root/.pnpm-store,target=/root/.npm \
-pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 FROM deps AS builder
 
@@ -43,8 +41,7 @@ ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 ENV NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
 
 # Build the application
-RUN --mount=type=cache,target=/app/.next/cache \
-    pnpm run build
+RUN pnpm run build
 
 # Production stage - start from clean base (no build tools)
 FROM node:22-alpine AS production
