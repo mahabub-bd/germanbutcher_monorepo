@@ -42,7 +42,23 @@ export async function setUserCookies(userData: any) {
   };
 
   try {
-    if (userData?.data) {
+    // Extract user info from response.data.user (from verifyOtp response)
+    if (userData?.data?.user) {
+      const user = userData.data.user;
+      userInfo = {
+        id: user.id || 0,
+        name: user.name || "Customer",
+        email: user.email || "",
+        mobileNumber: user.mobileNumber || "",
+        roles: user.roles || "",
+        isAdmin: Boolean(
+          user.roles === "admin" || user.roles === "superadmin" || user.roles === "modaretor"
+        ),
+        createdAt: user.createdAt || "",
+      };
+    }
+    // Fallback: check if user data is at top level of response (from token data)
+    else if (userData?.name || userData?.email) {
       userInfo = {
         id: userData.id || 0,
         name: userData.name || "Customer",
@@ -52,9 +68,11 @@ export async function setUserCookies(userData: any) {
         isAdmin: Boolean(
           userData.roles === "admin" || userData.roles === "superadmin" || userData.roles === "modaretor"
         ),
-        createdAt: userData?.createdAt,
+        createdAt: userData.createdAt || "",
       };
-    } else if (userData?.mobileNo) {
+    }
+    // Legacy fallback for mobileNo format
+    else if (userData?.mobileNo) {
       userInfo = {
         id: 0,
         name: userData.name || "Customer",
@@ -256,8 +274,10 @@ export async function verifyOtp(data: {
   mobileNumber: string;
   otp: string;
   otpExpiresAt?: string;
+  name?: string;
 }) {
   try {
+    // Don't send auth token for OTP verification (it's a public endpoint)
     const response = await postData("auth/verify-otp", data);
 
     if (response?.data?.accessToken) {
@@ -275,6 +295,10 @@ export async function verifyOtp(data: {
         success: true,
         message: response?.message,
         redirect: redirectPath,
+        data: {
+          userId: response.data.user?.id,
+          user: response.data.user,
+        },
       };
     }
 
