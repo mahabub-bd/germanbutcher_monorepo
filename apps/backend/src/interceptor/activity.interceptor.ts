@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable, from } from 'rxjs';
-import { switchMap, tap } from 'rxjs/operators';
+import { switchMap } from 'rxjs/operators';
 import { Category } from 'src/category/entities/category.entity';
 import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { Order } from 'src/order/entities/order.entity';
@@ -207,27 +207,27 @@ export class ActivityInterceptor implements NestInterceptor {
     }
 
     return next.handle().pipe(
-      tap(() => {
-        this.userActivityService
-          .logAction({
-            userId,
-            action: `${action} ${req.route?.path || req.originalUrl}`,
-            entityType,
-            entityId,
-            oldValue,
-            newValue,
-            ipAddress,
-            userAgent,
-            requestId,
-            sessionId,
-            userType,
-            status: AuditStatus.SUCCESS,
-            message: this.getActionMessage(req, action, entityType, entityId),
-          })
-          .catch((error) => {
-            console.error('Failed to log user activity:', error);
-          });
-      }),
+      switchMap((data) => from((async () => {
+        const message = await this.getActionMessage(req, action, entityType, entityId);
+        await this.userActivityService.logAction({
+          userId,
+          action: `${action} ${req.route?.path || req.originalUrl}`,
+          entityType,
+          entityId,
+          oldValue,
+          newValue,
+          ipAddress,
+          userAgent,
+          requestId,
+          sessionId,
+          userType,
+          status: AuditStatus.SUCCESS,
+          message,
+        }).catch((error) => {
+          console.error('Failed to log user activity:', error);
+        });
+        return data;
+      })())),
     );
   }
 
@@ -254,7 +254,25 @@ export class ActivityInterceptor implements NestInterceptor {
     return `req-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 
-  private getActionMessage(req: any, action: string, entityType: string, entityId: number | null): string {
+  private async fetchProductName(productId: number): Promise<string | null> {
+    try {
+      if (!productId || isNaN(productId) || productId <= 0) {
+        return null;
+      }
+      const metadata = this.dataSource.getMetadata(Product);
+      const tableName = metadata.tableName;
+      const result = await this.dataSource.query(
+        `SELECT name FROM "${tableName}" WHERE "id" = $1 LIMIT 1`,
+        [productId]
+      );
+      return result && result.length > 0 ? result[0].name : null;
+    } catch (error) {
+      console.error('Error fetching product name:', error);
+      return null;
+    }
+  }
+
+  private async getActionMessage(req: any, action: string, entityType: string, entityId: number | null): Promise<string> {
     const routePath = req.route?.path || req.originalUrl;
 
     // Handle specific order-related routes for more descriptive messages
@@ -285,7 +303,8 @@ export class ActivityInterceptor implements NestInterceptor {
         if (action === 'POST') {
           const productId = req.body?.productId;
           const quantity = req.body?.quantity;
-          return `Added product${productId ? ` ${productId}` : ''}${quantity ? ` (qty: ${quantity})` : ''} to cart`;
+          const productName = productId ? await this.fetchProductName(productId) : null;
+          return `Added product${productName ? ` "${productName}"` : (productId ? ` ${productId}` : '')}${quantity ? ` (qty: ${quantity})` : ''} to cart`;
         } else if (action === 'PATCH') {
           const quantity = req.body?.quantity;
           return `Updated cart item${entityId ? ` ${entityId}` : ''} quantity${quantity ? ` to ${quantity}` : ''}`;
