@@ -1,4 +1,5 @@
 // constants/index.ts
+import { Facebook, Instagram, Youtube } from "@/components/icons/brand-icons";
 import {
   FoodSafty,
   GBEXPRESS,
@@ -13,7 +14,6 @@ import {
 } from "@/public/images";
 import { FAQItem, SisterConcern } from "@/utils/types";
 import { Mail, MapPin, Phone } from "lucide-react";
-import { Facebook, Instagram, Youtube } from "@/components/icons/brand-icons";
 
 export type FeatureData = {
   iconSrc: string;
@@ -42,7 +42,7 @@ export const defaultFeaturesData: FeatureData[] = [
     iconAlt: "Halal Certified",
     title: "100% Halal Certified",
     description:
-      "We have been certified by Halal Bangladesh Services Ltd (Certificate No. HBM10010322/221)",
+      "We are certified by Islamic Foundation Bangladesh",
     iconBgColor: "green",
   },
   {

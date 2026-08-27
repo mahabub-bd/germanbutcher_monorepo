@@ -39,5 +39,6 @@ export {
   SSLcomarz,
   SteakandSausage,
   Tandoor,
-  TokyoKitchen,
+  TokyoKitchen
 };
+
