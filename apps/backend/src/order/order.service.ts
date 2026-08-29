@@ -14,7 +14,7 @@ import { OrderPaymentService } from 'src/order-payment/order-payment.service';
 import { Product } from 'src/product/entities/product.entity';
 import { ShippingMethod } from 'src/shipping-methods/entities/shipping-method.entity';
 import { User } from 'src/user/entities/user.entity';
-import { Like, Repository } from 'typeorm';
+import { Like, Repository, SelectQueryBuilder } from 'typeorm';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
 import { OrderItem } from './entities/order-item.entity';
@@ -859,46 +859,58 @@ export class OrderService {
     };
   }
 
-  async getMonthlyOrderReport() {
+  async getMonthlyOrderReport(year?: number) {
+    // Optional year filter applied to all three queries
+    const withYearFilter = (qb: SelectQueryBuilder<Order>) =>
+      year
+        ? qb.andWhere('EXTRACT(YEAR FROM order.createdAt) = :year', { year })
+        : qb;
+
     // Query for all orders (regardless of status)
-    const allOrdersResult = await this.orderRepository
-      .createQueryBuilder('order')
-      .select([
-        'EXTRACT(YEAR FROM order.createdAt) AS year',
-        "TO_CHAR(order.createdAt, 'Month') AS month_name",
-        'EXTRACT(MONTH FROM order.createdAt) AS month_number',
-        'COUNT(order.id) AS all_order_count',
-        'SUM(order.totalValue) AS all_order_value',
-      ])
+    const allOrdersResult = await withYearFilter(
+      this.orderRepository
+        .createQueryBuilder('order')
+        .select([
+          'EXTRACT(YEAR FROM order.createdAt) AS year',
+          "TO_CHAR(order.createdAt, 'Month') AS month_name",
+          'EXTRACT(MONTH FROM order.createdAt) AS month_number',
+          'COUNT(order.id) AS all_order_count',
+          'SUM(order.totalValue) AS all_order_value',
+        ]),
+    )
       .groupBy('year, month_name, month_number')
       .orderBy('year, month_number', 'ASC')
       .getRawMany();
 
     // Query for delivered orders
-    const deliveredResult = await this.orderRepository
-      .createQueryBuilder('order')
-      .select([
-        'EXTRACT(YEAR FROM order.createdAt) AS year',
-        "TO_CHAR(order.createdAt, 'Month') AS month_name",
-        'EXTRACT(MONTH FROM order.createdAt) AS month_number',
-        'COUNT(order.id) AS order_count',
-        'SUM(order.totalValue) AS total_value',
-      ])
+    const deliveredResult = await withYearFilter(
+      this.orderRepository
+        .createQueryBuilder('order')
+        .select([
+          'EXTRACT(YEAR FROM order.createdAt) AS year',
+          "TO_CHAR(order.createdAt, 'Month') AS month_name",
+          'EXTRACT(MONTH FROM order.createdAt) AS month_number',
+          'COUNT(order.id) AS order_count',
+          'SUM(order.totalValue) AS total_value',
+        ]),
+    )
       .where('order.orderStatus = :status', { status: OrderStatus.DELIVERED })
       .groupBy('year, month_name, month_number')
       .orderBy('year, month_number', 'ASC')
       .getRawMany();
 
     // Query for cancelled orders
-    const cancelledResult = await this.orderRepository
-      .createQueryBuilder('order')
-      .select([
-        'EXTRACT(YEAR FROM order.createdAt) AS year',
-        "TO_CHAR(order.createdAt, 'Month') AS month_name",
-        'EXTRACT(MONTH FROM order.createdAt) AS month_number',
-        'COUNT(order.id) AS cancel_order_count',
-        'SUM(order.totalValue) AS cancel_value',
-      ])
+    const cancelledResult = await withYearFilter(
+      this.orderRepository
+        .createQueryBuilder('order')
+        .select([
+          'EXTRACT(YEAR FROM order.createdAt) AS year',
+          "TO_CHAR(order.createdAt, 'Month') AS month_name",
+          'EXTRACT(MONTH FROM order.createdAt) AS month_number',
+          'COUNT(order.id) AS cancel_order_count',
+          'SUM(order.totalValue) AS cancel_value',
+        ]),
+    )
       .where('order.orderStatus = :status', { status: OrderStatus.CANCELLED })
       .groupBy('year, month_name, month_number')
       .orderBy('year, month_number', 'ASC')
@@ -977,6 +989,16 @@ export class OrderService {
       });
 
     return { monthlyData: formattedData };
+  }
+
+  async getMonthlyOrderReportYears() {
+    const result = await this.orderRepository
+      .createQueryBuilder('order')
+      .select('DISTINCT EXTRACT(YEAR FROM order.createdAt)', 'year')
+      .orderBy('year', 'DESC')
+      .getRawMany();
+
+    return result.map((row) => parseInt(row.year));
   }
 
   async getOrderStatistics() {
