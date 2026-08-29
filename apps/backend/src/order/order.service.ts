@@ -883,6 +883,8 @@ export class OrderService {
       .getRawMany();
 
     // Query for delivered orders
+    // Note: base .where() must come before withYearFilter so the year
+    // filter is appended via andWhere (a later .where() would replace it)
     const deliveredResult = await withYearFilter(
       this.orderRepository
         .createQueryBuilder('order')
@@ -892,9 +894,9 @@ export class OrderService {
           'EXTRACT(MONTH FROM order.createdAt) AS month_number',
           'COUNT(order.id) AS order_count',
           'SUM(order.totalValue) AS total_value',
-        ]),
+        ])
+        .where('order.orderStatus = :status', { status: OrderStatus.DELIVERED }),
     )
-      .where('order.orderStatus = :status', { status: OrderStatus.DELIVERED })
       .groupBy('year, month_name, month_number')
       .orderBy('year, month_number', 'ASC')
       .getRawMany();
@@ -909,9 +911,9 @@ export class OrderService {
           'EXTRACT(MONTH FROM order.createdAt) AS month_number',
           'COUNT(order.id) AS cancel_order_count',
           'SUM(order.totalValue) AS cancel_value',
-        ]),
+        ])
+        .where('order.orderStatus = :status', { status: OrderStatus.CANCELLED }),
     )
-      .where('order.orderStatus = :status', { status: OrderStatus.CANCELLED })
       .groupBy('year, month_name, month_number')
       .orderBy('year, month_number', 'ASC')
       .getRawMany();
