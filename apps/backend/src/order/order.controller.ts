@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -283,7 +284,13 @@ export class OrderController {
   @Get('reports/monthly')
   @ApiOperation({
     summary: 'Get monthly order statistics',
-    description: 'Returns order count and total value grouped by month. Includes all orders, delivered orders, and cancelled orders data.',
+    description: 'Returns order count and total value grouped by month. Includes all orders, delivered orders, and cancelled orders data. Pass ?year=YYYY to filter by a specific year.',
+  })
+  @ApiQuery({
+    name: 'year',
+    required: false,
+    type: Number,
+    description: 'Filter report by year (e.g. 2026). Omit for all years.',
   })
   @ApiResponse({
     status: 200,
@@ -311,7 +318,9 @@ export class OrderController {
     status: 500,
     description: 'Internal server error',
   })
-  async getMonthlyOrderReport(): Promise<
+  async getMonthlyOrderReport(
+    @Query('year') year?: string,
+  ): Promise<
     ApiResponseDto<
       {
         year: number;
@@ -325,12 +334,51 @@ export class OrderController {
       }[]
     >
   > {
-    const data = await this.orderService.getMonthlyOrderReport();
+    // Validate year when provided
+    let yearNumber: number | undefined;
+    if (year !== undefined && year !== '') {
+      yearNumber = Number(year);
+      if (!Number.isInteger(yearNumber) || yearNumber < 2000 || yearNumber > 2100) {
+        throw new BadRequestException(
+          'Invalid year parameter. Expected a 4-digit year, e.g. 2026.',
+        );
+      }
+    }
+
+    const data = await this.orderService.getMonthlyOrderReport(yearNumber);
 
     return {
       message: 'Monthly order statistics retrieved successfully',
       statusCode: HttpStatus.OK,
       data: data.monthlyData,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('reports/monthly/years')
+  @ApiOperation({
+    summary: 'Get years that have monthly order report data',
+    description:
+      'Returns distinct years (descending) that have orders, for use as a filter dropdown on the monthly order report.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Report years retrieved successfully',
+    schema: {
+      example: {
+        message: 'Report years retrieved successfully',
+        statusCode: 200,
+        data: [2026, 2025, 2024],
+      },
+    },
+  })
+  async getMonthlyOrderReportYears(): Promise<ApiResponseDto<number[]>> {
+    const data = await this.orderService.getMonthlyOrderReportYears();
+
+    return {
+      message: 'Report years retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
     };
   }
 
