@@ -22,6 +22,7 @@ interface MonthlyData {
 
 interface Props {
   monthlyData: MonthlyData[];
+  year?: number;
 }
 
 const styles = StyleSheet.create({
@@ -145,7 +146,7 @@ const formatCurrency = (num: number) =>
     maximumFractionDigits: 2,
   });
 
-export function MonthlyOrderPDF({ monthlyData }: Props) {
+export function MonthlyOrderPDF({ monthlyData, year }: Props) {
   const totalAllOrders = monthlyData.reduce((sum, item) => sum + item.allOrderCount, 0);
   const totalAllOrderValue = monthlyData.reduce((sum, item) => sum + item.allOrderValue, 0);
   const totalOrders = monthlyData.reduce((sum, item) => sum + item.orderCount, 0);
@@ -178,7 +179,9 @@ export function MonthlyOrderPDF({ monthlyData }: Props) {
         {/* Title */}
         <Text style={styles.reportTitle}>Monthly Order Summary Report</Text>
         <Text style={styles.subtitle}>
-          Order Statistics and Cancellation Analysis
+          {year
+            ? `Order Statistics and Cancellation Analysis — Year ${year}`
+            : "Order Statistics and Cancellation Analysis"}
         </Text>
 
         {/* Table Header */}

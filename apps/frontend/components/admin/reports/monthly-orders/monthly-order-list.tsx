@@ -4,6 +4,13 @@ import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -14,6 +21,7 @@ import {
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { ShoppingCart, XCircle } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { MonthlyOrderPDF } from "./MonthlyOrderPDF";
 
@@ -35,14 +43,28 @@ interface MonthlyData {
 
 interface Props {
   monthlyData: MonthlyData[];
+  availableYears: number[];
+  selectedYear?: number;
 }
 
-export default function MonthlyOrderReportList({ monthlyData }: Props) {
+export default function MonthlyOrderReportList({
+  monthlyData,
+  availableYears,
+  selectedYear,
+}: Props) {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const yearOptions =
+    availableYears.length > 0 ? availableYears : [new Date().getFullYear()];
+
+  const handleYearChange = (value: string) => {
+    router.push(value === "all" ? "?" : `?year=${value}`);
+  };
 
   const totalAllOrders = monthlyData.reduce((sum, item) => sum + item.allOrderCount, 0);
   const totalAllOrderValue = monthlyData.reduce((sum, item) => sum + item.allOrderValue, 0);
@@ -65,11 +87,32 @@ export default function MonthlyOrderReportList({ monthlyData }: Props) {
       />
 
       {/* Actions */}
-      <div className="flex justify-end gap-2 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Year</span>
+          <Select
+            value={selectedYear ? String(selectedYear) : "all"}
+            onValueChange={handleYearChange}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Years" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {yearOptions.map((year) => (
+                <SelectItem key={year} value={String(year)}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         {monthlyData.length > 0 && mounted && (
           <PDFDownloadLink
-            document={<MonthlyOrderPDF monthlyData={monthlyData} />}
-            fileName={`monthly-order-report-${new Date().toISOString().split("T")[0]}.pdf`}
+            document={
+              <MonthlyOrderPDF monthlyData={monthlyData} year={selectedYear} />
+            }
+            fileName={`monthly-order-report-${selectedYear ?? "all"}-${new Date().toISOString().split("T")[0]}.pdf`}
           >
             {({ loading, error }) => (
               <Button variant="secondary" disabled={!!error}>
