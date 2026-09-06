@@ -64,17 +64,17 @@ import { WishlistModule } from './wishlist/wishlist.module';
           {
             name: 'short',
             ttl: 60000, // 1 minute
-            limit: 600, // 60 requests per minute
+            limit: 3000, // 3000 requests per minute
           },
           {
             name: 'medium',
             ttl: 300000, // 5 minutes
-            limit: 800, // 200 requests per 5 minutes
+            limit: 10000, // 10000 requests per 5 minutes
           },
           {
             name: 'long',
             ttl: 3600000, // 1 hour
-            limit: 1000, // 1000 requests per hour
+            limit: 50000, // 50000 requests per hour
           },
         ],
       }),
