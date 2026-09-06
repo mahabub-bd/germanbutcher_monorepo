@@ -24,6 +24,7 @@ import { GalleryModule } from './gallery/gallery.module';
 import { MenuPermissionModule } from './menu-permission/menu-permission.module';
 import { MenuModule } from './menu/menu.module';
 import { NotificationModule } from './notification/notification.module';
+import { OnlineUsersModule } from './online-users/online-users.module';
 import { OrderPaymentMethodModule } from './order-payment-method/order-payment-method.module';
 import { OrderPaymentModule } from './order-payment/order-payment.module';
 import { OrderModule } from './order/order.module';
@@ -111,6 +112,7 @@ import { WishlistModule } from './wishlist/wishlist.module';
     MenuModule,
     MenuPermissionModule,
     NotificationModule,
+    OnlineUsersModule,
     OrderModule,
     OrderPaymentModule,
     OrderPaymentMethodModule,

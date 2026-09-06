@@ -5,3 +5,4 @@ export { TopEndpointsTable } from "./top-endpoints-table";
 export { AnalyticsOverviewCards } from "./analytics-overview-cards";
 export { PeakTrafficChart } from "./peak-traffic-chart";
 export { AnalyticsWidget } from "./analytics-widget";
+export { OnlineNowCard } from "./online-now-card";
