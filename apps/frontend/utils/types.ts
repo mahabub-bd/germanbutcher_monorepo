@@ -884,6 +884,13 @@ export interface ResponseTimes {
   max: number;
 }
 
+export interface OnlineUsers {
+  total: number;
+  authenticated: number;
+  guests: number;
+  pages: Record<string, number>;
+}
+
 export interface AnalyticsDashboardData {
   overview: AnalyticsOverview;
   requests: AnalyticsRequests[];

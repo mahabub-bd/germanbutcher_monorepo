@@ -3,6 +3,7 @@ import type {
   AnalyticsOverview,
   AnalyticsPeriod,
   AnalyticsRequests,
+  OnlineUsers,
   PeakTraffic,
   ResponseTimes,
   TopEndpoint,
@@ -75,6 +76,16 @@ export async function fetchResponseTimes(
     return result.data as ResponseTimes;
   }
   return result as ResponseTimes;
+}
+
+export async function fetchOnlineUsers(): Promise<OnlineUsers> {
+  const result = await fetchProtectedData<OnlineUsers | { data: OnlineUsers }>(
+    `online-users?window=5`
+  );
+  if (result && typeof result === "object" && "data" in result && typeof result.data === "object") {
+    return result.data;
+  }
+  return result as OnlineUsers;
 }
 
 export async function fetchAllAnalyticsData(period: AnalyticsPeriod = "24h") {

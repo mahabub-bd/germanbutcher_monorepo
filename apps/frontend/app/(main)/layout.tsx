@@ -5,6 +5,7 @@ import WhatsAppMessengerWidget from "@/components/footer/live-chat";
 import { Header } from "@/components/header";
 import { MobileBottomHeader } from "@/components/header/mobile-bottom-header";
 import { GoToTop } from "@/components/ui/go-to-top";
+import { VisitorHeartbeat } from "@/components/common/visitor-heartbeat";
 
 import type React from "react";
 import RouteLoadingBar from "../../components/common/loading";
@@ -18,6 +19,7 @@ export default async function MainLayout({
   return (
     <div>
       <Header />
+      <VisitorHeartbeat />
       <RouteLoadingBar
         height="3px"
         position="top"
