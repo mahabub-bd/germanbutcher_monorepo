@@ -1,5 +1,7 @@
 "use client";
 
+import { PulseDot } from "@/components/admin/analytics/online-now-card";
+import { useOnlineUsers } from "@/components/admin/analytics/use-online-users";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AnalyticsOverview } from "@/utils/types";
 import {
@@ -24,6 +26,8 @@ function safeFixed(value: number | undefined, decimals: number = 0, fallback: st
 }
 
 export function AnalyticsWidget({ data }: AnalyticsWidgetProps) {
+  const { data: online } = useOnlineUsers();
+
   // Handle missing or incomplete data gracefully
   if (!data || typeof data !== "object") {
     console.warn("AnalyticsWidget: Invalid data received", data);
@@ -98,7 +102,19 @@ export function AnalyticsWidget({ data }: AnalyticsWidgetProps) {
         </Link>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="flex flex-col items-center p-3 rounded-lg border">
+            <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20 mb-2">
+              <PulseDot />
+            </div>
+            <span className="text-lg font-bold">{online ? online.total : "--"}</span>
+            <span className="text-xs text-muted-foreground">Online Now</span>
+            {online && (
+              <span className="text-[10px] text-muted-foreground mt-0.5">
+                {online.authenticated} logged in · {online.guests} guests
+              </span>
+            )}
+          </div>
           {stats.map((stat) => (
             <div
               key={stat.title}

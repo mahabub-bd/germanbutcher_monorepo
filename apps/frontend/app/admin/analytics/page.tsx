@@ -2,7 +2,6 @@
 
 import {
   AnalyticsOverviewCards,
-  OnlineNowCard,
   PeakTrafficChart,
   RequestsChart,
   ResponseTimesChart,
@@ -77,10 +76,6 @@ export default function AnalyticsPage() {
         </div>
       ) : data ? (
         <div className="space-y-6">
-          <div className="flex items-center gap-4 flex-wrap">
-            <OnlineNowCard />
-          </div>
-
           <AnalyticsOverviewCards data={data.overview} />
 
           <div className="grid gap-6 lg:grid-cols-2">
