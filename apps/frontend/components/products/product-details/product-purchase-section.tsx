@@ -7,13 +7,14 @@ import { AddToWishlistButton } from "@/components/wishlist/add-to-wishlist-butto
 import { useCartContext } from "@/contexts/cart-context";
 import { hasActiveDiscount } from "@/utils/product-utils";
 import type { Product, User } from "@/utils/types";
-import { Loader2, Mail, MessageCircle, Minus, Plus, Share2, ShoppingCart } from "lucide-react";
+import { Loader2, Mail, MessageCircle, Minus, Plus, Share2, ShoppingCart, Zap } from "lucide-react";
 import {
   EmailShareButton,
   FacebookShareButton,
   LinkedinShareButton,
   WhatsappShareButton,
 } from "next-share";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -29,7 +30,9 @@ export function ProductPurchaseSection({
 
 
   const { addItem, updateItemQuantity, cart } = useCartContext();
+  const router = useRouter();
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
 
@@ -148,6 +151,32 @@ export function ProductPurchaseSection({
     }
   };
 
+  const handleBuyNow = async () => {
+    setIsBuyingNow(true);
+    try {
+      if (isInCart && cartItem) {
+        // Ensure cart matches the selected quantity, then go to checkout
+        if (cartQuantity !== quantity) {
+          await updateItemQuantity(cartItem.id || product.id, quantity);
+        }
+      } else {
+        await addItem(product, quantity);
+      }
+      router.push("/checkout");
+    } catch (error) {
+      console.error("Error buying now:", error);
+      if (error instanceof Error && error.message.includes("stock")) {
+        toast.error("Stock unavailable", {
+          description: `${product.name} is out of stock`,
+        });
+      } else {
+        toast.error("Failed to proceed to checkout");
+      }
+    } finally {
+      setIsBuyingNow(false);
+    }
+  };
+
   // Share functionality
   const shareUrl =
     typeof window !== "undefined"
@@ -231,12 +260,14 @@ export function ProductPurchaseSection({
         </div>
 
         {/* Action Buttons */}
-        <div className="space-y-3 grid md:grid-cols-2 grid-cols-1 gap-8">
+        <div className="grid md:grid-cols-3 grid-cols-1 gap-3">
           <Button
-            className="w-full bg-linear-to-r from-primaryColor to-secondaryColor hover:from-secondaryColor hover:to-primaryColor text-white py-4 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+            variant="outline"
+            className="w-full h-10 px-[1px] py-[1px] border-transparent bg-linear-to-r from-primaryColor to-secondaryColor hover:bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
             disabled={product.stock === 0 || isAddingToCart || isUpdating}
             onClick={handleAddToCart}
           >
+            <span className="flex h-full w-full items-center justify-center rounded-md bg-white text-lg font-semibold text-primaryColor">
             {isAddingToCart ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -248,6 +279,25 @@ export function ProductPurchaseSection({
                 {isInCart ? "Update Cart" : "Add to Cart"}
               </>
             )}
+            </span>
+          </Button>
+
+          <Button
+            className="w-full h-10 bg-linear-to-r from-primaryColor to-secondaryColor hover:from-secondaryColor hover:to-primaryColor text-white text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+            disabled={product.stock === 0 || isBuyingNow || isUpdating}
+            onClick={handleBuyNow}
+          >
+            {isBuyingNow ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Zap className="w-5 h-5 mr-2 fill-current" />
+                Buy Now
+              </>
+            )}
           </Button>
 
           <div className="grid grid-cols-2 gap-3">
@@ -255,13 +305,13 @@ export function ProductPurchaseSection({
               product={product}
               user={user}
               variant="outline"
-              className="py-3 border-gray-300 hover:border-primaryColor hover:text-primaryColor"
+              className="h-10  border-gray-300 hover:border-primaryColor hover:text-primaryColor"
             />
 
             <div className="relative">
               <Button
                 variant="outline"
-                className="py-3 border-gray-300 hover:border-primaryColor hover:text-primaryColor w-full"
+                className="h-10 border-gray-300 hover:border-primaryColor hover:text-primaryColor w-full"
                 onClick={() => setShowShareOptions(!showShareOptions)}
               >
                 <Share2 className="w-4 h-4 mr-2" />
