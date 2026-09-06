@@ -4,13 +4,7 @@ import { PulseDot } from "@/components/admin/analytics/online-now-card";
 import { useOnlineUsers } from "@/components/admin/analytics/use-online-users";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AnalyticsOverview } from "@/utils/types";
-import {
-  Activity,
-  Clock,
-  TrendingUp,
-  Users,
-  Zap,
-} from "lucide-react";
+import { Activity, Clock, TrendingUp, Users, Zap } from "lucide-react";
 import Link from "next/link";
 
 interface AnalyticsWidgetProps {
@@ -18,11 +12,19 @@ interface AnalyticsWidgetProps {
 }
 
 function safeValue(value: number, fallback: string = "-"): string {
-  return typeof value === "number" && !isNaN(value) ? value.toLocaleString() : fallback;
+  return typeof value === "number" && !isNaN(value)
+    ? value.toLocaleString()
+    : fallback;
 }
 
-function safeFixed(value: number | undefined, decimals: number = 0, fallback: string = "-"): string {
-  return typeof value === "number" && !isNaN(value) ? value.toFixed(decimals) : fallback;
+function safeFixed(
+  value: number | undefined,
+  decimals: number = 0,
+  fallback: string = "-",
+): string {
+  return typeof value === "number" && !isNaN(value)
+    ? value.toFixed(decimals)
+    : fallback;
 }
 
 export function AnalyticsWidget({ data }: AnalyticsWidgetProps) {
@@ -83,7 +85,9 @@ export function AnalyticsWidget({ data }: AnalyticsWidgetProps) {
     },
     {
       title: "Top Endpoint",
-      value: data.topEndpoint ? data.topEndpoint.split(" ").slice(0, 2).join(" ") : "-",
+      value: data.topEndpoint
+        ? data.topEndpoint.split(" ").slice(0, 2).join(" ")
+        : "-",
       icon: Activity,
       color: "text-cyan-600",
       bgColor: "bg-cyan-50 dark:bg-cyan-900/20",
@@ -91,26 +95,37 @@ export function AnalyticsWidget({ data }: AnalyticsWidgetProps) {
   ];
 
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg font-bold">Analytics</CardTitle>
+    <Card className="w-full overflow-hidden border-border/70 shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between gap-4 border-b bg-muted/20 px-5 py-4">
+        <div className="space-y-0.5">
+          <CardTitle className="text-base font-semibold tracking-tight">
+            Analytics overview
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Live traffic and request performance
+          </p>
+        </div>
         <Link
           href="/admin/analytics"
-          className="text-sm text-blue-600 hover:underline"
+          className="shrink-0 text-sm font-medium text-primary underline-offset-4 transition-colors hover:text-primary/75 hover:underline"
         >
           View Details
         </Link>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <div className="flex flex-col items-center p-3 rounded-lg border">
-            <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20 mb-2">
+      <CardContent className="p-3 sm:p-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 lg:gap-3">
+          <div className="flex min-w-0 flex-col rounded-xl border border-border/70 bg-card p-3 transition-colors hover:bg-muted/40 lg:min-h-32">
+            <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-green-50 dark:bg-green-900/20">
               <PulseDot />
             </div>
-            <span className="text-lg font-bold">{online ? online.total : "--"}</span>
-            <span className="text-xs text-muted-foreground">Online Now</span>
+            <span className="truncate text-xl font-semibold tracking-tight tabular-nums">
+              {online ? online.total : "--"}
+            </span>
+            <span className="mt-0.5 text-xs font-medium text-muted-foreground">
+              Online now
+            </span>
             {online && (
-              <span className="text-[10px] text-muted-foreground mt-0.5">
+              <span className="mt-auto pt-2 text-[10px] leading-tight text-muted-foreground">
                 {online.authenticated} logged in · {online.guests} guests
               </span>
             )}
@@ -118,13 +133,22 @@ export function AnalyticsWidget({ data }: AnalyticsWidgetProps) {
           {stats.map((stat) => (
             <div
               key={stat.title}
-              className="flex flex-col items-center p-3 rounded-lg border"
+              className="flex min-w-0 flex-col rounded-xl border border-border/70 bg-card p-3 transition-colors hover:bg-muted/40 lg:min-h-32"
             >
-              <div className={`p-2 rounded-lg ${stat.bgColor} mb-2`}>
+              <div
+                className={`mb-3 flex h-8 w-8 items-center justify-center rounded-lg ${stat.bgColor}`}
+              >
                 <stat.icon className={`h-4 w-4 ${stat.color}`} />
               </div>
-              <span className="text-lg font-bold">{stat.value}</span>
-              <span className="text-xs text-muted-foreground">{stat.title}</span>
+              <span
+                className="truncate text-xl font-semibold tracking-tight tabular-nums"
+                title={stat.value}
+              >
+                {stat.value}
+              </span>
+              <span className="mt-0.5 text-xs font-medium text-muted-foreground">
+                {stat.title}
+              </span>
             </div>
           ))}
         </div>

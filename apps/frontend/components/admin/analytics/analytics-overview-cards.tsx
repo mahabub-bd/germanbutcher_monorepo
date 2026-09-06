@@ -1,7 +1,7 @@
 "use client";
 
-import StatsCard from "@/components/admin/dashboard/stats-card";
 import { OnlineNowCard } from "@/components/admin/analytics/online-now-card";
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import type { AnalyticsOverview } from "@/utils/types";
 import {
   Activity,
@@ -18,7 +18,7 @@ interface AnalyticsOverviewCardsProps {
 
 export function AnalyticsOverviewCards({ data }: AnalyticsOverviewCardsProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
       <OnlineNowCard />
       <StatsCard
         title="Total Requests"
