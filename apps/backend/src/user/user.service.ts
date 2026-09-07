@@ -2,6 +2,7 @@ import {
   BadRequestException,
   HttpStatus,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -20,6 +21,8 @@ import { User } from './entities/user.entity';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -838,6 +841,7 @@ export class UserService {
   }
   async requestPasswordReset(
     mobileNumber: string,
+    clientIp?: string,
   ): Promise<{ message: string; statusCode: number }> {
     const user = await this.findByMobileNumber(mobileNumber);
     if (!user) {
@@ -845,6 +849,21 @@ export class UserService {
         message: 'User not found',
         statusCode: HttpStatus.NOT_FOUND,
       });
+    }
+
+    // Per-number cooldown: block resends within 60s of the last OTP send.
+    // otpExpiresAt = lastSentAt + validity, so derive lastSentAt from it.
+    const lastSentAt = user.otpExpiresAt
+      ? new Date(user.otpExpiresAt).getTime() - this.otpService.getOtpValidityMs()
+      : 0;
+    if (Date.now() - lastSentAt < 60 * 1000) {
+      this.logger.warn(
+        `[PASSWORD-RESET] Resend blocked by 60s cooldown for ${mobileNumber} (IP: ${clientIp ?? 'unknown'})`,
+      );
+      return {
+        message: 'A reset code was already sent. Please wait a minute before requesting again.',
+        statusCode: HttpStatus.TOO_MANY_REQUESTS,
+      };
     }
 
     const otp = this.otpService.generateOtp();
@@ -855,7 +874,7 @@ export class UserService {
     await this.userRepository.save(user);
 
     const message = `Your German Butcher password reset code: ${otp}. Valid for 5 minutes. Thank you`;
-    await this.smsService.sendSms(mobileNumber, message);
+    await this.smsService.sendSms(mobileNumber, message, 'PASSWORD-RESET');
 
     return {
       message: 'OTP has been sent to your mobile number',

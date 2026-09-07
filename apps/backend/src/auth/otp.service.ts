@@ -13,12 +13,16 @@ export class OtpService {
   }
 
   getOtpExpiration(): Date {
+    const date = new Date();
+    date.setMilliseconds(date.getMilliseconds() + this.getOtpValidityMs());
+    return date;
+  }
+
+  getOtpValidityMs(): number {
     const expiresInMinutes = parseInt(
       this.configService.get<string>('OTP_EXPIRES_IN') || '5',
     );
-    const date = new Date();
-    date.setMinutes(date.getMinutes() + expiresInMinutes);
-    return date;
+    return expiresInMinutes * 60 * 1000;
   }
 
   verifyOtp(userOtp: string, inputOtp: string, otpExpiresAt: Date): boolean {

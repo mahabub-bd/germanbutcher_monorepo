@@ -25,6 +25,7 @@ interface ShippingInformationProps {
   onAddressSelect: (addressId: number, addressData: Address) => void;
   onAddNewClick: () => void;
   showAddressForm: boolean;
+  errors?: Record<string, string>;
 }
 
 export function ShippingInformation({
@@ -34,6 +35,7 @@ export function ShippingInformation({
   onAddressSelect,
   onAddNewClick,
   showAddressForm,
+  errors,
 }: ShippingInformationProps) {
   const handleAddressSelect = (address: Address) => {
     onAddressSelect(address.id, address);
@@ -71,8 +73,12 @@ export function ShippingInformation({
                 value={formData.address}
                 onChange={(e) => onChange("address", e.target.value)}
                 placeholder="House #, Road #, Area"
+                aria-invalid={!!errors?.address}
                 className="mt-1 w-full"
               />
+              {errors?.address && (
+                <p className="mt-1 text-xs text-red-500">{errors.address}</p>
+              )}
             </div>
 
             <div>
@@ -82,8 +88,12 @@ export function ShippingInformation({
                 value={formData.area}
                 onChange={(e) => onChange("area", e.target.value)}
                 placeholder="Your area (e.g., Badda, Gulshan)"
+                aria-invalid={!!errors?.area}
                 className="mt-1 w-full"
               />
+              {errors?.area && (
+                <p className="mt-1 text-xs text-red-500">{errors.area}</p>
+              )}
             </div>
 
             <div>
@@ -93,8 +103,12 @@ export function ShippingInformation({
                 value={formData.city}
                 onChange={(e) => onChange("city", e.target.value)}
                 placeholder="Your city"
+                aria-invalid={!!errors?.city}
                 className="mt-1 w-full"
               />
+              {errors?.city && (
+                <p className="mt-1 text-xs text-red-500">{errors.city}</p>
+              )}
             </div>
 
             <div>
@@ -103,7 +117,11 @@ export function ShippingInformation({
                 value={formData.division}
                 onValueChange={(value) => onChange("division", value)}
               >
-                <SelectTrigger id="division" className="mt-1 w-full">
+                <SelectTrigger
+                  id="division"
+                  aria-invalid={!!errors?.division}
+                  className="mt-1 w-full"
+                >
                   <SelectValue placeholder="Select Division" />
                 </SelectTrigger>
                 <SelectContent>
@@ -117,6 +135,9 @@ export function ShippingInformation({
                   <SelectItem value="Mymensingh">Mymensingh</SelectItem>
                 </SelectContent>
               </Select>
+              {errors?.division && (
+                <p className="mt-1 text-xs text-red-500">{errors.division}</p>
+              )}
             </div>
           </div>
         )}

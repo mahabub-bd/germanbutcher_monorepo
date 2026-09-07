@@ -66,6 +66,7 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
   );
   const [showAddressForm, setShowAddressForm] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const shippingCost =
     shippingMethods.find(
@@ -164,6 +165,13 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
       ...prev,
       [field]: value,
     }));
+    // Clear the field's error as soon as the user fixes it
+    setErrors((prev) => {
+      if (!(field in prev)) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
   };
 
   const handleAddressSelect = (addressId: number, addressData: Address) => {
@@ -176,6 +184,14 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
       city: addressData.city,
       division: addressData.division,
     }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.address;
+      delete next.area;
+      delete next.city;
+      delete next.division;
+      return next;
+    });
   };
 
   const handleAddNewAddress = () => {
@@ -188,6 +204,14 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
       city: "",
       division: "",
     }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.address;
+      delete next.area;
+      delete next.city;
+      delete next.division;
+      return next;
+    });
   };
 
   const handleSubmit = async () => {
@@ -196,21 +220,56 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
       return;
     }
 
-    if (!formData.name || !formData.email || !formData.phone) {
-      toast.error("Please fill in all required customer information");
+    // Validate required fields and highlight empty ones in red
+    const newErrors: Record<string, string> = {};
+    if (!formData.name.trim()) {
+      newErrors.name = "Name is required";
+    }
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone number is required";
+    }
+    if (
+      formData.email.trim() &&
+      !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email.trim())
+    ) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    if (showAddressForm) {
+      if (!formData.address.trim()) {
+        newErrors.address = "Address is required";
+      }
+      if (!formData.area.trim()) {
+        newErrors.area = "Area is required";
+      }
+      if (!formData.city.trim()) {
+        newErrors.city = "City is required";
+      }
+      if (!formData.division) {
+        newErrors.division = "Division is required";
+      }
+    }
+
+    const hasCustomerInfoErrors = Boolean(
+      newErrors.name || newErrors.phone || newErrors.email
+    );
+    const hasShippingInfoErrors = Boolean(
+      newErrors.address ||
+        newErrors.area ||
+        newErrors.city ||
+        newErrors.division
+    );
+
+    if (hasCustomerInfoErrors || hasShippingInfoErrors) {
+      setErrors(newErrors);
+      if (hasCustomerInfoErrors) {
+        toast.error("Please fill in all required customer information");
+      } else {
+        toast.error("Please fill in all required shipping information");
+      }
       return;
     }
 
-    if (
-      showAddressForm &&
-      (!formData.address ||
-        !formData.area ||
-        !formData.city ||
-        !formData.division)
-    ) {
-      toast.error("Please fill in all required shipping information");
-      return;
-    }
+    setErrors({});
 
     setIsSubmitting(true);
     try {
@@ -324,6 +383,7 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
               onVerifyPhone={handleVerifyPhone}
               isVerified={isVerified}
               user={user}
+              errors={errors}
             />
 
             <ShippingInformation
@@ -333,6 +393,7 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
               onAddressSelect={handleAddressSelect}
               onAddNewClick={handleAddNewAddress}
               showAddressForm={showAddressForm}
+              errors={errors}
             />
 
             <ShippingMethodSelector

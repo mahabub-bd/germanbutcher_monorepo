@@ -29,6 +29,7 @@ interface CustomerInformationProps {
   onVerifyPhone: (phone: string) => Promise<void>;
   isVerified: boolean;
   user?: UserType;
+  errors?: Record<string, string>;
 }
 
 export function CustomerInformation({
@@ -37,6 +38,7 @@ export function CustomerInformation({
   onVerifyPhone,
   isVerified,
   user,
+  errors,
 }: CustomerInformationProps) {
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isUpdatingInfo, setIsUpdatingInfo] = useState(false);
@@ -150,12 +152,16 @@ export function CustomerInformation({
                 !isEditingInfo &&
                 ((!!user && !isVerified) || (isVerified && !isEditingInfo))
               }
+              aria-invalid={!!errors?.name}
               className="mt-1"
             />
+            {errors?.name && (
+              <p className="mt-1 text-xs text-red-500">{errors.name}</p>
+            )}
           </div>
 
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Email (Optional)</Label>
             <Input
               id="email"
               type="email"
@@ -166,8 +172,12 @@ export function CustomerInformation({
                 !isEditingInfo &&
                 ((!!user && !isVerified) || (isVerified && !isEditingInfo))
               }
+              aria-invalid={!!errors?.email}
               className="mt-1"
             />
+            {errors?.email && (
+              <p className="mt-1 text-xs text-red-500">{errors.email}</p>
+            )}
           </div>
         </div>
 
@@ -189,6 +199,7 @@ export function CustomerInformation({
                 value={formData.phone}
                 onChange={(e) => onChange("phone", e.target.value)}
                 placeholder="01XXXXXXXXX"
+                aria-invalid={!!errors?.phone}
                 className={cn(
                   "pr-10",
                   (isVerified || user) && "border-green-500 bg-green-50"
@@ -213,6 +224,9 @@ export function CustomerInformation({
               </Button>
             )}
           </div>
+          {errors?.phone && (
+            <p className="mt-1 text-xs text-red-500">{errors.phone}</p>
+          )}
         </div>
       </div>
     </div>
