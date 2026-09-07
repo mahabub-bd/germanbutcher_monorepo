@@ -7,10 +7,12 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
   ParseIntPipe,
   NotFoundException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -327,10 +329,16 @@ export class UserController {
     },
   })
   @Post('password/reset-request')
+  @Throttle({
+    short: { limit: 3, ttl: 60000 }, // 3 per minute
+    medium: { limit: 10, ttl: 300000 }, // 10 per 5 minutes
+    long: { limit: 20, ttl: 3600000 }, // 20 per hour
+  })
   async requestPasswordReset(
     @Body() { mobileNumber }: { mobileNumber: string },
+    @Req() req,
   ) {
-    return this.userService.requestPasswordReset(mobileNumber);
+    return this.userService.requestPasswordReset(mobileNumber, req?.ip);
   }
   @ApiOperation({ summary: 'Reset password' })
   @ApiBody({

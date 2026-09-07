@@ -229,7 +229,13 @@ export class AuthController {
   }
 
   @Post('mobile-login')
-  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 OTPs per minute
+  // Overrides must use the throttler names defined in app.module (short/medium/long);
+  // a `default` override matches nothing, so the global 3000/min applied before.
+  @Throttle({
+    short: { limit: 3, ttl: 60000 }, // 3 per minute
+    medium: { limit: 10, ttl: 300000 }, // 10 per 5 minutes
+    long: { limit: 20, ttl: 3600000 }, // 20 per hour
+  })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Initiate mobile login',
@@ -251,12 +257,19 @@ export class AuthController {
   @ApiBadRequestResponse({
     description: 'Bad Request - Invalid mobile number',
   })
-  async initiateMobileLogin(@Body() { mobileNumber }: MobileLoginDto) {
-    return this.authService.initiateMobileLogin(mobileNumber);
+  async initiateMobileLogin(
+    @Body() { mobileNumber }: MobileLoginDto,
+    @Req() req,
+  ) {
+    return this.authService.initiateMobileLogin(mobileNumber, req?.ip);
   }
 
   @Post('verify-otp')
-  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 attempts per minute
+  @Throttle({
+    short: { limit: 10, ttl: 60000 }, // 10 attempts per minute
+    medium: { limit: 30, ttl: 300000 }, // 30 per 5 minutes
+    long: { limit: 100, ttl: 3600000 }, // 100 per hour
+  })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Verify OTP',

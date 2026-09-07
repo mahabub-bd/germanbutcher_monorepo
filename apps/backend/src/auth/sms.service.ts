@@ -9,7 +9,13 @@ export class SmsService {
 
   constructor(private configService: ConfigService) {}
 
-  async sendSms(mobileNumber: string, message: string): Promise<boolean> {
+  // `context` tags each log line with the calling flow (OTP-LOGIN,
+  // PASSWORD-RESET, ORDER-CONFIRMATION, ...) so bursts are traceable.
+  async sendSms(
+    mobileNumber: string,
+    message: string,
+    context = 'SMS',
+  ): Promise<boolean> {
     const apiKey = this.configService.get<string>('SMS_API_KEY');
     const senderId = this.configService.get<string>('SMS_SENDER_NUMBER');
     const apiUrl = this.configService.get<string>('SMS_SEND_URL');
@@ -28,16 +34,16 @@ export class SmsService {
       });
 
       if (response.data?.status === 'success' || response.status === 200) {
-        this.logger.log(`SMS sent successfully to ${mobileNumber}`);
+        this.logger.log(`[${context}] SMS sent successfully to ${mobileNumber}`);
         return true;
       } else {
-        this.logger.warn(`SMS API response: ${JSON.stringify(response.data)}`);
+        this.logger.warn(`[${context}] SMS API response: ${JSON.stringify(response.data)}`);
         return false;
       }
     } catch (error) {
       const err = error as Error;
       this.logger.error(
-        `Failed to send SMS to ${mobileNumber}: ${err.message}`,
+        `[${context}] Failed to send SMS to ${mobileNumber}: ${err.message}`,
         err.stack,
       );
       return false;

@@ -369,7 +369,7 @@ export class OrderService {
           totalValue: Number(completeOrder.totalValue),
           itemCount: completeOrder.items.length,
         });
-        await this.smsService.sendSms(user.mobileNumber, smsMessage);
+        await this.smsService.sendSms(user.mobileNumber, smsMessage, 'ORDER-CONFIRMATION');
         this.logger.log(
           `Order confirmation SMS sent successfully to ${user.mobileNumber} for order ${completeOrder.orderNo}`,
         );

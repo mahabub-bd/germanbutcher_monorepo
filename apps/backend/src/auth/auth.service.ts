@@ -2,6 +2,7 @@ import {
   BadRequestException,
   HttpStatus,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -18,6 +19,8 @@ import { UserActivityService, UserType, AuditStatus } from '../user-activity/use
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
@@ -160,7 +163,7 @@ export class AuthService {
     };
   }
 
-  async initiateMobileLogin(mobileNumber: string): Promise<{
+  async initiateMobileLogin(mobileNumber: string, clientIp?: string): Promise<{
     message: string;
     statusCode: number;
     data: { mobileNumber: string };
@@ -192,6 +195,22 @@ export class AuthService {
       }
     }
 
+    // Per-number cooldown: block resends within 60s of the last OTP send.
+    // otpExpiresAt = lastSentAt + validity, so derive lastSentAt from it.
+    const lastSentAt = user.otpExpiresAt
+      ? new Date(user.otpExpiresAt).getTime() - this.otpService.getOtpValidityMs()
+      : 0;
+    if (Date.now() - lastSentAt < 60 * 1000) {
+      this.logger.warn(
+        `[OTP-LOGIN] Resend blocked by 60s cooldown for ${mobileNumber} (IP: ${clientIp ?? 'unknown'})`,
+      );
+      return {
+        message: 'OTP already sent. Please wait a minute before requesting again.',
+        statusCode: HttpStatus.TOO_MANY_REQUESTS,
+        data: { mobileNumber },
+      };
+    }
+
     const otp = this.otpService.generateOtp();
     const otpExpiresAt = this.otpService.getOtpExpiration();
 
@@ -208,7 +227,7 @@ export class AuthService {
     }
 
     const message = `Your German Butcher sign-in code: ${otp}. Valid for 5 minutes. Thank you`;
-    await this.smsService.sendSms(mobileNumber, message);
+    await this.smsService.sendSms(mobileNumber, message, 'OTP-LOGIN');
 
     return {
       message: 'OTP sent successfully',
