@@ -8,6 +8,7 @@
   "scripts": {
     "build": "nest build && cp -r public dist/public || true",
     "diagram": "dbdocs db2dbml postgres 'postgresql://admin:Palash@980375@160.191.163.84:5432/germanbutcher?schemas=public' -o database.dbml",
+    "dev": "nest start --watch",
     "start": "nest start",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start:dev": "nest start --watch",

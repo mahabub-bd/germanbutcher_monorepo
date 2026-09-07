@@ -2,6 +2,7 @@
 
 import { PulseDot } from "@/components/admin/analytics/online-now-card";
 import { useOnlineUsers } from "@/components/admin/analytics/use-online-users";
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AnalyticsOverview } from "@/utils/types";
 import { Activity, Clock, TrendingUp, Users, Zap } from "lucide-react";
@@ -52,36 +53,31 @@ export function AnalyticsWidget({ data }: AnalyticsWidgetProps) {
       title: "Total Requests",
       value: safeValue(data.totalRequests, "-"),
       icon: Activity,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50 dark:bg-blue-900/20",
+      bgColor: "blue" as const,
     },
     {
       title: "Visitors",
       value: safeValue(data.uniqueVisitors, "-"),
       icon: Users,
-      color: "text-green-600",
-      bgColor: "bg-green-50 dark:bg-green-900/20",
+      bgColor: "green" as const,
     },
     {
       title: "Avg Response",
       value: `${safeFixed(data.avgResponseTime, 0, "-")}ms`,
       icon: Clock,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50 dark:bg-purple-900/20",
+      bgColor: "purple" as const,
     },
     {
       title: "Req/Min",
       value: safeFixed(data.requestsPerMinute, 1, "-"),
       icon: Zap,
-      color: "text-yellow-600",
-      bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
+      bgColor: "amber" as const,
     },
     {
       title: "Peak Hour",
       value: data.peakHour || "-",
       icon: TrendingUp,
-      color: "text-indigo-600",
-      bgColor: "bg-indigo-50 dark:bg-indigo-900/20",
+      bgColor: "indigo" as const,
     },
     {
       title: "Top Endpoint",
@@ -89,8 +85,7 @@ export function AnalyticsWidget({ data }: AnalyticsWidgetProps) {
         ? data.topEndpoint.split(" ").slice(0, 2).join(" ")
         : "-",
       icon: Activity,
-      color: "text-cyan-600",
-      bgColor: "bg-cyan-50 dark:bg-cyan-900/20",
+      bgColor: "violet" as const,
     },
   ];
 
@@ -114,42 +109,26 @@ export function AnalyticsWidget({ data }: AnalyticsWidgetProps) {
       </CardHeader>
       <CardContent className="p-3 sm:p-4">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 lg:gap-3">
-          <div className="flex min-w-0 flex-col rounded-xl border border-border/70 bg-card p-3 transition-colors hover:bg-muted/40 lg:min-h-32">
-            <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-green-50 dark:bg-green-900/20">
-              <PulseDot />
-            </div>
-            <span className="truncate text-xl font-semibold tracking-tight tabular-nums">
-              {online ? online.total : "--"}
-            </span>
-            <span className="mt-0.5 text-xs font-medium text-muted-foreground">
-              Online now
-            </span>
-            {online && (
-              <span className="mt-auto pt-2 text-[10px] leading-tight text-muted-foreground">
-                {online.authenticated} logged in · {online.guests} guests
-              </span>
-            )}
-          </div>
+          <StatsCard
+            icon={Users}
+            title="Online Now"
+            value={online ? online.total : "--"}
+            description={
+              online
+                ? `${online.authenticated} logged in · ${online.guests} guests`
+                : undefined
+            }
+            badge={{ icon: PulseDot, text: "LIVE", color: "success" }}
+            bgColor="green"
+          />
           {stats.map((stat) => (
-            <div
+            <StatsCard
               key={stat.title}
-              className="flex min-w-0 flex-col rounded-xl border border-border/70 bg-card p-3 transition-colors hover:bg-muted/40 lg:min-h-32"
-            >
-              <div
-                className={`mb-3 flex h-8 w-8 items-center justify-center rounded-lg ${stat.bgColor}`}
-              >
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              </div>
-              <span
-                className="truncate text-xl font-semibold tracking-tight tabular-nums"
-                title={stat.value}
-              >
-                {stat.value}
-              </span>
-              <span className="mt-0.5 text-xs font-medium text-muted-foreground">
-                {stat.title}
-              </span>
-            </div>
+              icon={stat.icon}
+              title={stat.title}
+              value={stat.value}
+              bgColor={stat.bgColor}
+            />
           ))}
         </div>
       </CardContent>

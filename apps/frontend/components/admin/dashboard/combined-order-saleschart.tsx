@@ -45,6 +45,11 @@ export default function CombinedOrdersSalesChart({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const isMobile = windowSize.width < 640;
+
+  // Mobile shows only the last 6 months so bars stay readable on small screens
+  const visibleData = isMobile ? chartData.slice(-6) : chartData;
+
   const totalOrders = chartData.reduce((sum, item) => sum + item.orderCount, 0);
   const totalSales = chartData.reduce((sum, item) => sum + item.totalValue, 0);
 
@@ -92,12 +97,27 @@ export default function CombinedOrdersSalesChart({
     return null;
   };
 
+  const chartHeightClass = "h-[280px] w-full sm:h-[320px] md:h-[350px] lg:h-[400px]";
+
+  // Vertical (rotated) month labels on mobile so all 12 fit without crowding
+  const xAxisProps = {
+    dataKey: "month",
+    axisLine: false,
+    tickLine: false,
+    tickMargin: isMobile ? 5 : 10,
+    interval: 0 as const,
+    angle: isMobile ? -90 : 0,
+    textAnchor: (isMobile ? "end" : "middle") as "end" | "middle",
+    height: isMobile ? 55 : 30,
+    tick: { fontSize: isMobile ? 10 : 12 },
+  };
+
   return (
     <Card className="w-full overflow-hidden">
-      <Tabs defaultValue="combined" className="w-full">
+      <Tabs defaultValue="combined" className="w-full min-w-0">
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <CardTitle className="text-lg sm:text-xl font-bold">Orders & Sales Overview</CardTitle>
               <CardDescription className="text-xs sm:text-sm">
                 {totalOrders.toLocaleString()} orders with{" "}
@@ -118,148 +138,135 @@ export default function CombinedOrdersSalesChart({
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="min-w-0">
 
-          <TabsContent value="combined" className="mt-0">
-            <ResponsiveContainer
-              width="100%"
-              height={280}
-              className="sm:h-[320px] md:h-[350px] lg:h-[400px]"
-            >
-              <BarChart
-                data={chartData}
-                margin={{ top: windowSize.width < 640 ? 10 : 20, right: 0, left: 0, bottom: 5 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  opacity={0.3}
-                />
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tickMargin={10}
-                />
-                <YAxis
-                  yAxisId="left"
-                  orientation="left"
-                  axisLine={false}
-                  tickLine={false}
-                  tickMargin={10}
-                  tickFormatter={(value) => value.toString()}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  axisLine={false}
-                  tickLine={false}
-                  tickMargin={10}
-                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  verticalAlign="top"
-                  height={windowSize.width < 640 ? 28 : 36}
-                  iconType="circle"
-                  iconSize={windowSize.width < 640 ? 6 : 8}
-                  wrapperStyle={{ fontSize: windowSize.width < 640 ? '11px' : '12px' }}
-                />
-                <Bar
-                  yAxisId="left"
-                  dataKey="orderCount"
-                  name="Orders"
-                  fill={ORDERS_COLOR}
-                  radius={[4, 4, 0, 0]}
-                  barSize={windowSize.width < 640 ? 12 : 20}
-                />
-                <Bar
-                  yAxisId="right"
-                  dataKey="totalValue"
-                  name="Sales"
-                  fill={SALES_COLOR}
-                  radius={[4, 4, 0, 0]}
-                  barSize={windowSize.width < 640 ? 12 : 20}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+          <TabsContent value="combined" className="mt-0 min-w-0">
+            <div className={chartHeightClass}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={visibleData}
+                  margin={{ top: isMobile ? 10 : 20, right: isMobile ? 0 : 10, left: isMobile ? -10 : 0, bottom: 5 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    opacity={0.3}
+                  />
+                  <XAxis {...xAxisProps} />
+                  <YAxis
+                    yAxisId="left"
+                    orientation="left"
+                    width={isMobile ? 30 : 60}
+                    axisLine={false}
+                    tickLine={false}
+                    tickMargin={5}
+                    tick={{ fontSize: isMobile ? 10 : 12 }}
+                    tickFormatter={(value) => value.toString()}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    width={isMobile ? 34 : 60}
+                    axisLine={false}
+                    tickLine={false}
+                    tickMargin={5}
+                    tick={{ fontSize: isMobile ? 10 : 12 }}
+                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend
+                    verticalAlign="top"
+                    height={isMobile ? 28 : 36}
+                    iconType="circle"
+                    iconSize={isMobile ? 6 : 8}
+                    wrapperStyle={{ fontSize: isMobile ? '11px' : '12px' }}
+                  />
+                  <Bar
+                    yAxisId="left"
+                    dataKey="orderCount"
+                    name="Orders"
+                    fill={ORDERS_COLOR}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={isMobile ? 12 : 20}
+                  />
+                  <Bar
+                    yAxisId="right"
+                    dataKey="totalValue"
+                    name="Sales"
+                    fill={SALES_COLOR}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={isMobile ? 12 : 20}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </TabsContent>
 
-          <TabsContent value="orders" className="mt-0">
-            <ResponsiveContainer
-              width="100%"
-              height={280}
-              className="sm:h-[320px] md:h-[350px] lg:h-[400px]"
-            >
-              <BarChart
-                data={chartData}
-                margin={{ top: windowSize.width < 640 ? 10 : 20, right: 0, left: 0, bottom: 5 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  opacity={0.3}
-                />
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tickMargin={10}
-                />
-                <YAxis axisLine={false} tickLine={false} tickMargin={10} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar
-                  dataKey="orderCount"
-                  name="Orders"
-                  fill={ORDERS_COLOR}
-                  radius={[4, 4, 0, 0]}
-                  barSize={windowSize.width < 640 ? 16 : 30}
+          <TabsContent value="orders" className="mt-0 min-w-0">
+            <div className={chartHeightClass}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={visibleData}
+                  margin={{ top: isMobile ? 10 : 20, right: 0, left: isMobile ? -10 : 0, bottom: 5 }}
                 >
-
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    opacity={0.3}
+                  />
+                  <XAxis {...xAxisProps} />
+                  <YAxis
+                    width={isMobile ? 30 : 60}
+                    axisLine={false}
+                    tickLine={false}
+                    tickMargin={5}
+                    tick={{ fontSize: isMobile ? 10 : 12 }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar
+                    dataKey="orderCount"
+                    name="Orders"
+                    fill={ORDERS_COLOR}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={isMobile ? 16 : 30}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </TabsContent>
 
-          <TabsContent value="sales" className="mt-0">
-            <ResponsiveContainer
-              width="100%"
-              height={280}
-              className="sm:h-[320px] md:h-[350px] lg:h-[400px]"
-            >
-              <BarChart
-                data={chartData}
-                margin={{ top: windowSize.width < 640 ? 10 : 20, right: 0, left: 0, bottom: 5 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  opacity={0.3}
-                />
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tickMargin={10}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tickMargin={10}
-                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar
-                  dataKey="totalValue"
-                  name="Sales"
-                  fill={SALES_COLOR}
-                  radius={[4, 4, 0, 0]}
-                  barSize={windowSize.width < 640 ? 16 : 30}
+          <TabsContent value="sales" className="mt-0 min-w-0">
+            <div className={chartHeightClass}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={visibleData}
+                  margin={{ top: isMobile ? 10 : 20, right: 0, left: isMobile ? -10 : 0, bottom: 5 }}
                 >
-
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    opacity={0.3}
+                  />
+                  <XAxis {...xAxisProps} />
+                  <YAxis
+                    width={isMobile ? 34 : 60}
+                    axisLine={false}
+                    tickLine={false}
+                    tickMargin={5}
+                    tick={{ fontSize: isMobile ? 10 : 12 }}
+                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar
+                    dataKey="totalValue"
+                    name="Sales"
+                    fill={SALES_COLOR}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={isMobile ? 16 : 30}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </TabsContent>
         </CardContent>
       </Tabs>
