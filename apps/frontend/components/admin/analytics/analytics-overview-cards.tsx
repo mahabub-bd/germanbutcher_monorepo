@@ -18,7 +18,7 @@ interface AnalyticsOverviewCardsProps {
 
 export function AnalyticsOverviewCards({ data }: AnalyticsOverviewCardsProps) {
   return (
-    <div className="grid gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
+    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
       <OnlineNowCard />
       <StatsCard
         title="Total Requests"
