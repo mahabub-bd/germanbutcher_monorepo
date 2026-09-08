@@ -1,5 +1,3 @@
-import { deleteCookie, getToken } from "@/actions/auth";
-
 export type ApiResponse<T = any> = {
   id: any;
   data?: T;
@@ -11,6 +9,41 @@ export type ApiResponse<T = any> = {
 };
 
 export const apiUrl = process.env.NEXT_PUBLIC_API_URL as string;
+
+// Resolve the auth token without a Server Action round-trip on the client.
+// Server components read the cookie directly; client components use the
+// /api/auth/token route handler, whose stable URL keeps already-open tabs
+// working across redeployments (Server Action IDs change on every build).
+export async function resolveAuthToken(): Promise<string | null> {
+  if (typeof window === "undefined") {
+    const { getToken } = await import("@/actions/auth");
+    return getToken();
+  }
+
+  try {
+    const response = await fetch("/api/auth/token", { cache: "no-store" });
+    if (!response.ok) return null;
+    const json = await response.json();
+    return json?.token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Clear the httpOnly auth cookies (401 recovery). Same split as above.
+export async function clearAuthCookies(): Promise<void> {
+  if (typeof window === "undefined") {
+    const { deleteCookie } = await import("@/actions/auth");
+    await deleteCookie(["auth_token", "user"]);
+    return;
+  }
+
+  try {
+    await fetch("/api/auth/token", { method: "DELETE", cache: "no-store" });
+  } catch {
+    // Best-effort cleanup; the caller still handles the failed request
+  }
+}
 
 // Simple in-memory cache for product endpoints
 const productCache = new Map<string, { data: any; timestamp: number }>();
@@ -64,7 +97,7 @@ export async function fetchData<T>(endpoint: string): Promise<T> {
 
 export async function fetchProtectedData<T>(endpoint: string): Promise<T> {
   const url = `${apiUrl}/${endpoint}`;
-  const token = await getToken();
+  const token = await resolveAuthToken();
 
   try {
     const response = await fetch(url, {
@@ -90,7 +123,7 @@ export async function fetchProtectedData<T>(endpoint: string): Promise<T> {
 
       if (response.status === 401) {
         console.error("Unauthorized access - possibly expired token");
-        await deleteCookie(["auth_token", "user"]);
+        await clearAuthCookies();
       }
 
       throw new Error(errorMessage);
@@ -106,7 +139,7 @@ export async function fetchProtectedData<T>(endpoint: string): Promise<T> {
 
 export async function fetchDataPagination<T>(endpoint: string): Promise<T> {
   const url = `${apiUrl}/${endpoint}`;
-  const token = await getToken();
+  const token = await resolveAuthToken();
   try {
     const response = await fetch(url, {
       headers: {
@@ -179,7 +212,7 @@ export async function postData<T = any>(
   values?: any
 ): Promise<ApiResponse<T>> {
   const url = `${apiUrl}/${endpoint}`;
-  const token = await getToken(); // Get the token just like in fetchProtectedData
+  const token = await resolveAuthToken(); // Get the token just like in fetchProtectedData
 
   try {
     const response = await fetch(url, {
@@ -254,7 +287,7 @@ export async function formPostData<T = any>(
   formData?: FormData | Record<string, any>
 ): Promise<ApiResponse<T>> {
   const url = `${apiUrl}/${endpoint}`;
-  const token = await getToken();
+  const token = await resolveAuthToken();
   const headers: HeadersInit = {};
 
   let body: BodyInit;
@@ -306,7 +339,7 @@ export async function patchData<T = any>(
   }
 ): Promise<ApiResponse<T>> {
   const url = `${apiUrl}/${endpoint}`;
-  const token = await getToken();
+  const token = await resolveAuthToken();
 
   try {
     const headers: HeadersInit = {
@@ -351,7 +384,7 @@ export async function deleteData(
   id?: string | number
 ): Promise<void> {
   const url = `${apiUrl}/${endpoint}/${id}`;
-  const token = await getToken();
+  const token = await resolveAuthToken();
   try {
     const response = await fetch(url, {
       method: "DELETE",

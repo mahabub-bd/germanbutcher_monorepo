@@ -1,7 +1,6 @@
 "use client";
 
-import { getToken } from "@/actions/auth";
-import { apiUrl } from "@/utils/api-utils";
+import { apiUrl, resolveAuthToken } from "@/utils/api-utils";
 import { useEffect } from "react";
 
 const VISITOR_ID_KEY = "gb_visitor_id";
@@ -28,7 +27,7 @@ export function VisitorHeartbeat() {
   useEffect(() => {
     const sendHeartbeat = async () => {
       try {
-        const token = await getToken();
+        const token = await resolveAuthToken();
         await fetch(`${apiUrl}/online-users/heartbeat`, {
           method: "POST",
           headers: {
