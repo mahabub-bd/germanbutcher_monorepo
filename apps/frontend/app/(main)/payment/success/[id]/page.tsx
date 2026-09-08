@@ -10,8 +10,6 @@ export default async function PaymentSuccessPage({
 }) {
   const { id } = await params;
   const order = await fetchProtectedData<Order>(`orders/${id}`);
-  console.log(order);
-
   if (!order) {
     notFound();
   }
