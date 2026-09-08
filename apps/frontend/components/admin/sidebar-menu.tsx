@@ -218,11 +218,8 @@ export function SidebarMenu({
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="h-full">
-            <div className="h-[calc(100%-3rem)] py-2">
-              <div className="h-full overflow-y-hidden hover:overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/50">
-                <nav className="grid gap-1 px-2">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/50">
+          <nav className="grid gap-1 px-2 py-2">
                   {isLoading
                     ? renderSkeletonMenu()
                     : menuData?.map((item: MenuItem) => {
@@ -363,9 +360,6 @@ export function SidebarMenu({
                         );
                       })}
                 </nav>
-              </div>
-            </div>
-          </div>
         </div>
 
         <div className="border-t border-primaryColor/20 p-2 md:hidden">

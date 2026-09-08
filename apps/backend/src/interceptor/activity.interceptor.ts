@@ -9,18 +9,21 @@ import { Reflector } from '@nestjs/core';
 import { Observable, from } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { Category } from 'src/category/entities/category.entity';
+import { getClientIp } from 'src/common/utils/ip-extractor.util';
 import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { Order } from 'src/order/entities/order.entity';
 import { Product } from 'src/product/entities/product.entity';
 import { AuditStatus, UserActivityService, UserType } from 'src/user-activity/user-activity.service';
 import { User } from 'src/user/entities/user.entity';
 import { DataSource } from 'typeorm';
-import { getClientIp } from 'src/common/utils/ip-extractor.util';
 
 @Injectable()
 export class ActivityInterceptor implements NestInterceptor {
 
   private readonly LOGGED_METHODS = ['POST', 'PATCH', 'DELETE'];
+
+  // Routes that should never be recorded in the activity log (e.g. high-frequency heartbeats)
+  private readonly EXCLUDED_PATHS = ['/v1/online-users/heartbeat'];
 
   constructor(
     private readonly userActivityService: UserActivityService,
@@ -30,6 +33,12 @@ export class ActivityInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const req = context.switchToHttp().getRequest();
+
+    // Skip excluded routes (matched on the path without query string)
+    const requestPath = (req.originalUrl || '').split('?')[0];
+    if (this.EXCLUDED_PATHS.includes(requestPath)) {
+      return next.handle();
+    }
 
     // Skip if no user
     if (!req.user) {
