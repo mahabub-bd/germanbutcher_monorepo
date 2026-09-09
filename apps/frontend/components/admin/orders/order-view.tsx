@@ -1,18 +1,16 @@
 "use client";
 
-import { PaymentsTable } from "@/app/admin/order/[id]/payments/payment-table";
 import { CustomerInfo } from "@/components/admin/orders/customer-info";
 import { DeliveryManSection } from "@/components/admin/orders/delivery-man-section";
 import { OrderActions } from "@/components/admin/orders/order-actions";
 import { OrderItems } from "@/components/admin/orders/order-items";
 import { OrderSummary } from "@/components/admin/orders/order-summary";
 import { OrderTimeline } from "@/components/admin/orders/order-timeline";
+import { PaymentHistory } from "@/components/admin/orders/payment-history";
 import { ShippingAddress } from "@/components/admin/orders/shipping-address";
-import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { fetchOrderById } from "@/utils/api-utils";
 import type { Order } from "@/utils/types";
 import { pdf } from "@react-pdf/renderer";
-import { CreditCard } from "lucide-react";
 import { useState } from "react";
 import { OrderPDFDocument } from "./order-pdf-document";
 import { ThermalPrint } from "./thermal-print";
@@ -72,22 +70,7 @@ export default function OrderView({ order, onBack }: OrderViewProps) {
 
           <OrderTimeline order={currentOrder} />
 
-          {currentOrder.payments && currentOrder.payments.length > 0 && (
-            <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
-              <div className="px-4 py-3 border-b">
-                <h3 className="text-sm font-semibold flex items-center">
-                  <CreditCard className="size-4 mr-1.5 text-primary" />
-                  Payment History
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    ({currentOrder.payments.length})
-                  </span>
-                </h3>
-              </div>
-              <div className="p-4">
-                <PaymentsTable payments={currentOrder.payments} />
-              </div>
-            </div>
-          )}
+          <PaymentHistory payments={currentOrder.payments ?? []} />
         </div>
 
         <div className="space-y-4">
