@@ -3,6 +3,7 @@
 import type React from "react";
 
 import { PaginationComponent } from "@/components/common/pagination";
+import { EditOrderModal } from "@/components/admin/orders/edit-order-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -83,6 +84,9 @@ export function OrderList({
   const [limit] = useState(initialLimit);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [editingOrderId, setEditingOrderId] = useState<Order["id"] | null>(
+    null
+  );
 
   const updateUrl = useCallback(() => {
     // Prevent page from exceeding totalPages
@@ -164,6 +168,10 @@ export function OrderList({
     setCurrentPage(page);
   };
 
+  const handleEditModalOpenChange = useCallback((open: boolean) => {
+    if (!open) setEditingOrderId(null);
+  }, []);
+
   const clearFilters = () => {
     setSearchQuery("");
     setStatusFilter("");
@@ -227,27 +235,17 @@ export function OrderList({
   const renderTableView = () => (
     <div className="">
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="min-w-[960px]">
           <TableHeader>
             <TableRow>
               <TableHead className="w-24">Order ID</TableHead>
               <TableHead>Customer</TableHead>
-              <TableHead className="hidden md:table-cell">Date</TableHead>
-              <TableHead className="hidden md:table-cell">
-                Order Status
-              </TableHead>
-              <TableHead className="hidden md:table-cell">
-                Payment Status
-              </TableHead>
-              <TableHead className="hidden md:table-cell">
-                Payment Method
-              </TableHead>
-              <TableHead className="hidden md:table-cell text-right">
-                Total
-              </TableHead>
-              <TableHead className="hidden md:table-cell text-right">
-                Total Paid
-              </TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Order Status</TableHead>
+              <TableHead>Payment Status</TableHead>
+              <TableHead>Payment Method</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+              <TableHead className="text-right">Total Paid</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -259,27 +257,24 @@ export function OrderList({
                     <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
                   </TableCell>
                   <TableCell>
-                    <div className="space-y-2">
-                      <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
-                      <div className="h-3 w-24 bg-gray-200 rounded animate-pulse md:hidden" />
-                    </div>
+                    <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <div className="h-4 w-28 bg-gray-200 rounded animate-pulse" />
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
-                  <TableCell className="hidden md:table-cell text-right">
+                  <TableCell className="text-right">
                     <div className="h-4 w-20 bg-gray-200 rounded animate-pulse ml-auto" />
                   </TableCell>
-                  <TableCell className="hidden md:table-cell text-right">
+                  <TableCell className="text-right">
                     <div className="h-4 w-20 bg-gray-200 rounded animate-pulse ml-auto" />
                   </TableCell>
                   <TableCell className="text-right">
@@ -325,21 +320,14 @@ export function OrderList({
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <div className="space-y-1">
-                      <div className="font-medium">
-                        {order.user?.name || "N/A"}
-                      </div>
-                      <div className="text-xs text-muted-foreground md:hidden">
-                        {formatDateTime(order.createdAt).split(" ")[0]}
-                      </div>
+                    <div className="font-medium">
+                      {order.user?.name || "N/A"}
                     </div>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell text-sm">
-                    <div className="space-y-1">
-                      <div>{formatDateTime(order.createdAt)}</div>
-                    </div>
+                  <TableCell className="text-sm">
+                    {formatDateTime(order.createdAt)}
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <Badge
                       variant="secondary"
                       className={`capitalize ${getOrderStatusColor(order.orderStatus)}`}
@@ -350,7 +338,7 @@ export function OrderList({
                       </span>
                     </Badge>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <Badge
                       variant="secondary"
                       className={`capitalize ${getPaymentStatusColor(order.paymentStatus)}`}
@@ -361,7 +349,7 @@ export function OrderList({
                       </span>
                     </Badge>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <Badge
                       variant="outline"
                       className={`capitalize ${getPaymentMethodColor(order.paymentMethod?.name)}`}
@@ -373,13 +361,11 @@ export function OrderList({
                     </Badge>
                   </TableCell>
 
-                  <TableCell className="hidden md:table-cell text-right font-medium">
+                  <TableCell className="text-right font-medium">
                     {formatCurrencyEnglish(order.totalValue || 0)}
                   </TableCell>
-                  <TableCell className="hidden md:table-cell text-right font-medium">
-                    <div className="space-y-1">
-                      <div>{formatCurrencyEnglish(order.paidAmount || 0)}</div>
-                    </div>
+                  <TableCell className="text-right font-medium">
+                    {formatCurrencyEnglish(order.paidAmount || 0)}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -399,10 +385,10 @@ export function OrderList({
 
                         {/* Edit - Only for pending, processing, cancelled orders */}
                         {canEditOrder(order.orderStatus) ? (
-                          <DropdownMenuItem asChild>
-                            <Link href={`/admin/order/${order.id}/edit`}>
-                              <Pencil className="mr-2 h-4 w-4" /> Edit Order
-                            </Link>
+                          <DropdownMenuItem
+                            onSelect={() => setEditingOrderId(order.id)}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" /> Edit Order
                           </DropdownMenuItem>
                         ) : (
                           <DropdownMenuItem disabled className="opacity-50">
@@ -554,6 +540,13 @@ export function OrderList({
 
         {renderTableView()}
       </div>
+
+      <EditOrderModal
+        orderId={editingOrderId}
+        open={editingOrderId !== null}
+        onOpenChange={handleEditModalOpenChange}
+        onUpdated={fetchOrders}
+      />
     </div>
   );
 }

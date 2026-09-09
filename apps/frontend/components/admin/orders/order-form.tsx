@@ -57,9 +57,11 @@ type OrderUpdateValues = z.infer<typeof orderUpdateSchema>;
 
 interface OrderFormProps {
   order: Order;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-export function OrderForm({ order }: OrderFormProps) {
+export function OrderForm({ order, onSuccess, onCancel }: OrderFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<Order>(order);
   const router = useRouter();
@@ -137,7 +139,11 @@ export function OrderForm({ order }: OrderFormProps) {
       }
 
       toast.success("Order status updated successfully");
-      router.push("/admin/orders");
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push("/admin/orders");
+      }
     } catch (error) {
       console.error("Error updating order:", error);
       toast.error(
@@ -466,7 +472,9 @@ export function OrderForm({ order }: OrderFormProps) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push("/admin/orders")}
+            onClick={() =>
+              onCancel ? onCancel() : router.push("/admin/orders")
+            }
             disabled={isSubmitting}
             className="w-32"
           >

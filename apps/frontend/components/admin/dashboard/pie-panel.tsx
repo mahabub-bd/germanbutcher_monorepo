@@ -13,7 +13,7 @@ interface PieDataItem {
   value: number;
   color: string;
   percentage: number;
-  label?: string; // Optional custom label for tooltips (e.g., "Revenue", "Orders")
+  label?: string;
 }
 
 interface PiePanelProps {
@@ -26,13 +26,13 @@ interface PiePanelProps {
 }
 
 const CHART_CONFIG = {
-  sm: { height: 180, outerRadius: 60, innerRadius: 0 },
+  sm: { height: 150, outerRadius: 52, innerRadius: 0 },
   md: { height: 220, outerRadius: 80, innerRadius: 0 },
   lg: { height: 280, outerRadius: 100, innerRadius: 0 },
 };
 
 const DONUT_INNER_RADIUS = {
-  sm: 30,
+  sm: 28,
   md: 45,
   lg: 60,
 };
@@ -58,7 +58,7 @@ export function PiePanel({
         : data.value.toLocaleString();
 
       return (
-        <div className="rounded-sm border bg-white dark:bg-gray-800 p-3 shadow-lg">
+        <div className="rounded-lg border bg-white p-2.5 shadow-lg dark:bg-gray-800">
           <div className="flex items-center gap-2 mb-1">
             <div
               className="w-3 h-3 rounded-full"
@@ -96,14 +96,14 @@ export function PiePanel({
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div className="rounded-xl border border-gray-200/80 bg-white p-3.5 shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
       {/* Header */}
-      <div className="mb-3">
-        <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+      <div className="mb-1.5">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
           {title}
         </h3>
         {subtitle && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
             {subtitle}
           </p>
         )}
@@ -146,7 +146,7 @@ export function PiePanel({
             iconSize={10}
             wrapperStyle={{
               fontSize: size === "sm" ? "12px" : size === "md" ? "14px" : "16px",
-              paddingTop: "8px",
+              paddingTop: "4px",
             }}
             formatter={(value: string) => {
               const item = data.find((d) => d.name === value);
@@ -163,14 +163,14 @@ export function PiePanel({
 
       {/* Summary Stats */}
       {data.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+        <div className="mt-1.5 border-t border-gray-100 pt-2 dark:border-gray-800">
           <div className="flex justify-between items-center text-xs">
             <span className="text-gray-500 dark:text-gray-400">Total:</span>
             <span className="font-semibold text-gray-900 dark:text-white">
               {showCurrency
                 ? formatCurrencyEnglish(
-                    data.reduce((sum, item) => sum + item.value, 0)
-                  )
+                  data.reduce((sum, item) => sum + item.value, 0)
+                )
                 : data.reduce((sum, item) => sum + item.value, 0).toLocaleString()}
             </span>
           </div>

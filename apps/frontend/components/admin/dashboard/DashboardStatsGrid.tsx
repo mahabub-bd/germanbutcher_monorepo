@@ -46,6 +46,7 @@ export default function DashboardStatsGrid({
    * Calculate percentages for pie charts
    */
   const currentMonthTotal = current.orderCount + (current.cancelOrderCount ?? 0);
+  const orderStatusTotal = statsData?.totalOrders ?? 0;
   const currentMonthData = [
     {
       name: "Completed",
@@ -78,9 +79,9 @@ export default function DashboardStatsGrid({
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* KPI Grid */}
-      <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {/* Total Sales */}
         <StatsCard
           title="Total Sales"
@@ -160,12 +161,12 @@ export default function DashboardStatsGrid({
         />
       </div>
 
-      {/* Pie Charts Section - 3 total in one row */}
-      <div className="grid gap-3 grid-cols-1 md:grid-cols-3">
+      {/* Charts */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         {/* Current Month Orders - Pie Chart */}
         <PiePanel
           title={`Order Status - ${currentMonthLabel}`}
-          subtitle="Orders vs Cancelled"
+          subtitle="Completed vs cancelled"
           data={currentMonthData}
           size="sm"
         />
@@ -173,7 +174,7 @@ export default function DashboardStatsGrid({
         {/* Revenue Overview - Pie Chart */}
         <PiePanel
           title="Revenue Overview"
-          subtitle="Sales vs Cancelled (All-time)"
+          subtitle="Sales vs cancelled · all time"
           data={totalRevenueData}
           size="sm"
         />
@@ -182,37 +183,52 @@ export default function DashboardStatsGrid({
         {statsData && (
           <PiePanel
             title="Order Distribution"
-            subtitle="Orders by Status (All-time)"
+            subtitle="Order status · all time"
             data={[
               {
                 name: "Delivered",
                 value: statsData.delivered,
                 color: "#10b981",
-                percentage: (statsData.delivered / statsData.totalOrders) * 100,
+                percentage:
+                  orderStatusTotal > 0
+                    ? (statsData.delivered / orderStatusTotal) * 100
+                    : 0,
               },
               {
                 name: "Processing",
                 value: statsData.processing,
                 color: "#3b82f6",
-                percentage: (statsData.processing / statsData.totalOrders) * 100,
+                percentage:
+                  orderStatusTotal > 0
+                    ? (statsData.processing / orderStatusTotal) * 100
+                    : 0,
               },
               {
                 name: "Shipped",
                 value: statsData.shipped,
                 color: "#a855f7",
-                percentage: (statsData.shipped / statsData.totalOrders) * 100,
+                percentage:
+                  orderStatusTotal > 0
+                    ? (statsData.shipped / orderStatusTotal) * 100
+                    : 0,
               },
               {
                 name: "Pending",
                 value: statsData.pending,
                 color: "#eab308",
-                percentage: (statsData.pending / statsData.totalOrders) * 100,
+                percentage:
+                  orderStatusTotal > 0
+                    ? (statsData.pending / orderStatusTotal) * 100
+                    : 0,
               },
               {
                 name: "Cancelled",
                 value: statsData.cancelled,
                 color: "#ef4444",
-                percentage: (statsData.cancelled / statsData.totalOrders) * 100,
+                percentage:
+                  orderStatusTotal > 0
+                    ? (statsData.cancelled / orderStatusTotal) * 100
+                    : 0,
               },
             ]}
             size="sm"

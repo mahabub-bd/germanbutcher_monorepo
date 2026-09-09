@@ -103,7 +103,7 @@ export default function StatsCard({
 
       {/* Sparkline */}
       {sparklineData && (
-        <div className="mt-2">
+          <div className="mt-2">
           <MiniSparkline data={sparklineData} stroke={sparklineColor} />
         </div>
       )}
