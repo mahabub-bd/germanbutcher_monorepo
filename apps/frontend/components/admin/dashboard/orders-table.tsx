@@ -1,5 +1,6 @@
 "use client";
 import { PaginationComponent } from "@/components/common/pagination";
+import { EditOrderModal } from "@/components/admin/orders/edit-order-modal";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -18,9 +19,10 @@ import { fetchDataPagination } from "@/utils/api-utils";
 import { type Order, type PaginatedResponse } from "@/utils/types";
 
 import { Badge } from "@/components/ui/badge";
+import { getPaymentStatusColor, getStatusIcon } from "@/utils/order-helper";
 import { Edit, Eye } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { LoadingIndicator } from "../loading-indicator";
 
 export default function OrdersTable() {
@@ -30,34 +32,41 @@ export default function OrdersTable() {
   const [limit] = useState<number>(8);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [editingOrderId, setEditingOrderId] = useState<Order["id"] | null>(
+    null
+  );
+
+  const fetchOrders = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const data: PaginatedResponse<Order> = await fetchDataPagination(
+        `orders?page=${page}&limit=${limit}`
+      );
+      setOrders(data.data);
+      setTotalOrders(data.total);
+    } catch (err) {
+      console.error(err);
+      setError("Error fetching orders.");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, limit]);
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      setLoading(true);
-      setError("");
-
-      try {
-        const data: PaginatedResponse<Order> = await fetchDataPagination(
-          `orders?page=${page}&limit=${limit}`
-        );
-        setOrders(data.data);
-        setTotalOrders(data.total);
-      } catch (err) {
-        console.error(err);
-        setError("Error fetching orders.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrders();
-  }, [page, limit]);
+  }, [fetchOrders]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= Math.ceil(totalOrders / limit)) {
       setPage(newPage);
     }
   };
+
+  const handleEditModalOpenChange = useCallback((open: boolean) => {
+    if (!open) setEditingOrderId(null);
+  }, []);
 
   const totalPages = Math.ceil(totalOrders / limit);
 
@@ -85,7 +94,8 @@ export default function OrdersTable() {
             <TableHead>Phone</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Amount</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Order Status</TableHead>
+            <TableHead>Payment Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -117,7 +127,17 @@ export default function OrdersTable() {
                     {order.orderStatus}
                   </Badge>
                 </TableCell>
-
+                <TableCell className="hidden md:table-cell">
+                  <Badge
+                    variant="secondary"
+                    className={`capitalize ${getPaymentStatusColor(order.paymentStatus)}`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {getStatusIcon(order.paymentStatus)}
+                      {order.paymentStatus}
+                    </span>
+                  </Badge>
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
                     <Button variant="ghost" className="h-8 w-8 p-0">
@@ -125,11 +145,19 @@ export default function OrdersTable() {
                         <Eye className="h-4 w-4 mr-1" />
                       </Link>
                     </Button>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <Link href={`/admin/order/${order.id}/edit`}>
-                        <Edit className="h-4 w-4 mr-1" />
-                      </Link>
-                    </Button>
+                    {!(
+                      order.orderStatus.toLowerCase() === "delivered" &&
+                      order.paymentStatus.toLowerCase() === "completed"
+                    ) && (
+                      <Button
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setEditingOrderId(order.id)}
+                        aria-label={`Edit order ${order.orderNo}`}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -151,6 +179,12 @@ export default function OrdersTable() {
           </div>
         )}
       </div>
+      <EditOrderModal
+        orderId={editingOrderId}
+        open={editingOrderId !== null}
+        onOpenChange={handleEditModalOpenChange}
+        onUpdated={fetchOrders}
+      />
     </div>
   );
 }
