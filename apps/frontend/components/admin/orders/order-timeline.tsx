@@ -85,19 +85,21 @@ const TimelineItemComponent = memo<TimelineItemProps>(
     const icon = item.isActive ? getStatusIcon(item.status) : null;
 
     return (
-      <TimelineItem className="pb-0">
-        <TimelineSeparator>
+      <TimelineItem className="pb-0 last:pb-0">
+        <TimelineSeparator className="w-8 shrink-0">
           <TimelineDot
-            className={`${item.isActive ? getStatusDotColor(item.status) : "bg-muted"} ${
-              isCurrent ? "ring-2 ring-primary/30" : ""
+            className={`flex h-7 w-7 items-center justify-center border-4 border-background shadow-sm ${item.isActive ? getStatusDotColor(item.status) : "bg-muted"} ${
+              isCurrent ? "ring-4 ring-primary/15" : ""
             }`}
-          />
+          >
+            {icon && <span className="scale-75 text-white">{icon}</span>}
+          </TimelineDot>
           {!isLast && (
             <TimelineConnector
               className={
                 item.isActive
-                  ? "bg-primary/40"
-                  : "bg-border border-dashed"
+                  ? "my-1.5 bg-primary/30"
+                  : "my-1.5 border-l border-dashed border-border bg-transparent"
               }
             />
           )}
@@ -105,23 +107,24 @@ const TimelineItemComponent = memo<TimelineItemProps>(
 
         <TimelineContent>
           <div
-            className={`ml-3 rounded-md px-3 py-2 ${
+            className={`ml-1.5 rounded-lg border px-3 py-2.5 transition-colors ${
               isCurrent
-                ? "bg-primary/5 border border-primary/20"
-                : "bg-muted/20"
+                ? "border-primary/25 bg-primary/[0.045] shadow-sm"
+                : item.isActive
+                  ? "border-border/70 bg-card"
+                  : "border-transparent bg-muted/30 opacity-70"
             }`}
           >
             {/* Header */}
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
-                {icon && <span className="text-primary">{icon}</span>}
-                <span className="text-sm font-medium">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="text-sm font-semibold">
                   {formatStatusLabel(item.status)}
                 </span>
                 {isCurrent && (
                   <Badge
                     variant="default"
-                    className="h-4 px-1.5 text-[9px]"
+                    className="h-5 rounded-full px-2 text-[9px] font-semibold uppercase tracking-wider"
                   >
                     Current
                   </Badge>
@@ -129,7 +132,7 @@ const TimelineItemComponent = memo<TimelineItemProps>(
               </div>
 
               {item.timestamp && (
-                <time className="text-[11px] text-muted-foreground">
+                <time className="shrink-0 text-[11px] text-muted-foreground">
                   {formatDateTime(item.timestamp)}
                 </time>
               )}
@@ -137,17 +140,15 @@ const TimelineItemComponent = memo<TimelineItemProps>(
 
             {/* Note */}
             {item.note && (
-              <p className="mt-1 text-xs text-muted-foreground leading-snug">
+              <p className="mt-1.5 border-l-2 border-primary/20 pl-2 text-xs leading-snug text-muted-foreground">
                 {item.note}
               </p>
             )}
 
             {/* Meta */}
-            <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-            
-              <span>
-                {item.updatedBy?.name || "System"}
-              </span>
+            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/45" />
+              <span>Updated by {item.updatedBy?.name || "System"}</span>
             </div>
           </div>
         </TimelineContent>
@@ -161,11 +162,14 @@ TimelineItemComponent.displayName = "TimelineItemComponent";
 
 
 const EmptyTimelineState = () => (
-  <div className="flex flex-col items-center justify-center py-8 text-center">
-    <Clock className="h-8 w-8 text-muted-foreground/40 mb-2" />
-    <p className="text-xs text-muted-foreground">
+  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-7 text-center">
+    <div className="mb-2 rounded-full bg-muted p-2">
+      <Clock className="h-4 w-4 text-muted-foreground" />
+    </div>
+    <p className="text-sm font-medium text-foreground">
       No status updates yet
     </p>
+    <p className="mt-1 text-xs text-muted-foreground">Updates will appear here as the order progresses.</p>
   </div>
 );
 
@@ -206,25 +210,30 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
   const hasData = order.statusTracks && order.statusTracks.length > 0;
 
   return (
-    <section className="rounded-lg border bg-card p-4">
+    <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-base font-semibold flex items-center gap-4">
-          <Clock className="h-4 w-4 text-primary" />
+      <div className="flex items-center justify-between border-b bg-gradient-to-r from-primary/[0.07] via-primary/[0.02] to-transparent px-4 py-3">
+        <div>
+          <h3 className="flex items-center gap-2 text-base font-semibold">
+            <span className="rounded-md bg-primary/10 p-1 text-primary">
+              <Clock className="h-3.5 w-3.5" />
+            </span>
           Order Timeline
-        </h3>
+          </h3>
+          <p className="mt-1 text-xs text-muted-foreground">Track each stage of this order.</p>
+        </div>
 
         {hasData && (
-          <Badge variant="outline" className="text-[10px] h-5">
-            {timelineItems.length}
+          <Badge variant="outline" className="h-6 rounded-full px-2.5 text-[10px] font-medium">
+            {timelineItems.length} steps
           </Badge>
         )}
       </div>
 
       {/* Content */}
-      <div className="min-h-[120px]">
+      <div className="min-h-[110px] p-4">
         {hasData ? (
-          <Timeline>
+          <Timeline className="space-y-2">
             {timelineItems.map((item, index) => (
               <TimelineItemComponent
                 key={item.status}
