@@ -18,13 +18,20 @@ import { ThermalPrint } from "./thermal-print";
 interface OrderViewProps {
   order: Order;
   onBack?: () => void;
+  onPrevOrder?: () => void;
+  onNextOrder?: () => void;
 }
 
-export default function OrderView({ order, onBack }: OrderViewProps) {
+export default function OrderView({
+  order,
+  onBack,
+  onPrevOrder,
+  onNextOrder,
+}: OrderViewProps) {
   const [currentOrder, setCurrentOrder] = useState<Order>(order);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleCancelSuccess = async () => {
+  const handleRefreshOrder = async () => {
     setIsRefreshing(true);
     try {
       // Refetch the order to get updated status
@@ -55,8 +62,12 @@ export default function OrderView({ order, onBack }: OrderViewProps) {
         order={currentOrder}
         onGeneratePDF={handleGeneratePDF}
         onBack={onBack}
-        onCancelSuccess={handleCancelSuccess}
-        onRefundSuccess={handleCancelSuccess}
+        onPrevOrder={onPrevOrder}
+        onNextOrder={onNextOrder}
+        onCancelSuccess={handleRefreshOrder}
+        onRefundSuccess={handleRefreshOrder}
+        onEditSuccess={handleRefreshOrder}
+        onPaymentSuccess={handleRefreshOrder}
       />
 
       {/* Thermal Print Button - Separate Component */}

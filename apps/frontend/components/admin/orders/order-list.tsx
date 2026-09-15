@@ -3,6 +3,7 @@
 import type React from "react";
 
 import { PaginationComponent } from "@/components/common/pagination";
+import { AddPaymentModal } from "@/components/admin/orders/add-payment-modal";
 import { EditOrderModal } from "@/components/admin/orders/edit-order-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ import {
   getStatusIcon,
 } from "@/utils/order-helper";
 import type { Order } from "@/utils/types";
+import { listRouteToSlug } from "@/utils/order-list-routes";
 import {
   DollarSign,
   Eye,
@@ -48,7 +50,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface OrderListProps {
@@ -87,8 +89,18 @@ export function OrderList({
   const [editingOrderId, setEditingOrderId] = useState<Order["id"] | null>(
     null
   );
+  const [payingOrderId, setPayingOrderId] = useState<Order["id"] | null>(null);
+
+  // Skip URL writes until the first fetch resolves: totalPages starts at 1,
+  // so clamping a deep-linked ?page=N against it would rewrite it to page 1.
+  // The sequence ref ignores stale responses so the table always matches
+  // currentPage (older fetches can resolve after newer ones).
+  const hasFetchedRef = useRef(false);
+  const fetchSeqRef = useRef(0);
 
   const updateUrl = useCallback(() => {
+    if (!hasFetchedRef.current) return;
+
     // Prevent page from exceeding totalPages
     const safePage = Math.min(currentPage, totalPages);
     const finalPage = Math.max(1, safePage);
@@ -106,6 +118,7 @@ export function OrderList({
   }, [router, pathname, currentPage, totalPages, limit, searchQuery, statusFilter]);
 
   const fetchOrders = useCallback(async () => {
+    const seq = ++fetchSeqRef.current;
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
@@ -121,15 +134,20 @@ export function OrderList({
         total: number;
         totalPages: number;
       }>(`orders?${params.toString()}`);
+      if (seq !== fetchSeqRef.current) return; // superseded by a newer request
       setOrders(response.data);
       setTotalItems(response.total);
       setTotalPages(response.totalPages);
+      hasFetchedRef.current = true;
     } catch (error) {
       console.error("Error fetching orders:", error);
+      if (seq !== fetchSeqRef.current) return;
       toast.error("Failed to load orders. Please try again.");
       setOrders([]);
     } finally {
-      setIsLoading(false);
+      if (seq === fetchSeqRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [currentPage, limit, searchQuery, statusFilter]);
 
@@ -172,6 +190,10 @@ export function OrderList({
     if (!open) setEditingOrderId(null);
   }, []);
 
+  const handlePaymentModalOpenChange = useCallback((open: boolean) => {
+    if (!open) setPayingOrderId(null);
+  }, []);
+
   const clearFilters = () => {
     setSearchQuery("");
     setStatusFilter("");
@@ -187,6 +209,20 @@ export function OrderList({
   const canEditOrder = (orderStatus: string) => {
     const nonEditableStatuses = ["shipped", "delivered"];
     return !nonEditableStatuses.includes(orderStatus.toLowerCase());
+  };
+
+  // Detail links carry the list context (route, page, filters) so the
+  // detail pages can send the user back to the exact spot in the list.
+  // The source list is a readable slug, omitted for the default list.
+  const buildDetailHref = (id: Order["id"], tab: "view" | "payments") => {
+    const params = new URLSearchParams();
+    const listSlug = listRouteToSlug(pathname);
+    if (listSlug && listSlug !== "orders") params.set("from", listSlug);
+    params.set("page", currentPage.toString());
+    if (searchQuery) params.set("search", searchQuery);
+    if (statusFilter && statusFilter !== "all")
+      params.set("orderStatus", statusFilter);
+    return `/admin/order/${id}/${tab}?${params.toString()}`;
   };
 
   const renderActiveFilters = () => {
@@ -312,7 +348,7 @@ export function OrderList({
                 <TableRow key={order.id} className="hover:bg-muted/50">
                   <TableCell className="font-mono text-sm">
                     <Link
-                      href={`/admin/order/${order.id}/view`}
+                      href={buildDetailHref(order.id, "view")}
                       className="flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                     >
 
@@ -378,7 +414,7 @@ export function OrderList({
                       <DropdownMenuContent align="end">
                         {/* View - Always available */}
                         <DropdownMenuItem asChild>
-                          <Link href={`/admin/order/${order.id}/view`}>
+                          <Link href={buildDetailHref(order.id, "view")}>
                             <Eye className="mr-2 h-4 w-4" /> View Details
                           </Link>
                         </DropdownMenuItem>
@@ -400,17 +436,17 @@ export function OrderList({
                         {/* Payment Update - Only if not fully paid and not cancelled */}
                         {(order.paidAmount || 0) < (order.totalValue || 0) &&
                           order.orderStatus.toLowerCase() !== "cancelled" && (
-                            <DropdownMenuItem asChild>
-                              <Link href={`/admin/order/${order.id}/payment`}>
-                                <DollarSign className="mr-2 h-4 w-4" /> Update
-                                Payment
-                              </Link>
+                            <DropdownMenuItem
+                              onSelect={() => setPayingOrderId(order.id)}
+                            >
+                              <DollarSign className="mr-2 h-4 w-4" /> Update
+                              Payment
                             </DropdownMenuItem>
                           )}
 
                         {/* View Payments - Always available */}
                         <DropdownMenuItem asChild>
-                          <Link href={`/admin/order/${order.id}/payments`}>
+                          <Link href={buildDetailHref(order.id, "payments")}>
                             <List className="mr-2 h-4 w-4" /> Payment History
                           </Link>
                         </DropdownMenuItem>
@@ -545,6 +581,13 @@ export function OrderList({
         orderId={editingOrderId}
         open={editingOrderId !== null}
         onOpenChange={handleEditModalOpenChange}
+        onUpdated={fetchOrders}
+      />
+
+      <AddPaymentModal
+        orderId={payingOrderId}
+        open={payingOrderId !== null}
+        onOpenChange={handlePaymentModalOpenChange}
         onUpdated={fetchOrders}
       />
     </div>

@@ -1,39 +1,60 @@
 "use client";
 
+import { AddPaymentModal } from "@/components/admin/orders/add-payment-modal";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { PageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { fetchProtectedData } from "@/utils/api-utils";
+import { listSlugToRoute } from "@/utils/order-list-routes";
 import { Order } from "@/utils/types";
 import { ArrowLeft, CheckCircle, Clock, DollarSign, Plus } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { PaymentsTable } from "./payment-table";
 
-export default function OrderPaymentsListPage() {
+function OrderPaymentsListPageContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const orderId = params.id as string;
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
+
+  const fetchOrderData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetchProtectedData<Order>(`orders/${orderId}`);
+      setOrder(response);
+    } catch (error) {
+      console.error("Error fetching order data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId]);
+
+  // The list page (order-list.tsx) appends its route/page/filters to detail
+  // links. "Back to Orders" rebuilds that URL so the user returns to the
+  // exact page they left, instead of always landing on page 1.
+  const buildListUrl = () => {
+    const listSlug = searchParams.get("from");
+    const from = listSlug ? listSlugToRoute(listSlug) : "/admin/orders";
+    const restore = new URLSearchParams();
+    const page = searchParams.get("page");
+    const search = searchParams.get("search");
+    const status = searchParams.get("orderStatus");
+    if (page) restore.set("page", page);
+    if (search) restore.set("search", search);
+    if (status && status !== "all") restore.set("orderStatus", status);
+    const qs = restore.toString();
+    return qs ? `${from}?${qs}` : from;
+  };
 
   useEffect(() => {
-    const fetchOrderData = async () => {
-      try {
-        setLoading(true);
-        const response = await fetchProtectedData<Order>(`orders/${orderId}`);
-        setOrder(response);
-      } catch (error) {
-        console.error("Error fetching order data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrderData();
-  }, [orderId]);
+  }, [fetchOrderData]);
 
   if (loading) {
     return <LoadingIndicator message="Loading Order Payments" />;
@@ -60,21 +81,16 @@ export default function OrderPaymentsListPage() {
 
           <div className="flex gap-3">
             <Button variant="secondary" asChild>
-              <Link href="/admin/orders" className="flex items-center gap-2">
+              <Link href={buildListUrl()} className="flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />
                 <span>Back to Orders</span>
               </Link>
             </Button>
 
             {remainingAmount > 0 && (
-              <Button asChild>
-                <Link
-                  href={`/admin/order/${orderId}/payment`}
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Add Payment</span>
-                </Link>
+              <Button onClick={() => setShowAddPaymentModal(true)}>
+                <Plus className="h-4 w-4" />
+                <span>Add Payment</span>
               </Button>
             )}
           </div>
@@ -150,6 +166,21 @@ export default function OrderPaymentsListPage() {
       <div className="md:p-6 p-2">
         <PaymentsTable payments={order.payments ?? []} />
       </div>
+
+      <AddPaymentModal
+        orderId={Number(orderId)}
+        open={showAddPaymentModal}
+        onOpenChange={setShowAddPaymentModal}
+        onUpdated={fetchOrderData}
+      />
     </div>
+  );
+}
+
+export default function OrderPaymentsListPage() {
+  return (
+    <Suspense fallback={null}>
+      <OrderPaymentsListPageContent />
+    </Suspense>
   );
 }

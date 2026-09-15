@@ -1,6 +1,6 @@
 "use client";
-import { PaginationComponent } from "@/components/common/pagination";
 import { EditOrderModal } from "@/components/admin/orders/edit-order-modal";
+import { PaginationComponent } from "@/components/common/pagination";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -127,7 +127,7 @@ export default function OrdersTable() {
                     {order.orderStatus}
                   </Badge>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell>
                   <Badge
                     variant="secondary"
                     className={`capitalize ${getPaymentStatusColor(order.paymentStatus)}`}
@@ -149,15 +149,15 @@ export default function OrdersTable() {
                       order.orderStatus.toLowerCase() === "delivered" &&
                       order.paymentStatus.toLowerCase() === "completed"
                     ) && (
-                      <Button
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
-                        onClick={() => setEditingOrderId(order.id)}
-                        aria-label={`Edit order ${order.orderNo}`}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    )}
+                        <Button
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setEditingOrderId(order.id)}
+                          aria-label={`Edit order ${order.orderNo}`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                   </div>
                 </TableCell>
               </TableRow>
