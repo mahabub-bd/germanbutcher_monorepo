@@ -442,6 +442,28 @@ export class OrderService {
     return order;
   }
 
+  async getNeighborOrderIds(
+    id: number,
+  ): Promise<{ prevId: number | null; nextId: number | null }> {
+    const [prev, next] = await Promise.all([
+      this.orderRepository
+        .createQueryBuilder('order')
+        .select('MAX(order.id)', 'prevId')
+        .where('order.id < :id', { id })
+        .getRawOne(),
+      this.orderRepository
+        .createQueryBuilder('order')
+        .select('MIN(order.id)', 'nextId')
+        .where('order.id > :id', { id })
+        .getRawOne(),
+    ]);
+
+    return {
+      prevId: prev?.prevId ? Number(prev.prevId) : null,
+      nextId: next?.nextId ? Number(next.nextId) : null,
+    };
+  }
+
   async getOrdersByUserId(userId: number): Promise<Order[]> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 

@@ -127,6 +127,22 @@ export class OrderController {
     };
   }
   @UseGuards(JwtAuthGuard)
+  @Get(':id/neighbors')
+  @ApiOperation({ summary: 'Get previous and next order IDs' })
+  @ApiParam({ name: 'id', type: Number })
+  async findNeighbors(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<
+    ApiResponseDto<{ prevId: number | null; nextId: number | null }>
+  > {
+    const data = await this.orderService.getNeighborOrderIds(id);
+    return {
+      message: 'Neighbor orders retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+  @UseGuards(JwtAuthGuard)
   @Get('user/:userId')
   @ApiOperation({ summary: 'Get all orders by user ID' })
   @ApiParam({ name: 'userId', type: Number })
