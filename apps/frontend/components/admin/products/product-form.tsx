@@ -9,6 +9,7 @@ import { type Resolver, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
 
+import { revalidateProducts } from "@/actions/revalidate";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -390,6 +391,8 @@ export function ProductForm({
       const response = await method(endpoint, productData);
 
       if (response?.statusCode === 200 || response?.statusCode === 201) {
+        // Refresh cached product data on public pages immediately
+        await revalidateProducts();
         const successMessage =
           mode === "create"
             ? "Product created successfully"

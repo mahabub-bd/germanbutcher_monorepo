@@ -61,7 +61,17 @@ export async function fetchData<T>(endpoint: string): Promise<T> {
   const url = `${apiUrl}/${endpoint}`;
 
   try {
-    const response = await fetch(url);
+    // Product data gets a longer cache window plus a "products" tag: admin
+    // mutations call revalidateProducts() to bust it instantly. Everything
+    // else caches for 60s as a safety net. Browsers ignore the `next` option,
+    // so client-side callers are unaffected.
+    const isProductData = endpoint.startsWith("products");
+    const response = await fetch(url, {
+      next: {
+        revalidate: isProductData ? 300 : 60,
+        tags: isProductData ? ["products"] : [],
+      },
+    });
 
     if (!response.ok) {
       let errorMessage;
