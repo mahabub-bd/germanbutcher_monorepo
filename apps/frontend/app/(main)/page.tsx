@@ -39,7 +39,7 @@ export default function Home() {
       <section className="md:py-10 py-5 product-bg">
         <div className="container mx-auto ">
           <ProductList
-            endpoint="products?featured=true"
+            endpoint="products?featured=true&limit=10&page=1"
             isHomePage
             href="products/featured/"
           >
@@ -50,7 +50,7 @@ export default function Home() {
       <section className="lg:py-10 py-5 bg-gray-50">
         <div className="container mx-auto ">
           <ProductList
-            endpoint="products/discounted?page=1&limit=20&isActive=true"
+            endpoint="products/discounted?page=1&limit=10&isActive=true"
             isHomePage
             href="products/special-offers"
           >
@@ -62,7 +62,7 @@ export default function Home() {
       <section className="md:py-10 py-5 ">
         <div className="container mx-auto ">
           <ProductList
-            endpoint="products/bestsellers?limit=20&isActive=true"
+            endpoint="products/bestsellers?limit=10&isActive=true"
             isHomePage
             href="products/popular"
           >
@@ -74,7 +74,7 @@ export default function Home() {
       {/* Brands Section */}
       <section className="lg:py-10 py-5 product-bg">
         <div className="container mx-auto ">
-          <BrandList endpoint="products?isActive=true">
+          <BrandList endpoint="products?isActive=true&limit=10&page=1">
             <HeadingPrimary title="Recommended for you" className="mb-10" />
           </BrandList>
         </div>

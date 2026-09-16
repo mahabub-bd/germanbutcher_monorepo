@@ -8,6 +8,7 @@ import { type Resolver, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { revalidateProducts } from "@/actions/revalidate";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
@@ -75,6 +76,9 @@ export function DiscountForm({
       });
 
       await Promise.all(updatePromises);
+
+      // Refresh cached product data on public pages immediately
+      await revalidateProducts();
 
       toast.success(`Discount applied to ${data.productIds.length} products`, {
         description:

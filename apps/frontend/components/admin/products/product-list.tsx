@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/table";
 
 import { PaginationComponent } from "@/components/common/pagination";
+import { revalidateProducts } from "@/actions/revalidate";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
 import type { Brand, Category, Product } from "@/utils/types";
@@ -217,6 +218,8 @@ export function ProductList({
 
     try {
       await deleteData("products", selectedProduct.id);
+      // Refresh cached product data on public pages immediately
+      await revalidateProducts();
       fetchProducts();
       toast.success("Product deleted successfully");
     } catch (error) {

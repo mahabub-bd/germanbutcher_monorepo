@@ -22,9 +22,9 @@ export function OrderItems({ items, itemCount }: OrderItemsProps) {
         </div>
       </div>
 
-      <div className="space-y-4 divide-y">
+      <div className="space-y-3 md:space-y-4 divide-y">
         {items.map((item: CartItem) => (
-          <div key={item.product.id} className="pt-4 first:pt-0">
+          <div key={item.product.id} className="pt-3 md:pt-4 first:pt-0">
             <CartItemProductPage item={item} />
           </div>
         ))}

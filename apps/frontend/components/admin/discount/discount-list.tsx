@@ -2,6 +2,7 @@
 
 import type React from "react";
 
+import { revalidateProducts } from "@/actions/revalidate";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -232,6 +233,8 @@ export function DiscountList({
         discountStartDate: null,
         discountEndDate: null,
       });
+      // Refresh cached product data on public pages immediately
+      await revalidateProducts();
       fetchDiscountedProducts();
       toast.success("Discount removed successfully");
     } catch (error) {
