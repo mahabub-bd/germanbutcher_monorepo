@@ -3,8 +3,39 @@
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { useDashboardMetrics } from "@/hooks/use-dashboard-metrics";
 import { formatCurrencyEnglish } from "@/lib/utils";
-import { Calendar, Package, TrendingDown, TrendingUp, Users, XCircle } from "lucide-react";
+import type { CategorySales, CustomerTypeShare, PaymentDueSummary, PaymentMethodShare, TodaySnapshot } from "@/utils/types";
+import { AlertTriangle, Calendar, CalendarDays, Package, Receipt, TrendingDown, TrendingUp, Users, Wallet, XCircle } from "lucide-react";
 import { PiePanel } from "./pie-panel";
+
+// Validated categorical slots (light + dark); slices take slots in fixed
+// order, overflow folds into a neutral "Other" slice.
+const PIE_SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"];
+const OTHER_SLICE_COLOR = "#898781";
+
+function toSharePieData(rows: { name: string; totalValue: number }[]) {
+  const total = rows.reduce((sum, row) => sum + row.totalValue, 0);
+  if (total <= 0) return [];
+
+  const items = rows.slice(0, 5).map((row, i) => ({
+    name: row.name,
+    value: row.totalValue,
+    color: PIE_SLOTS[i],
+    percentage: (row.totalValue / total) * 100,
+  }));
+
+  const rest = rows.slice(5);
+  if (rest.length > 0) {
+    const restValue = rest.reduce((sum, row) => sum + row.totalValue, 0);
+    items.push({
+      name: `Other (${rest.length})`,
+      value: restValue,
+      color: OTHER_SLICE_COLOR,
+      percentage: (restValue / total) * 100,
+    });
+  }
+
+  return items;
+}
 
 interface DashboardStatsGridProps {
   chartData: any[];
@@ -23,6 +54,12 @@ interface DashboardStatsGridProps {
     deliveredValue: number;
     cancelledValue: number;
   };
+  paymentMethodShare: PaymentMethodShare[];
+  categorySales: CategorySales[];
+  customerType: CustomerTypeShare;
+  todaySnapshot: TodaySnapshot;
+  paymentDue: PaymentDueSummary;
+  stockAlerts: { outOfStock: number; lowStock: number };
 }
 
 export default function DashboardStatsGrid({
@@ -30,6 +67,12 @@ export default function DashboardStatsGrid({
   productsCount,
   customersCount,
   statsData,
+  paymentMethodShare,
+  categorySales,
+  customerType,
+  todaySnapshot,
+  paymentDue,
+  stockAlerts,
 }: DashboardStatsGridProps) {
   const { current, previous, totals, salesGrowth, cancelGrowth } = useDashboardMetrics(chartData);
 
@@ -43,65 +86,71 @@ export default function DashboardStatsGrid({
   const isCancelUp = cancelGrowth >= 0;
 
   /**
-   * Calculate percentages for pie charts
+   * Pie data
    */
-  const currentMonthTotal = current.orderCount + (current.cancelOrderCount ?? 0);
   const orderStatusTotal = statsData?.totalOrders ?? 0;
-  const currentMonthData = [
-    {
-      name: "Completed",
-      value: current.orderCount,
-      color: "#10b981",
-      percentage: currentMonthTotal > 0 ? (current.orderCount / currentMonthTotal) * 100 : 0,
-    },
-    {
-      name: "Cancelled",
-      value: current.cancelOrderCount ?? 0,
-      color: "#ef4444",
-      percentage: currentMonthTotal > 0 ? ((current.cancelOrderCount ?? 0) / currentMonthTotal) * 100 : 0,
-    },
-  ];
+  const paymentMethodData = toSharePieData(paymentMethodShare);
+  const categoryData = toSharePieData(categorySales);
 
-  const totalRevenueAll = totals.sales + totals.cancelValue;
-  const totalRevenueData = [
-    {
-      name: "Sales",
-      value: totals.sales,
-      color: "#10b981",
-      percentage: totalRevenueAll > 0 ? (totals.sales / totalRevenueAll) * 100 : 0,
-    },
-    {
-      name: "Cancelled",
-      value: totals.cancelValue,
-      color: "#ef4444",
-      percentage: totalRevenueAll > 0 ? (totals.cancelValue / totalRevenueAll) * 100 : 0,
-    },
-  ];
+  // New vs returning — customers active this month
+  const customerTotal = customerType.newCustomers + customerType.returningCustomers;
+  const customerTypeData =
+    customerTotal > 0
+      ? [
+        {
+          name: "New",
+          value: customerType.newCustomers,
+          color: "#2a78d6",
+          percentage: (customerType.newCustomers / customerTotal) * 100,
+        },
+        {
+          name: "Returning",
+          value: customerType.returningCustomers,
+          color: "#eb6834",
+          percentage: (customerType.returningCustomers / customerTotal) * 100,
+        },
+      ]
+      : [];
+
+  // Today vs yesterday (non-cancelled orders)
+  const todayGrowth =
+    todaySnapshot.yesterdayValue > 0
+      ? ((todaySnapshot.todayValue - todaySnapshot.yesterdayValue) /
+        todaySnapshot.yesterdayValue) *
+      100
+      : todaySnapshot.todayValue > 0
+        ? 100
+        : 0;
+  const isTodayUp = todayGrowth >= 0;
+
+  // Average order value — delivered revenue per delivered order
+  const avgOrderValue =
+    totals.orders > 0 ? totals.sales / totals.orders : 0;
 
   return (
     <div className="space-y-3">
       {/* KPI Grid */}
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {/* Total Sales */}
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
+
+        {/* Today */}
         <StatsCard
-          title="Total Sales"
-          value={formatCurrencyEnglish(totals.sales)}
+          title="Today"
+          value={formatCurrencyEnglish(todaySnapshot.todayValue)}
+          count={String(todaySnapshot.todayOrders)}
+          description={`${isTodayUp ? "▲" : "▼"} ${Math.abs(todayGrowth).toFixed(1)}% vs yesterday`}
+          icon={CalendarDays}
+          bgColor="blue"
+        />
+
+        {/* Avg. Order Value */}
+        <StatsCard
+          title="Avg. Order Value"
+          value={formatCurrencyEnglish(avgOrderValue)}
           count={String(totals.orders)}
-          description="All-time revenue"
-          icon={TrendingUp}
-          bgColor="green"
+          description="Delivered revenue / orders"
+          icon={Receipt}
+          bgColor="indigo"
         />
-
-        {/* Total Cancel */}
-        <StatsCard
-          title="Total Cancel"
-          value={formatCurrencyEnglish(totals.cancelValue)}
-          count={String(totals.cancelOrders)}
-          description="All-time cancellations"
-          icon={XCircle}
-          bgColor="amber"
-        />
-
         {/* Sales - Current Month */}
         <StatsCard
           title={`Sales (${currentMonthLabel})`}
@@ -129,7 +178,7 @@ export default function DashboardStatsGrid({
           count={String(previous.orderCount)}
           description="Previous month revenue"
           icon={Calendar}
-          bgColor="blue"
+          bgColor="indigo"
         />
 
         {/* Cancel - Last Month */}
@@ -141,14 +190,32 @@ export default function DashboardStatsGrid({
           icon={TrendingDown}
           bgColor="pink"
         />
+        {/* Total Sales */}
+        <StatsCard
+          title="Total Sales"
+          value={formatCurrencyEnglish(totals.sales)}
+          count={String(totals.orders)}
+          description="All-time revenue"
+          icon={TrendingUp}
+          bgColor="green"
+        />
 
+        {/* Total Cancel */}
+        <StatsCard
+          title="Total Cancel"
+          value={formatCurrencyEnglish(totals.cancelValue)}
+          count={String(totals.cancelOrders)}
+          description="All-time cancellations"
+          icon={XCircle}
+          bgColor="red"
+        />
         {/* Products */}
         <StatsCard
           title="Products"
           value={productsCount.toString()}
           description="Total inventory count"
           icon={Package}
-          bgColor="indigo"
+          bgColor="violet"
         />
 
         {/* Customers */}
@@ -157,27 +224,66 @@ export default function DashboardStatsGrid({
           value={customersCount.toString()}
           description="Total registered users"
           icon={Users}
-          bgColor="blue"
+          bgColor="amber"
+        />
+
+
+
+        {/* Stock Alerts */}
+        <StatsCard
+          title="Stock Alerts"
+          value={stockAlerts.outOfStock.toString()}
+          count={stockAlerts.lowStock.toString()}
+          description="Out of stock / low stock (<5)"
+          icon={AlertTriangle}
+          bgColor="orange"
+        />
+
+        {/* Payment Due */}
+        <StatsCard
+          title="Payment Due"
+          value={formatCurrencyEnglish(paymentDue.dueAmount)}
+          count={String(paymentDue.dueOrders)}
+          description="Delivered · partially paid"
+          icon={Wallet}
+          bgColor="purple"
         />
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-        {/* Current Month Orders - Pie Chart */}
-        <PiePanel
-          title={`Order Status - ${currentMonthLabel}`}
-          subtitle="Completed vs cancelled"
-          data={currentMonthData}
-          size="sm"
-        />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {/* New vs Returning Customers - Pie */}
+        {customerTypeData.length > 0 && (
+          <PiePanel
+            title={`Customers - ${currentMonthLabel}`}
+            subtitle="New vs returning · this month"
+            data={customerTypeData}
+            size="sm"
+          />
+        )}
 
-        {/* Revenue Overview - Pie Chart */}
-        <PiePanel
-          title="Revenue Overview"
-          subtitle="Sales vs cancelled · all time"
-          data={totalRevenueData}
-          size="sm"
-        />
+        {/* Revenue by Payment Method - Donut */}
+        {paymentMethodData.length > 0 && (
+          <PiePanel
+            title="Revenue by Payment Method"
+            subtitle="Delivered orders · all time"
+            data={paymentMethodData}
+            size="sm"
+            donut={true}
+            showCurrency
+          />
+        )}
+
+        {/* Revenue by Category - Pie */}
+        {categoryData.length > 0 && (
+          <PiePanel
+            title="Revenue by Category"
+            subtitle="Item totals · delivered orders"
+            data={categoryData}
+            size="sm"
+            showCurrency
+          />
+        )}
 
         {/* Order Distribution by Quantity - Donut Chart - All 5 Statuses */}
         {statsData && (

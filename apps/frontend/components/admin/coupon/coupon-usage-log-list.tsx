@@ -1,5 +1,6 @@
 "use client";
 
+import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,14 +41,20 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
     totalOrderValue: number | string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [limit] = useState(10);
 
   const fetchLogs = async () => {
     setIsLoading(true);
     try {
-      const logs = couponCode
-        ? await getCouponUsageLogsByCode(couponCode)
-        : await getAllCouponUsageLogs();
-      setLogs(logs);
+      const response = couponCode
+        ? await getCouponUsageLogsByCode(couponCode, currentPage, limit)
+        : await getAllCouponUsageLogs(currentPage, limit);
+      setLogs(response.data);
+      setTotalItems(response.total);
+      setTotalPages(response.totalPages);
 
       // Fetch stats if couponCode is provided
       if (couponCode) {
@@ -69,7 +76,8 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
 
   useEffect(() => {
     fetchLogs();
-  }, [couponCode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couponCode, currentPage]);
 
   const getOrderStatusVariant = (status: string) => {
     switch (status) {
@@ -275,10 +283,23 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
         </div>
       )}
 
-      <div className="flex justify-between mt-4">
+      <div className="flex flex-row justify-between items-center p-4 border-t">
         <div className="text-xs text-muted-foreground">
-          {logs.length} {logs.length === 1 ? "usage log" : "usage logs"}
+          Showing{" "}
+          {totalItems === 0
+            ? 0
+            : Math.min((currentPage - 1) * limit + 1, totalItems)}{" "}
+          to {Math.min(currentPage * limit, totalItems)} of {totalItems} usage
+          logs
         </div>
+        {totalPages > 1 && (
+          <PaginationComponent
+            currentPage={currentPage}
+            totalPages={totalPages}
+            baseUrl="#"
+            onPageChange={(page) => setCurrentPage(page)}
+          />
+        )}
       </div>
     </div>
   );

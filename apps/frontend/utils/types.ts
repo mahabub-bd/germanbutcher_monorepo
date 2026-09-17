@@ -9,6 +9,35 @@ export type PaginatedResponse<T> = {
   limit: number;
   totalPages: number;
 };
+
+export type PaymentMethodShare = {
+  name: string;
+  orderCount: number;
+  totalValue: number;
+};
+
+export type CategorySales = {
+  name: string;
+  quantity: number;
+  totalValue: number;
+};
+
+export type CustomerTypeShare = {
+  newCustomers: number;
+  returningCustomers: number;
+};
+
+export type TodaySnapshot = {
+  todayOrders: number;
+  todayValue: number;
+  yesterdayOrders: number;
+  yesterdayValue: number;
+};
+
+export type PaymentDueSummary = {
+  dueOrders: number;
+  dueAmount: number;
+};
 export type UserTypes = {
   id: number;
   name: string;

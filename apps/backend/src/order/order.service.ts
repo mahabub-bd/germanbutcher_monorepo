@@ -442,6 +442,144 @@ export class OrderService {
     return order;
   }
 
+  /** Revenue share per payment method (delivered orders only — matches the
+   * Total Sales KPI so the dashboard reconciles). */
+  async getPaymentMethodShare(): Promise<
+    { name: string; orderCount: number; totalValue: number }[]
+  > {
+    const rows = await this.orderRepository
+      .createQueryBuilder('order')
+      .select('paymentMethod.name', 'name')
+      .addSelect('COUNT(order.id)', 'orderCount')
+      .addSelect('SUM(order.totalValue)', 'totalValue')
+      .leftJoin('order.paymentMethod', 'paymentMethod')
+      .where('order.orderStatus = :status', { status: OrderStatus.DELIVERED })
+      .groupBy('paymentMethod.id')
+      .addGroupBy('paymentMethod.name')
+      .orderBy('SUM(order.totalValue)', 'DESC')
+      .getRawMany();
+
+    return rows.map((row) => ({
+      name: row.name ?? 'Unknown',
+      orderCount: parseInt(row.orderCount, 10) || 0,
+      totalValue: parseFloat(row.totalValue) || 0,
+    }));
+  }
+
+  /** Revenue share per product category (delivered orders only, item-level
+   * totals — excludes delivery fees, so it lands slightly below the
+   * order-level Total Sales KPI). */
+  async getCategorySales(): Promise<
+    { name: string; quantity: number; totalValue: number }[]
+  > {
+    const rows = await this.orderItemRepository
+      .createQueryBuilder('item')
+      .select('category.name', 'name')
+      .addSelect('SUM(item.totalPrice)', 'totalValue')
+      .addSelect('SUM(item.quantity)', 'quantity')
+      .innerJoin('item.product', 'product')
+      .innerJoin('product.category', 'category')
+      .innerJoin('item.order', 'order')
+      .where('order.orderStatus = :status', { status: OrderStatus.DELIVERED })
+      .groupBy('category.id')
+      .addGroupBy('category.name')
+      .orderBy('SUM(item.totalPrice)', 'DESC')
+      .getRawMany();
+
+    return rows.map((row) => ({
+      name: row.name ?? 'Unknown',
+      quantity: parseInt(row.quantity, 10) || 0,
+      totalValue: parseFloat(row.totalValue) || 0,
+    }));
+  }
+
+  /** Customers active this month, split by whether their first-ever order
+   * was also this month (new) or earlier (returning). */
+  async getCustomerTypeShare(): Promise<{
+    newCustomers: number;
+    returningCustomers: number;
+  }> {
+    const result: Record<string, string>[] = await this.orderRepository.query(
+      `WITH user_orders AS (
+         SELECT "userId",
+                MIN("createdAt") AS first_order,
+                BOOL_OR("createdAt" >= date_trunc('month', CURRENT_DATE)) AS ordered_this_month
+         FROM "order"
+         WHERE "userId" IS NOT NULL
+         GROUP BY "userId"
+       )
+       SELECT
+         COUNT(*) FILTER (
+           WHERE date_trunc('month', first_order) = date_trunc('month', CURRENT_DATE)
+         ) AS new_customers,
+         COUNT(*) FILTER (
+           WHERE ordered_this_month = true
+             AND date_trunc('month', first_order) < date_trunc('month', CURRENT_DATE)
+         ) AS returning_customers
+       FROM user_orders`,
+    );
+
+    const row = result[0] ?? {};
+    return {
+      newCustomers: parseInt(row.new_customers, 10) || 0,
+      returningCustomers: parseInt(row.returning_customers, 10) || 0,
+    };
+  }
+
+  /** Orders received today vs yesterday (cancelled excluded). */
+  async getTodaySnapshot(): Promise<{
+    todayOrders: number;
+    todayValue: number;
+    yesterdayOrders: number;
+    yesterdayValue: number;
+  }> {
+    const result: Record<string, string>[] = await this.orderRepository.query(
+      `SELECT
+         COUNT(*) FILTER (
+           WHERE "createdAt" >= date_trunc('day', CURRENT_DATE)
+         ) AS today_orders,
+         COALESCE(SUM("totalValue") FILTER (
+           WHERE "createdAt" >= date_trunc('day', CURRENT_DATE)
+         ), 0) AS today_value,
+         COUNT(*) FILTER (
+           WHERE "createdAt" >= date_trunc('day', CURRENT_DATE - INTERVAL '1 day')
+             AND "createdAt" < date_trunc('day', CURRENT_DATE)
+         ) AS yesterday_orders,
+         COALESCE(SUM("totalValue") FILTER (
+           WHERE "createdAt" >= date_trunc('day', CURRENT_DATE - INTERVAL '1 day')
+             AND "createdAt" < date_trunc('day', CURRENT_DATE)
+         ), 0) AS yesterday_value
+       FROM "order"
+       WHERE "orderStatus" != $1`,
+      [OrderStatus.CANCELLED],
+    );
+
+    const row = result[0] ?? {};
+    return {
+      todayOrders: parseInt(row.today_orders, 10) || 0,
+      todayValue: parseFloat(row.today_value) || 0,
+      yesterdayOrders: parseInt(row.yesterday_orders, 10) || 0,
+      yesterdayValue: parseFloat(row.yesterday_value) || 0,
+    };
+  }
+
+  /** Delivered orders that are not fully paid (outstanding amount). */
+  async getPaymentDue(): Promise<{ dueOrders: number; dueAmount: number }> {
+    const result: Record<string, string>[] = await this.orderRepository.query(
+      `SELECT COUNT(*) AS due_orders,
+              COALESCE(SUM("totalValue" - "paidAmount"), 0) AS due_amount
+       FROM "order"
+       WHERE "orderStatus" = $1 AND "paidAmount" < "totalValue"`,
+      [OrderStatus.DELIVERED],
+    );
+
+    const row = result[0] ?? {};
+    return {
+      dueOrders: parseInt(row.due_orders, 10) || 0,
+      dueAmount: parseFloat(row.due_amount) || 0,
+    };
+  }
+
   async getNeighborOrderIds(
     id: number,
   ): Promise<{ prevId: number | null; nextId: number | null }> {
@@ -489,6 +627,25 @@ export class OrderService {
     });
   }
 
+  private applyOrderFilters(
+    qb: SelectQueryBuilder<Order>,
+    {
+      search,
+      orderStatus,
+      paymentStatus,
+    }: Pick<FindAllOrdersOptions, 'search' | 'orderStatus' | 'paymentStatus'>,
+  ): void {
+    if (search) {
+      qb.andWhere('order.orderNo LIKE :search', { search: `%${search}%` });
+    }
+    if (orderStatus) {
+      qb.andWhere('order.orderStatus = :orderStatus', { orderStatus });
+    }
+    if (paymentStatus) {
+      qb.andWhere('order.paymentStatus = :paymentStatus', { paymentStatus });
+    }
+  }
+
   async getAllOrders(
     options: FindAllOrdersOptions = {},
   ): Promise<{ data: Order[]; total: number }> {
@@ -503,44 +660,54 @@ export class OrderService {
 
     const skip = (page - 1) * limit;
 
+    // The list table only shows order no, customer name, date, statuses,
+    // payment method and totals. Edit/payment modals fetch orders/:id for the
+    // full detail, so heavy relations (items, statusTracks, product, address,
+    // coupon, deliveryMan) are deliberately not loaded here.
     const queryBuilder = this.orderRepository
       .createQueryBuilder('order')
-      .leftJoinAndSelect('order.user', 'user')
-      .leftJoinAndSelect('order.address', 'address')
-      .leftJoinAndSelect('order.shippingMethod', 'shippingMethod')
-      .leftJoinAndSelect('order.paymentMethod', 'paymentMethod')
-      .leftJoinAndSelect('order.items', 'items')
-      .leftJoinAndSelect('order.statusTracks', 'statusTracks')
-      .leftJoinAndSelect('items.product', 'product')
-      .leftJoinAndSelect('order.coupon', 'coupon')
-      .leftJoinAndSelect('order.deliveryMan', 'deliveryMan')
+      .select([
+        'order.id',
+        'order.orderNo',
+        'order.createdAt',
+        'order.orderStatus',
+        'order.paymentStatus',
+        'order.totalValue',
+        'order.paidAmount',
+        'user.id',
+        'user.name',
+        'paymentMethod.id',
+        'paymentMethod.name',
+      ])
+      .leftJoin('order.user', 'user')
+      .leftJoin('order.paymentMethod', 'paymentMethod')
       .orderBy('order.createdAt', 'DESC');
 
-    if (search) {
-      queryBuilder.where('order.orderNo LIKE :search', {
-        search: `%${search}%`,
-      });
-    }
+    this.applyOrderFilters(queryBuilder, {
+      search,
+      orderStatus,
+      paymentStatus,
+    });
 
-    if (orderStatus) {
-      queryBuilder.andWhere('order.orderStatus = :orderStatus', {
-        orderStatus,
-      });
-    }
     if (sort === 'date_asc') {
       queryBuilder.orderBy('order.createdAt', 'ASC');
     } else if (sort === 'date_desc') {
       queryBuilder.orderBy('order.createdAt', 'DESC');
     }
-
-    if (paymentStatus) {
-      queryBuilder.andWhere('order.paymentStatus = :paymentStatus', {
-        paymentStatus,
-      });
-    }
     queryBuilder.skip(skip).take(limit);
 
-    const [data, total] = await queryBuilder.getManyAndCount();
+    // Join-free count — every filter references only order columns
+    const countBuilder = this.orderRepository.createQueryBuilder('order');
+    this.applyOrderFilters(countBuilder, {
+      search,
+      orderStatus,
+      paymentStatus,
+    });
+
+    const [data, total] = await Promise.all([
+      queryBuilder.getMany(),
+      countBuilder.getCount(),
+    ]);
     return { data, total };
   }
 

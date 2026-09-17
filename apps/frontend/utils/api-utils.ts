@@ -10,6 +10,16 @@ export type ApiResponse<T = any> = {
 
 export const apiUrl = process.env.NEXT_PUBLIC_API_URL as string;
 
+// Browser-side token cache: without it, every protected request pays a
+// serialized /api/auth/token round-trip before the actual API call. Reset on
+// logout and 401 recovery so a stale or revoked token never sticks.
+let cachedAuthToken: string | null = null;
+let tokenFetch: Promise<string | null> | null = null;
+
+export function resetAuthTokenCache(): void {
+  cachedAuthToken = null;
+}
+
 // Resolve the auth token without a Server Action round-trip on the client.
 // Server components read the cookie directly; client components use the
 // /api/auth/token route handler, whose stable URL keeps already-open tabs
@@ -20,18 +30,30 @@ export async function resolveAuthToken(): Promise<string | null> {
     return getToken();
   }
 
-  try {
-    const response = await fetch("/api/auth/token", { cache: "no-store" });
-    if (!response.ok) return null;
-    const json = await response.json();
-    return json?.token ?? null;
-  } catch {
-    return null;
+  if (cachedAuthToken) return cachedAuthToken;
+
+  if (!tokenFetch) {
+    tokenFetch = (async () => {
+      try {
+        const response = await fetch("/api/auth/token", { cache: "no-store" });
+        if (!response.ok) return null;
+        const json = await response.json();
+        cachedAuthToken = json?.token ?? null;
+        return cachedAuthToken;
+      } catch {
+        return null;
+      } finally {
+        tokenFetch = null;
+      }
+    })();
   }
+  return tokenFetch;
 }
 
 // Clear the httpOnly auth cookies (401 recovery). Same split as above.
 export async function clearAuthCookies(): Promise<void> {
+  cachedAuthToken = null;
+
   if (typeof window === "undefined") {
     const { deleteCookie } = await import("@/actions/auth");
     await deleteCookie(["auth_token", "user"]);

@@ -1,4 +1,13 @@
-import type { Brand, Category, OrderSummary } from "@/utils/types";
+import type {
+  Brand,
+  Category,
+  CategorySales,
+  CustomerTypeShare,
+  OrderSummary,
+  PaymentDueSummary,
+  PaymentMethodShare,
+  TodaySnapshot,
+} from "@/utils/types";
 import DashboardStatsGrid from "./DashboardStatsGrid";
 import { OrderStatsGrid } from "./OrderStatsGrid";
 
@@ -19,6 +28,12 @@ interface DashboardClientProps {
   };
   productsCount: number;
   customersCount: number;
+  paymentMethodShare: PaymentMethodShare[];
+  categorySales: CategorySales[];
+  customerType: CustomerTypeShare;
+  todaySnapshot: TodaySnapshot;
+  paymentDue: PaymentDueSummary;
+  stockAlerts: { outOfStock: number; lowStock: number };
   categories: Category[];
   brands: Brand[];
 }
@@ -28,6 +43,12 @@ export default function DashboardClient({
   initialStatsData,
   productsCount,
   customersCount,
+  paymentMethodShare,
+  categorySales,
+  customerType,
+  todaySnapshot,
+  paymentDue,
+  stockAlerts,
 }: DashboardClientProps) {
   return (
     <>
@@ -36,6 +57,12 @@ export default function DashboardClient({
         productsCount={productsCount}
         customersCount={customersCount}
         statsData={initialStatsData}
+        paymentMethodShare={paymentMethodShare}
+        categorySales={categorySales}
+        customerType={customerType}
+        todaySnapshot={todaySnapshot}
+        paymentDue={paymentDue}
+        stockAlerts={stockAlerts}
       />
       <OrderStatsGrid data={initialStatsData} />
     </>

@@ -10,6 +10,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { logout } from "@/actions/auth";
+import { resetAuthTokenCache } from "@/utils/api-utils";
 import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,6 +59,7 @@ export function AdminHeader({
       const result: authResponse = await logout();
 
       if (result.statusCode === 200) {
+        resetAuthTokenCache();
         toast.success("Logged out successfully");
         router.push("/auth/sign-in");
         router.refresh();

@@ -433,6 +433,104 @@ export class OrderController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('reports/today')
+  @ApiOperation({
+    summary: 'Orders and revenue today vs yesterday',
+    description: 'Cancelled orders excluded',
+  })
+  async getTodaySnapshot(): Promise<
+    ApiResponseDto<{
+      todayOrders: number;
+      todayValue: number;
+      yesterdayOrders: number;
+      yesterdayValue: number;
+    }>
+  > {
+    const data = await this.orderService.getTodaySnapshot();
+
+    return {
+      message: 'Today snapshot retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('reports/payment-due')
+  @ApiOperation({
+    summary: 'Delivered orders not fully paid',
+    description: 'Returns count of orders and outstanding amount',
+  })
+  async getPaymentDue(): Promise<
+    ApiResponseDto<{ dueOrders: number; dueAmount: number }>
+  > {
+    const data = await this.orderService.getPaymentDue();
+
+    return {
+      message: 'Payment due retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('reports/customer-type')
+  @ApiOperation({
+    summary: 'New vs returning customers this month',
+    description:
+      'Counts customers active in the current month, split by whether their first-ever order was this month (new) or earlier (returning)',
+  })
+  async getCustomerTypeShare(): Promise<
+    ApiResponseDto<{ newCustomers: number; returningCustomers: number }>
+  > {
+    const data = await this.orderService.getCustomerTypeShare();
+
+    return {
+      message: 'Customer type share retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('reports/payment-methods')
+  @ApiOperation({
+    summary: 'Get revenue share per payment method',
+    description:
+      'Returns order count and total value grouped by payment method, excluding cancelled orders',
+  })
+  async getPaymentMethodShare(): Promise<
+    ApiResponseDto<{ name: string; orderCount: number; totalValue: number }[]>
+  > {
+    const data = await this.orderService.getPaymentMethodShare();
+
+    return {
+      message: 'Payment method share retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('reports/category-sales')
+  @ApiOperation({
+    summary: 'Get revenue share per product category',
+    description:
+      'Returns quantity and total value grouped by product category, excluding cancelled orders',
+  })
+  async getCategorySales(): Promise<
+    ApiResponseDto<{ name: string; quantity: number; totalValue: number }[]>
+  > {
+    const data = await this.orderService.getCategorySales();
+
+    return {
+      message: 'Category sales retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Patch(':id/assign-delivery-man')
   @ApiBearerAuth()
   @ApiOperation({

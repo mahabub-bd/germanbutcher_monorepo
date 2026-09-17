@@ -7,12 +7,14 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -57,12 +59,35 @@ export class ClientController {
 
   @Get()
   @ApiOperation({ summary: 'Get all clients' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Clients retrieved successfully',
     type: ApiResponseDto<Client[]>,
   })
-  async findAll(): Promise<ApiResponseDto<Client[]>> {
+  async findAll(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    // Paginated envelope only when page/limit are provided — the public
+    // homepage clients section and /clients page consume the plain array.
+    if (page !== undefined || limit !== undefined) {
+      const { data, total } = await this.clientService.findAll({
+        page: +(page ?? 1),
+        limit: +(limit ?? 10),
+      });
+      return {
+        message: 'Clients retrieved successfully',
+        statusCode: HttpStatus.OK,
+        data,
+        total,
+        page: +(page ?? 1),
+        limit: +(limit ?? 10),
+        totalPages: Math.ceil(total / +(limit ?? 10)),
+      };
+    }
+
     const data = await this.clientService.findAll();
     return {
       message: 'Clients retrieved successfully',
