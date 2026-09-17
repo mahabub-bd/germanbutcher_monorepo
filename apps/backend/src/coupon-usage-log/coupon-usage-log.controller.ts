@@ -49,12 +49,24 @@ export class CouponUsageLogController {
       ],
     },
   })
-  async getAllCouponUsageLogs(): Promise<ApiResponseDto<CouponUsageLog[]>> {
-    const data = await this.couponUsageLogService.findAll();
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  async getAllCouponUsageLogs(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    const { data, total } = await this.couponUsageLogService.findAll({
+      page: +page,
+      limit: +limit,
+    });
     return {
       message: 'Coupon usage logs retrieved successfully',
       statusCode: HttpStatus.OK,
       data,
+      total,
+      page: +page,
+      limit: +limit,
+      totalPages: Math.ceil(total / +limit),
     };
   }
 
@@ -79,14 +91,25 @@ export class CouponUsageLogController {
     },
   })
   @ApiNotFoundResponse({ description: 'No logs found for this coupon' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   async getCouponUsageLogsByCode(
     @Param('couponCode') couponCode: string,
-  ): Promise<ApiResponseDto<CouponUsageLog[]>> {
-    const data = await this.couponUsageLogService.findByCouponCode(couponCode);
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    const { data, total } = await this.couponUsageLogService.findByCouponCode(
+      couponCode,
+      { page: +page, limit: +limit },
+    );
     return {
       message: `Coupon usage logs for ${couponCode} retrieved successfully`,
       statusCode: HttpStatus.OK,
       data,
+      total,
+      page: +page,
+      limit: +limit,
+      totalPages: Math.ceil(total / +limit),
     };
   }
 

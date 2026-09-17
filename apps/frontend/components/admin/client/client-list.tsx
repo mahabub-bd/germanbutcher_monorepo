@@ -1,12 +1,13 @@
 "use client"
 
+import { PaginationComponent } from "@/components/common/pagination"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { formatDateTime } from "@/lib/utils"
-import { deleteData, fetchData } from "@/utils/api-utils"
-import type { Client } from "@/utils/types"
+import { deleteData, fetchDataPagination } from "@/utils/api-utils"
+import type { Client, PaginatedResponse } from "@/utils/types"
 import { MoreHorizontal, Pencil, Plus, Trash2, Users } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -21,12 +22,20 @@ export function ClientList() {
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [limit] = useState(10)
 
   const fetchClients = async () => {
     setIsLoading(true)
     try {
-      const response = await fetchData("clients")
-      setClients(response as Client[])
+      const response = await fetchDataPagination<PaginatedResponse<Client>>(
+        `clients?page=${currentPage}&limit=${limit}`
+      )
+      setClients(response.data)
+      setTotalItems(response.total)
+      setTotalPages(response.totalPages)
     } catch (error) {
       console.error("Error fetching clients:", error)
       toast.error("Failed to load clients. Please try again.")
@@ -38,7 +47,8 @@ export function ClientList() {
 
   useEffect(() => {
     fetchClients()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage])
 
   const handleDeleteClick = (client: Client) => {
     setSelectedClient(client)
@@ -161,6 +171,24 @@ export function ClientList() {
               </p>
             </div>
             {renderTableView()}
+            <div className="flex flex-row justify-between items-center p-4 border-t">
+              <div className="text-xs text-muted-foreground">
+                Showing{" "}
+                {totalItems === 0
+                  ? 0
+                  : Math.min((currentPage - 1) * limit + 1, totalItems)}{" "}
+                to {Math.min(currentPage * limit, totalItems)} of {totalItems}{" "}
+                clients
+              </div>
+              {totalPages > 1 && (
+                <PaginationComponent
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  baseUrl="#"
+                  onPageChange={(page) => setCurrentPage(page)}
+                />
+              )}
+            </div>
           </div>
         )}
       </div>

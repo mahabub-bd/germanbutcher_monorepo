@@ -4,6 +4,11 @@ import { Repository } from 'typeorm';
 import { CreateCouponUsageLogDto } from './dto/create-coupon-usage-log.dto';
 import { CouponUsageLog } from './entities/coupon-usage-log.entity';
 
+export interface FindAllUsageLogsOptions {
+  page?: number;
+  limit?: number;
+}
+
 @Injectable()
 export class CouponUsageLogService {
   private readonly logger = new Logger(CouponUsageLogService.name);
@@ -26,23 +31,51 @@ export class CouponUsageLogService {
     return saved;
   }
 
-  async findByCouponCode(couponCode: string): Promise<any[]> {
-    const logs = await this.couponUsageLogRepository.find({
-      where: { couponCode },
-      relations: ['coupon', 'order', 'user'],
-      order: { createdAt: 'DESC' },
-    });
-
-    return logs.map((log) => this.formatLogResponse(log));
+  async findByCouponCode(
+    couponCode: string,
+    options: FindAllUsageLogsOptions = {},
+  ): Promise<any> {
+    return this.findPaginated({ couponCode }, options);
   }
 
-  async findAll(): Promise<any[]> {
-    const logs = await this.couponUsageLogRepository.find({
-      relations: ['coupon', 'order', 'user'],
-      order: { createdAt: 'DESC' },
-    });
+  async findAll(options: FindAllUsageLogsOptions = {}): Promise<any> {
+    return this.findPaginated({}, options);
+  }
 
-    return logs.map((log) => this.formatLogResponse(log));
+  private async findPaginated(
+    filter: { couponCode?: string },
+    { page = 1, limit = 10 }: FindAllUsageLogsOptions,
+  ): Promise<{ data: any[]; total: number }> {
+    const skip = (page - 1) * limit;
+
+    // All relations are ManyToOne, so skip/take paginate rows directly
+    const dataQuery = this.couponUsageLogRepository
+      .createQueryBuilder('log')
+      .leftJoinAndSelect('log.coupon', 'coupon')
+      .leftJoinAndSelect('log.order', 'order')
+      .leftJoinAndSelect('log.user', 'user')
+      .orderBy('log.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    // Join-free count — the only filter is on a log column
+    const countQuery = this.couponUsageLogRepository.createQueryBuilder('log');
+
+    if (filter.couponCode) {
+      dataQuery.where('log.couponCode = :couponCode', {
+        couponCode: filter.couponCode,
+      });
+      countQuery.where('log.couponCode = :couponCode', {
+        couponCode: filter.couponCode,
+      });
+    }
+
+    const [logs, total] = await Promise.all([
+      dataQuery.getMany(),
+      countQuery.getCount(),
+    ]);
+
+    return { data: logs.map((log) => this.formatLogResponse(log)), total };
   }
 
   async findOne(id: number): Promise<any> {

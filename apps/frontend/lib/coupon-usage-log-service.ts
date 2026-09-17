@@ -1,15 +1,24 @@
 import { fetchProtectedData } from "@/utils/api-utils";
-import { CouponUsageLog, CouponUsageStats } from "@/utils/types";
+import {
+  CouponUsageLog,
+  CouponUsageStats,
+  PaginatedResponse,
+} from "@/utils/types";
 
 /**
- * Get all coupon usage logs
- * @returns Promise<CouponUsageLog[]>
+ * Get all coupon usage logs (server-side paginated)
+ * @param page - Page number (1-based)
+ * @param limit - Items per page
+ * @returns Promise<PaginatedResponse<CouponUsageLog>>
  */
-export async function getAllCouponUsageLogs(): Promise<CouponUsageLog[]> {
+export async function getAllCouponUsageLogs(
+  page = 1,
+  limit = 10
+): Promise<PaginatedResponse<CouponUsageLog>> {
   try {
-    const response = await fetchProtectedData<CouponUsageLog[]>(
-      "coupon-usage-logs"
-    );
+    const response = await fetchProtectedData<
+      PaginatedResponse<CouponUsageLog>
+    >(`coupon-usage-logs?page=${page}&limit=${limit}`);
     return response;
   } catch (error) {
     console.error("Error fetching all coupon usage logs:", error);
@@ -18,16 +27,22 @@ export async function getAllCouponUsageLogs(): Promise<CouponUsageLog[]> {
 }
 
 /**
- * Get coupon usage logs by coupon code
+ * Get coupon usage logs by coupon code (server-side paginated)
  * @param couponCode - The coupon code to filter logs by
- * @returns Promise<CouponUsageLog[]>
+ * @param page - Page number (1-based)
+ * @param limit - Items per page
+ * @returns Promise<PaginatedResponse<CouponUsageLog>>
  */
 export async function getCouponUsageLogsByCode(
-  couponCode: string
-): Promise<CouponUsageLog[]> {
+  couponCode: string,
+  page = 1,
+  limit = 10
+): Promise<PaginatedResponse<CouponUsageLog>> {
   try {
-    const response = await fetchProtectedData<CouponUsageLog[]>(
-      `coupon-usage-logs/coupon/${encodeURIComponent(couponCode)}`
+    const response = await fetchProtectedData<
+      PaginatedResponse<CouponUsageLog>
+    >(
+      `coupon-usage-logs/coupon/${encodeURIComponent(couponCode)}?page=${page}&limit=${limit}`
     );
     return response;
   } catch (error) {

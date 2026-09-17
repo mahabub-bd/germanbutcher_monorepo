@@ -10,6 +10,7 @@ import { User } from 'src/user/entities/user.entity';
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -45,10 +46,12 @@ export class Order {
   shippingMethod: ShippingMethod;
 
   @ApiProperty({ enum: OrderStatus, default: OrderStatus.PENDING })
+  @Index()
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   orderStatus: OrderStatus;
 
   @ApiProperty({ enum: PaymentStatus, default: PaymentStatus.PENDING })
+  @Index()
   @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
   paymentStatus: PaymentStatus;
 
@@ -106,6 +109,7 @@ export class Order {
   @JoinColumn()
   deliveryMan?: DeliveryMan;
 
+  @Index()
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   @ApiProperty({
     example: '2023-05-15T10:00:00Z',

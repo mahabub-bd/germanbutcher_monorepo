@@ -72,7 +72,32 @@ export class ClientService {
     return this.clientRepository.save(client);
   }
 
-  async findAll(): Promise<Client[]> {
+  /**
+   * Returns paginated `{ data, total }` when page/limit are provided,
+   * otherwise the full list (public homepage + /clients page rely on it).
+   */
+  async findAll(options?: {
+    page?: number;
+    limit?: number;
+  }): Promise<any> {
+    if (options?.page || options?.limit) {
+      const page = options.page ?? 1;
+      const limit = options.limit ?? 10;
+
+      const [data, total] = await Promise.all([
+        this.clientRepository.find({
+          order: {
+            order: 'ASC',
+          },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        this.clientRepository.count(),
+      ]);
+
+      return { data, total };
+    }
+
     return this.clientRepository.find({
       order: {
         order: 'ASC',

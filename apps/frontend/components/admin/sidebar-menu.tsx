@@ -14,7 +14,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-import { fetchProtectedData } from "@/utils/api-utils";
+import { fetchProtectedData, resetAuthTokenCache } from "@/utils/api-utils";
 import type { authResponse, MenuItem } from "@/utils/types";
 import {
   ChevronDown,
@@ -92,6 +92,7 @@ export function SidebarMenu({
       const result: authResponse = await logout();
 
       if (result.statusCode === 200) {
+        resetAuthTokenCache();
         toast.success("Logged out successfully");
         router.push("/auth/sign-in");
         router.refresh();
