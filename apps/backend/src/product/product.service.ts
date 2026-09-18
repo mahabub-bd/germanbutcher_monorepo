@@ -14,7 +14,7 @@ import { Category } from 'src/category/entities/category.entity';
 import { Gallery } from 'src/gallery/entities/gallery.entity';
 import { Unit } from 'src/unit/entities/unit.entity';
 import { User } from 'src/user/entities/user.entity';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
 import { Supplier } from '../supplier/entities/supplier.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -116,49 +116,128 @@ export class ProductService {
       tags,
     } = options;
 
+    // List payload only needs image/name/SKU/prices/unit/brand/category/stock/
+    // saleCount/status. Skip the description/productDetails blobs and the
+    // supplier/gallery/audit joins the UI never renders.
     const query = this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect('product.category', 'category')
-      .leftJoinAndSelect('category.parent', 'parentCategory')
-      .leftJoinAndSelect('product.supplier', 'supplier')
       .leftJoinAndSelect('product.unit', 'unit')
       .leftJoinAndSelect('product.attachment', 'attachment')
-      .leftJoinAndSelect('product.gallery', 'gallery')
-      .leftJoinAndSelect('gallery.attachments', 'attachments')
-      .leftJoinAndSelect('product.createdBy', 'createdBy')
-      .leftJoinAndSelect('product.updatedBy', 'updatedBy')
-
       .select([
-        'product',
+        'product.id',
+        'product.name',
+        'product.slug',
+        'product.productSku',
+        'product.purchasePrice',
+        'product.sellingPrice',
+        'product.stock',
+        'product.weight',
+        'product.saleCount',
+        'product.isActive',
+        'product.isFeatured',
+        'product.discountType',
+        'product.discountValue',
+        'product.discountStartDate',
+        'product.discountEndDate',
+        'product.tags',
+        // consumed by the frontend sitemap's lastModified
+        'product.createdAt',
+        'product.updatedAt',
+
         'brand.id',
         'brand.name',
         'brand.slug',
+
         'category.id',
         'category.name',
         'category.slug',
-        'parentCategory.id',
-        'parentCategory.name',
-        'parentCategory.slug',
-        'supplier.id',
-        'supplier.name',
+
         'unit.id',
         'unit.name',
-        'gallery.id',
-        'gallery.name',
-
-        'attachments.id',
-        'attachments.url',
 
         'attachment.id',
         'attachment.url',
-
-        'createdBy.id',
-        'createdBy.name',
-        'updatedBy.id',
-        'updatedBy.name',
       ]);
 
+    // Count shares the filters but not the payload joins — a plain product
+    // scan is far cheaper than the joined count getManyAndCount() would run.
+    // Joins are added only when a filter actually references them.
+    const countQuery = this.productRepository
+      .createQueryBuilder('product')
+      .select('COUNT(DISTINCT product.id)', 'count');
+    if (categoryId) countQuery.leftJoin('product.category', 'category');
+    if (brandId) countQuery.leftJoin('product.brand', 'brand');
+    if (supplierId) countQuery.leftJoin('product.supplier', 'supplier');
+
+    // The supplier filter references the supplier alias; its relation is no
+    // longer part of the payload, so join it only when actually filtering.
+    if (supplierId) query.leftJoin('product.supplier', 'supplier');
+
+    this.applyListFilters(query, options);
+    this.applyListFilters(countQuery, options);
+
+    // Sorting with default
+    if (sort) {
+      switch (sort) {
+        case 'price_asc':
+          query.orderBy('product.sellingPrice', 'ASC');
+          break;
+        case 'price_desc':
+          query.orderBy('product.sellingPrice', 'DESC');
+          break;
+        case 'name_asc':
+          query.orderBy('product.name', 'ASC');
+          break;
+        case 'name_desc':
+          query.orderBy('product.name', 'DESC');
+          break;
+      }
+    } else {
+      // Default sort: product name ascending
+      query.orderBy('product.name', 'ASC');
+    }
+
+    // Key must cover every filter — a shared key served stale rows whenever
+    // two requests differed only by search/category/brand/status/sort.
+    const cacheKey = `products_list_${page}_${limit}_${categoryId ?? 'all'}_${
+      brandId ?? 'all'
+    }_${supplierId ?? 'all'}_${featured ?? 'all'}_${isActive ?? 'all'}_${
+      hasDiscount ?? 'all'
+    }_${search ?? ''}_${sort ?? 'default'}_${minPrice ?? ''}_${
+      maxPrice ?? ''
+    }_${tags ?? ''}`;
+
+    const [products, countResult] = await Promise.all([
+      query
+        .skip((page - 1) * limit)
+        .take(limit)
+        .cache(cacheKey, 30000)
+        .getMany(),
+      countQuery.getRawOne<{ count: string }>(),
+    ]);
+
+    return [products, parseInt(countResult?.count ?? '0', 10) || 0];
+  }
+
+  /** Shared WHERE clauses for product list queries — usable on joined and
+   * join-free query builders alike. */
+  private applyListFilters(
+    query: SelectQueryBuilder<Product>,
+    {
+      categoryId,
+      brandId,
+      supplierId,
+      featured,
+      isActive,
+      hasDiscount,
+      search,
+      minPrice,
+      maxPrice,
+      tags,
+    }: FindAllOptions,
+  ): void {
     if (categoryId) {
       query.andWhere(
         `(category.id = :categoryId OR category.parentId = :categoryId)`,
@@ -191,33 +270,6 @@ export class ProductService {
       const tagArray = tags.split(',').map((tag) => tag.trim());
       query.andWhere('product.tags && :tags', { tags: tagArray });
     }
-
-    // Sorting with default
-    if (sort) {
-      switch (sort) {
-        case 'price_asc':
-          query.orderBy('product.sellingPrice', 'ASC');
-          break;
-        case 'price_desc':
-          query.orderBy('product.sellingPrice', 'DESC');
-          break;
-        case 'name_asc':
-          query.orderBy('product.name', 'ASC');
-          break;
-        case 'name_desc':
-          query.orderBy('product.name', 'DESC');
-          break;
-      }
-    } else {
-      // Default sort: product name ascending
-      query.orderBy('product.name', 'ASC');
-    }
-
-    return query
-      .skip((page - 1) * limit)
-      .take(limit)
-      .cache(`products_page_${page}_${limit}`, 30000)
-      .getManyAndCount();
   }
 
   async getBestsellingProducts(

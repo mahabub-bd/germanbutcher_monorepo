@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import DeleteConfirmationDialog from "../delete-confirmation-dialog";
 import { ProductImage } from "../image-wrapper";
@@ -79,6 +79,11 @@ export function ProductList({
   const [searchQuery, setSearchQuery] = useState(
     getInitialParam("search") as string
   );
+  // Applied 400ms after typing stops — the input stays instant, the API call
+  // doesn't fire per keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState(
+    getInitialParam("search") as string
+  );
   const [categoryFilter, setCategoryFilter] = useState(
     getInitialParam("category") as string
   );
@@ -105,7 +110,7 @@ export function ProductList({
     params.set("page", currentPage.toString());
     params.set("limit", limit.toString());
 
-    if (searchQuery) params.set("search", searchQuery);
+    if (debouncedSearch) params.set("search", debouncedSearch);
     if (categoryFilter && categoryFilter !== "all")
       params.set("category", categoryFilter);
     if (brandFilter && brandFilter !== "all") params.set("brand", brandFilter);
@@ -120,7 +125,7 @@ export function ProductList({
     pathname,
     currentPage,
     limit,
-    searchQuery,
+    debouncedSearch,
     categoryFilter,
     brandFilter,
     statusFilter,
@@ -134,7 +139,7 @@ export function ProductList({
       params.append("page", currentPage.toString());
       params.append("limit", limit.toString());
 
-      if (searchQuery) params.append("search", searchQuery);
+      if (debouncedSearch) params.append("search", debouncedSearch);
       if (categoryFilter && categoryFilter !== "all")
         params.append("category", categoryFilter);
       if (brandFilter && brandFilter !== "all")
@@ -185,24 +190,40 @@ export function ProductList({
     }
   };
 
+  // Debounce the search box so typing doesn't fire a request per keystroke.
   useEffect(() => {
-    fetchProducts();
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Filter dropdown data loads once; products fetch on the applied filters.
+  useEffect(() => {
     fetchBrands();
     fetchCategories();
   }, []);
 
+  const isInitialMount = useRef(true);
+
   useEffect(() => {
     fetchProducts();
-    updateUrl();
   }, [
     currentPage,
     limit,
-    searchQuery,
+    debouncedSearch,
     categoryFilter,
     brandFilter,
     statusFilter,
     featuredFilter,
   ]);
+
+  // Sync the URL only for user-driven changes, not on first paint.
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    updateUrl();
+  }, [updateUrl]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);

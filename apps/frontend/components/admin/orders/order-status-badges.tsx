@@ -13,7 +13,7 @@ export function OrderStatusBadges({
   paymentStatus,
 }: OrderStatusBadgesProps) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-4 justify-between">
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground">Order Status:</span>
         <Badge
