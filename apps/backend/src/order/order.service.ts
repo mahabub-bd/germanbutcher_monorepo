@@ -569,7 +569,7 @@ export class OrderService {
   async getDashboardReports() {
     const [
       statistics,
-      monthly,
+      monthlyReport,
       last30DaysDelivered,
       paymentMethodShare,
       categorySales,
@@ -589,7 +589,9 @@ export class OrderService {
 
     return {
       statistics,
-      monthly,
+      // getMonthlyOrderReport wraps its rows — expose the array itself so the
+      // payload matches the standalone /reports/monthly endpoint.
+      monthly: monthlyReport.monthlyData,
       last30DaysDelivered,
       paymentMethodShare,
       categorySales,
