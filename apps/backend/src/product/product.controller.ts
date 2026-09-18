@@ -342,7 +342,7 @@ export class ProductController {
       HttpStatus.OK,
       products,
     );
-  } 29
+  }
 
   @Get('tags')
   @ApiOperation({
