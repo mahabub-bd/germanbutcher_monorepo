@@ -53,7 +53,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     );
     const productPages: MetadataRoute.Sitemap = products.map((product) => ({
       url: `${baseUrl}/products/${product.slug || product.id}`,
-      lastModified: new Date(product.updatedAt),
+      // Guard against missing/invalid timestamps — an Invalid Date crashes
+      // toISOString() and fails the whole production build.
+      lastModified: product.updatedAt ? new Date(product.updatedAt) : new Date(),
       changeFrequency: "weekly" as const,
       priority: product.isFeatured ? 0.9 : 0.7,
     }));
@@ -61,7 +63,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const categories: Category[] = await fetchData("categories");
     const categoryPages: MetadataRoute.Sitemap = categories.map((category) => ({
       url: `${baseUrl}/categories/${category.slug || category.id}`,
-      lastModified: new Date(category.updatedAt),
+      lastModified: category.updatedAt
+        ? new Date(category.updatedAt)
+        : new Date(),
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }));

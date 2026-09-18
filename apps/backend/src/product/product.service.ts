@@ -142,6 +142,9 @@ export class ProductService {
         'product.discountStartDate',
         'product.discountEndDate',
         'product.tags',
+        // consumed by the frontend sitemap's lastModified
+        'product.createdAt',
+        'product.updatedAt',
 
         'brand.id',
         'brand.name',
