@@ -19,6 +19,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { cancelOrder } from "@/utils/api-utils";
+import { refreshDashboard } from "@/utils/revalidatePath";
 import type { Order } from "@/utils/types";
 import { AlertTriangle } from "lucide-react";
 import { useState } from "react";
@@ -91,6 +92,8 @@ export function CancelOrderModal({
             : ""
           }`
         );
+        // Dashboard KPIs read a 60s server cache — bust it now.
+        refreshDashboard();
         onCancelSuccess();
         onOpenChange(false);
 

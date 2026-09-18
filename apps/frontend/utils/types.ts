@@ -38,6 +38,44 @@ export type PaymentDueSummary = {
   dueOrders: number;
   dueAmount: number;
 };
+
+export type StockSummary = {
+  totalProducts: number;
+  outOfStock: number;
+  lowStock: number;
+};
+
+export type Last30DaysData = {
+  date: string;
+  orderCount: number;
+  totalValue: number;
+};
+
+export type OrderStatistics = {
+  totalOrders: number;
+  pending: number;
+  processing: number;
+  shipped: number;
+  delivered: number;
+  cancelled: number;
+  pendingValue: number;
+  processingValue: number;
+  shippedValue: number;
+  deliveredValue: number;
+  cancelledValue: number;
+};
+
+/** Payload of the consolidated `orders/reports/dashboard` endpoint. */
+export type DashboardReports = {
+  statistics: OrderStatistics;
+  monthly: OrderSummary[];
+  last30DaysDelivered: Last30DaysData[];
+  paymentMethodShare: PaymentMethodShare[];
+  categorySales: CategorySales[];
+  customerType: CustomerTypeShare;
+  todaySnapshot: TodaySnapshot;
+  paymentDue: PaymentDueSummary;
+};
 export type UserTypes = {
   id: number;
   name: string;

@@ -207,6 +207,27 @@ export class OrderController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('reports/dashboard')
+  @ApiOperation({
+    summary: 'Get all admin dashboard report data in one request',
+    description:
+      'Returns order statistics, monthly report, last-30-days delivered series, payment method share, category sales, customer type share, today snapshot, and payment due — all queries run in parallel server-side. Exists so the dashboard page needs a single round trip instead of 8.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard reports retrieved successfully',
+  })
+  async getDashboardReports(): Promise<ApiResponseDto<any>> {
+    const data = await this.orderService.getDashboardReports();
+
+    return {
+      message: 'Dashboard reports retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('reports/date-range')
   @ApiOperation({
     summary: 'Get full order report within a specific date range',

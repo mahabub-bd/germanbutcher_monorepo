@@ -13,9 +13,13 @@ import type {
 const ANALYTICS_BASE = "analytics";
 
 export async function fetchAnalyticsOverview(
-  period: AnalyticsPeriod = "24h"
+  period: AnalyticsPeriod = "24h",
+  options?: { revalidate?: number }
 ): Promise<AnalyticsOverview> {
-  const result = await fetchProtectedData<AnalyticsOverview>(`analytics/overview?period=${period}`);
+  const result = await fetchProtectedData<AnalyticsOverview>(
+    `analytics/overview?period=${period}`,
+    options
+  );
   // Ensure we're returning the actual data, not a wrapped response
   if (result && typeof result === "object" && "data" in result && typeof result.data === "object") {
     return result.data as AnalyticsOverview;
