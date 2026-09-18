@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,10 +9,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useRouter } from "next/navigation";
 
-import { toast } from "sonner";
 import { logout } from "@/actions/auth";
 import { UserTypes } from "@/utils/types";
+import { toast } from "sonner";
 
 interface DashboardContentProps {
   user: UserTypes;
@@ -32,7 +32,7 @@ export default function DashboardContent({ user }: DashboardContentProps) {
       console.error(error);
     }
   };
-
+  // Comment
   return (
     <div className="space-y-8">
       <div>
