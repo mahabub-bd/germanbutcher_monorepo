@@ -23,11 +23,9 @@ import {
   YAxis,
 } from "recharts";
 
-export interface Last30DaysData {
-  date: string;
-  orderCount: number;
-  totalValue: number;
-}
+import type { Last30DaysData } from "@/utils/types";
+
+export type { Last30DaysData };
 
 interface Last30DaysDeliveredChartProps {
   chartData: Last30DaysData[];

@@ -877,4 +877,26 @@ export class ProductService {
 
     return result.map((row) => row.tag);
   }
+
+  /** Count-only stock summary for the dashboard KPI cards — replaces
+   * fetching every product just to compute three numbers. */
+  async getStockSummary(): Promise<{
+    totalProducts: number;
+    outOfStock: number;
+    lowStock: number;
+  }> {
+    const result: Record<string, string>[] = await this.productRepository.query(
+      `SELECT COUNT(*) AS total_products,
+              COUNT(*) FILTER (WHERE "stock" = 0) AS out_of_stock,
+              COUNT(*) FILTER (WHERE "stock" > 0 AND "stock" < 5) AS low_stock
+       FROM product`,
+    );
+
+    const row = result[0] ?? {};
+    return {
+      totalProducts: parseInt(row.total_products, 10) || 0,
+      outOfStock: parseInt(row.out_of_stock, 10) || 0,
+      lowStock: parseInt(row.low_stock, 10) || 0,
+    };
+  }
 }

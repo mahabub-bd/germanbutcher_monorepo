@@ -29,6 +29,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { fetchProtectedData, postData } from "@/utils/api-utils";
+import { refreshDashboard } from "@/utils/revalidatePath";
 import type { Order } from "@/utils/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
@@ -123,6 +124,8 @@ export function AddPaymentModal({
       });
 
       toast.success("Payment has been recorded successfully");
+      // Dashboard KPIs read a 60s server cache — bust it now.
+      refreshDashboard();
       onUpdated();
       onOpenChange(false);
     } catch (error) {

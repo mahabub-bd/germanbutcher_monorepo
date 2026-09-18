@@ -1,8 +1,7 @@
 import type {
-  Brand,
-  Category,
   CategorySales,
   CustomerTypeShare,
+  DashboardReports,
   OrderSummary,
   PaymentDueSummary,
   PaymentMethodShare,
@@ -13,19 +12,7 @@ import { OrderStatsGrid } from "./OrderStatsGrid";
 
 interface DashboardClientProps {
   initialChartData: OrderSummary[];
-  initialStatsData: {
-    totalOrders: number;
-    pending: number;
-    processing: number;
-    shipped: number;
-    delivered: number;
-    cancelled: number;
-    pendingValue: number;
-    processingValue: number;
-    shippedValue: number;
-    deliveredValue: number;
-    cancelledValue: number;
-  };
+  initialStatsData: DashboardReports["statistics"];
   productsCount: number;
   customersCount: number;
   paymentMethodShare: PaymentMethodShare[];
@@ -34,8 +21,6 @@ interface DashboardClientProps {
   todaySnapshot: TodaySnapshot;
   paymentDue: PaymentDueSummary;
   stockAlerts: { outOfStock: number; lowStock: number };
-  categories: Category[];
-  brands: Brand[];
 }
 
 export default function DashboardClient({

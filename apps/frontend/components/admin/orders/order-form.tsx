@@ -39,6 +39,7 @@ import {
 import { formatDateTime } from "@/lib/utils";
 import { patchData } from "@/utils/api-utils";
 import { getStatusDotColor, getStatusIcon } from "@/utils/order-helper";
+import { refreshDashboard } from "@/utils/revalidatePath";
 import { OrderStatus, type Order } from "@/utils/types";
 import { Section } from "../helper";
 
@@ -139,6 +140,8 @@ export function OrderForm({ order, onSuccess, onCancel }: OrderFormProps) {
       }
 
       toast.success("Order status updated successfully");
+      // Dashboard KPIs read a 60s server cache — bust it now.
+      refreshDashboard();
       if (onSuccess) {
         onSuccess();
       } else {

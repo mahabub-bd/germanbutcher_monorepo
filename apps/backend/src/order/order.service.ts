@@ -563,6 +563,42 @@ export class OrderService {
     };
   }
 
+  /** Everything the admin dashboard needs in one round trip — fans the
+   * existing report queries out in parallel behind a single request so the
+   * frontend stops paying 8 separate guard + network round trips. */
+  async getDashboardReports() {
+    const [
+      statistics,
+      monthly,
+      last30DaysDelivered,
+      paymentMethodShare,
+      categorySales,
+      customerType,
+      todaySnapshot,
+      paymentDue,
+    ] = await Promise.all([
+      this.getOrderStatistics(),
+      this.getMonthlyOrderReport(),
+      this.getLast30DaysDeliveredOrders(),
+      this.getPaymentMethodShare(),
+      this.getCategorySales(),
+      this.getCustomerTypeShare(),
+      this.getTodaySnapshot(),
+      this.getPaymentDue(),
+    ]);
+
+    return {
+      statistics,
+      monthly,
+      last30DaysDelivered,
+      paymentMethodShare,
+      categorySales,
+      customerType,
+      todaySnapshot,
+      paymentDue,
+    };
+  }
+
   /** Delivered orders that are not fully paid (outstanding amount). */
   async getPaymentDue(): Promise<{ dueOrders: number; dueAmount: number }> {
     const result: Record<string, string>[] = await this.orderRepository.query(

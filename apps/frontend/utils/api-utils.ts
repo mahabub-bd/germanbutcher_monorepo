@@ -127,19 +127,31 @@ export async function fetchData<T>(endpoint: string): Promise<T> {
   }
 }
 
-export async function fetchProtectedData<T>(endpoint: string): Promise<T> {
+export async function fetchProtectedData<T>(
+  endpoint: string,
+  options?: { revalidate?: number }
+): Promise<T> {
   const url = `${apiUrl}/${endpoint}`;
   const token = await resolveAuthToken();
 
+  // Passing `revalidate` opts into Next's data cache (bounded staleness,
+  // bustable via the "dashboard" tag). Without it, previous behavior:
+  // always fresh, never cached.
+  const init: RequestInit & { next?: Record<string, unknown> } = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  };
+  if (options?.revalidate) {
+    init.next = { revalidate: options.revalidate, tags: ["dashboard"] };
+  } else {
+    init.cache = "no-store";
+    init.next = { tags: ["dashboard"] };
+  }
+
   try {
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-      next: { tags: ["dashboard"] },
-    });
+    const response = await fetch(url, init);
 
     if (!response.ok) {
       let errorMessage;
@@ -169,7 +181,10 @@ export async function fetchProtectedData<T>(endpoint: string): Promise<T> {
   }
 }
 
-export async function fetchDataPagination<T>(endpoint: string): Promise<T> {
+export async function fetchDataPagination<T>(
+  endpoint: string,
+  options?: { revalidate?: number }
+): Promise<T> {
   const url = `${apiUrl}/${endpoint}`;
   const token = await resolveAuthToken();
   try {
@@ -178,8 +193,10 @@ export async function fetchDataPagination<T>(endpoint: string): Promise<T> {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      cache: "no-store",
-      next: { tags: ["dashboard"] },
+      cache: options?.revalidate ? undefined : "no-store",
+      next: options?.revalidate
+        ? { revalidate: options.revalidate, tags: ["dashboard"] }
+        : { tags: ["dashboard"] },
     });
 
     if (!response.ok) {

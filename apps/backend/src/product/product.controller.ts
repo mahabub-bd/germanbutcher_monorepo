@@ -444,6 +444,22 @@ export class ProductController {
     );
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('reports/stock-summary')
+  @ApiOperation({
+    summary: 'Get product stock counts for dashboard KPI cards',
+    description:
+      'Returns total, out-of-stock (stock = 0), and low-stock (0 < stock < 5) product counts in a single query.',
+  })
+  async getStockSummary() {
+    const summary = await this.productService.getStockSummary();
+    return this.formatResponse(
+      'Stock summary retrieved successfully',
+      HttpStatus.OK,
+      summary,
+    );
+  }
+
   @Get('slug/:slug')
   @ApiOperation({
     summary: 'Get product details',
