@@ -111,12 +111,12 @@ export function AddToCartButton({
     return (
       <Button
         className={cn(
-          "w-full md:py-1 py-0 border-primaryColor border px-4 bg-gray-100 text-gray-800 rounded-sm font-semibold cursor-not-allowed transition-all duration-200 h-10",
+          "w-full h-10 rounded-xl border border-gray-200 bg-gray-100 px-4 font-semibold text-gray-500 cursor-not-allowed transition-all duration-200 dark:border-gray-700",
           className
         )}
         disabled
       >
-        <span className="flex items-center justify-center gap-2 text-primaryColor">
+        <span className="flex items-center justify-center gap-2 text-primaryColor dark:text-red-400">
           <ShoppingCart size={16} />
           Out of Stock
         </span>
@@ -124,46 +124,48 @@ export function AddToCartButton({
     );
   }
 
-  // Already in Cart - Show Quantity Controls
+  // Already in Cart - "In Bag" pill + pill-shaped stepper
   if (isInCart) {
     return (
       <div
         className={cn(
-          "w-full flex items-center justify-between gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-sm h-10",
+          "flex w-full items-center justify-between gap-2",
           className
         )}
       >
-        <div className="flex items-center gap-2">
-          <ShoppingCart size={14} className="text-green-600" />
-          <span className="text-xs font-medium text-green-700">In Bag</span>
+        {/* In Bag indicator */}
+        <div className="inline-flex h-10 items-center gap-2 rounded-lg px-4">
+          <ShoppingCart size={15} className="text-primaryColor dark:text-red-400" />
+          <span className="text-sm font-medium text-primaryColor dark:text-red-400">
+            In Bag
+          </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        {/* Quantity stepper */}
+        <div className="inline-flex h-10 items-center gap-1 rounded-full border border-gray-200 bg-white py-1 pl-2 pr-1.5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
           <button
             onClick={handleDecrement}
             disabled={isUpdating}
-            className="h-6 w-6 rounded-full border border-primaryColor bg-white flex items-center justify-center text-xs disabled:opacity-50 hover:bg-primaryColor hover:text-white transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-gray-700 transition-colors hover:bg-gray-100 disabled:opacity-40 dark:text-gray-300 dark:hover:bg-gray-800"
             title={quantity === 1 ? "Remove from cart" : "Decrease quantity"}
           >
-            {quantity === 1 ? (
-              <Trash2 className="h-3 w-3" />
+            {isUpdating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : quantity === 1 ? (
+              <Trash2 className="h-3.5 w-3.5" />
             ) : (
-              <Minus className="h-3 w-3" />
+              <Minus className="h-3.5 w-3.5" />
             )}
           </button>
-          <span className="text-sm font-semibold w-6 text-center">
-            {isUpdating ? (
-              <Loader2 className="h-3 w-3 mx-auto animate-spin" />
-            ) : (
-              quantity
-            )}
+          <span className="min-w-6 text-center text-sm font-bold text-gray-900 dark:text-gray-50">
+            {quantity}
           </span>
           <button
             onClick={handleIncrement}
             disabled={isUpdating || quantity >= (product.stock || 0)}
-            className="h-6 w-6 rounded-full border border-primaryColor bg-white flex items-center justify-center text-xs disabled:opacity-50 hover:bg-primaryColor hover:text-white transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-primaryColor text-white transition-colors hover:bg-primaryColor/90 disabled:opacity-40 dark:bg-red-700 dark:hover:bg-red-600"
           >
-            <Plus className="h-3 w-3" />
+            <Plus className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
@@ -174,7 +176,7 @@ export function AddToCartButton({
   return (
     <Button
       className={cn(
-        "w-full md:py-1 py-0 px-4 bg-primaryColor hover:bg-primaryColor/90 text-white rounded-sm font-semibold transition-all duration-200 transform hover:shadow-lg active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none group md:text-md cursor-pointer h-10",
+        "w-full h-10 rounded-xl bg-primaryColor px-4 font-semibold text-white transition-all duration-200 transform hover:bg-primaryColor/90 hover:shadow-lg active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none group md:text-base cursor-pointer dark:bg-red-700 dark:hover:bg-red-600",
         className
       )}
       onClick={handleAddToCart}
