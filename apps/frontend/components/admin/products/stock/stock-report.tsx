@@ -328,9 +328,9 @@ export function StockReport({
               <TableCell className="font-medium text-wrap">
                 {product.name}
               </TableCell>
-              <TableCell>{product.category.name}</TableCell>
-              <TableCell>{product.brand.name}</TableCell>
-              <TableCell>{product.supplier.name}</TableCell>
+              <TableCell>{product.category?.name || "—"}</TableCell>
+              <TableCell>{product.brand?.name || "—"}</TableCell>
+              <TableCell>{product.supplier?.name || "—"}</TableCell>
               <TableCell>{product.stock}</TableCell>
               <TableCell>
                 {formatCurrencyEnglish(product.purchasePrice)}

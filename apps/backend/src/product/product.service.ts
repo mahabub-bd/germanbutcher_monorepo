@@ -118,11 +118,13 @@ export class ProductService {
 
     // List payload only needs image/name/SKU/prices/unit/brand/category/stock/
     // saleCount/status. Skip the description/productDetails blobs and the
-    // supplier/gallery/audit joins the UI never renders.
+    // gallery/audit joins the UI never renders (supplier IS rendered — the
+    // admin stock report's Supplier column).
     const query = this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.supplier', 'supplier')
       .leftJoinAndSelect('product.unit', 'unit')
       .leftJoinAndSelect('product.attachment', 'attachment')
       .select([
@@ -153,6 +155,9 @@ export class ProductService {
         'category.id',
         'category.name',
         'category.slug',
+
+        'supplier.id',
+        'supplier.name',
 
         'unit.id',
         'unit.name',
