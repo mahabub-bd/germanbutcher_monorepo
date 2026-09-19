@@ -118,7 +118,7 @@ export default async function OrderConfirmationPage({
       originalSubtotal,
       productDiscountTotal,
       couponDiscount,
-      shippingCost: Number(order.shippingMethod.cost),
+      shippingCost: Number(order.shippingCost ?? order.shippingMethod.cost),
       total: order.totalValue,
     };
   };
@@ -347,11 +347,18 @@ export default async function OrderConfirmationPage({
                       <span className="text-sm text-muted-foreground">
                         Shipping Cost
                       </span>
-                      <span className="text-sm font-medium">
-                        {formatCurrencyEnglish(
-                          Number(order.shippingMethod.cost)
-                        )}
-                      </span>
+                      {Number(order.shippingCost ?? order.shippingMethod.cost) ===
+                      0 ? (
+                        <span className="text-sm font-medium text-green-600">
+                          FREE
+                        </span>
+                      ) : (
+                        <span className="text-sm font-medium">
+                          {formatCurrencyEnglish(
+                            Number(order.shippingCost ?? order.shippingMethod.cost)
+                          )}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -481,9 +488,15 @@ export default async function OrderConfirmationPage({
                     <span className="text-sm text-muted-foreground">
                       Shipping
                     </span>
-                    <span className="text-sm">
-                      {formatCurrencyEnglish(orderSummary.shippingCost)}
-                    </span>
+                    {orderSummary.shippingCost === 0 ? (
+                      <span className="text-sm font-semibold text-green-600">
+                        FREE
+                      </span>
+                    ) : (
+                      <span className="text-sm">
+                        {formatCurrencyEnglish(orderSummary.shippingCost)}
+                      </span>
+                    )}
                   </div>
                   <Separator className="my-2" />
                   <div className="flex justify-between font-medium text-base">

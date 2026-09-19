@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Address } from 'src/address/entities/address.entity';
 import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { DeliveryMan } from 'src/delivery-man/entities/delivery-man.entity';
+import { DeliverySettingsModule } from 'src/delivery-settings/delivery-settings.module';
 import { OrderPaymentMethod } from 'src/order-payment-method/entities/order-payment-method.entity';
 import { OrderPayment } from 'src/order-payment/entities/order-payment.entity';
 import { OrderPaymentService } from 'src/order-payment/order-payment.service';
@@ -41,6 +42,7 @@ import { CouponUsageLogModule } from 'src/coupon-usage-log/coupon-usage-log.modu
     SmsModule,
     DeliveryManModule,
     CouponUsageLogModule,
+    DeliverySettingsModule,
   ],
   controllers: [OrderController],
   providers: [OrderService, OrderPaymentService],

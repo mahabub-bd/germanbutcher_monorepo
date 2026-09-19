@@ -25,6 +25,8 @@ interface OrderSummaryProps {
   productDiscounts: number;
   appliedCoupon: { code: string; discount: number } | null;
   shippingCost: number;
+  isFreeDelivery?: boolean;
+  freeDeliveryRemaining?: number | null;
   total: number;
   isSubmitting: boolean;
   onSubmit: () => void;
@@ -40,6 +42,8 @@ export function OrderSummary({
   productDiscounts,
   appliedCoupon,
   shippingCost,
+  isFreeDelivery = false,
+  freeDeliveryRemaining = null,
   total,
   isSubmitting,
   onSubmit,
@@ -103,13 +107,27 @@ export function OrderSummary({
           </div>
         )}
 
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600 dark:text-gray-300">
-            Delivery Fee
-          </span>
-          <span className="font-medium text-gray-900 dark:text-gray-50">
-            {formatCurrencyEnglish(Number(shippingCost))}
-          </span>
+        <div className="space-y-1">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600 dark:text-gray-300">
+              Delivery Fee
+            </span>
+            {isFreeDelivery ? (
+              <span className="font-semibold text-green-600 dark:text-green-400">
+                FREE
+              </span>
+            ) : (
+              <span className="font-medium text-gray-900 dark:text-gray-50">
+                {formatCurrencyEnglish(Number(shippingCost))}
+              </span>
+            )}
+          </div>
+          {freeDeliveryRemaining !== null && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Add {formatCurrencyEnglish(freeDeliveryRemaining)} more to get
+              free delivery
+            </p>
+          )}
         </div>
 
         <Separator className="my-4" />

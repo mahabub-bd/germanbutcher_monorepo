@@ -108,6 +108,7 @@ export default function OrderView({
           <OrderSummary
             items={currentOrder.items}
             shippingMethod={currentOrder.shippingMethod}
+            shippingCost={currentOrder.shippingCost}
             coupon={currentOrder.coupon}
             totalDiscount={currentOrder.totalDiscount}
             totalValue={currentOrder.totalValue}

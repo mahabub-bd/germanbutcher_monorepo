@@ -287,7 +287,7 @@ export function ThermalPrint({ order, onSuccess }: ThermalPrintProps) {
 
     const couponDiscount = Number(order.totalDiscount) - productDiscountTotal;
 
-    const shippingCost = Number(order.shippingMethod.cost);
+    const shippingCost = Number(order.shippingCost ?? order.shippingMethod.cost);
 
     const total = Number(order.totalValue);
 

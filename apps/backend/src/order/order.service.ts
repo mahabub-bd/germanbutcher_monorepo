@@ -4,6 +4,7 @@ import { Address } from 'src/address/entities/address.entity';
 import { OrderStatus, PaymentStatus, CancellationReason } from 'src/common/enums';
 import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { DeliveryMan } from 'src/delivery-man/entities/delivery-man.entity';
+import { DeliverySettingsService } from 'src/delivery-settings/delivery-settings.service';
 
 import { EmailService } from 'src/email/email.service';
 import { NotificationService } from 'src/notification/notification.service';
@@ -63,6 +64,7 @@ export class OrderService {
     private readonly notificationService: NotificationService,
     private readonly smsService: SmsService,
     private readonly couponUsageLogService: CouponUsageLogService,
+    private readonly deliverySettingsService: DeliverySettingsService,
   ) {}
 
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -243,8 +245,19 @@ export class OrderService {
       }
     }
 
-    // Add shipping cost
-    totalValue += Number(shippingMethod.cost);
+    // Add shipping cost — waived entirely when free delivery is enabled and
+    // the payable subtotal (after product + coupon discounts) crosses the
+    // configured threshold
+    const payableSubtotal = totalValue;
+    const deliverySettings = await this.deliverySettingsService.getSettings();
+    const freeDeliveryEligible =
+      deliverySettings.freeDeliveryEnabled &&
+      Number(deliverySettings.freeDeliveryThreshold) > 0 &&
+      payableSubtotal >= Number(deliverySettings.freeDeliveryThreshold);
+    const chargedShipping = freeDeliveryEligible
+      ? 0
+      : Number(shippingMethod.cost);
+    totalValue += chargedShipping;
 
     // Round final values
     totalValue = Math.round(totalValue * 100) / 100;
@@ -255,6 +268,7 @@ export class OrderService {
       ...orderDetails,
       totalValue,
       totalDiscount,
+      shippingCost: chargedShipping,
       user,
       address,
       shippingMethod,
@@ -327,14 +341,18 @@ export class OrderService {
     // Get the complete order with all relations for email
     const completeOrder = await this.getOrderById(order.id);
 
-    // Send order confirmation email
+    // Send order confirmation email — the charged fee comes from the order
+    // itself so a free-delivery order doesn't show the method's base cost
+    const orderShippingCost = Number(
+      completeOrder.shippingCost ?? completeOrder.shippingMethod?.cost ?? 0,
+    );
     try {
       await this.emailService.sendOrderConfirmationEmail({
         orderNo: completeOrder.orderNo,
         customerName: user.name,
         customerEmail: user.email,
-        subtotal: Number(completeOrder.totalValue) - Number(completeOrder.shippingMethod?.cost || 0),
-        shippingFee: Number(completeOrder.shippingMethod?.cost || 0),
+        subtotal: Number(completeOrder.totalValue) - orderShippingCost,
+        shippingFee: orderShippingCost,
         totalValue: Number(completeOrder.totalValue),
         shippingMethod: shippingMethod.name,
         paymentMethod: paymentMethod.name,

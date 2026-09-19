@@ -90,6 +90,14 @@ export class Order {
   })
   paidAmount: number;
 
+  @ApiPropertyOptional({
+    example: 60,
+    description: 'Delivery fee actually charged. Null on orders placed before '
+      + 'this column existed — fall back to shippingMethod.cost.',
+  })
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  shippingCost?: number | null;
+
   @ApiProperty({
     type: () => OrderPaymentMethod,
     description: 'Payment method used for the order',

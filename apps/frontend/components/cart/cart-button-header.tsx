@@ -2,7 +2,7 @@
 
 import { ShoppingCart, Tag, Trash2, X } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -19,10 +19,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useCartContext } from "@/contexts/cart-context";
+import { fetchData } from "@/utils/api-utils";
 import { cn, formatCurrencyEnglish } from "@/lib/utils";
-import type { Cart, CartItem } from "@/utils/types";
+import type { Cart, CartItem, DeliverySettings } from "@/utils/types";
 import { CartItemProduct } from "./cart-item";
 import { EmptyCart } from "./empty-cart";
+import { FreeDeliveryBanner } from "./free-delivery-banner";
 
 export function CartButtonHeader({
   cart,
@@ -44,6 +46,8 @@ export function CartButtonHeader({
   const [isRemovingAll, setIsRemovingAll] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [deliverySettings, setDeliverySettings] =
+    useState<DeliverySettings | null>(null);
 
   const {
     itemCount,
@@ -52,7 +56,25 @@ export function CartButtonHeader({
     productDiscounts,
     productCount,
   } = getCartTotals();
-  const total = discountedSubtotal - (appliedCoupon?.discount || 0);
+  const couponDiscount = Number(appliedCoupon?.discount || 0);
+  const total = discountedSubtotal - couponDiscount;
+
+  // Free delivery eligibility mirrors checkout/backend: payable subtotal
+  // (after discounts) vs the configured threshold
+  useEffect(() => {
+    fetchData("delivery-settings")
+      .then((response) => setDeliverySettings(response as DeliverySettings))
+      .catch((error) =>
+        console.error("Error fetching delivery settings:", error)
+      );
+  }, []);
+
+  const freeDeliveryThreshold = Number(
+    deliverySettings?.freeDeliveryThreshold ?? 0
+  );
+  const isFreeDelivery = Boolean(deliverySettings?.freeDeliveryEnabled) &&
+    freeDeliveryThreshold > 0 &&
+    discountedSubtotal - couponDiscount >= freeDeliveryThreshold;
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -172,10 +194,18 @@ export function CartButtonHeader({
         {itemCount > 0 && (
           <div className="border-t">
             <div className="p-4 sm:p-6 space-y-4">
+              {/* Free delivery progress banner */}
+              <FreeDeliveryBanner
+                enabled={Boolean(deliverySettings?.freeDeliveryEnabled)}
+                threshold={freeDeliveryThreshold}
+                payableSubtotal={discountedSubtotal - couponDiscount}
+                itemCount={itemCount}
+              />
+
               {/* Coupon Section */}
               <div className="space-y-2">
                 <h3 className="text-sm font-medium flex items-center">
-                  <Tag className="h-4 w-4 mr-2" />
+                  <Tag className="mr-2 h-4 w-4" />
                   Apply Discount Code
                 </h3>
                 <div className="flex gap-2">
@@ -256,7 +286,13 @@ export function CartButtonHeader({
 
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Shipping</span>
-                    <span>Calculated at checkout</span>
+                    {isFreeDelivery ? (
+                      <span className="font-semibold text-green-600 dark:text-green-400">
+                        FREE
+                      </span>
+                    ) : (
+                      <span>Calculated at checkout</span>
+                    )}
                   </div>
 
                   <Separator className="my-2" />

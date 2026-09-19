@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateShippingMethodDto {
   @ApiProperty({
@@ -36,4 +36,13 @@ export class CreateShippingMethodDto {
   })
   @IsString()
   description?: string;
+
+  @ApiProperty({
+    description: 'Activation status',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

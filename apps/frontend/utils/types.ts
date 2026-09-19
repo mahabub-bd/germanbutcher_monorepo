@@ -566,6 +566,11 @@ export interface ShippingMethod {
   updatedBy: User;
 }
 
+export interface DeliverySettings {
+  freeDeliveryEnabled: boolean;
+  freeDeliveryThreshold: string | number;
+}
+
 export interface PaymentMethod {
   id: number;
   name: string;
@@ -618,6 +623,7 @@ export interface Order {
   discountType: string;
   discountValue: number;
   totalValue: number;
+  shippingCost?: string | number | null;
   user: User;
   address: Address;
   shippingMethod: ShippingMethod;

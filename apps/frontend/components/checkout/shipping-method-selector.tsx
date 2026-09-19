@@ -10,12 +10,15 @@ interface ShippingMethodSelectorProps {
   shippingMethods: ShippingMethod[];
   selectedMethod: string;
   onSelectMethod: (methodId: string) => void;
+  /** When free delivery is unlocked, every method's fee is waived */
+  isFreeDelivery?: boolean;
 }
 
 export function ShippingMethodSelector({
   shippingMethods,
   selectedMethod,
   onSelectMethod,
+  isFreeDelivery = false,
 }: ShippingMethodSelectorProps) {
   return (
     <div className="space-y-4 rounded-lg border bg-white p-4 md:p-5">
@@ -59,9 +62,20 @@ export function ShippingMethodSelector({
                 </Label>
               </div>
 
-              <span className="font-medium text-sm md:text-base">
-                {formatCurrencyEnglish(Number(method.cost))}
-              </span>
+              {isFreeDelivery ? (
+                <span className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground line-through">
+                    {formatCurrencyEnglish(Number(method.cost))}
+                  </span>
+                  <span className="font-semibold text-sm md:text-base text-green-600 dark:text-green-400">
+                    FREE
+                  </span>
+                </span>
+              ) : (
+                <span className="font-medium text-sm md:text-base">
+                  {formatCurrencyEnglish(Number(method.cost))}
+                </span>
+              )}
             </div>
           );
         })}

@@ -117,16 +117,18 @@ const UserProfileSection: React.FC<{
             <span>Profile</span>
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link
-            href={user.isAdmin ? "/admin/dashboard" : "/user/dashboard"}
-            className="cursor-pointer"
-            onClick={onClose}
-          >
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            <span>{user.isAdmin ? "Admin Dashboard" : "Dashboard"}</span>
-          </Link>
-        </DropdownMenuItem>
+        {user.isAdmin && (
+          <DropdownMenuItem asChild>
+            <Link
+              href="/admin/dashboard"
+              className="cursor-pointer"
+              onClick={onClose}
+            >
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              <span>Admin Dashboard</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={onLogout}

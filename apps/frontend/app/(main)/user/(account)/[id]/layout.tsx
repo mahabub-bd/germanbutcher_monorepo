@@ -5,7 +5,7 @@ import MobileSidebar from "@/components/common/MobileSidebar";
 
 import Sidebar from "@/components/common/Sidebar";
 import ProfileBreadcrumb from "@/components/user-account/profile-breadcrumb";
-import { Headphones, Heart, LayoutDashboard, MapPin, ShoppingBag, User } from "lucide-react";
+import { Headphones, Heart, MapPin, ShoppingBag, User } from "lucide-react";
 
 interface UserProfileLayoutProps {
   children: React.ReactNode;
@@ -16,12 +16,6 @@ const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
 }) => {
   const user = await getUser();
   const navItems = [
-    {
-      icon: <LayoutDashboard className="w-5 h-5" />,
-      label: "Dashboard",
-      href: `/user/${user.id}`,
-      description: "Your account overview",
-    },
     {
       icon: <User className="w-5 h-5" />,
       label: "Profile",
