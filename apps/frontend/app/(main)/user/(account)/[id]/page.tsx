@@ -1,23 +1,10 @@
 import { getUser } from "@/actions/auth";
-import DashboardContent from "@/components/user/dashboard-content";
-import { fetchProtectedData } from "@/utils/api-utils";
-import type { Order } from "@/utils/types";
+import { redirect } from "next/navigation";
 
-export default async function UserDashboardPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const [user, orders] = await Promise.all([
-    getUser(),
-    // A failed orders fetch must not take down the whole account home.
-    fetchProtectedData<Order[]>(`orders/user/${id}`).catch(() => []),
-  ]);
-
-  return (
-    <div className="md:p-4 p-2">
-      <DashboardContent user={user} orders={orders} />
-    </div>
-  );
+// The account overview (dashboard) page was removed — the account root now
+// lands on Orders. Resolves the real user from the session cookie so legacy
+// links like /user/dashboard also end up in the right place.
+export default async function UserAccountRedirectPage() {
+  const user = await getUser();
+  redirect(user ? `/user/${user.id}/orders` : "/auth/sign-in");
 }

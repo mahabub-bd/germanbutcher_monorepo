@@ -15,6 +15,7 @@ import { refreshDashboard, serverRevalidate } from "@/utils/revalidatePath";
 import type {
   Address,
   CartItem,
+  DeliverySettings,
   PaymentMethod,
   ShippingMethod,
   User as UserType,
@@ -41,6 +42,8 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
 
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [deliverySettings, setDeliverySettings] =
+    useState<DeliverySettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const [selectedShippingMethod, setSelectedShippingMethod] = useState("");
@@ -68,14 +71,26 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const shippingCost =
+  const shippingCost = Number(
     shippingMethods.find(
       (method) => method.id.toString() === selectedShippingMethod
-    )?.cost || 0;
+    )?.cost || 0
+  );
 
-  const couponDiscount = appliedCoupon?.discount || 0;
-  const total =
-    Number(discountedSubtotal) + Number(shippingCost) - Number(couponDiscount);
+  const couponDiscount = Number(appliedCoupon?.discount || 0);
+  const payableSubtotal = Number(discountedSubtotal) - couponDiscount;
+  const freeDeliveryThreshold = Number(
+    deliverySettings?.freeDeliveryThreshold ?? 0
+  );
+  const isFreeDelivery = Boolean(deliverySettings?.freeDeliveryEnabled) &&
+    freeDeliveryThreshold > 0 &&
+    payableSubtotal >= freeDeliveryThreshold;
+  const effectiveShippingCost = isFreeDelivery ? 0 : shippingCost;
+  const total = payableSubtotal + effectiveShippingCost;
+  const freeDeliveryRemaining =
+    deliverySettings?.freeDeliveryEnabled && !isFreeDelivery
+      ? Math.max(freeDeliveryThreshold - payableSubtotal, 0)
+      : null;
 
   useEffect(() => {
     if (user) {
@@ -91,15 +106,18 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
   useEffect(() => {
     const fetchMethods = async () => {
       try {
-        const [shippingResponse, paymentResponse] = await Promise.all([
-          fetchData("shipping-methods?isActive=true") as Promise<
-            ShippingMethod[]
-          >,
-          fetchData("order-payment-methods") as Promise<PaymentMethod[]>,
-        ]);
+        const [shippingResponse, paymentResponse, deliverySettingsResponse] =
+          await Promise.all([
+            fetchData("shipping-methods?isActive=true") as Promise<
+              ShippingMethod[]
+            >,
+            fetchData("order-payment-methods") as Promise<PaymentMethod[]>,
+            fetchData("delivery-settings") as Promise<DeliverySettings>,
+          ]);
 
         setShippingMethods(shippingResponse as ShippingMethod[]);
         setPaymentMethods(paymentResponse as PaymentMethod[]);
+        setDeliverySettings(deliverySettingsResponse as DeliverySettings);
 
         if ((shippingResponse as ShippingMethod[]).length > 0) {
           setSelectedShippingMethod(shippingResponse[0].id.toString());
@@ -375,7 +393,7 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
       ) : (
         <div className="grid gap-6 md:gap-8 lg:grid-cols-12">
           {/* Main Form */}
-          <div className="lg:col-span-7 space-y-6 md:space-y-8">
+          <div className="lg:col-span-8 space-y-6 md:space-y-8">
             <OrderItems items={cart.items} itemCount={itemCount} />
             <CustomerInformation
               formData={formData}
@@ -400,6 +418,7 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
               shippingMethods={shippingMethods}
               selectedMethod={selectedShippingMethod}
               onSelectMethod={setSelectedShippingMethod}
+              isFreeDelivery={isFreeDelivery}
             />
 
             <PaymentMethodSelector
@@ -423,7 +442,9 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
                 originalSubtotal={originalSubtotal}
                 productDiscounts={productDiscounts}
                 appliedCoupon={appliedCoupon}
-                shippingCost={Number(shippingCost)}
+                shippingCost={effectiveShippingCost}
+                isFreeDelivery={isFreeDelivery}
+                freeDeliveryRemaining={freeDeliveryRemaining}
                 total={total}
                 isSubmitting={isSubmitting}
                 onSubmit={handleSubmit}
@@ -437,28 +458,24 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
           </div>
 
           {/* Desktop Order Summary */}
-          <div className="hidden lg:block lg:col-span-5">
-            <div className="sticky top-4 bg-white rounded-lg border p-6">
-              <div className="border-b pb-4">
-                <h2 className="text-lg font-semibold">Order Summary</h2>
-              </div>
-
-              <div className="space-y-4 mt-4">
-                <OrderSummary
-                  originalSubtotal={originalSubtotal}
-                  productDiscounts={productDiscounts}
-                  appliedCoupon={appliedCoupon}
-                  shippingCost={Number(shippingCost)}
-                  total={total}
-                  isSubmitting={isSubmitting}
-                  onSubmit={handleSubmit}
-                  selectedShippingMethod={selectedShippingMethod}
-                  selectedPaymentMethod={selectedPaymentMethod}
-                  shippingMethods={shippingMethods}
-                  paymentMethods={paymentMethods}
-                  user={user}
-                />
-              </div>
+          <div className="hidden lg:block lg:col-span-4">
+            <div className="sticky top-4">
+              <OrderSummary
+                originalSubtotal={originalSubtotal}
+                productDiscounts={productDiscounts}
+                appliedCoupon={appliedCoupon}
+                shippingCost={effectiveShippingCost}
+                isFreeDelivery={isFreeDelivery}
+                freeDeliveryRemaining={freeDeliveryRemaining}
+                total={total}
+                isSubmitting={isSubmitting}
+                onSubmit={handleSubmit}
+                selectedShippingMethod={selectedShippingMethod}
+                selectedPaymentMethod={selectedPaymentMethod}
+                shippingMethods={shippingMethods}
+                paymentMethods={paymentMethods}
+                user={user}
+              />
             </div>
           </div>
         </div>

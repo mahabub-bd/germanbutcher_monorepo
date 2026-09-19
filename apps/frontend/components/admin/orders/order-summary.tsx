@@ -17,6 +17,9 @@ interface OrderSummaryData {
 interface OrderSummaryProps {
   items: OrderItem[];
   shippingMethod: ShippingMethod;
+  /** Fee actually charged (0 when free delivery applied); falls back to the
+   * shipping method's base cost for orders placed before it was stored. */
+  shippingCost?: string | number | null;
   coupon: Coupon | null;
   totalDiscount: number;
   totalValue: number;
@@ -27,6 +30,7 @@ interface OrderSummaryProps {
 export function OrderSummary({
   items,
   shippingMethod,
+  shippingCost,
   coupon,
   totalDiscount,
   totalValue,
@@ -50,7 +54,7 @@ export function OrderSummary({
 
     const couponDiscount = Number(totalDiscount) - productDiscountTotal;
 
-    const shippingCost = Number(shippingMethod.cost);
+    const effectiveShippingCost = Number(shippingCost ?? shippingMethod.cost);
 
     const total = Number(totalValue);
 
@@ -59,7 +63,7 @@ export function OrderSummary({
       productDiscountTotal,
       couponDiscount,
       itemsSubtotal,
-      shippingCost,
+      shippingCost: effectiveShippingCost,
       total,
     };
   };

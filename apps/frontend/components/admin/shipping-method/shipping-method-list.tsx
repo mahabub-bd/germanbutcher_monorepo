@@ -16,9 +16,9 @@ import {
 } from "@/components/ui/table";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 
-import { deleteData, fetchData } from "@/utils/api-utils";
+import { deleteData, fetchData, patchData } from "@/utils/api-utils";
 
-import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { ShippingMethod } from "@/utils/types";
 import { MoreHorizontal, Pencil, Plus, Trash2, Truck } from "lucide-react";
 import Link from "next/link";
@@ -34,6 +34,7 @@ export function ShippingMethodList() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedShippingMethod, setSelectedShippingMethod] =
     useState<ShippingMethod | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const fetchShippingMethods = async () => {
     setIsLoading(true);
@@ -70,6 +71,28 @@ export function ShippingMethodList() {
       toast.error("Failed to delete shipping method. Please try again.");
     } finally {
       setIsDeleteDialogOpen(false);
+    }
+  };
+
+  const handleToggleActive = async (method: ShippingMethod) => {
+    setTogglingId(method.id);
+    try {
+      await patchData(`shipping-methods/${method.id}`, {
+        isActive: !method.isActive,
+      });
+      setShippingMethods((prev) =>
+        prev.map((m) =>
+          m.id === method.id ? { ...m, isActive: !method.isActive } : m
+        )
+      );
+      toast.success(
+        `${method.name} ${method.isActive ? "deactivated" : "activated"}`
+      );
+    } catch (error) {
+      console.error("Error updating shipping method:", error);
+      toast.error("Failed to update shipping method status");
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -117,9 +140,17 @@ export function ShippingMethodList() {
                 {formatDateTime(method.createdAt)}
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                <Badge variant={method.isActive ? "default" : "secondary"}>
-                  {method.isActive ? "Active" : "Inactive"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={method.isActive}
+                    disabled={togglingId === method.id}
+                    onCheckedChange={() => handleToggleActive(method)}
+                    aria-label={`Toggle ${method.name}`}
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {method.isActive ? "Active" : "Inactive"}
+                  </span>
+                </div>
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>

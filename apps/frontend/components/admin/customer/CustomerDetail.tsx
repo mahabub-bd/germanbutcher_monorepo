@@ -469,8 +469,16 @@ export function CustomerDetail() {
                                 {order.shippingMethod.name}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                ৳
-                                {parseFloat(order.shippingMethod.cost).toFixed(2)}
+                                {Number(
+                                  order.shippingCost ?? order.shippingMethod.cost
+                                ) === 0
+                                  ? "FREE"
+                                  : `৳${parseFloat(
+                                      String(
+                                        order.shippingCost ??
+                                          order.shippingMethod.cost
+                                      )
+                                    ).toFixed(2)}`}
                               </p>
                             </div>
 

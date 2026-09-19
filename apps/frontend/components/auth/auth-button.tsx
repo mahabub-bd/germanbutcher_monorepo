@@ -239,9 +239,9 @@ const AuthBtn: React.FC<AuthBtnProps> = ({
         label: "Profile",
       },
       {
-        href: user?.isAdmin ? "/admin/dashboard" : "/user/dashboard",
+        href: "/admin/dashboard",
         icon: <Settings className="mr-2 h-4 w-4" />,
-        label: user?.isAdmin ? "Admin Dashboard" : "Dashboard",
+        label: "Admin Dashboard",
         condition: !!user?.isAdmin,
       },
       {

@@ -81,10 +81,15 @@ export class AuthService {
     const sanitizedUser = this.sanitizeUser(user);
 
     const tokens = await this.generateTokens(sanitizedUser as User);
-    await this.userService.updateLastLogin(user.id);
 
-    // Log login activity
-    await this.logLoginActivity(user, req);
+    // Audit writes (lastLoginAt + activity log) are non-critical — the test
+    // DB's write latency alone runs 100ms-2s, so don't hold the login
+    // response hostage to them.
+    void this.userService
+      .updateLastLogin(user.id)
+      .catch((err) => this.logger.error(`Failed to update lastLoginAt: ${err?.message}`));
+    // Log login activity (internally catches its own errors)
+    void this.logLoginActivity(user, req);
 
     return {
       message: 'Login successful',
@@ -319,10 +324,12 @@ export class AuthService {
 
     const tokens = await this.generateTokens(sanitizedUser as User);
 
-    await this.userService.updateLastLogin(updatedUser.id);
-
-    // Log mobile login activity
-    await this.logLoginActivity(updatedUser, req, 'mobile');
+    // Audit writes are non-critical — don't block the response on them.
+    void this.userService
+      .updateLastLogin(updatedUser.id)
+      .catch((err) => this.logger.error(`Failed to update lastLoginAt: ${err?.message}`));
+    // Log mobile login activity (internally catches its own errors)
+    void this.logLoginActivity(updatedUser, req, 'mobile');
 
     const userResponse = {
       id: updatedUser.id,

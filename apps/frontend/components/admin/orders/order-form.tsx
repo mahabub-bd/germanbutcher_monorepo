@@ -164,7 +164,7 @@ export function OrderForm({ order, onSuccess, onCancel }: OrderFormProps) {
   };
 
   const subtotal = calculateSubtotal();
-  const shippingCost = Number(order.shippingMethod?.cost || 0);
+  const shippingCost = Number(order.shippingCost ?? (order.shippingMethod?.cost || 0));
   const total = order.totalValue;
   const paidAmount = order.paidAmount || 0;
 

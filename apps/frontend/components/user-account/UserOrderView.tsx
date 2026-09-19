@@ -178,7 +178,7 @@ export default function OrderView({ order, onBack }: OrderViewProps) {
     // Coupon discount is total discount minus product discounts
     const couponDiscount = Number(order.totalDiscount) - productDiscountTotal;
 
-    const shippingCost = Number(order.shippingMethod.cost);
+    const shippingCost = Number(order.shippingCost ?? order.shippingMethod.cost);
 
     // Total should match order.totalValue
     const total = Number(order.totalValue);
@@ -596,9 +596,15 @@ export default function OrderView({ order, onBack }: OrderViewProps) {
                   <span className="text-sm text-muted-foreground">
                     Shipping
                   </span>
-                  <span className="text-sm">
-                    {formatCurrencyEnglish(orderSummary.shippingCost)}
-                  </span>
+                  {orderSummary.shippingCost === 0 ? (
+                    <span className="text-sm font-semibold text-green-600">
+                      FREE
+                    </span>
+                  ) : (
+                    <span className="text-sm">
+                      {formatCurrencyEnglish(orderSummary.shippingCost)}
+                    </span>
+                  )}
                 </div>
                 <Separator className="my-2" />
                 <div className="flex justify-between font-medium text-base">

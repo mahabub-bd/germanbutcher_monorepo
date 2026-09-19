@@ -57,7 +57,7 @@ export default function PaymentStatusPage({
       originalSubtotal,
       productDiscountTotal,
       couponDiscount,
-      shippingCost: Number(order.shippingMethod?.cost ?? 0),
+      shippingCost: Number(order.shippingCost ?? order.shippingMethod?.cost ?? 0),
       total: order.totalValue,
     };
   };
@@ -322,9 +322,13 @@ export default function PaymentStatusPage({
 
                 <div className="flex justify-between">
                   <span>Shipping:</span>
-                  <span>
-                    {formatCurrencyEnglish(orderSummary.shippingCost)}
-                  </span>
+                  {orderSummary.shippingCost === 0 ? (
+                    <span className="font-semibold text-green-600">FREE</span>
+                  ) : (
+                    <span>
+                      {formatCurrencyEnglish(orderSummary.shippingCost)}
+                    </span>
+                  )}
                 </div>
 
                 <Separator />

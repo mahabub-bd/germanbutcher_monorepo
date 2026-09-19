@@ -202,7 +202,7 @@ const OrderPDF = ({ order }: { order: Order }) => {
   };
 
   const subtotal = calculateSubtotal();
-  const shippingCost = Number(order.shippingMethod?.cost || 0);
+  const shippingCost = Number(order.shippingCost ?? (order.shippingMethod?.cost || 0));
   const total = order.totalValue;
   const paidAmount = order.paidAmount || 0;
 

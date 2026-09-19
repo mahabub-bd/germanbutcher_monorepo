@@ -370,7 +370,7 @@ export const OrderPDFDocument = ({ order }: OrderPDFDocumentProps) => {
       originalSubtotal,
       productDiscountTotal,
       couponDiscount,
-      shippingCost: Number(order.shippingMethod?.cost || 0),
+      shippingCost: Number(order.shippingCost ?? (order.shippingMethod?.cost || 0)),
       total: Number(order.totalValue || 0),
       dueAmount: Math.max(
         0,

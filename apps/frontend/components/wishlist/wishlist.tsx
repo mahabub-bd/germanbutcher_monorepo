@@ -1,13 +1,19 @@
 "use client";
 
-import { Product, Wishlist } from "@/utils/types";
-import { Heart, X } from "lucide-react";
-import Link from "next/link";
-
-import { Button } from "@/components/ui/button";
+import { Heart, Loader2, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { formatCurrencyEnglish } from "../../lib/utils";
-import { AddToCartButton } from "../cart/add-to-cart-button";
+import Link from "next/link";
+import { useState } from "react";
+
+import { AddToCartButton } from "@/components/cart/add-to-cart-button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { formatCurrencyEnglish } from "@/lib/utils";
+import {
+  getDiscountedPrice,
+  hasActiveDiscount,
+} from "@/utils/product-utils";
+import type { Product, Wishlist } from "@/utils/types";
 
 interface WishlistSectionProps {
   wishlistData?: Wishlist;
@@ -31,17 +37,17 @@ const WishlistSection = ({
   if (!wishlistData || wishlistData.items.length === 0) {
     return (
       <div className="mx-auto px-4 py-8">
-        <div className="text-center py-16">
-          <Heart className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <div className="py-16 text-center">
+          <Heart className="mx-auto mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" />
+          <h2 className="mb-2 text-2xl font-bold text-gray-900 dark:text-gray-50">
             Your wishlist is empty
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="mb-6 text-gray-600 dark:text-gray-400">
             Start adding items you love to your wishlist!
           </p>
           <Link
             href="/products"
-            className="bg-primaryColor text-white px-6 py-3 rounded-lg hover:bg-primaryColor/90 transition-colors"
+            className="inline-block rounded-lg bg-primaryColor px-6 py-3 text-white transition-colors hover:bg-primaryColor/90"
           >
             Continue Shopping
           </Link>
@@ -50,142 +56,155 @@ const WishlistSection = ({
     );
   }
 
+  const itemCount = wishlistData.items.length;
+
   return (
-    <div className="w-full mx-auto md:p-4 p-2">
-      <div className="flex items-center gap-3 mb-6">
-        <Heart className="h-6 w-6 text-primaryColor" />
-        <div className="flex items-center gap-4 sm:gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">My Wishlist</h1>
-          <span className="text-sm text-muted-foreground">
-            ({wishlistData.items.length}{" "}
-            {wishlistData.items.length === 1 ? "item" : "items"})
-          </span>
+    <div className="w-full">
+      {/* Header */}
+      <div className="mb-6 flex items-center gap-4">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-primaryColor dark:bg-red-950/40 dark:text-red-400">
+          <Heart className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl dark:text-gray-50">
+            My Wishlist
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {itemCount} {itemCount === 1 ? "item" : "items"} saved
+          </p>
         </div>
       </div>
 
+      {/* Items */}
       <div className="space-y-4">
         {wishlistData.items.map((item) => (
-          <div
+          <WishlistItemCard
             key={item.id}
-            className="flex md:flex-row flex-col gap-4 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow relative bg-white"
-          >
-            <div className="flex gap-4 min-w-0 flex-1">
-              <div className="relative w-24 h-24 sm:w-36 sm:h-24 flex-shrink-0">
-                <Image
-                  width={400}
-                  height={300}
-                  src={item.product.attachment?.url || "/placeholder-image.jpg"}
-                  alt={item.product.name}
-                  className="w-full h-full object-cover rounded-lg"
-                />
-              </div>
-
-              <div className="flex-1 flex flex-col min-w-0">
-                <div className="flex-1">
-                  <Link
-                    href={`/product/${item.product?.slug}`}
-                    className="font-semibold text-gray-900 text-lg mb-2 hover:text-primaryColor transition-colors block break-words"
-                  >
-                    {item.product.name}
-                  </Link>
-                  {item.product.description && (
-                    <p className="text-gray-600 text-sm line-clamp-2 mb-4 break-words">
-                      {item.product.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 mt-auto flex-wrap">
-                    {(() => {
-                      // Discount calculations
-                      const now = new Date();
-                      const discountStart = new Date(
-                        item.product?.discountStartDate || 0
-                      );
-                      const discountEnd = new Date(
-                        item.product?.discountEndDate || 0
-                      );
-                      const hasActiveDiscount =
-                        item.product.discountType &&
-                        item.product.discountValue &&
-                        now >= discountStart &&
-                        now <= discountEnd;
-
-                      const getDiscountedPrice = (product: Product) => {
-                        if (!hasActiveDiscount) return product.sellingPrice;
-
-                        if (product.discountType === "fixed") {
-                          return Math.max(
-                            0,
-                            product.sellingPrice - (product.discountValue ?? 0)
-                          );
-                        } else if (product.discountType === "percentage") {
-                          return (
-                            product.sellingPrice -
-                            (product.sellingPrice *
-                              (product.discountValue ?? 0)) /
-                              100
-                          );
-                        }
-                        return product.sellingPrice;
-                      };
-
-                      const discountedPrice = getDiscountedPrice(item.product);
-                      const hasDiscount =
-                        hasActiveDiscount &&
-                        discountedPrice < item.product.sellingPrice;
-                      const savingsAmount = hasDiscount
-                        ? item.product.sellingPrice - discountedPrice
-                        : 0;
-
-                      return (
-                        <>
-                          <span className="text-lg font-bold text-primaryColor">
-                            {formatCurrencyEnglish(discountedPrice)}
-                          </span>
-                          {hasDiscount && (
-                            <span className="text-sm text-gray-500 line-through">
-                              {formatCurrencyEnglish(item.product.sellingPrice)}
-                            </span>
-                          )}
-                          {hasDiscount && (
-                            <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-medium whitespace-nowrap">
-                              Save {formatCurrencyEnglish(savingsAmount)}
-                            </span>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </div>
-                  {item.product.stock <= 0 && (
-                    <span className="text-red-500 text-sm font-medium mt-2 inline-block">
-                      Out of Stock
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex md:flex-col md:justify-center items-start md:items-center gap-2 md:gap-3 flex-shrink-0">
-              <AddToCartButton
-                product={item.product}
-                disabled={item.product.stock === 0}
-                className="inline-flex"
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleRemoveFromWishlist(item.id)}
-                className="px-4 py-2 text-gray-500 hover:text-red-500 hover:border-red-500 hover:bg-red-50 transition-colors"
-                aria-label="Remove from wishlist"
-              >
-                <X className="h-4 w-4" />
-                <span className="hidden sm:inline ml-2">Remove</span>
-              </Button>
-            </div>
-          </div>
+            item={item}
+            onRemove={() => handleRemoveFromWishlist(item.id)}
+          />
         ))}
       </div>
     </div>
   );
 };
+
+interface WishlistItemCardProps {
+  item: Wishlist["items"][number];
+  onRemove: () => void;
+}
+
+function WishlistItemCard({ item, onRemove }: WishlistItemCardProps) {
+  const [isImageLoading, setIsImageLoading] = useState(true);
+  const product: Product = item.product;
+  const isOutOfStock = (product.stock || 0) === 0;
+
+  // Discount calculations via the shared product utils
+  const activeDiscount = hasActiveDiscount(product);
+  const discountedPrice = getDiscountedPrice(product);
+  const savingsAmount = activeDiscount
+    ? product.sellingPrice - discountedPrice
+    : 0;
+
+  // Plain-text description for the single preview line
+  const description = product.description
+    ? product.description
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+    : "";
+
+  return (
+    <div
+      className={`rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5 dark:border-gray-800 dark:bg-gray-900 ${
+        isOutOfStock ? "opacity-60" : ""
+      }`}
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
+        {/* Product Image */}
+        <Link
+          href={`/product/${product.slug}`}
+          className="group relative block h-40 w-full shrink-0 overflow-hidden rounded-lg border bg-muted sm:h-32 sm:w-36"
+        >
+          {isImageLoading && (
+            <div className="absolute inset-0 flex animate-pulse items-center justify-center bg-gray-200 dark:bg-gray-700">
+              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+            </div>
+          )}
+          <Image
+            src={product.attachment?.url || "/placeholder-image.jpg"}
+            alt={product.name}
+            fill
+            className={`object-cover transition-transform duration-300 group-hover:scale-105 ${
+              isOutOfStock ? "grayscale" : ""
+            }`}
+            sizes="(max-width: 640px) 100vw, 144px"
+            onLoad={() => setIsImageLoading(false)}
+          />
+          {isOutOfStock && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+              <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">
+                Out of Stock
+              </Badge>
+            </div>
+          )}
+        </Link>
+
+        {/* Product Details */}
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <Link
+            href={`/product/${product.slug}`}
+            className="transition-colors hover:text-primaryColor"
+          >
+            <h3 className="line-clamp-2 text-base font-bold leading-snug text-gray-900 sm:text-lg dark:text-gray-50">
+              {product.name}
+            </h3>
+          </Link>
+
+          {description && (
+            <p className="line-clamp-1 text-sm text-gray-500 dark:text-gray-400">
+              {description}
+            </p>
+          )}
+
+          {/* Price */}
+          <div className="flex flex-wrap items-baseline gap-2">
+            {activeDiscount && (
+              <span className="text-sm text-muted-foreground line-through">
+                {formatCurrencyEnglish(product.sellingPrice)}
+              </span>
+            )}
+            <span className="text-2xl font-bold text-primaryColor dark:text-red-400">
+              {formatCurrencyEnglish(discountedPrice)}
+            </span>
+            {activeDiscount && savingsAmount > 0 && (
+              <span className="text-[11px] font-medium text-green-600 dark:text-green-400">
+                Save {formatCurrencyEnglish(savingsAmount)}
+              </span>
+            )}
+          </div>
+
+          {/* Actions — own row so nothing overlaps on narrow screens */}
+          <div className="mt-auto flex items-center gap-2 pt-1">
+            <AddToCartButton
+              product={product}
+              disabled={isOutOfStock}
+              className="w-auto flex-1 sm:w-40 sm:flex-none"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onRemove}
+              aria-label="Remove from wishlist"
+              className="h-10 w-10 shrink-0 rounded-lg text-gray-500 hover:bg-red-50 hover:text-destructive dark:border-gray-700 dark:text-gray-400 dark:hover:bg-red-950/40"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default WishlistSection;

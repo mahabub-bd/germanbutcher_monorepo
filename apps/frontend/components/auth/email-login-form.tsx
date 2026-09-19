@@ -58,9 +58,7 @@ export default function EmailLoginForm() {
           description: result?.message,
         });
 
-        setTimeout(() => {
-          router.push(result.redirect || "/dashboard");
-        }, 500);
+        router.push(result.redirect || "/dashboard");
       } else {
         toast.error("Login failed", {
           description: result.message,
