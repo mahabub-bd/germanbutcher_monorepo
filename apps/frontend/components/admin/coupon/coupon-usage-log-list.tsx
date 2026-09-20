@@ -52,9 +52,9 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
       const response = couponCode
         ? await getCouponUsageLogsByCode(couponCode, currentPage, limit)
         : await getAllCouponUsageLogs(currentPage, limit);
-      setLogs(response.data);
-      setTotalItems(response.total);
-      setTotalPages(response.totalPages);
+      setLogs(Array.isArray(response?.data) ? response.data : []);
+      setTotalItems(response?.total ?? 0);
+      setTotalPages(response?.totalPages ?? 1);
 
       // Fetch stats if couponCode is provided
       if (couponCode) {

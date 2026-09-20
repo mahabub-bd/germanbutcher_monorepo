@@ -131,7 +131,7 @@ export function CustomerDetail() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <div>
-            <h1 className="text-lg font-bold tracking-tight capitalize">
+            <h1 className="text-lg font-bold tracking-tight capitalize leading-tight">
               {customer.name}
             </h1>
             <p className="text-muted-foreground flex items-center gap-1 mt-0.5 text-xs">
@@ -147,64 +147,64 @@ export function CustomerDetail() {
           </Button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <Card className="border-l-4 border-l-blue-500">
-            <CardContent className="pt-2 pb-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Total Orders</p>
-                  <p className="text-xl font-bold">{orderStats.total}</p>
-                </div>
+        {/* Stats Bar */}
+        <Card>
+          <CardContent className="px-2 py-2">
+            <div className="grid grid-cols-3 divide-x">
+              <div className="flex items-center justify-center gap-2 px-1">
                 <div className="rounded-full bg-blue-500/10 p-1.5 shrink-0">
-                  <ShoppingBag className="h-3.5 w-3.5 text-blue-500" />
+                  <ShoppingBag className="h-4 w-4 text-blue-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground leading-tight">
+                    Total Orders
+                  </p>
+                  <p className="text-base font-bold leading-tight">
+                    {orderStats.total}
+                  </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          <Card className="border-l-4 border-l-green-500">
-            <CardContent className="pt-2 pb-2">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-center gap-2 px-1">
+                <div className="rounded-full bg-green-500/10 p-1.5 shrink-0">
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Total Spent</p>
-                  <p className="text-xl font-bold">
+                  <p className="text-xs text-muted-foreground leading-tight">
+                    Total Spent
+                  </p>
+                  <p className="text-base font-bold leading-tight">
                     ৳{orderStats.totalSpent.toLocaleString()}
                   </p>
                 </div>
-                <div className="rounded-full bg-green-500/10 p-1.5 shrink-0">
-                  <TrendingUp className="h-3.5 w-3.5 text-green-500" />
-                </div>
               </div>
-            </CardContent>
-          </Card>
 
-          <Card className="border-l-4 border-l-purple-500">
-            <CardContent className="pt-2 pb-2">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-center gap-2 px-1">
+                <div className="rounded-full bg-purple-500/10 p-1.5 shrink-0">
+                  <CreditCard className="h-4 w-4 text-purple-500" />
+                </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Average Order</p>
-                  <p className="text-xl font-bold">
+                  <p className="text-xs text-muted-foreground leading-tight">
+                    Average Order
+                  </p>
+                  <p className="text-base font-bold leading-tight">
                     ৳
                     {orderStats.avgOrder.toLocaleString(undefined, {
                       maximumFractionDigits: 0,
                     })}
                   </p>
                 </div>
-                <div className="rounded-full bg-purple-500/10 p-1.5 shrink-0">
-                  <CreditCard className="h-3.5 w-3.5 text-purple-500" />
-                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
           {/* Left Sidebar */}
           <div className="lg:col-span-1 space-y-2">
             {/* Profile Card */}
             <Card>
-              <CardHeader className="pb-2 px-3 pt-3">
+              <CardHeader className="pb-1.5 px-3 pt-2.5">
                 <CardTitle className="text-xs flex items-center gap-1.5">
                   <User className="h-3.5 w-3.5" />
                   Profile
@@ -227,10 +227,10 @@ export function CustomerDetail() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold capitalize truncate text-xs">
+                    <h3 className="font-semibold capitalize truncate text-sm leading-tight">
                       {customer.name}
                     </h3>
-                    <p className="text-xs text-muted-foreground capitalize">
+                    <p className="text-xs text-muted-foreground capitalize leading-tight">
                       {customer.role.rolename}
                     </p>
                     {customer.isVerified && (
@@ -245,7 +245,7 @@ export function CustomerDetail() {
                 <div className="space-y-1">
                   <div className="flex items-start gap-1.5 p-1.5 rounded-md bg-muted/40 hover:bg-muted/60 transition-colors">
                     <Mail className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
-                    <p className="text-xs break-all leading-relaxed">
+                    <p className="text-xs break-all leading-snug">
                       {customer.email}
                     </p>
                   </div>
@@ -274,20 +274,19 @@ export function CustomerDetail() {
 
             {/* Addresses Card */}
             <Card>
-              <CardHeader className="px-3 pt-3 pb-2">
+              <CardHeader className="px-3 pt-2.5 pb-1">
                 <CardTitle className="flex items-center gap-1.5 text-xs">
                   <MapPinned className="h-3.5 w-3.5" />
                   Saved Addresses
+                  <span className="font-normal text-muted-foreground">
+                    ({customer.addresses.length})
+                  </span>
                 </CardTitle>
-                <CardDescription className="text-xs">
-                  {customer.addresses.length} address
-                  {customer.addresses.length !== 1 ? "es" : ""}
-                </CardDescription>
               </CardHeader>
               <CardContent className="px-3 pb-3">
                 {customer.addresses.length === 0 ? (
-                  <div className="text-center py-4">
-                    <MapPin className="h-6 w-6 text-muted-foreground mx-auto mb-1.5 opacity-50" />
+                  <div className="text-center py-3">
+                    <MapPin className="h-5 w-5 text-muted-foreground mx-auto mb-1 opacity-50" />
                     <p className="text-xs text-muted-foreground">
                       No addresses saved yet
                     </p>
@@ -299,7 +298,7 @@ export function CustomerDetail() {
                         key={address.id}
                         className="border rounded-md p-2 hover:border-primary/50 transition-colors"
                       >
-                        <div className="flex items-start justify-between gap-2 mb-1">
+                        <div className="flex items-start justify-between gap-1.5 mb-0.5">
                           <div className="flex items-center gap-1 flex-wrap">
                             <Badge
                               variant={
@@ -322,10 +321,10 @@ export function CustomerDetail() {
                           </div>
                           <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
                         </div>
-                        <p className="font-medium text-xs capitalize mb-0.5">
+                        <p className="font-medium text-xs capitalize leading-snug">
                           {address.address}
                         </p>
-                        <p className="text-xs text-muted-foreground capitalize">
+                        <p className="text-xs text-muted-foreground capitalize leading-snug">
                           {address.area}, {address.city}, {address.division}
                         </p>
                       </div>
@@ -339,118 +338,124 @@ export function CustomerDetail() {
           {/* Right Content - Orders */}
           <div className="lg:col-span-2">
             <Card>
-              <CardHeader className="pb-3 px-4 pt-4">
+              <CardHeader className="pb-1.5 px-3 pt-2.5">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2 text-sm">
-                      <Package className="h-4 w-4" />
-                      Order History
-                    </CardTitle>
-                    <CardDescription className="mt-0.5 text-xs">
-                      Complete purchase history
-                    </CardDescription>
-                  </div>
-                  <Badge variant="secondary" className="text-base px-3 py-1">
-                    {customer.orders.length}
-                  </Badge>
+                  <CardTitle className="flex items-center gap-1.5 text-sm">
+                    <Package className="h-4 w-4" />
+                    Order History
+                    <span className="font-normal text-muted-foreground">
+                      ({customer.orders.length})
+                    </span>
+                  </CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="px-4 pb-4">
+              <CardContent className="px-3 pb-3">
                 {customer.orders.length === 0 ? (
-                  <div className="text-center py-10">
-                    <div className="rounded-full bg-muted p-4 w-fit mx-auto mb-3">
-                      <ShoppingBag className="h-8 w-8 text-muted-foreground" />
+                  <div className="text-center py-6">
+                    <div className="rounded-full bg-muted p-3 w-fit mx-auto mb-2">
+                      <ShoppingBag className="h-6 w-6 text-muted-foreground" />
                     </div>
-                    <h3 className="font-semibold text-base mb-1">No Orders Yet</h3>
+                    <h3 className="font-semibold text-sm mb-0.5">No Orders Yet</h3>
                     <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                       This customer hasn't placed any orders.
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-2.5">
+                  <div className="space-y-2">
                     {customer.orders.map((order) => (
                       <Card
                         key={order.id}
-                        className="border-2 hover:border-primary/50 transition-all"
+                        className="border hover:border-primary/50 transition-colors"
                       >
-                        <CardContent className="p-3 space-y-2.5">
+                        <CardContent className="p-2.5 space-y-2">
                           {/* Order Header */}
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <h4 className="font-bold text-base">
-                                  {order.orderNo}
-                                </h4>
-                                <Badge
-                                  className={`${getOrderStatusColor(
-                                    order.orderStatus
-                                  )} capitalize text-xs h-5`}
-                                >
-                                  {order.orderStatus}
-                                </Badge>
-                                <Badge
-                                  className={`${getPaymentStatusColor(
-                                    order.paymentStatus
-                                  )} capitalize text-xs h-5`}
-                                >
-                                  {order.paymentStatus}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-2 border-b">
+                            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                              <Link
+                                href={`/admin/order/${order.id}/view`}
+                                className="font-semibold text-sm hover:underline"
+                              >
+                                {order.orderNo}
+                              </Link>
+                              <Badge
+                                className={`${getOrderStatusColor(
+                                  order.orderStatus
+                                )} capitalize text-xs h-5 px-1.5`}
+                              >
+                                {order.orderStatus}
+                              </Badge>
+                              <Badge
+                                className={`${getPaymentStatusColor(
+                                  order.paymentStatus
+                                )} capitalize text-xs h-5 px-1.5`}
+                              >
+                                {order.paymentStatus}
+                              </Badge>
+                              <span className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Calendar className="h-3 w-3" />
                                 {formatDateTime(order.createdAt)}
-                              </div>
+                              </span>
                             </div>
-                            <div className="text-left sm:text-right">
-                              <p className="text-xs text-muted-foreground">
-                                Order Total
-                              </p>
-                              <p className="text-xl font-bold">
-                                ৳{order.totalValue.toLocaleString()}
-                              </p>
-                              {parseFloat(order.totalDiscount.toString()) > 0 && (
-                                <p className="text-xs text-green-600 font-medium">
-                                  Saved ৳
-                                  {parseFloat(
-                                    order.totalDiscount.toString()
-                                  ).toFixed(2)}
+                            <div className="flex items-center gap-2 shrink-0">
+                              <div className="text-left sm:text-right">
+                                <p className="text-base font-bold leading-tight">
+                                  ৳{order.totalValue.toLocaleString()}
                                 </p>
-                              )}
+                                {parseFloat(order.totalDiscount.toString()) > 0 && (
+                                  <p className="text-xs text-green-600 font-medium leading-tight">
+                                    Saved ৳
+                                    {parseFloat(
+                                      order.totalDiscount.toString()
+                                    ).toFixed(2)}
+                                  </p>
+                                )}
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2.5 text-xs"
+                                asChild
+                              >
+                                <Link href={`/admin/order/${order.id}/view`}>
+                                  View
+                                  <ArrowLeft className="ml-0.5 h-3 w-3 rotate-180" />
+                                </Link>
+                              </Button>
                             </div>
                           </div>
 
                           {/* Items Table */}
-                          <div className="rounded-lg border overflow-hidden">
+                          <div className="rounded-md border overflow-hidden">
                             <Table>
                               <TableHeader>
                                 <TableRow className="bg-muted/50">
-                                  <TableHead className="font-semibold text-xs h-8">
+                                  <TableHead className="font-medium text-xs h-7">
                                     Product
                                   </TableHead>
-                                  <TableHead className="font-semibold text-center text-xs h-8">
+                                  <TableHead className="font-medium text-center text-xs h-7">
                                     Qty
                                   </TableHead>
-                                  <TableHead className="font-semibold text-right text-xs h-8">
+                                  <TableHead className="font-medium text-right text-xs h-7">
                                     Unit Price
                                   </TableHead>
-                                  <TableHead className="font-semibold text-right text-xs h-8">
+                                  <TableHead className="font-medium text-right text-xs h-7">
                                     Total
                                   </TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
                                 {order.items.map((item) => (
-                                  <TableRow key={item.id} className="h-9">
-                                    <TableCell className="font-medium capitalize text-xs py-2">
+                                  <TableRow key={item.id} className="h-7">
+                                    <TableCell className="font-medium capitalize text-xs py-1">
                                       {item.product.name}
                                     </TableCell>
-                                    <TableCell className="text-center text-xs py-2">
+                                    <TableCell className="text-center text-xs py-1">
                                       {item.quantity}
                                     </TableCell>
-                                    <TableCell className="text-right text-xs py-2">
+                                    <TableCell className="text-right text-xs py-1">
                                       ৳{item.unitPrice}
                                     </TableCell>
-                                    <TableCell className="text-right font-semibold text-xs py-2">
+                                    <TableCell className="text-right font-semibold text-xs py-1">
                                       ৳{item.totalPrice}
                                     </TableCell>
                                   </TableRow>
@@ -459,16 +464,14 @@ export function CustomerDetail() {
                             </Table>
                           </div>
 
-                          {/* Order Details Grid */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-2">
-                            <div className="p-2 rounded-lg bg-blue-500/5 border border-blue-500/20">
-                              <p className="text-xs font-medium text-blue-700 mb-0.5">
-                                Shipping Method
-                              </p>
-                              <p className="font-semibold capitalize text-xs">
-                                {order.shippingMethod.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
+                          {/* Order Meta */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-3 gap-y-0.5 text-xs leading-snug">
+                            <p>
+                              <span className="text-muted-foreground">
+                                Shipping:{" "}
+                              </span>
+                              <span className="font-medium capitalize">
+                                {order.shippingMethod.name} (
                                 {Number(
                                   order.shippingCost ?? order.shippingMethod.cost
                                 ) === 0
@@ -478,42 +481,29 @@ export function CustomerDetail() {
                                         order.shippingCost ??
                                           order.shippingMethod.cost
                                       )
-                                    ).toFixed(2)}`}
-                              </p>
-                            </div>
-
-                            <div className="p-2 rounded-lg bg-green-500/5 border border-green-500/20">
-                              <p className="text-xs font-medium text-green-700 mb-0.5">
-                                Payment Method
-                              </p>
-                              <p className="font-semibold capitalize text-xs">
-                                {order.paymentMethod.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Paid: ৳{order.paidAmount}
-                              </p>
-                            </div>
-
-                            <div className="p-2 rounded-lg bg-purple-500/5 border border-purple-500/20">
-                              <p className="text-xs font-medium text-purple-700 mb-0.5">
-                                Delivery Address
-                              </p>
-                              <p className="font-semibold capitalize text-xs">
-                                {order.address.address}, {order.address.area}
-                              </p>
-                              <p className="text-xs text-muted-foreground capitalize">
-                                {order.address.city}, {order.address.division}
-                              </p>
-                            </div>
+                                    ).toFixed(0)}`}
+                                )
+                              </span>
+                            </p>
+                            <p>
+                              <span className="text-muted-foreground">
+                                Payment:{" "}
+                              </span>
+                              <span className="font-medium capitalize">
+                                {order.paymentMethod.name}, paid ৳
+                                {order.paidAmount}
+                              </span>
+                            </p>
+                            <p>
+                              <span className="text-muted-foreground">
+                                Address:{" "}
+                              </span>
+                              <span className="font-medium capitalize">
+                                {order.address.address}, {order.address.area},{" "}
+                                {order.address.city}
+                              </span>
+                            </p>
                           </div>
-
-                          {/* View Details Button */}
-                          <Button variant="outline" size="sm" className="w-full text-xs h-8" asChild>
-                            <Link href={`/admin/order/${order.id}/view`}>
-                              View Full Order Details
-                              <ArrowLeft className="ml-1.5 h-3 w-3 rotate-180" />
-                            </Link>
-                          </Button>
                         </CardContent>
                       </Card>
                     ))}

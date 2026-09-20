@@ -68,6 +68,12 @@ export class OrderController {
     description: 'Filter by payment status',
     enum: PaymentStatus,
   })
+  @ApiQuery({
+    name: 'paymentMethodId',
+    required: false,
+    type: Number,
+    description: 'Filter by payment method id',
+  })
   async getOrders(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
@@ -75,6 +81,8 @@ export class OrderController {
     @Query('sort') sort?: 'date_asc' | 'date_desc',
     @Query('orderStatus') orderStatus?: OrderStatus,
     @Query('paymentStatus') paymentStatus?: PaymentStatus,
+    @Query('paymentMethodId', new ParseIntPipe({ optional: true }))
+    paymentMethodId?: number,
   ): Promise<ApiResponseDto<Order[]>> {
     const options: FindAllOrdersOptions = {
       page,
@@ -83,6 +91,7 @@ export class OrderController {
       sort,
       orderStatus,
       paymentStatus,
+      paymentMethodId,
     };
 
     const { data, total } = await this.orderService.getAllOrders(options);

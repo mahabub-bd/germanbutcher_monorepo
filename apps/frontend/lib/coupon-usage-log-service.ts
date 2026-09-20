@@ -1,4 +1,4 @@
-import { fetchProtectedData } from "@/utils/api-utils";
+import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import {
   CouponUsageLog,
   CouponUsageStats,
@@ -15,15 +15,11 @@ export async function getAllCouponUsageLogs(
   page = 1,
   limit = 10
 ): Promise<PaginatedResponse<CouponUsageLog>> {
-  try {
-    const response = await fetchProtectedData<
-      PaginatedResponse<CouponUsageLog>
-    >(`coupon-usage-logs?page=${page}&limit=${limit}`);
-    return response;
-  } catch (error) {
-    console.error("Error fetching all coupon usage logs:", error);
-    throw error;
-  }
+  // fetchDataPagination returns the full envelope (data, total, totalPages);
+  // fetchProtectedData would unwrap it to just the rows array.
+  return fetchDataPagination<PaginatedResponse<CouponUsageLog>>(
+    `coupon-usage-logs?page=${page}&limit=${limit}`
+  );
 }
 
 /**
@@ -38,17 +34,9 @@ export async function getCouponUsageLogsByCode(
   page = 1,
   limit = 10
 ): Promise<PaginatedResponse<CouponUsageLog>> {
-  try {
-    const response = await fetchProtectedData<
-      PaginatedResponse<CouponUsageLog>
-    >(
-      `coupon-usage-logs/coupon/${encodeURIComponent(couponCode)}?page=${page}&limit=${limit}`
-    );
-    return response;
-  } catch (error) {
-    console.error("Error fetching coupon usage logs by code:", error);
-    throw error;
-  }
+  return fetchDataPagination<PaginatedResponse<CouponUsageLog>>(
+    `coupon-usage-logs/coupon/${encodeURIComponent(couponCode)}?page=${page}&limit=${limit}`
+  );
 }
 
 /**
