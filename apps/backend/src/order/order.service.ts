@@ -30,6 +30,7 @@ export interface FindAllOrdersOptions {
   sort?: 'date_asc' | 'date_desc';
   orderStatus?: OrderStatus;
   paymentStatus?: PaymentStatus;
+  paymentMethodId?: number;
 }
 @Injectable()
 export class OrderService {
@@ -689,7 +690,11 @@ export class OrderService {
       search,
       orderStatus,
       paymentStatus,
-    }: Pick<FindAllOrdersOptions, 'search' | 'orderStatus' | 'paymentStatus'>,
+      paymentMethodId,
+    }: Pick<
+      FindAllOrdersOptions,
+      'search' | 'orderStatus' | 'paymentStatus' | 'paymentMethodId'
+    >,
   ): void {
     if (search) {
       qb.andWhere('order.orderNo LIKE :search', { search: `%${search}%` });
@@ -699,6 +704,12 @@ export class OrderService {
     }
     if (paymentStatus) {
       qb.andWhere('order.paymentStatus = :paymentStatus', { paymentStatus });
+    }
+    // FK column, so no join is needed and the count query stays join-free
+    if (paymentMethodId) {
+      qb.andWhere('order.paymentMethodId = :paymentMethodId', {
+        paymentMethodId,
+      });
     }
   }
 
@@ -711,6 +722,7 @@ export class OrderService {
       search,
       orderStatus,
       paymentStatus,
+      paymentMethodId,
       sort,
     } = options;
 
@@ -743,6 +755,7 @@ export class OrderService {
       search,
       orderStatus,
       paymentStatus,
+      paymentMethodId,
     });
 
     if (sort === 'date_asc') {
@@ -758,6 +771,7 @@ export class OrderService {
       search,
       orderStatus,
       paymentStatus,
+      paymentMethodId,
     });
 
     const [data, total] = await Promise.all([

@@ -20,7 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { deleteData, fetchDataPagination } from "@/utils/api-utils";
+import { Switch } from "@/components/ui/switch";
+import { deleteData, fetchDataPagination, patchData } from "@/utils/api-utils";
 import type { SalesPoint } from "@/utils/types";
 import {
   Filter,
@@ -76,6 +77,7 @@ export function SalesPointList({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSalesPoint, setSelectedSalesPoint] =
     useState<SalesPoint | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
@@ -156,6 +158,39 @@ export function SalesPointList({
     setSearchQuery("");
     setStatusFilter("");
     setCurrentPage(1);
+  };
+
+  const handleToggleActive = async (salesPoint: SalesPoint) => {
+    setTogglingId(salesPoint.id);
+    const nextActive = !salesPoint.isActive;
+    // Optimistic flip; revert if the API call fails.
+    setSalesPoints((prev) =>
+      prev.map((sp) =>
+        sp.id === salesPoint.id ? { ...sp, isActive: nextActive } : sp
+      )
+    );
+    try {
+      const response = await patchData(`sales-points/${salesPoint.id}`, {
+        isActive: nextActive,
+      });
+      if (response?.statusCode !== 200 && response?.statusCode !== 201) {
+        throw new Error(response?.message || "Failed to update status");
+      }
+      toast.success(
+        `"${salesPoint.name}" is now ${nextActive ? "active" : "inactive"}`
+      );
+    } catch (error) {
+      // Revert the optimistic update
+      setSalesPoints((prev) =>
+        prev.map((sp) =>
+          sp.id === salesPoint.id ? { ...sp, isActive: salesPoint.isActive } : sp
+        )
+      );
+      console.error("Error updating sales point status:", error);
+      toast.error("Failed to update sales point status. Please try again.");
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -304,11 +339,25 @@ export function SalesPointList({
               </TableCell>
 
               <TableCell className="hidden md:table-cell">
-                <Badge
-                  variant={salesPoint.isActive ? "default" : "destructive"}
-                >
-                  {salesPoint.isActive ? "Active" : "Inactive"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={salesPoint.isActive}
+                    disabled={togglingId === salesPoint.id}
+                    onCheckedChange={() => handleToggleActive(salesPoint)}
+                    aria-label={`Toggle ${salesPoint.name} active status`}
+                    className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-red-500"
+                  />
+                  <span
+                    className={`text-xs ${
+                      salesPoint.isActive
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {salesPoint.isActive ? "Active" : "Inactive"}
+                    {togglingId === salesPoint.id && "…"}
+                  </span>
+                </div>
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 {salesPoint.order}

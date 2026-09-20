@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -51,4 +52,12 @@ export class CreateSalesPointDto {
   @IsString()
   @MaxLength(255)
   email?: string;
+
+  @ApiPropertyOptional({
+    description: 'Whether the sales point is active',
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

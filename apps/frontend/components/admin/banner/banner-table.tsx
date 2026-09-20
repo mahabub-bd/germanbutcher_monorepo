@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
 import type { Banner } from "@/utils/types";
 import { ImageIcon, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -24,9 +25,16 @@ import Link from "next/link";
 interface BannerTableProps {
   banners: Banner[];
   onDeleteClick: (banner: Banner) => void;
+  onToggleActive: (banner: Banner) => void;
+  togglingId: number | null;
 }
 
-export function BannerTable({ banners, onDeleteClick }: BannerTableProps) {
+export function BannerTable({
+  banners,
+  onDeleteClick,
+  onToggleActive,
+  togglingId,
+}: BannerTableProps) {
   return (
     <div className="md:p-6 p-2">
       <Table>
@@ -81,9 +89,25 @@ export function BannerTable({ banners, onDeleteClick }: BannerTableProps) {
                 {banner?.displayOrder}
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                <Badge variant={banner.isActive ? "default" : "destructive"}>
-                  {banner.isActive ? "Active" : "Inactive"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={banner.isActive}
+                    disabled={togglingId === banner.id}
+                    onCheckedChange={() => onToggleActive(banner)}
+                    aria-label={`Toggle ${banner.title} active status`}
+                    className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-red-500"
+                  />
+                  <span
+                    className={`text-xs ${
+                      banner.isActive
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {banner.isActive ? "Active" : "Inactive"}
+                    {togglingId === banner.id && "…"}
+                  </span>
+                </div>
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>

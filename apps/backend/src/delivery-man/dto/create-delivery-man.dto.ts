@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateDeliveryManDto {
   @ApiProperty({
@@ -17,4 +17,13 @@ export class CreateDeliveryManDto {
   @IsNotEmpty()
   @IsString()
   mobileNumber: string;
+
+  @ApiProperty({
+    description: 'Whether the delivery man is active',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

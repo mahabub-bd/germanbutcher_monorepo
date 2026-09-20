@@ -26,7 +26,7 @@ import {
   formatCurrencyEnglish,
   formatDateTime,
 } from "@/lib/utils";
-import { fetchDataPagination } from "@/utils/api-utils";
+import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import {
   getOrderStatusColor,
   getPaymentMethodColor,
@@ -34,7 +34,7 @@ import {
   getPaymentStatusColor,
   getStatusIcon,
 } from "@/utils/order-helper";
-import type { Order } from "@/utils/types";
+import type { Order, PaymentMethod } from "@/utils/types";
 import { listRouteToSlug } from "@/utils/order-list-routes";
 import {
   DollarSign,
@@ -74,11 +74,15 @@ export function OrderList({
   };
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [searchQuery, setSearchQuery] = useState(
     getInitialParam("search") as string
   );
   const [statusFilter, setStatusFilter] = useState(
     getInitialParam("orderStatus") as string
+  );
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState(
+    getInitialParam("paymentMethodId") as string
   );
 
   const [totalItems, setTotalItems] = useState(0);
@@ -113,9 +117,10 @@ export function OrderList({
     if (searchQuery) params.set("search", searchQuery);
     if (statusFilter && statusFilter !== "all")
       params.set("orderStatus", statusFilter);
+    if (paymentMethodFilter) params.set("paymentMethodId", paymentMethodFilter);
 
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname, currentPage, totalPages, limit, searchQuery, statusFilter]);
+  }, [router, pathname, currentPage, totalPages, limit, searchQuery, statusFilter, paymentMethodFilter]);
 
   const fetchOrders = useCallback(async () => {
     const seq = ++fetchSeqRef.current;
@@ -128,6 +133,7 @@ export function OrderList({
       if (searchQuery) params.append("search", searchQuery);
       if (statusFilter && statusFilter !== "all")
         params.append("orderStatus", statusFilter);
+      if (paymentMethodFilter) params.append("paymentMethodId", paymentMethodFilter);
 
       const response = await fetchDataPagination<{
         data: Order[];
@@ -149,13 +155,14 @@ export function OrderList({
         setIsLoading(false);
       }
     }
-  }, [currentPage, limit, searchQuery, statusFilter]);
+  }, [currentPage, limit, searchQuery, statusFilter, paymentMethodFilter]);
 
   // Initial load with URL params
   useEffect(() => {
     const pageFromUrl = searchParams?.get("page");
     const searchFromUrl = searchParams?.get("search");
     const statusFromUrl = searchParams?.get("orderStatus");
+    const paymentMethodFromUrl = searchParams?.get("paymentMethodId");
 
     if (pageFromUrl) {
       const newPage = parseInt(pageFromUrl, 10);
@@ -170,6 +177,9 @@ export function OrderList({
     if (statusFromUrl && statusFromUrl !== statusFilter) {
       setStatusFilter(statusFromUrl);
     }
+    if (paymentMethodFromUrl && paymentMethodFromUrl !== paymentMethodFilter) {
+      setPaymentMethodFilter(paymentMethodFromUrl);
+    }
   }, [searchParams]);
 
   // Fetch data when dependencies change
@@ -181,6 +191,19 @@ export function OrderList({
   useEffect(() => {
     updateUrl();
   }, [updateUrl]);
+
+  // Payment method options for the filter dropdown load once
+  useEffect(() => {
+    fetchProtectedData<PaymentMethod[]>("order-payment-methods")
+      .then((methods) => {
+        if (Array.isArray(methods)) {
+          setPaymentMethods(methods);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching payment methods:", error);
+      });
+  }, []);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -197,6 +220,7 @@ export function OrderList({
   const clearFilters = () => {
     setSearchQuery("");
     setStatusFilter("");
+    setPaymentMethodFilter("");
     setCurrentPage(1);
   };
 
@@ -222,11 +246,12 @@ export function OrderList({
     if (searchQuery) params.set("search", searchQuery);
     if (statusFilter && statusFilter !== "all")
       params.set("orderStatus", statusFilter);
+    if (paymentMethodFilter) params.set("paymentMethodId", paymentMethodFilter);
     return `/admin/order/${id}/${tab}?${params.toString()}`;
   };
 
   const renderActiveFilters = () => {
-    const hasFilters = searchQuery || statusFilter;
+    const hasFilters = searchQuery || statusFilter || paymentMethodFilter;
 
     if (!hasFilters) return null;
 
@@ -251,6 +276,20 @@ export function OrderList({
           >
             Status: {statusFilter}
             <button onClick={() => setStatusFilter("")} className="ml-1">
+              <XCircle className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
+
+        {paymentMethodFilter && (
+          <Badge
+            variant="outline"
+            className="flex items-center gap-1 px-3 py-1"
+          >
+            Payment:{" "}
+            {paymentMethods.find((m) => m.id.toString() === paymentMethodFilter)
+              ?.name || paymentMethodFilter}
+            <button onClick={() => setPaymentMethodFilter("")} className="ml-1">
               <XCircle className="h-3 w-3" />
             </button>
           </Badge>
@@ -326,12 +365,12 @@ export function OrderList({
                     <div className="space-y-1">
                       <h3 className="font-semibold">No orders found</h3>
                       <p className="text-sm text-muted-foreground">
-                        {searchQuery || statusFilter
+                        {searchQuery || statusFilter || paymentMethodFilter
                           ? "No orders match your search criteria."
                           : "There are no orders in the system yet."}
                       </p>
                     </div>
-                    {(searchQuery || statusFilter) && (
+                    {(searchQuery || statusFilter || paymentMethodFilter) && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -518,21 +557,22 @@ export function OrderList({
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-64 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
+                className="w-96 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
                 sideOffset={8}
               >
                 <div className="space-y-3">
                   {/* Header */}
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-medium">Filters</h4>
-                    {statusFilter && statusFilter !== "all" && (
+                    {(statusFilter && statusFilter !== "all") ||
+                    paymentMethodFilter ? (
                       <button
                         onClick={clearFilters}
                         className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         Clear all
                       </button>
-                    )}
+                    ) : null}
                   </div>
 
                   {/* Status Filter */}
@@ -562,6 +602,42 @@ export function OrderList({
                             }`}
                         >
                           {status}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Payment Method Filter */}
+                  <div className="space-y-2">
+                    <label className="text-xs text-muted-foreground">
+                      Payment Method
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                      <button
+                        onClick={() => {
+                          setPaymentMethodFilter("");
+                          setCurrentPage(1);
+                        }}
+                        className={`text-xs py-1.5 px-2 rounded-md border capitalize ${!paymentMethodFilter
+                          ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                          : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                        }`}
+                      >
+                        all
+                      </button>
+                      {paymentMethods.map((method) => (
+                        <button
+                          key={method.id}
+                          onClick={() => {
+                            setPaymentMethodFilter(method.id.toString());
+                            setCurrentPage(1);
+                          }}
+                          className={`text-xs py-1.5 px-2 rounded-md border capitalize truncate ${paymentMethodFilter === method.id.toString()
+                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                          }`}
+                        >
+                          {method.name}
                         </button>
                       ))}
                     </div>
