@@ -2,17 +2,31 @@ import { Badge } from "@/components/ui/badge";
 import type { Product } from "@/utils/types";
 import {
   AlertTriangle,
+  Award,
+  Barcode,
   CheckCircle,
-  Package,
+  Leaf,
+  Scale,
+  ShieldCheck,
   Star,
   Tag,
+  Truck,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { FeatureList, type FeatureItem } from "./feature-list";
 
 interface ProductInfoProps {
   product: Product;
 }
+
+// Static marketing highlights shown under the description
+const HIGHLIGHTS: FeatureItem[] = [
+  { icon: Leaf, label: "100% Halal", desc: "Certified" },
+  { icon: Award, label: "Premium Cut", desc: "Top Quality" },
+  { icon: Truck, label: "Fast Delivery", desc: "Across Bangladesh" },
+  { icon: ShieldCheck, label: "Hygienic Packing", desc: "Fresh & Safe" },
+];
 
 export function ProductInfo({ product }: ProductInfoProps) {
   const isDiscountValid = () => {
@@ -54,33 +68,31 @@ export function ProductInfo({ product }: ProductInfoProps) {
     if (isOutOfStock)
       return {
         label: "Out of Stock",
-        color: "bg-red-50 text-red-700 border-red-200",
-        icon: XCircle,
+        pill: "bg-red-50 text-red-700",
         dot: "bg-red-500",
+        icon: XCircle,
       };
     if (isLowStock)
       return {
         label: `Only ${stockQuantity} left`,
-        color: "bg-orange-50 text-orange-700 border-orange-200",
-        icon: AlertTriangle,
+        pill: "bg-orange-50 text-orange-700",
         dot: "bg-orange-500",
+        icon: AlertTriangle,
       };
     return {
       label: "In Stock",
-      color: "bg-green-50 text-green-700 border-green-200",
-      icon: CheckCircle,
+      pill: "bg-green-50 text-green-700",
       dot: "bg-green-500",
+      icon: CheckCircle,
     };
   };
 
   const stockStatus = getStockStatus();
-  const StockIcon = stockStatus.icon;
 
   return (
-    <div className="bg-white rounded-lg border shadow-sm p-4 md:p-6 space-y-4">
+    <div className="space-y-3 md:space-y-4">
       {/* Brand, Category & Tags */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-        {/* Brand & Category */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href={`/brands/${product.brand.slug}`}
@@ -101,25 +113,22 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
         {/* Tags */}
         {product.tags && product.tags.length > 0 && (
-          <div className="flex flex-col sm:items-end gap-2">
-
-            <div className="flex flex-wrap gap-2 sm:justify-end">
-              {product.tags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/products?tags=${tag}`}
-                  className="flex items-center gap-1.5 border-2 border-red-200 bg-white text-primaryColor px-3 py-0.5 rounded-full text-sm font-medium hover:border-primaryColor hover:bg-red-50 hover:shadow-sm transition-all capitalize"
-                >
-                  {tag}
-                </Link>
-              ))}
-            </div>
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            {product.tags.map((tag) => (
+              <Link
+                key={tag}
+                href={`/products?tags=${tag}`}
+                className="flex items-center gap-1.5 border border-red-200 bg-white text-primaryColor px-3 py-1 rounded-full text-xs font-medium hover:bg-red-50 transition-all capitalize"
+              >
+                {tag}
+              </Link>
+            ))}
           </div>
         )}
       </div>
 
       {/* Title */}
-      <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-gray-900 leading-snug">
+      <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-snug">
         {product.name}
       </h1>
 
@@ -128,63 +137,60 @@ export function ProductInfo({ product }: ProductInfoProps) {
         {product.description}
       </p>
 
-      {/* Price + Discount */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-baseline gap-2">
-          <span
-            className={`text-2xl sm:text-3xl font-bold ${isOutOfStock ? "text-gray-400" : "text-primaryColor"
-              }`}
-          >
-            ৳{finalPrice.toFixed(2)}
-          </span>
-          {discountAmount > 0 && (
-            <span className="text-gray-500 line-through text-lg">
-              ৳{product.sellingPrice.toFixed(2)}
-            </span>
-          )}
-        </div>
+      {/* Highlight Tiles */}
+      <FeatureList items={HIGHLIGHTS} variant="tile" />
 
-        {discountAmount > 0 && !isOutOfStock && (
-          <div className="flex gap-2">
-            <Badge className="bg-primaryColor text-white text-xs font-semibold px-2.5 py-1">
-              {discountPercentage}% OFF
-            </Badge>
-            <Badge className="bg-green-500 text-white text-xs font-semibold px-2.5 py-1">
-              Save ৳{discountAmount.toFixed(2)}
-            </Badge>
+      {/* Price + Stock */}
+      <div className="flex flex-wrap items-end justify-between gap-3 pt-1">
+        <div>
+          <div className="flex items-baseline gap-2">
+            <span
+              className={`text-2xl sm:text-3xl font-bold ${isOutOfStock ? "text-gray-400" : "text-primaryColor"
+                }`}
+            >
+              ৳{finalPrice.toFixed(2)}
+            </span>
+            {discountAmount > 0 && (
+              <span className="text-gray-400 line-through text-lg">
+                ৳{product.sellingPrice.toFixed(2)}
+              </span>
+            )}
+            {discountAmount > 0 && !isOutOfStock && (
+              <Badge className="bg-primaryColor text-white text-xs font-semibold px-2 py-0.5">
+                {discountPercentage}% OFF
+              </Badge>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Stock Status */}
-      <div
-        className={`flex items-center gap-2 w-fit border ${stockStatus.color} px-3 py-1.5 rounded-md`}
-      >
-        <StockIcon className="w-4 h-4" />
-        <span className="text-sm font-medium">{stockStatus.label}</span>
-      </div>
-
-      {/* Details */}
-      <div className="space-y-2 pt-2 border-t">
-        <div className="flex items-center gap-2 text-gray-700">
-          <Package className="w-4 h-4 text-gray-500" />
-          <span className="text-sm">
-            <span className="font-medium">Weight:</span>{" "}
-            <span className="font-semibold text-gray-900">
-              {product.weight} {product.unit.name}
-            </span>
-          </span>
         </div>
 
-        <div className="flex items-center gap-2 text-gray-700">
-          <div className={`w-2.5 h-2.5 rounded-full ${stockStatus.dot}`} />
-          <span className="text-sm font-medium">
-            {isOutOfStock
-              ? "Unavailable"
-              : isLowStock
-                ? `Low Stock (${stockQuantity})`
-                : "Available"}
-          </span>
+        <div
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg ${stockStatus.pill}`}
+        >
+          <span className={`w-2 h-2 rounded-full ${stockStatus.dot}`} />
+          <span className="text-sm font-semibold">{stockStatus.label}</span>
+        </div>
+      </div>
+
+      {/* Weight | SKU */}
+      <div className="grid grid-cols-2 rounded-xl border border-gray-100 bg-gray-50/70 divide-x divide-gray-200">
+        <div className="flex items-center gap-2 px-2.5 sm:gap-2.5 sm:px-4 sm:py-3 py-2">
+          <Scale className="w-4 h-4 sm:w-5 sm:h-5 text-primaryColor shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[11px] text-gray-400">Weight</p>
+            <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
+              {product.weight} {product.unit.name}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 px-2.5 sm:gap-2.5 sm:px-4 sm:py-3 py-2">
+          <Barcode className="w-4 h-4 sm:w-5 sm:h-5 text-primaryColor shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[11px] text-gray-400">SKU</p>
+            <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
+              {product.productSku}
+            </p>
+          </div>
         </div>
       </div>
     </div>

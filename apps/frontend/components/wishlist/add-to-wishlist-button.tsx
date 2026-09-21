@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { postData } from "@/utils/api-utils";
 import type { Product, User } from "@/utils/types";
 import { Heart, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner"; // Assuming you're using sonner for toast notifications
 import { Button } from "../ui/button";
@@ -29,8 +30,16 @@ export function AddToWishlistButton({
 }: AddToWishlistButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
+  const router = useRouter();
 
   const handleAddToWishlist = async () => {
+    if (!user) {
+      // Guests get a visible button that routes to sign-in
+      toast.info("Please sign in to add items to your wishlist");
+      router.push("/auth/sign-in");
+      return;
+    }
+
     if (isInWishlist) {
       // Optionally handle remove from wishlist
       toast.info("Item already in wishlist");
@@ -74,9 +83,6 @@ export function AddToWishlistButton({
         {showText && "Unavailable"}
       </Button>
     );
-  }
-  if (!user) {
-    return null;
   }
   return (
     <Button
