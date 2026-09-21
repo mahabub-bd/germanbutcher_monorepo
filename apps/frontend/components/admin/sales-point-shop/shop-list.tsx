@@ -3,6 +3,8 @@
 import type React from "react";
 
 import { PaginationComponent } from "@/components/common/pagination";
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -192,6 +194,20 @@ export function ShopList({
     setIsDeleteDialogOpen(true);
   };
 
+  const { togglingId, toggleActive } = useActiveStatusToggle<Shop>({
+    getId: (shop) => shop.id,
+    getName: (shop) => shop.shopName,
+    // Dedicated endpoint flips the flag server-side and returns the
+    // updated shop.
+    buildEndpoint: (id) => `sales-point-shops/${id}/toggle-status`,
+    includeBody: false,
+    setStatusLocally: (id, isActive) =>
+      setShops((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, isActive } : s))
+      ),
+    errorLabel: "shop status",
+  });
+
   const handleDelete = async () => {
     if (!selectedShop) return;
 
@@ -362,9 +378,12 @@ export function ShopList({
                 </div>
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                <Badge variant={shop.isActive ? "default" : "destructive"}>
-                  {shop.isActive ? "Active" : "Inactive"}
-                </Badge>
+                <ActiveStatusToggle
+                  isActive={shop.isActive}
+                  disabled={togglingId === shop.id}
+                  onToggle={() => toggleActive(shop)}
+                  label={shop.shopName}
+                />
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>

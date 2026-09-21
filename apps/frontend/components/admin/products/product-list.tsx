@@ -19,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import {
   Table,
   TableBody,
@@ -32,12 +33,7 @@ import {
 import { PaginationComponent } from "@/components/common/pagination";
 import { revalidateProducts } from "@/actions/revalidate";
 import { formatCurrencyEnglish } from "@/lib/utils";
-import {
-  deleteData,
-  fetchData,
-  fetchDataPagination,
-  patchData,
-} from "@/utils/api-utils";
+import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
 import type { Brand, Category, Product } from "@/utils/types";
 import {
   Eye,
@@ -105,7 +101,6 @@ export function ProductList({
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [togglingId, setTogglingId] = useState<number | null>(null);
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
@@ -258,43 +253,18 @@ export function ProductList({
     }
   };
 
-  const handleToggleActive = async (product: Product) => {
-    setTogglingId(product.id);
-    const nextActive = !product.isActive;
-    // Optimistic flip; revert if the API call fails.
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === product.id ? { ...p, isActive: nextActive } : p
-      )
-    );
-    try {
-      const response = await patchData(`products/${product.id}`, {
-        isActive: nextActive,
-      });
-      if (
-        response?.statusCode !== 200 &&
-        response?.statusCode !== 201
-      ) {
-        throw new Error(response?.message || "Failed to update status");
-      }
-      // Keep cached product data on public pages in sync
-      await revalidateProducts();
-      toast.success(
-        `"${product.name}" is now ${nextActive ? "active" : "inactive"}`
-      );
-    } catch (error) {
-      // Revert the optimistic update
+  const { togglingId, toggleActive } = useActiveStatusToggle<Product>({
+    getId: (product) => product.id,
+    getName: (product) => product.name,
+    buildEndpoint: (id) => `products/${id}`,
+    // Keep cached product data on public pages in sync
+    onSuccess: revalidateProducts,
+    setStatusLocally: (id, isActive) =>
       setProducts((prev) =>
-        prev.map((p) =>
-          p.id === product.id ? { ...p, isActive: product.isActive } : p
-        )
-      );
-      console.error("Error updating product status:", error);
-      toast.error("Failed to update product status. Please try again.");
-    } finally {
-      setTogglingId(null);
-    }
-  };
+        prev.map((p) => (p.id === id ? { ...p, isActive } : p))
+      ),
+    errorLabel: "product status",
+  });
 
   const clearFilters = () => {
     setSearchQuery("");
@@ -489,25 +459,12 @@ export function ProductList({
                 {product.saleCount}
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={product.isActive}
-                    disabled={togglingId === product.id}
-                    onCheckedChange={() => handleToggleActive(product)}
-                    aria-label={`Toggle ${product.name} active status`}
-                    className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-red-500"
-                  />
-                  <span
-                    className={`text-xs ${
-                      product.isActive
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {product.isActive ? "Active" : "Inactive"}
-                    {togglingId === product.id && "…"}
-                  </span>
-                </div>
+                <ActiveStatusToggle
+                  isActive={product.isActive}
+                  disabled={togglingId === product.id}
+                  onToggle={() => toggleActive(product)}
+                  label={product.name}
+                />
               </TableCell>
 
               <TableCell className="text-right">

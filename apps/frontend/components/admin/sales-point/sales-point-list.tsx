@@ -2,6 +2,7 @@
 
 import type React from "react";
 
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,8 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
-import { deleteData, fetchDataPagination, patchData } from "@/utils/api-utils";
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
+import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { SalesPoint } from "@/utils/types";
 import {
   Filter,
@@ -77,7 +78,6 @@ export function SalesPointList({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSalesPoint, setSelectedSalesPoint] =
     useState<SalesPoint | null>(null);
-  const [togglingId, setTogglingId] = useState<number | null>(null);
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
@@ -160,38 +160,16 @@ export function SalesPointList({
     setCurrentPage(1);
   };
 
-  const handleToggleActive = async (salesPoint: SalesPoint) => {
-    setTogglingId(salesPoint.id);
-    const nextActive = !salesPoint.isActive;
-    // Optimistic flip; revert if the API call fails.
-    setSalesPoints((prev) =>
-      prev.map((sp) =>
-        sp.id === salesPoint.id ? { ...sp, isActive: nextActive } : sp
-      )
-    );
-    try {
-      const response = await patchData(`sales-points/${salesPoint.id}`, {
-        isActive: nextActive,
-      });
-      if (response?.statusCode !== 200 && response?.statusCode !== 201) {
-        throw new Error(response?.message || "Failed to update status");
-      }
-      toast.success(
-        `"${salesPoint.name}" is now ${nextActive ? "active" : "inactive"}`
-      );
-    } catch (error) {
-      // Revert the optimistic update
+  const { togglingId, toggleActive } = useActiveStatusToggle<SalesPoint>({
+    getId: (salesPoint) => salesPoint.id,
+    getName: (salesPoint) => salesPoint.name,
+    buildEndpoint: (id) => `sales-points/${id}`,
+    setStatusLocally: (id, isActive) =>
       setSalesPoints((prev) =>
-        prev.map((sp) =>
-          sp.id === salesPoint.id ? { ...sp, isActive: salesPoint.isActive } : sp
-        )
-      );
-      console.error("Error updating sales point status:", error);
-      toast.error("Failed to update sales point status. Please try again.");
-    } finally {
-      setTogglingId(null);
-    }
-  };
+        prev.map((sp) => (sp.id === id ? { ...sp, isActive } : sp))
+      ),
+    errorLabel: "sales point status",
+  });
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -276,10 +254,11 @@ export function SalesPointList({
             <TableHead className="hidden md:table-cell">Contact</TableHead>
             <TableHead className="hidden lg:table-cell">Website</TableHead>
             <TableHead className="hidden md:table-cell">Shops</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
+
             <TableHead className="hidden md:table-cell">
               Display Order
             </TableHead>
+            <TableHead className="hidden md:table-cell">Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -338,29 +317,17 @@ export function SalesPointList({
                 </div>
               </TableCell>
 
-              <TableCell className="hidden md:table-cell">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={salesPoint.isActive}
-                    disabled={togglingId === salesPoint.id}
-                    onCheckedChange={() => handleToggleActive(salesPoint)}
-                    aria-label={`Toggle ${salesPoint.name} active status`}
-                    className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-red-500"
-                  />
-                  <span
-                    className={`text-xs ${
-                      salesPoint.isActive
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {salesPoint.isActive ? "Active" : "Inactive"}
-                    {togglingId === salesPoint.id && "…"}
-                  </span>
-                </div>
-              </TableCell>
+
               <TableCell className="hidden md:table-cell">
                 {salesPoint.order}
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                <ActiveStatusToggle
+                  isActive={salesPoint.isActive}
+                  disabled={togglingId === salesPoint.id}
+                  onToggle={() => toggleActive(salesPoint)}
+                  label={salesPoint.name}
+                />
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
@@ -453,11 +420,10 @@ export function SalesPointList({
                             setStatusFilter("all");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            statusFilter === "all"
+                          className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all"
                               ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           All
                         </button>
@@ -466,11 +432,10 @@ export function SalesPointList({
                             setStatusFilter("active");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "active"
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "active"
                               ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-green-500" />
                           Active
@@ -480,11 +445,10 @@ export function SalesPointList({
                             setStatusFilter("inactive");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "inactive"
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "inactive"
                               ? "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-red-500" />
                           Inactive
