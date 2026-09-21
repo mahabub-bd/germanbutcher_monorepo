@@ -2,12 +2,11 @@
 
 import { Facebook, Linkedin } from "@/components/icons/brand-icons";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { AddToWishlistButton } from "@/components/wishlist/add-to-wishlist-button";
 import { useCartContext } from "@/contexts/cart-context";
 import { hasActiveDiscount } from "@/utils/product-utils";
 import type { Product, User } from "@/utils/types";
-import { Loader2, Mail, MessageCircle, Minus, Plus, Share2, ShoppingCart, Zap } from "lucide-react";
+import { Loader2, Link2, Mail, MessageCircle, Minus, Plus, Share2, ShoppingCart, Zap } from "lucide-react";
 import {
   EmailShareButton,
   FacebookShareButton,
@@ -180,189 +179,188 @@ export function ProductPurchaseSection({
   // Share functionality
   const shareUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/products/${product.slug}`
+      ? `${window.location.origin}/product/${product.slug}`
       : "";
   const shareTitle = `Check out ${product.name} on Our Store`;
   const shareBody = `${product.name} - ${product.description}`;
 
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied to clipboard");
+    } catch (error) {
+      console.error("Error copying link:", error);
+      toast.error("Failed to copy link");
+    }
+  };
+
   return (
-    <div className="bg-white rounded-md md:p-6 p-4 shadow-sm border">
-      <div className="space-y-4">
-        {/* In Cart Indicator */}
-        {isInCart && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
-            <ShoppingCart size={16} className="text-green-600" />
-            <span className="text-sm font-medium text-green-700">
-              {cartQuantity} {cartQuantity === 1 ? "item" : "items"} already in
-              your cart
-            </span>
-          </div>
-        )}
-
-        {/* Quantity Selector */}
-        <div className="space-y-2">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center bg-gray-50 rounded-lg border border-gray-200">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={decrementQuantity}
-                disabled={quantity <= 1 || isUpdating || isAddingToCart}
-                className="h-8 w-8 rounded-l-lg hover:bg-gray-100 disabled:opacity-50"
-              >
-                <Minus className="w-4 h-4" />
-              </Button>
-              <div className="px-2 py-1 font-semibold text-base min-w-4 text-center bg-white border-x border-gray-200">
-                {isUpdating ? (
-                  <Loader2 className="w-4 h-4 mx-auto animate-spin" />
-                ) : (
-                  quantity
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={incrementQuantity}
-                disabled={
-                  quantity >= product.stock || isUpdating || isAddingToCart
-                }
-                className="h-8 w-8 rounded-r-lg hover:bg-gray-100 disabled:opacity-50"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
+    <div className="space-y-4">
+      {/* In Cart Indicator */}
+      {isInCart && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+          <ShoppingCart size={16} className="text-green-600" />
+          <span className="text-sm font-medium text-green-700">
+            {cartQuantity} {cartQuantity === 1 ? "item" : "items"} already in
+            your cart
+          </span>
         </div>
+      )}
 
-        {/* Price Summary */}
-        <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Unit Price:</span>
-            <span className="font-medium">৳{finalPrice.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Quantity:</span>
-            <span className="font-medium">{quantity}</span>
-          </div>
-          {isInCart && (
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">In Cart:</span>
-              <span className="font-medium text-green-600">{cartQuantity}</span>
-            </div>
-          )}
-          <Separator />
-          <div className="flex justify-between items-center">
-            <span className="font-semibold text-gray-900">Total:</span>
-            <span className="text-xl font-bold text-primaryColor">
-              ৳{(finalPrice * quantity).toFixed(2)}
-            </span>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="grid md:grid-cols-3 grid-cols-1 gap-3">
-          <Button
-            variant="outline"
-            className="w-full h-10 px-[1px] py-[1px] border-transparent bg-linear-to-r from-primaryColor to-secondaryColor hover:bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
-            disabled={product.stock === 0 || isAddingToCart || isUpdating}
-            onClick={handleAddToCart}
-          >
-            <span className="flex h-full w-full items-center justify-center rounded-md bg-white text-lg font-semibold text-primaryColor">
-            {isAddingToCart ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                {isInCart ? "Updating Cart..." : "Adding to Cart..."}
-              </>
-            ) : (
-              <>
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                {isInCart ? "Update Cart" : "Add to Cart"}
-              </>
-            )}
-            </span>
-          </Button>
-
-          <Button
-            className="w-full h-10 bg-linear-to-r from-primaryColor to-secondaryColor hover:from-secondaryColor hover:to-primaryColor text-white text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
-            disabled={product.stock === 0 || isBuyingNow || isUpdating}
-            onClick={handleBuyNow}
-          >
-            {isBuyingNow ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Zap className="w-5 h-5 mr-2 fill-current" />
-                Buy Now
-              </>
-            )}
-          </Button>
-
-          <div className="grid grid-cols-2 gap-3">
-            <AddToWishlistButton
-              product={product}
-              user={user}
+      {/* Quantity + Total Price — one line on all screens */}
+      <div className="grid grid-cols-2 divide-x divide-gray-200 rounded-xl bg-red-50/50 border border-red-100 p-3 md:p-4">
+        <div className="pr-3 md:pr-4">
+          <p className="text-xs text-gray-500 mb-2">Quantity</p>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Button
               variant="outline"
-              className="h-10  border-gray-300 hover:border-primaryColor hover:text-primaryColor"
-            />
-
-            <div className="relative">
-              <Button
-                variant="outline"
-                className="h-10 border-gray-300 hover:border-primaryColor hover:text-primaryColor w-full"
-                onClick={() => setShowShareOptions(!showShareOptions)}
-              >
-                <Share2 className="w-4 h-4 mr-2" />
-                Share Product
-              </Button>
-
-              {showShareOptions && (
-                <div className="absolute z-10 mt-2 w-64 bg-white rounded-md shadow-lg border border-gray-200 right-0">
-                  <div className="p-2 space-y-1 flex gap-4">
-                    <FacebookShareButton
-                      url={shareUrl}
-                      quote={shareTitle}
-                      className="w-full"
-                    >
-                      <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer">
-                        <Facebook className="w-4 h-4 mr-2 text-blue-600" />
-                      </div>
-                    </FacebookShareButton>
-
-                    <WhatsappShareButton
-                      url={shareUrl}
-                      title={shareTitle}
-                      className="w-full"
-                    >
-                      <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer">
-                        <MessageCircle className="w-4 h-4 mr-2 text-green-500" />
-                      </div>
-                    </WhatsappShareButton>
-
-                    <LinkedinShareButton url={shareUrl} className="w-full">
-                      <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer">
-                        <Linkedin className="w-4 h-4 mr-2 text-blue-700" />
-                      </div>
-                    </LinkedinShareButton>
-
-                    <EmailShareButton
-                      url={shareUrl}
-                      subject={shareTitle}
-                      body={shareBody}
-                      className="w-full"
-                    >
-                      <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer">
-                        <Mail className="w-4 h-4 mr-2 text-gray-600" />
-                      </div>
-                    </EmailShareButton>
-                  </div>
-                </div>
+              size="icon"
+              onClick={decrementQuantity}
+              disabled={quantity <= 1 || isUpdating || isAddingToCart}
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-full border-gray-300 hover:border-primaryColor hover:text-primaryColor"
+            >
+              <Minus className="w-4 h-4" />
+            </Button>
+            <div className="min-w-10 sm:min-w-12 text-center text-sm sm:text-base font-semibold text-gray-900">
+              {isUpdating ? (
+                <Loader2 className="w-4 h-4 mx-auto animate-spin" />
+              ) : (
+                quantity
               )}
             </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={incrementQuantity}
+              disabled={
+                quantity >= product.stock || isUpdating || isAddingToCart
+              }
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primaryColor text-white border-primaryColor hover:bg-primaryColor/90 hover:text-white"
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
           </div>
         </div>
+        <div className="pl-3 md:pl-4">
+          <p className="text-xs text-gray-500 mb-1">Total Price</p>
+          <p className="text-xl sm:text-2xl font-bold text-primaryColor">
+            ৳{(finalPrice * quantity).toFixed(2)}
+          </p>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="grid grid-cols-2 gap-2.5 md:gap-3">
+        <Button
+          variant="outline"
+          className="w-full h-10 sm:h-11 border-primaryColor text-primaryColor bg-white hover:bg-red-50 hover:text-primaryColor rounded-lg text-sm sm:text-base font-semibold shadow-sm"
+          disabled={product.stock === 0 || isAddingToCart || isUpdating}
+          onClick={handleAddToCart}
+        >
+          {isAddingToCart ? (
+            <>
+              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
+              {isInCart ? "Updating..." : "Adding..."}
+            </>
+          ) : (
+            <>
+              <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              {isInCart ? "Update Cart" : "Add to Cart"}
+            </>
+          )}
+        </Button>
+
+        <Button
+          className="w-full h-10 sm:h-11 bg-primaryColor hover:bg-primaryColor/90 text-white rounded-lg text-sm sm:text-base font-semibold shadow-sm"
+          disabled={product.stock === 0 || isBuyingNow || isUpdating}
+          onClick={handleBuyNow}
+        >
+          {isBuyingNow ? (
+            <>
+              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 mr-2 fill-current" />
+              Buy Now
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Secondary Actions */}
+      <div className="grid grid-cols-3 gap-2.5 md:gap-3">
+        <AddToWishlistButton
+          product={product}
+          user={user}
+          variant="outline"
+          size="sm"
+          className="h-9 sm:h-10 border-gray-200 text-gray-600 hover:border-primaryColor hover:text-primaryColor rounded-lg w-full text-xs sm:text-sm"
+        />
+
+        <div className="relative">
+          <Button
+            variant="outline"
+            className="h-9 sm:h-10 w-full border-gray-200 text-gray-600 hover:border-primaryColor hover:text-primaryColor rounded-lg text-xs sm:text-sm"
+            onClick={() => setShowShareOptions(!showShareOptions)}
+          >
+            <Share2 className="w-4 h-4 mr-1.5 sm:mr-2" />
+            Share Product
+          </Button>
+
+          {showShareOptions && (
+            <div className="absolute z-10 mt-2 w-64 bg-white rounded-md shadow-lg border border-gray-200 right-0">
+              <div className="p-2 space-y-1 flex gap-4">
+                <FacebookShareButton
+                  url={shareUrl}
+                  quote={shareTitle}
+                  className="w-full"
+                >
+                  <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer">
+                    <Facebook className="w-4 h-4 mr-2 text-blue-600" />
+                  </div>
+                </FacebookShareButton>
+
+                <WhatsappShareButton
+                  url={shareUrl}
+                  title={shareTitle}
+                  className="w-full"
+                >
+                  <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer">
+                    <MessageCircle className="w-4 h-4 mr-2 text-green-500" />
+                  </div>
+                </WhatsappShareButton>
+
+                <LinkedinShareButton url={shareUrl} className="w-full">
+                  <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer">
+                    <Linkedin className="w-4 h-4 mr-2 text-blue-700" />
+                  </div>
+                </LinkedinShareButton>
+
+                <EmailShareButton
+                  url={shareUrl}
+                  subject={shareTitle}
+                  body={shareBody}
+                  className="w-full"
+                >
+                  <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer">
+                    <Mail className="w-4 h-4 mr-2 text-gray-600" />
+                  </div>
+                </EmailShareButton>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <Button
+          variant="outline"
+          className="h-9 sm:h-10 w-full border-gray-200 text-gray-600 hover:border-primaryColor hover:text-primaryColor rounded-lg text-xs sm:text-sm"
+          onClick={handleCopyLink}
+        >
+          <Link2 className="w-4 h-4 mr-1.5 sm:mr-2" />
+          Copy Link
+        </Button>
       </div>
     </div>
   );

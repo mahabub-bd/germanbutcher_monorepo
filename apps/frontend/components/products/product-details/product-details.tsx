@@ -23,21 +23,29 @@ export default async function ProductDetails({ product }: ProductDetailsProps) {
     <div className="min-h-screen bg-gray-50">
       <ProductBreadcrumb product={product} />
 
-      <div className="container mx-auto md:px-0 px-2 md:py-4 py-2">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="container mx-auto md:px-0 px-2 md:py-4 py-2 space-y-4 md:space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
           {/* Product Images */}
           <div className="lg:col-span-1">
             <ProductImageGallery product={product} />
           </div>
 
-          {/* Product Information */}
-          <div className="lg:col-span-2 flex flex-col md:gap-6 gap-4">
-            <ProductInfo product={product} />
-            <ProductPurchaseSection product={product} user={user} />
-            <ProductFeatures />
-            <ProductDetailsCard product={product} />
+          {/* Product Information — one unified card */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 sm:p-4 md:p-6 flex flex-col gap-3 md:gap-5">
+              <ProductInfo product={product} />
+              <div className="h-px bg-gray-100" />
+              <ProductPurchaseSection product={product} user={user} />
+            </div>
           </div>
         </div>
+
+        {/* Features + Details — full width below the fold */}
+        <div className="space-y-4 md:space-y-6">
+          <ProductFeatures />
+          <ProductDetailsCard product={product} />
+        </div>
+
         {showRelatedProducts && (
           <ProductList endpoint={`products/${product.id}/similar`}>
             <HeadingPrimary title="Related Products" className="mb-8" />
