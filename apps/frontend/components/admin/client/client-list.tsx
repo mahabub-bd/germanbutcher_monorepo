@@ -1,12 +1,13 @@
 "use client"
 
 import { PaginationComponent } from "@/components/common/pagination"
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { formatDateTime } from "@/lib/utils"
-import { deleteData, fetchDataPagination, patchData } from "@/utils/api-utils"
+import { deleteData, fetchDataPagination } from "@/utils/api-utils"
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle"
 import type { Client, PaginatedResponse } from "@/utils/types"
 import { MoreHorizontal, Pencil, Plus, Trash2, Users } from "lucide-react"
 import Image from "next/image"
@@ -22,7 +23,6 @@ export function ClientList() {
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-  const [togglingId, setTogglingId] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
@@ -56,36 +56,16 @@ export function ClientList() {
     setIsDeleteDialogOpen(true)
   }
 
-  const handleToggleActive = async (client: Client) => {
-    setTogglingId(client.Id)
-    const nextActive = !client.isActive
-    // Optimistic flip; revert if the API call fails.
-    setClients((prev) =>
-      prev.map((c) => (c.Id === client.Id ? { ...c, isActive: nextActive } : c))
-    )
-    try {
-      const response = await patchData(`clients/${client.Id}`, {
-        isActive: nextActive,
-      })
-      if (response?.statusCode !== 200 && response?.statusCode !== 201) {
-        throw new Error(response?.message || "Failed to update status")
-      }
-      toast.success(
-        `"${client.name}" is now ${nextActive ? "active" : "inactive"}`
-      )
-    } catch (error) {
-      // Revert the optimistic update
+  const { togglingId, toggleActive } = useActiveStatusToggle<Client>({
+    getId: (client) => client.Id,
+    getName: (client) => client.name,
+    buildEndpoint: (id) => `clients/${id}`,
+    setStatusLocally: (id, isActive) =>
       setClients((prev) =>
-        prev.map((c) =>
-          c.Id === client.Id ? { ...c, isActive: client.isActive } : c
-        )
-      )
-      console.error("Error updating client status:", error)
-      toast.error("Failed to update client status. Please try again.")
-    } finally {
-      setTogglingId(null)
-    }
-  }
+        prev.map((c) => (c.Id === id ? { ...c, isActive } : c))
+      ),
+    errorLabel: "client status",
+  })
 
   const handleDelete = async () => {
     if (!selectedClient) return
@@ -152,24 +132,12 @@ export function ClientList() {
                   {formatDateTime(client?.createdAt ?? "")}
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={client.isActive}
-                      disabled={togglingId === client.Id}
-                      onCheckedChange={() => handleToggleActive(client)}
-                      aria-label={`Toggle ${client.name} active status`}
-                      className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-red-500"
-                    />
-                    <span
-                      className={`text-xs ${client.isActive
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
-                        }`}
-                    >
-                      {client.isActive ? "Active" : "Inactive"}
-                      {togglingId === client.Id && "…"}
-                    </span>
-                  </div>
+                  <ActiveStatusToggle
+                    isActive={client.isActive}
+                    disabled={togglingId === client.Id}
+                    onToggle={() => toggleActive(client)}
+                    label={client.name}
+                  />
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>

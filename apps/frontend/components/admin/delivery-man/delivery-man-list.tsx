@@ -19,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import {
   Table,
   TableBody,
@@ -29,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/utils";
-import { fetchDataPagination, patchData } from "@/utils/api-utils";
+import { fetchDataPagination } from "@/utils/api-utils";
 import type { DeliveryMan, DeliveryManResponse } from "@/utils/types";
 import {
   CheckCircle2,
@@ -78,7 +79,6 @@ export function DeliveryManList({
     (getInitialParam("isActive") as "all" | "true" | "false") || "all"
   );
   const [isLoading, setIsLoading] = useState(true);
-  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -171,38 +171,16 @@ export function DeliveryManList({
     setCurrentPage(1);
   };
 
-  const handleToggleActive = async (deliveryMan: DeliveryMan) => {
-    setTogglingId(deliveryMan.id);
-    const nextActive = !deliveryMan.isActive;
-    // Optimistic flip; revert if the API call fails.
-    setDeliveryMen((prev) =>
-      prev.map((dm) =>
-        dm.id === deliveryMan.id ? { ...dm, isActive: nextActive } : dm
-      )
-    );
-    try {
-      const response = await patchData(`delivery-man/${deliveryMan.id}`, {
-        isActive: nextActive,
-      });
-      if (response?.statusCode !== 200 && response?.statusCode !== 201) {
-        throw new Error(response?.message || "Failed to update status");
-      }
-      toast.success(
-        `"${deliveryMan.name}" is now ${nextActive ? "active" : "inactive"}`
-      );
-    } catch (error) {
-      // Revert the optimistic update
+  const { togglingId, toggleActive } = useActiveStatusToggle<DeliveryMan>({
+    getId: (deliveryMan) => deliveryMan.id,
+    getName: (deliveryMan) => deliveryMan.name,
+    buildEndpoint: (id) => `delivery-man/${id}`,
+    setStatusLocally: (id, isActive) =>
       setDeliveryMen((prev) =>
-        prev.map((dm) =>
-          dm.id === deliveryMan.id ? { ...dm, isActive: deliveryMan.isActive } : dm
-        )
-      );
-      console.error("Error updating delivery man status:", error);
-      toast.error("Failed to update delivery man status. Please try again.");
-    } finally {
-      setTogglingId(null);
-    }
-  };
+        prev.map((dm) => (dm.id === id ? { ...dm, isActive } : dm))
+      ),
+    errorLabel: "delivery man status",
+  });
 
   const renderEmptyState = () => (
     <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -295,24 +273,12 @@ export function DeliveryManList({
                 {formatDateTime(deliveryMan.createdAt)}
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={deliveryMan.isActive}
-                    disabled={togglingId === deliveryMan.id}
-                    onCheckedChange={() => handleToggleActive(deliveryMan)}
-                    aria-label={`Toggle ${deliveryMan.name} active status`}
-                    className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-red-500"
-                  />
-                  <span
-                    className={`text-xs ${deliveryMan.isActive
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400"
-                      }`}
-                  >
-                    {deliveryMan.isActive ? "Active" : "Inactive"}
-                    {togglingId === deliveryMan.id && "…"}
-                  </span>
-                </div>
+                <ActiveStatusToggle
+                  isActive={deliveryMan.isActive}
+                  disabled={togglingId === deliveryMan.id}
+                  onToggle={() => toggleActive(deliveryMan)}
+                  label={deliveryMan.name}
+                />
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>

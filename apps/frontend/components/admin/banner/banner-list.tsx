@@ -11,7 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { deleteData, fetchDataPagination, patchData } from "@/utils/api-utils";
+import { deleteData, fetchDataPagination } from "@/utils/api-utils";
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import type { Banner } from "@/utils/types";
 import { Filter, ImageIcon, Plus, Search, XCircle } from "lucide-react";
 import Link from "next/link";
@@ -56,7 +57,6 @@ export function BannerList({
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedBanner, setSelectedBanner] = useState<Banner | null>(null);
-  const [togglingId, setTogglingId] = useState<number | null>(null);
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
@@ -153,38 +153,16 @@ export function BannerList({
     setCurrentPage(1);
   };
 
-  const handleToggleActive = async (banner: Banner) => {
-    setTogglingId(banner.id);
-    const nextActive = !banner.isActive;
-    // Optimistic flip; revert if the API call fails.
-    setBanners((prev) =>
-      prev.map((b) =>
-        b.id === banner.id ? { ...b, isActive: nextActive } : b
-      )
-    );
-    try {
-      const response = await patchData(`banners/${banner.id}`, {
-        isActive: nextActive,
-      });
-      if (response?.statusCode !== 200 && response?.statusCode !== 201) {
-        throw new Error(response?.message || "Failed to update status");
-      }
-      toast.success(
-        `"${banner.title}" is now ${nextActive ? "active" : "inactive"}`
-      );
-    } catch (error) {
-      // Revert the optimistic update
+  const { togglingId, toggleActive } = useActiveStatusToggle<Banner>({
+    getId: (banner) => banner.id,
+    getName: (banner) => banner.title,
+    buildEndpoint: (id) => `banners/${id}`,
+    setStatusLocally: (id, isActive) =>
       setBanners((prev) =>
-        prev.map((b) =>
-          b.id === banner.id ? { ...b, isActive: banner.isActive } : b
-        )
-      );
-      console.error("Error updating banner status:", error);
-      toast.error("Failed to update banner status. Please try again.");
-    } finally {
-      setTogglingId(null);
-    }
-  };
+        prev.map((b) => (b.id === id ? { ...b, isActive } : b))
+      ),
+    errorLabel: "banner status",
+  });
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -274,7 +252,7 @@ export function BannerList({
     <BannerTable
       banners={banners}
       onDeleteClick={handleDeleteClick}
-      onToggleActive={handleToggleActive}
+      onToggleActive={toggleActive}
       togglingId={togglingId}
     />
   );

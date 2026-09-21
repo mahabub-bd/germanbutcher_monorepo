@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import type { Banner } from "@/utils/types";
 import { ImageIcon, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -89,25 +89,12 @@ export function BannerTable({
                 {banner?.displayOrder}
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={banner.isActive}
-                    disabled={togglingId === banner.id}
-                    onCheckedChange={() => onToggleActive(banner)}
-                    aria-label={`Toggle ${banner.title} active status`}
-                    className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-red-500"
-                  />
-                  <span
-                    className={`text-xs ${
-                      banner.isActive
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {banner.isActive ? "Active" : "Inactive"}
-                    {togglingId === banner.id && "…"}
-                  </span>
-                </div>
+                <ActiveStatusToggle
+                  isActive={banner.isActive}
+                  disabled={togglingId === banner.id}
+                  onToggle={() => onToggleActive(banner)}
+                  label={banner.title}
+                />
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>

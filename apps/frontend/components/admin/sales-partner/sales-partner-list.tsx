@@ -1,5 +1,6 @@
 "use client";
 
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,9 +16,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { formatDateTime } from "@/lib/utils";
-import { deleteData, fetchData, patchData } from "@/utils/api-utils";
+import { deleteData, fetchData } from "@/utils/api-utils";
 import type { SalesPartner } from "@/utils/types";
 import {
   ExternalLink,
@@ -41,7 +42,20 @@ export function SalesPartnerList() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSalesPartner, setSelectedSalesPartner] =
     useState<SalesPartner | null>(null);
-  const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  const { togglingId, toggleActive } = useActiveStatusToggle<SalesPartner>({
+    getId: (salesPartner) => salesPartner.Id,
+    getName: (salesPartner) => salesPartner.name,
+    // Dedicated endpoint flips the flag server-side and returns the
+    // updated entity.
+    buildEndpoint: (id) => `sales-partners/${id}/toggle-status`,
+    includeBody: false,
+    setStatusLocally: (id, isActive) =>
+      setSalesPartners((prev) =>
+        prev.map((sp) => (sp.Id === id ? { ...sp, isActive } : sp))
+      ),
+    errorLabel: "sales partner status",
+  });
 
   const fetchSalesPartners = async () => {
     setIsLoading(true);
@@ -64,56 +78,6 @@ export function SalesPartnerList() {
   const handleDeleteClick = (salesPartner: SalesPartner) => {
     setSelectedSalesPartner(salesPartner);
     setIsDeleteDialogOpen(true);
-  };
-
-  const handleToggleActive = async (salesPartner: SalesPartner) => {
-    setTogglingId(salesPartner.Id);
-    const nextActive = !salesPartner.isActive;
-    // Optimistic flip; revert if the API call fails.
-    setSalesPartners((prev) =>
-      prev.map((sp) =>
-        sp.Id === salesPartner.Id ? { ...sp, isActive: nextActive } : sp
-      )
-    );
-    try {
-      // Dedicated endpoint flips the flag server-side and returns the
-      // updated entity.
-      const response = await patchData(
-        `sales-partners/${salesPartner.Id}/toggle-status`
-      );
-      const serverState = response?.data?.isActive;
-      if (typeof serverState === "boolean" && serverState !== nextActive) {
-        // Server disagreed with the optimistic flip — trust the server.
-        setSalesPartners((prev) =>
-          prev.map((sp) =>
-            sp.Id === salesPartner.Id ? { ...sp, isActive: serverState } : sp
-          )
-        );
-      }
-      if (response?.statusCode !== 200 && response?.statusCode !== 201) {
-        throw new Error(response?.message || "Failed to update status");
-      }
-      toast.success(
-        `"${salesPartner.name}" is now ${
-          (typeof serverState === "boolean" ? serverState : nextActive)
-            ? "active"
-            : "inactive"
-        }`
-      );
-    } catch (error) {
-      // Revert the optimistic update
-      setSalesPartners((prev) =>
-        prev.map((sp) =>
-          sp.Id === salesPartner.Id
-            ? { ...sp, isActive: salesPartner.isActive }
-            : sp
-        )
-      );
-      console.error("Error updating sales partner status:", error);
-      toast.error("Failed to update sales partner status. Please try again.");
-    } finally {
-      setTogglingId(null);
-    }
   };
 
   const handleDelete = async () => {
@@ -158,8 +122,9 @@ export function SalesPartnerList() {
             <TableHead className="hidden md:table-cell">
               Display Order
             </TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
+
             <TableHead>Created At</TableHead>
+            <TableHead className="hidden md:table-cell">Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -199,29 +164,17 @@ export function SalesPartnerList() {
               <TableCell className="hidden md:table-cell">
                 {salesPartner?.order}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={salesPartner.isActive}
-                    disabled={togglingId === salesPartner.Id}
-                    onCheckedChange={() => handleToggleActive(salesPartner)}
-                    aria-label={`Toggle ${salesPartner.name} active status`}
-                    className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-red-500"
-                  />
-                  <span
-                    className={`text-xs ${
-                      salesPartner.isActive
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {salesPartner.isActive ? "Active" : "Inactive"}
-                    {togglingId === salesPartner.Id && "…"}
-                  </span>
-                </div>
-              </TableCell>
+
               <TableCell className="hidden md:table-cell">
                 {formatDateTime(salesPartner?.createdAt ?? "")}
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                <ActiveStatusToggle
+                  isActive={salesPartner.isActive}
+                  disabled={togglingId === salesPartner.Id}
+                  onToggle={() => toggleActive(salesPartner)}
+                  label={salesPartner.name}
+                />
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
