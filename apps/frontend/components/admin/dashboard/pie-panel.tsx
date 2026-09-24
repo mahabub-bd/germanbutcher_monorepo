@@ -1,12 +1,5 @@
 import { formatCurrencyEnglish } from "@/lib/utils";
-import {
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 interface PieDataItem {
   name: string;
@@ -20,22 +13,14 @@ interface PiePanelProps {
   title: string;
   subtitle?: string;
   data: PieDataItem[];
-  showCurrency?: boolean; // Format values as currency
-  size?: "sm" | "md" | "lg"; // Chart size variant
-  donut?: boolean; // Show as donut chart
+  showCurrency?: boolean;
+  size?: "sm" | "md" | "lg";
+  donut?: boolean;
 }
 
-const CHART_CONFIG = {
-  sm: { height: 150, outerRadius: 52, innerRadius: 0 },
-  md: { height: 220, outerRadius: 80, innerRadius: 0 },
-  lg: { height: 280, outerRadius: 100, innerRadius: 0 },
-};
-
-const DONUT_INNER_RADIUS = {
-  sm: 28,
-  md: 45,
-  lg: 60,
-};
+const HEIGHTS = { sm: 124, md: 164, lg: 208 };
+const RADII = { sm: 45, md: 59, lg: 75 };
+const INNER_RADII = { sm: 31, md: 41, lg: 52 };
 
 export function PiePanel({
   title,
@@ -45,137 +30,84 @@ export function PiePanel({
   size = "md",
   donut = false,
 }: PiePanelProps) {
-  const config = CHART_CONFIG[size];
-  const innerRadius = donut ? DONUT_INNER_RADIUS[size] : config.innerRadius;
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  const chartData = data.filter((item) => item.value > 0);
+  const displayValue = (value: number) =>
+    showCurrency ? formatCurrencyEnglish(value) : value.toLocaleString();
 
-  // Custom tooltip with e-commerce styling
   const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      const item = data.payload;
-      const displayValue = showCurrency
-        ? formatCurrencyEnglish(data.value)
-        : data.value.toLocaleString();
-
-      return (
-        <div className="rounded-lg border bg-white p-2.5 shadow-lg dark:bg-gray-800">
-          <div className="flex items-center gap-2 mb-1">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: data.color }}
-            />
-            <span className="font-semibold text-base">{data.name}</span>
-          </div>
-          <div className="text-gray-600 dark:text-gray-400 text-sm">
-            {item.label || "Value"}: {displayValue}
-          </div>
-          <div className="text-gray-600 dark:text-gray-400 text-sm">
-            {data.payload.percentage.toFixed(1)}%
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  // Custom label renderer
-  const renderLabel = ({ name, percentage }: any) => {
-    const shouldShow = percentage > (size === "sm" ? 8 : size === "md" ? 6 : 5);
-    if (!shouldShow) return "";
-
+    if (!active || !payload?.length) return null;
+    const item = payload[0].payload as PieDataItem;
     return (
-      <tspan
-        style={{
-          fontSize: size === "sm" ? "12px" : size === "md" ? "14px" : "16px",
-          fontWeight: 500,
-        }}
-      >
-        {name} {percentage.toFixed(1)}%
-      </tspan>
+      <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+        <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+          {item.name}
+        </div>
+        <p className="text-xs text-gray-600 dark:text-gray-300">
+          {item.label || "Value"}: {displayValue(item.value)} · {item.percentage.toFixed(1)}%
+        </p>
+      </div>
     );
   };
 
   return (
-    <div className="rounded-xl border border-gray-200/80 bg-white p-3.5 shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
-      {/* Header */}
-      <div className="mb-1.5">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-          {title}
-        </h3>
-        {subtitle && (
-          <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
-            {subtitle}
-          </p>
+    <section className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <header className="mb-1.5">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
+        {subtitle && <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>}
+      </header>
+
+      <div className="relative">
+        <ResponsiveContainer width="100%" height={HEIGHTS[size]}>
+          <PieChart>
+            <Pie
+              data={chartData}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={RADII[size]}
+              innerRadius={donut ? INNER_RADII[size] : 0}
+              paddingAngle={donut ? 3 : 1}
+              stroke="none"
+              isAnimationActive
+              animationDuration={650}
+            >
+              {chartData.map((item) => (
+                <Cell key={item.name} fill={item.color} className="transition-opacity hover:opacity-80" />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+
+        {donut && (
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Total</span>
+            <span className="max-w-[72px] truncate text-xs font-bold tabular-nums text-gray-900 dark:text-white">
+              {showCurrency
+                ? `৳ ${new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(total)}`
+                : displayValue(total)}
+            </span>
+          </div>
+        )}
+        {!chartData.length && (
+          <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-500">No data yet</div>
         )}
       </div>
 
-      {/* Chart */}
-      <ResponsiveContainer width="100%" height={config.height}>
-        <PieChart>
-          <Pie
-            data={data}
-            dataKey="value"
-            cx="50%"
-            cy="50%"
-            outerRadius={config.outerRadius}
-            innerRadius={innerRadius}
-            paddingAngle={donut ? 2 : 0}
-            label={renderLabel}
-            labelLine={false}
-            isAnimationActive={true}
-            animationBegin={0}
-            animationDuration={800}
-            animationEasing="ease-out"
-          >
-            {data.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={entry.color}
-                stroke={donut ? "white" : "none"}
-                strokeWidth={2}
-                className="transition-opacity duration-200 hover:opacity-80"
-                style={{ cursor: "pointer" }}
-              />
-            ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            verticalAlign="bottom"
-            height={36}
-            iconType="circle"
-            iconSize={10}
-            wrapperStyle={{
-              fontSize: size === "sm" ? "12px" : size === "md" ? "14px" : "16px",
-              paddingTop: "4px",
-            }}
-            formatter={(value: string) => {
-              const item = data.find((d) => d.name === value);
-              const percentage = item?.percentage.toFixed(1) || "0";
-              return (
-                <span className="text-gray-700 dark:text-gray-300">
-                  {value} ({percentage}%)
-                </span>
-              );
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-
-      {/* Summary Stats */}
-      {data.length > 0 && (
-        <div className="mt-1.5 border-t border-gray-100 pt-2 dark:border-gray-800">
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-gray-500 dark:text-gray-400">Total:</span>
-            <span className="font-semibold text-gray-900 dark:text-white">
-              {showCurrency
-                ? formatCurrencyEnglish(
-                  data.reduce((sum, item) => sum + item.value, 0)
-                )
-                : data.reduce((sum, item) => sum + item.value, 0).toLocaleString()}
+      <ul className="mt-1 grid grid-cols-2 gap-x-2 gap-y-1">
+        {data.map((item) => (
+          <li key={item.name} className="flex min-w-0 items-center gap-1.5 text-xs">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+            <span className="truncate text-gray-600 dark:text-gray-300">{item.name}</span>
+            <span className="ml-auto shrink-0 tabular-nums text-gray-500 dark:text-gray-400">
+              {item.percentage.toFixed(1)}%
             </span>
-          </div>
-        </div>
-      )}
-    </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
