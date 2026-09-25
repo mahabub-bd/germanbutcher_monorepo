@@ -31,7 +31,15 @@ export class OrderPaymentMethodService {
 
   async findAll(): Promise<OrderPaymentMethod[]> {
     return this.paymentMethodRepository.find({
-      select: ['id', 'code', 'name', 'description', 'isActive'],
+      select: [
+        'id',
+        'code',
+        'name',
+        'description',
+        'isActive',
+        'createdAt',
+        'updatedAt',
+      ],
     });
   }
 

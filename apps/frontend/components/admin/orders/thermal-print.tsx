@@ -1,24 +1,20 @@
-"use client";
-
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import type { Order, OrderItem } from "@/utils/types";
 
-interface ThermalPrintProps {
-  order: Order;
-  onSuccess?: () => void;
-}
+/**
+ * Open a print window with an 80mm thermal invoice for the order.
+ * Used by the Print action in the OrderActions header.
+ */
+export function printThermalInvoice(order: Order): void {
+  // Create a new window for printing
+  const printWindow = window.open("", "", "width=300,height=600");
+  if (!printWindow) {
+    throw new Error("Failed to open print window");
+  }
 
-export function ThermalPrint({ order, onSuccess }: ThermalPrintProps) {
-  const handleThermalPrint = () => {
-    // Create a new window for printing
-    const printWindow = window.open("", "", "width=300,height=600");
-    if (!printWindow) {
-      throw new Error("Failed to open print window");
-    }
+  const orderSummary = calculateOrderSummary(order);
 
-    const orderSummary = calculateOrderSummary();
-
-    const printContent = `
+  const printContent = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -55,7 +51,7 @@ export function ThermalPrint({ order, onSuccess }: ThermalPrintProps) {
     .center { text-align: center; }
     .bold { font-weight: 700; }
     .large { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
-    .small { font-size: 11px; font-weight: 700; }
+    .small { font-size: 11px; fontWeight: 700; }
 
     img.logo {
       width: 50px;
@@ -257,72 +253,45 @@ export function ThermalPrint({ order, onSuccess }: ThermalPrintProps) {
 </html>
 `;
 
-    printWindow.document.write(printContent);
-    printWindow.document.close();
+  printWindow.document.write(printContent);
+  printWindow.document.close();
 
-    // Wait for content to load, then print
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-        onSuccess?.();
-      }, 250);
-    };
+  // Wait for content to load, then print
+  printWindow.onload = () => {
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
   };
+}
 
-  const calculateOrderSummary = () => {
-    const itemsSubtotal = order.items.reduce((sum, item) => {
-      const itemTotal =
-        Number(item.totalPrice) ||
-        (Number(item.unitPrice) || 0) * item.quantity;
-      return sum + itemTotal;
-    }, 0);
+function calculateOrderSummary(order: Order) {
+  const itemsSubtotal = order.items.reduce((sum, item) => {
+    const itemTotal =
+      Number(item.totalPrice) ||
+      (Number(item.unitPrice) || 0) * item.quantity;
+    return sum + itemTotal;
+  }, 0);
 
-    const productDiscountTotal = order.items.reduce((sum, item) => {
-      const discountTotal = (item.unitDiscount || 0) * item.quantity;
-      return sum + Number(discountTotal);
-    }, 0);
+  const productDiscountTotal = order.items.reduce((sum, item) => {
+    const discountTotal = (item.unitDiscount || 0) * item.quantity;
+    return sum + Number(discountTotal);
+  }, 0);
 
-    const originalSubtotal = itemsSubtotal + productDiscountTotal;
+  const originalSubtotal = itemsSubtotal + productDiscountTotal;
 
-    const couponDiscount = Number(order.totalDiscount) - productDiscountTotal;
+  const couponDiscount = Number(order.totalDiscount) - productDiscountTotal;
 
-    const shippingCost = Number(order.shippingCost ?? order.shippingMethod.cost);
+  const shippingCost = Number(order.shippingCost ?? order.shippingMethod.cost);
 
-    const total = Number(order.totalValue);
+  const total = Number(order.totalValue);
 
-    return {
-      originalSubtotal,
-      productDiscountTotal,
-      couponDiscount,
-      itemsSubtotal,
-      shippingCost,
-      total,
-    };
+  return {
+    originalSubtotal,
+    productDiscountTotal,
+    couponDiscount,
+    itemsSubtotal,
+    shippingCost,
+    total,
   };
-
-  return (
-    <button
-      onClick={handleThermalPrint}
-      className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 py-2"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="mr-2 h-4 w-4"
-      >
-        <polyline points="6 9 6 2 18 2 18 9"></polyline>
-        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-        <rect x="6" y="14" width="12" height="8"></rect>
-      </svg>
-      Thermal Print
-    </button>
-  );
 }

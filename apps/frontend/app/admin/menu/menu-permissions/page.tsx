@@ -3,7 +3,9 @@
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { PageHeader } from "@/components/admin/page-header";
 import { IconRenderer } from "@/components/common/IconRenderer";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -11,11 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { capitalizeFirstLetter } from "@/lib/utils";
+import { capitalizeFirstLetter, cn } from "@/lib/utils";
 import { fetchProtectedData, patchData } from "@/utils/api-utils";
 import { MenuItem, Role } from "@/utils/types";
-import { ChevronDown, ChevronRight, Loader2, Search } from "lucide-react";
+import { Loader2, Search, SearchX, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -41,13 +42,12 @@ export default function RoleMenuPermissions() {
   const [menuTree, setMenuTree] = useState<MenuItem[]>([]);
   const [selectedRoleId, setSelectedRoleId] = useState<string>("");
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [expandedMenus, setExpandedMenus] = useState<Record<number, boolean>>(
-    {}
-  );
   const [menuPermissions, setMenuPermissions] = useState<
     Record<number, boolean>
   >({});
   const [loading, setLoading] = useState(false);
+  // Id of the menu whose checkbox(es) are being saved; a parent id while a
+  // whole section batch is in flight.
   const [savingMenuId, setSavingMenuId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -109,6 +109,15 @@ export default function RoleMenuPermissions() {
     return selectedRole?.rolename.toLowerCase().includes("customer");
   }, [selectedRole]);
 
+  // Overall progress across every menu in the tree.
+  const { grantedCount, totalCount } = useMemo(() => {
+    const values = Object.values(menuPermissions);
+    return {
+      grantedCount: values.filter(Boolean).length,
+      totalCount: values.length,
+    };
+  }, [menuPermissions]);
+
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -118,10 +127,7 @@ export default function RoleMenuPermissions() {
         ]);
 
         if (rolesData) setRoles(rolesData);
-        if (menuData) {
-          setMenuTree(menuData);
-          setExpandedMenus({}); // Start with all menus collapsed
-        }
+        if (menuData) setMenuTree(menuData);
       } catch (error) {
         console.error("Error fetching initial data:", error);
         toast.error("Failed to load initial data. Please try again.");
@@ -180,13 +186,6 @@ export default function RoleMenuPermissions() {
     fetchMenuPermissions();
   }, [selectedRoleId, menuTree]);
 
-  const toggleMenuExpand = (menuId: number) => {
-    setExpandedMenus((prev) => ({
-      ...prev,
-      [menuId]: !prev[menuId],
-    }));
-  };
-
   const handlePermissionChange = async (menuId: number, canView: boolean) => {
     if (!selectedRoleId) {
       toast.error("Please select a role first");
@@ -216,81 +215,183 @@ export default function RoleMenuPermissions() {
     }
   };
 
-  const handleExpandAll = (expand: boolean) => {
-    const newExpandedState: Record<number, boolean> = {};
+  // Check/uncheck a whole section (parent + all children) in one batch.
+  const handleSectionChange = async (item: MenuItem, canView: boolean) => {
+    if (!selectedRoleId) {
+      toast.error("Please select a role first");
+      return;
+    }
 
-    const processItems = (items: MenuItem[]) => {
-      items.forEach((item) => {
-        if (item.children?.length) {
-          newExpandedState[item.id] = expand;
-          processItems(item.children);
+    const ids = [item.id, ...(item.children?.map((c) => c.id) ?? [])];
+    // Snapshot so the sequential loop doesn't depend on re-renders.
+    const current = { ...menuPermissions };
+    const toChange = ids.filter((id) => current[id] !== canView);
+
+    setSavingMenuId(item.id);
+    try {
+      for (const id of toChange) {
+        const response = await patchData(
+          `menu-permissions/${selectedRoleId}/${id}`,
+          { canView }
+        );
+        if (response?.statusCode !== 200) {
+          throw new Error(response?.message || "Failed to update permission");
         }
-      });
-    };
-
-    processItems(menuTree);
-    setExpandedMenus(newExpandedState);
+        setMenuPermissions((prev) => ({ ...prev, [id]: canView }));
+      }
+      if (toChange.length > 0) {
+        toast.success(
+          `Permission ${canView ? "granted" : "revoked"} for ${item.name}`
+        );
+      }
+    } catch (error) {
+      console.error("Error updating permissions:", error);
+      toast.error("Failed to update some permissions. Please try again.");
+    } finally {
+      setSavingMenuId(null);
+    }
   };
 
-  const renderMenuItem = (item: MenuItem, depth = 0) => {
-    const hasChildren = item.children?.length > 0;
-    const isExpanded = expandedMenus[item.id] ?? false;
-    const isLoading = savingMenuId === item.id;
+  const renderMenuCard = (item: MenuItem) => {
+    const children = item.children ?? [];
+    const isSectionSaving = savingMenuId === item.id;
+    const disabled = !selectedRoleId || loading || isSectionSaving;
+
+    // Standalone menu without children: single checkbox card.
+    if (children.length === 0) {
+      return (
+        <label
+          key={item.id}
+          className={cn(
+            "flex cursor-pointer items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-muted/50",
+            menuPermissions[item.id] && "border-primary/40 bg-primary/[0.06]"
+          )}
+        >
+          {isSectionSaving ? (
+            <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+          ) : (
+            <Checkbox
+              checked={menuPermissions[item.id] ?? false}
+              onCheckedChange={(checked) =>
+                handlePermissionChange(item.id, checked === true)
+              }
+              disabled={disabled}
+            />
+          )}
+          {item.icon && (
+            <IconRenderer
+              name={item.icon}
+              className="size-4 shrink-0 text-muted-foreground"
+            />
+          )}
+          <span className="truncate text-sm font-medium">{item.name}</span>
+        </label>
+      );
+    }
+
+    // Menu with a single child: one line, checkbox controls parent + child.
+    if (children.length === 1) {
+      const child = children[0];
+      const checked =
+        (menuPermissions[item.id] ?? false) &&
+        (menuPermissions[child.id] ?? false);
+
+      return (
+        <label
+          key={item.id}
+          className={cn(
+            "flex cursor-pointer items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-muted/50",
+            checked && "border-primary/40 bg-primary/[0.06]"
+          )}
+        >
+          {isSectionSaving ? (
+            <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+          ) : (
+            <Checkbox
+              checked={checked}
+              onCheckedChange={(checked) =>
+                handleSectionChange(item, checked === true)
+              }
+              disabled={disabled}
+            />
+          )}
+          {item.icon && (
+            <IconRenderer
+              name={item.icon}
+              className="size-4 shrink-0 text-muted-foreground"
+            />
+          )}
+          <span className="truncate text-sm font-medium">{item.name}</span>
+        </label>
+      );
+    }
+
+    // Section with children: parent checkbox + grid of child checkboxes.
+    const checkedCount = children.filter((c) => menuPermissions[c.id]).length;
+    const allChecked = checkedCount === children.length;
+    const someChecked = checkedCount > 0 && !allChecked;
 
     return (
-      <div key={item.id} className="w-full">
-        <div
-          className={`flex items-center justify-between py-2 px-2 sm:px-3 md:px-4 hover:bg-muted/50 rounded-md ${
-            depth > 0 ? "ml-3 sm:ml-4 md:ml-6" : ""
-          }`}
-        >
-          <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
-            {hasChildren ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5 flex-shrink-0"
-                onClick={() => toggleMenuExpand(item.id)}
-              >
-                {isExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </Button>
+      <div
+        key={item.id}
+        className={cn(
+          "overflow-hidden rounded-lg border bg-card transition-colors",
+          allChecked && "border-primary/40"
+        )}
+      >
+        <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2.5">
+          <label className="flex min-w-0 cursor-pointer items-center gap-2.5">
+            {isSectionSaving ? (
+              <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
             ) : (
-              <div className="w-5 flex-shrink-0" />
-            )}
-            <div className="flex items-center gap-2">
-              {item.icon && (
-                <IconRenderer
-                  name={item.icon}
-                  className="h-4 w-4 text-muted-foreground"
-                />
-              )}
-              <span className="text-sm font-medium truncate">{item.name}</span>
-            </div>
-          </div>
-          <div className="flex items-center ml-1 sm:ml-2 flex-shrink-0">
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Switch
-                checked={menuPermissions[item.id] ?? false}
-                onCheckedChange={(checked) =>
-                  handlePermissionChange(item.id, checked)
+              <Checkbox
+                checked={
+                  someChecked ? "indeterminate" : allChecked ? true : false
                 }
-                disabled={!selectedRoleId || loading}
+                onCheckedChange={(checked) =>
+                  handleSectionChange(item, checked === true)
+                }
+                disabled={disabled}
               />
             )}
-          </div>
+            {item.icon && (
+              <IconRenderer
+                name={item.icon}
+                className="size-4 shrink-0 text-muted-foreground"
+              />
+            )}
+            <span className="truncate text-sm font-semibold">{item.name}</span>
+          </label>
+          <Badge
+            variant={allChecked ? "default" : "secondary"}
+            className="shrink-0 tabular-nums"
+          >
+            {checkedCount}/{children.length}
+          </Badge>
         </div>
 
-        {hasChildren && isExpanded && (
-          <div className="border-l ml-2 sm:ml-3 pl-1 sm:pl-2 mt-1">
-            {item.children.map((child) => renderMenuItem(child, depth + 1))}
-          </div>
-        )}
+        <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-3 xl:grid-cols-5">
+          {children.map((child) => (
+            <label
+              key={child.id}
+              className={cn(
+                "flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-2 text-sm transition-colors hover:bg-muted/50",
+                menuPermissions[child.id]
+                  ? "border-primary/40 bg-primary/[0.06]"
+                  : "bg-background"
+              )}
+            >
+              <Checkbox
+                checked={menuPermissions[child.id] ?? false}
+                onCheckedChange={(checked) =>
+                  handlePermissionChange(child.id, checked === true)
+                }
+                disabled={disabled}
+              />
+              <span className="truncate">{child.name}</span>
+            </label>
+          ))}
+        </div>
       </div>
     );
   };
@@ -302,96 +403,102 @@ export default function RoleMenuPermissions() {
       ? "Search admin menus..."
       : "Search user menus...";
     const noResultsMessage = searchTerm
-      ? `No ${panelName.toLowerCase()} menus match your search`
+      ? `No ${panelName.toLowerCase()} menus match "${searchTerm}"`
       : `No ${panelName.toLowerCase()} menus available`;
 
+    // Single-line cards flow into a grid; multi-child sections span the
+    // full width so their child grids get room.
+    const singles = menus.filter((m) => (m.children?.length ?? 0) <= 1);
+    const sections = menus.filter((m) => (m.children?.length ?? 0) > 1);
+
     return (
-      <div className="border rounded-sm md:p-6 p-2">
-        <div className="bg-muted py-2 sm:py-3 px-2 sm:px-4 flex flex-col sm:flex-row sm:items-center sm:justify-between sticky top-0 z-10 gap-2 sm:gap-0">
-          <div className="flex items-center">
-            <span className="font-medium mr-2 sm:mr-4 text-sm sm:text-base">
-              {panelName} Menu
-            </span>
-            <div className="relative ml-2 sm:ml-4 flex-1 sm:flex-none">
-              <Search className="h-3 w-3 sm:h-4 sm:w-4 absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder={searchPlaceholder}
-                className="pl-6 sm:pl-8 h-7 sm:h-8 rounded-md border border-input bg-background px-2 sm:px-3 py-1 text-xs sm:text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 w-full sm:w-auto"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+      <section className="overflow-hidden rounded-xl border bg-background">
+        <div className="flex flex-col gap-3 border-b bg-muted/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="text-sm font-semibold">{panelName} Menus</span>
+            <Badge variant="outline" className="shrink-0 tabular-nums">
+              {menus.length} {menus.length === 1 ? "menu" : "menus"}
+            </Badge>
           </div>
-          <div className="flex items-center justify-between sm:justify-normal gap-1 sm:gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleExpandAll(true)}
-              className="text-xs h-7 sm:h-8 px-2 sm:px-3"
-            >
-              Expand All
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleExpandAll(false)}
-              className="text-xs h-7 sm:h-8 px-2 sm:px-3"
-            >
-              Collapse All
-            </Button>
-            <span className="font-medium ml-2 sm:ml-4 text-sm sm:text-base">
-              Can View
-            </span>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder={searchPlaceholder}
+              className="h-8 pl-8 text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </div>
-        <div className="">
-          {menus.length > 0 ? (
-            <div className="p-1 sm:p-2">
-              {menus.map((item) => renderMenuItem(item))}
-            </div>
-          ) : (
-            <div className="py-6 sm:py-8 text-center text-muted-foreground text-sm sm:text-base">
-              {noResultsMessage}
-            </div>
-          )}
-        </div>
-      </div>
+
+        {menus.length > 0 ? (
+          <div className="space-y-4 p-3 sm:p-4">
+            {singles.length > 0 && (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                {singles.map((item) => renderMenuCard(item))}
+              </div>
+            )}
+            {sections.map((item) => renderMenuCard(item))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
+            <SearchX className="size-8" strokeWidth={1.5} />
+            <p className="text-sm">{noResultsMessage}</p>
+          </div>
+        )}
+      </section>
     );
   };
 
   return (
-    <div className="w-full md:p-6 p-2">
+    <div className="w-full p-2 md:p-6">
       <PageHeader
         title="Menu Permissions"
-        description=" Assign menu permissions to different roles. Select a role and toggle
-          menu visibility."
+        description="Assign menu permissions to different roles. Select a role and check menu visibility."
       />
 
-      <div className="mb-4 sm:mb-6">
-        <label className="text-sm font-medium mb-1 sm:mb-2 block">
-          Select Role
-        </label>
-        <Select
-          value={selectedRoleId}
-          onValueChange={setSelectedRoleId}
-          disabled={roles.length === 0}
-        >
-          <SelectTrigger className="w-full max-w-xs">
-            <SelectValue placeholder="Select a role" />
-          </SelectTrigger>
-          <SelectContent>
-            {roles?.map((role) => (
-              <SelectItem key={role.id} value={role.id.toString()}>
-                {capitalizeFirstLetter(role.rolename)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="mb-6 flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <label className="text-sm font-medium">Select Role</label>
+          <Select
+            value={selectedRoleId}
+            onValueChange={setSelectedRoleId}
+            disabled={roles.length === 0}
+          >
+            <SelectTrigger className="w-full sm:w-56">
+              <SelectValue placeholder="Select a role" />
+            </SelectTrigger>
+            <SelectContent>
+              {roles?.map((role) => (
+                <SelectItem key={role.id} value={role.id.toString()}>
+                  {capitalizeFirstLetter(role.rolename)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedRole && (
+            <Badge variant="secondary" className="w-fit capitalize">
+              {selectedRole.rolename}
+            </Badge>
+          )}
+        </div>
+
+        {selectedRoleId && !loading && totalCount > 0 && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <ShieldCheck className="size-4 text-primary" />
+            <span className="tabular-nums">
+              <span className="font-semibold text-foreground">
+                {grantedCount}
+              </span>
+              /{totalCount} menus granted
+            </span>
+          </div>
+        )}
       </div>
 
       {loading ? (
-        <LoadingIndicator message=" Loading Menu Permissions..." />
+        <LoadingIndicator message="Loading Menu Permissions..." />
       ) : (
         <div className="space-y-6">
           {selectedRoleId && (
@@ -405,8 +512,17 @@ export default function RoleMenuPermissions() {
           )}
 
           {!selectedRoleId && (
-            <div className="border rounded-md p-6 text-center text-muted-foreground">
-              Please select a role to view and manage permissions
+            <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
+              <ShieldCheck
+                className="size-10 text-muted-foreground/50"
+                strokeWidth={1.5}
+              />
+              <div>
+                <p className="font-medium">No role selected</p>
+                <p className="text-sm text-muted-foreground">
+                  Select a role above to view and manage its menu permissions
+                </p>
+              </div>
             </div>
           )}
         </div>

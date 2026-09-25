@@ -2,6 +2,7 @@
 
 import type React from "react";
 
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { formatDateTime } from "@/lib/utils";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { Recipe } from "@/utils/types";
@@ -79,6 +81,20 @@ export function RecipeList({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
   const [totalPages, setTotalPages] = useState(1);
+
+  const { togglingId, toggleActive } = useActiveStatusToggle<Recipe>({
+    getId: (recipe) => recipe.id,
+    getName: (recipe) => recipe.title,
+    getStatus: (recipe) => recipe.isPublished,
+    buildEndpoint: (id) => `recipes/${id}`,
+    buildBody: (isPublished) => ({ isPublished }),
+    statusLabels: { on: "published", off: "draft" },
+    setStatusLocally: (id, isPublished) =>
+      setRecipes((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, isPublished } : r))
+      ),
+    errorLabel: "recipe status",
+  });
 
   const updateUrl = useCallback(() => {
     const params = new URLSearchParams();
@@ -265,9 +281,10 @@ export function RecipeList({
             <TableHead>Image</TableHead>
             <TableHead>Title</TableHead>
             <TableHead>Category</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
+
             <TableHead className="hidden md:table-cell">Created By</TableHead>
             <TableHead className="hidden md:table-cell">Created At</TableHead>
+            <TableHead className="hidden md:table-cell">Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -287,16 +304,21 @@ export function RecipeList({
               </TableCell>
               <TableCell className="font-medium">{recipe.title}</TableCell>
               <TableCell>{recipe.category?.name || "Uncategorized"}</TableCell>
-              <TableCell className="hidden md:table-cell">
-                <Badge variant={recipe.isPublished ? "default" : "secondary"}>
-                  {recipe.isPublished ? "Published" : "Draft"}
-                </Badge>
-              </TableCell>
+
               <TableCell className="hidden md:table-cell">
                 {recipe.createdBy?.name || "Unknown"}
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 {formatDateTime(recipe.createdAt)}
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                <ActiveStatusToggle
+                  isActive={recipe.isPublished}
+                  disabled={togglingId === recipe.id}
+                  onToggle={() => toggleActive(recipe)}
+                  label={recipe.title}
+                  labels={{ on: "Published", off: "Draft" }}
+                />
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
@@ -393,11 +415,10 @@ export function RecipeList({
                             setStatusFilter("all");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            statusFilter === "all"
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                          className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all"
+                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
                         >
                           All
                         </button>
@@ -406,11 +427,10 @@ export function RecipeList({
                             setStatusFilter("published");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "published"
-                              ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "published"
+                            ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-green-500" />
                           Published
@@ -420,11 +440,10 @@ export function RecipeList({
                             setStatusFilter("draft");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "draft"
-                              ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/30 dark:border-yellow-800 text-yellow-600 dark:text-yellow-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "draft"
+                            ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/30 dark:border-yellow-800 text-yellow-600 dark:text-yellow-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-yellow-500" />
                           Draft
@@ -443,11 +462,10 @@ export function RecipeList({
                             setCategoryFilter("all");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            categoryFilter === "all"
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                          className={`text-xs py-1.5 px-2 rounded-md border ${categoryFilter === "all"
+                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
                         >
                           All Categories
                         </button>

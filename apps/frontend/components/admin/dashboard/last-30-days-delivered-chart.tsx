@@ -97,31 +97,35 @@ export default function Last30DaysDeliveredChart({
 
   const chartMargin = { top: 10, right: 6, left: 0, bottom: 0 };
 
-  // Underline-style text tabs, like the reference design
+  // Segmented pill tabs: gray track, white active pill
   const tabListClassName =
-    "bg-transparent dark:bg-transparent h-auto w-full max-w-md justify-start gap-4 rounded-none border-b border-gray-100 p-0 dark:border-gray-800";
+    "bg-gray-100 dark:bg-gray-800 h-9 w-full sm:w-auto rounded-lg p-[3px] overflow-x-auto";
   const tabTriggerClassName =
-    "bg-transparent rounded-none border-0 border-b-2 border-transparent px-0 pb-2 text-sm font-normal text-gray-400 shadow-none transition-colors data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:shadow-none data-[state=active]:border-gray-900 dark:text-gray-500 dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-white dark:data-[state=active]:border-white";
+    "h-full rounded-md border-0 px-3 text-sm font-medium text-gray-500 dark:text-gray-400 shadow-none data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm dark:data-[state=active]:bg-gray-700 dark:data-[state=active]:text-white";
 
   return (
     <Card className="w-full shadow-sm overflow-hidden">
       <Tabs defaultValue="overview" className="w-full">
         <CardHeader>
-          <CardTitle className="text-xl sm:text-2xl font-bold">Last 30 Days</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">
-            Daily order count and revenue trends
-          </CardDescription>
-          <TabsList className={tabListClassName}>
-            <TabsTrigger value="overview" className={tabTriggerClassName}>
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="orders" className={tabTriggerClassName}>
-              Orders
-            </TabsTrigger>
-            <TabsTrigger value="sales" className={tabTriggerClassName}>
-              Sales
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div className="flex-1">
+              <CardTitle className="text-xl sm:text-2xl font-bold">Last 30 Days</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                Daily order count and revenue trends
+              </CardDescription>
+            </div>
+            <TabsList className={tabListClassName}>
+              <TabsTrigger value="overview" className={tabTriggerClassName}>
+                Combined
+              </TabsTrigger>
+              <TabsTrigger value="orders" className={tabTriggerClassName}>
+                Orders
+              </TabsTrigger>
+              <TabsTrigger value="sales" className={tabTriggerClassName}>
+                Sales
+              </TabsTrigger>
+            </TabsList>
+          </div>
         </CardHeader>
 
         <CardContent>

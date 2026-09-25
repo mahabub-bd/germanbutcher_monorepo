@@ -1,5 +1,6 @@
 "use client";
 
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/utils";
 
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { deleteData, fetchData } from "@/utils/api-utils";
 import type { PaymentMethod } from "@/utils/types";
 import { CreditCard, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
@@ -34,6 +36,17 @@ export function PaymentMethodList() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<PaymentMethod | null>(null);
+
+  const { togglingId, toggleActive } = useActiveStatusToggle<PaymentMethod>({
+    getId: (method) => method.id,
+    getName: (method) => method.name,
+    buildEndpoint: (id) => `order-payment-methods/${id}`,
+    setStatusLocally: (id, isActive) =>
+      setPaymentMethods((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, isActive } : m))
+      ),
+    errorLabel: "payment method status",
+  });
 
   const fetchPaymentMethods = async () => {
     setIsLoading(true);
@@ -95,9 +108,10 @@ export function PaymentMethodList() {
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Code</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
+
             <TableHead className="hidden md:table-cell">Description</TableHead>
             <TableHead className="hidden md:table-cell">Created</TableHead>
+            <TableHead className="hidden md:table-cell">Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -110,16 +124,20 @@ export function PaymentMethodList() {
                   {method.code}
                 </Badge>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <Badge variant={method.isActive ? "default" : "secondary"}>
-                  {method.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </TableCell>
+
               <TableCell className="hidden md:table-cell max-w-[200px] truncate">
                 {method.description}
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 {formatDateTime(method.createdAt)}
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                <ActiveStatusToggle
+                  isActive={method.isActive}
+                  disabled={togglingId === method.id}
+                  onToggle={() => toggleActive(method)}
+                  label={method.name}
+                />
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
