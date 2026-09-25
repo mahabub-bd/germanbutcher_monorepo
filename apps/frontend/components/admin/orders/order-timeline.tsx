@@ -107,7 +107,7 @@ const TimelineItemComponent = memo<TimelineItemProps>(
 
         <TimelineContent>
           <div
-            className={`ml-1.5 rounded-lg border px-3 py-2.5 transition-colors ${
+            className={`ml-1.5 rounded-lg border px-3 py-2 transition-colors ${
               isCurrent
                 ? "border-primary/25 bg-primary/[0.045] shadow-sm"
                 : item.isActive
@@ -212,16 +212,13 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
   return (
     <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       {/* Header */}
-      <div className="flex items-center justify-between border-b bg-gradient-to-r from-primary/[0.07] via-primary/[0.02] to-transparent px-4 py-3">
-        <div>
-          <h3 className="flex items-center gap-2 text-base font-semibold">
-            <span className="rounded-md bg-primary/10 p-1 text-primary">
-              <Clock className="h-3.5 w-3.5" />
-            </span>
+      <div className="flex items-center justify-between gap-2 border-b bg-gradient-to-r from-primary/[0.07] via-primary/[0.02] to-transparent px-4 py-2.5">
+        <h3 className="flex items-center gap-2 text-base font-semibold">
+          <span className="rounded-md bg-primary/10 p-1 text-primary">
+            <Clock className="h-3.5 w-3.5" />
+          </span>
           Order Timeline
-          </h3>
-          <p className="mt-1 text-xs text-muted-foreground">Track each stage of this order.</p>
-        </div>
+        </h3>
 
         {hasData && (
           <Badge variant="outline" className="h-6 rounded-full px-2.5 text-[10px] font-medium">
@@ -231,7 +228,7 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
       </div>
 
       {/* Content */}
-      <div className="min-h-[110px] p-4">
+      <div className="min-h-[80px] p-3">
         {hasData ? (
           <Timeline className="space-y-2">
             {timelineItems.map((item, index) => (

@@ -10,6 +10,8 @@ interface ActiveStatusToggleProps {
   onToggle: () => void;
   /** Item name for the accessible label and title. */
   label: string;
+  /** On/off text next to the switch. Default: Active/Inactive. */
+  labels?: { on: string; off: string };
   className?: string;
 }
 
@@ -22,6 +24,7 @@ export function ActiveStatusToggle({
   disabled,
   onToggle,
   label,
+  labels = { on: "Active", off: "Inactive" },
   className,
 }: ActiveStatusToggleProps) {
   return (
@@ -34,7 +37,18 @@ export function ActiveStatusToggle({
         title={`Toggle ${label} active status`}
         className="data-[state=checked]:bg-green-700 data-[state=unchecked]:bg-red-700"
       />
-
+      <span
+        className={cn(
+          "text-xs font-medium",
+          disabled
+            ? "text-muted-foreground"
+            : isActive
+              ? "text-green-700 dark:text-green-400"
+              : "text-red-700 dark:text-red-400"
+        )}
+      >
+        {disabled ? "..." : isActive ? labels.on : labels.off}
+      </span>
     </div>
   );
 }

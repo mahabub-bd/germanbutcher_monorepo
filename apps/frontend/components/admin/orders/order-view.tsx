@@ -13,7 +13,7 @@ import type { Order } from "@/utils/types";
 import { pdf } from "@react-pdf/renderer";
 import { useState } from "react";
 import { OrderPDFDocument } from "./order-pdf-document";
-import { ThermalPrint } from "./thermal-print";
+import { printThermalInvoice } from "./thermal-print";
 
 interface OrderViewProps {
   order: Order;
@@ -57,10 +57,11 @@ export default function OrderView({
   };
 
   return (
-    <div className="container mx-auto py-4 space-y-6">
+    <div className="container mx-auto py-3 space-y-4">
       <OrderActions
         order={currentOrder}
         onGeneratePDF={handleGeneratePDF}
+        onThermalPrint={() => printThermalInvoice(currentOrder)}
         onBack={onBack}
         onPrevOrder={onPrevOrder}
         onNextOrder={onNextOrder}
@@ -69,11 +70,6 @@ export default function OrderView({
         onEditSuccess={handleRefreshOrder}
         onPaymentSuccess={handleRefreshOrder}
       />
-
-      {/* Thermal Print Button - Separate Component */}
-      <div className="flex justify-end">
-        <ThermalPrint order={currentOrder} />
-      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2 space-y-4">

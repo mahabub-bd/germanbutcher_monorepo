@@ -23,7 +23,7 @@ export function OrderItems({ items }: OrderItemsProps) {
         </h3>
       </div>
 
-      <div className="p-3 space-y-2">
+      <div className="p-2.5 space-y-2">
         {items.map((item: OrderItem) => {
           const unitPrice =
             Number(item.unitPrice) || Number(item.product.sellingPrice) || 0;
@@ -34,9 +34,9 @@ export function OrderItems({ items }: OrderItemsProps) {
           return (
             <div
               key={item.id}
-              className="group flex items-center gap-3 p-2.5 rounded-lg border bg-card hover:border-primary/30 transition-colors"
+              className="group flex items-center gap-3 p-2 rounded-lg border bg-card hover:border-primary/30 transition-colors"
             >
-              <div className="relative size-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+              <div className="relative size-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                 <Image
                   src={item.product.attachment?.url || "/placeholder.svg"}
                   alt={item.product.name}
