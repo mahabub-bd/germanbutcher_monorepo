@@ -1,5 +1,6 @@
 "use client";
 
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { Category } from "@/utils/types";
 import {
@@ -74,6 +76,17 @@ export function CategoryList({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
   const [totalPages, setTotalPages] = useState(1);
+
+  const { togglingId, toggleActive } = useActiveStatusToggle<Category>({
+    getId: (category) => category.id,
+    getName: (category) => category.name,
+    buildEndpoint: (id) => `categories/${id}`,
+    setStatusLocally: (id, isActive) =>
+      setCategories((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, isActive } : c))
+      ),
+    errorLabel: "category status",
+  });
 
   const updateUrl = useCallback(() => {
     const params = new URLSearchParams();
@@ -258,13 +271,14 @@ export function CategoryList({
               Category Type
             </TableHead>
             <TableHead className="hidden md:table-cell">Parent</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
+
             <TableHead className="hidden md:table-cell text-center">
               Display Order
             </TableHead>
             <TableHead className="hidden md:table-cell text-center">
               Products
             </TableHead>
+            <TableHead className="hidden md:table-cell">Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -297,16 +311,20 @@ export function CategoryList({
                 {category?.parent === null ? "None" : category?.parent?.name}
               </TableCell>
 
-              <TableCell className="hidden md:table-cell">
-                <Badge variant={category.isActive ? "default" : "destructive"}>
-                  {category.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </TableCell>
+
               <TableCell className="hidden md:table-cell text-center">
                 {category.order}
               </TableCell>
               <TableCell className="hidden md:table-cell text-center">
                 {category.products?.length || 0}
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                <ActiveStatusToggle
+                  isActive={category.isActive}
+                  disabled={togglingId === category.id}
+                  onToggle={() => toggleActive(category)}
+                  label={category.name}
+                />
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
@@ -403,11 +421,10 @@ export function CategoryList({
                             setStatusFilter("all");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            statusFilter === "all"
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                          className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all"
+                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
                         >
                           All
                         </button>
@@ -416,11 +433,10 @@ export function CategoryList({
                             setStatusFilter("active");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "active"
-                              ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "active"
+                            ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-green-500" />
                           Active
@@ -430,11 +446,10 @@ export function CategoryList({
                             setStatusFilter("inactive");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "inactive"
-                              ? "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "inactive"
+                            ? "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-red-500" />
                           Inactive

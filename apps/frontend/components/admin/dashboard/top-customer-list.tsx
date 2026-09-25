@@ -149,6 +149,7 @@ export function TopCustomersList() {
                 <SelectItem value="10">Top 10</SelectItem>
                 <SelectItem value="20">Top 20</SelectItem>
                 <SelectItem value="50">Top 50</SelectItem>
+                <SelectItem value="100">Top 100</SelectItem>
               </SelectContent>
             </Select>
 
