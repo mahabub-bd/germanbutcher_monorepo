@@ -1,5 +1,6 @@
-import { Switch } from "@radix-ui/react-switch";
 import { Info } from "lucide-react";
+
+import { Switch } from "@/components/ui/switch";
 
 // Helper Components
 const Section = ({
@@ -36,13 +37,17 @@ const SwitchCard = ({
   description,
   checked,
   onCheckedChange,
+  className,
 }: {
   label: string;
   description: string;
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
+  className?: string;
 }) => (
-  <div className="flex items-center justify-between rounded-lg border p-4">
+  <div
+    className={`flex items-center justify-between rounded-lg border p-4 ${className || ""}`}
+  >
     <div className="space-y-0.5">
       <p className="text-base font-medium">{label}</p>
       <p className="text-sm text-muted-foreground">{description}</p>

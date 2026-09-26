@@ -35,7 +35,7 @@ export function ActiveStatusToggle({
         onCheckedChange={onToggle}
         aria-label={`Toggle ${label} active status`}
         title={`Toggle ${label} active status`}
-        className="data-[state=checked]:bg-green-700 data-[state=unchecked]:bg-red-700"
+        className="data-[state=checked]:bg-green-700 data-[state=unchecked]:bg-red-700 cursor-pointer data-[state=checked]:hover:bg-green-800 data-[state=unchecked]:hover:bg-red-800"
       />
       <span
         className={cn(

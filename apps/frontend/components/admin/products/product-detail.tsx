@@ -1,34 +1,43 @@
 "use client";
 
-import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
-import { getDiscountedPrice, getDiscountLabel, hasActiveDiscount } from "@/utils/product-utils";
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
+import { getDiscountedPrice, hasActiveDiscount } from "@/utils/product-utils";
 import type { Product } from "@/utils/types";
 import {
   AlertTriangle,
   ArrowLeft,
-  Building,
+  Box,
+  Building2,
   Calendar,
+  Check,
   ChevronLeft,
   ChevronRight,
-  Clock,
-  Edit,
+  Copy,
   FileText,
   History,
-  Info,
+  ImagePlus,
   Layers,
   Mail,
   Maximize2,
   Package,
+  Pencil,
   Percent,
   Phone,
+  PieChart,
   Star,
+  Store,
   Tag,
+  Tags,
   Weight,
 } from "lucide-react";
 import Image from "next/image";
@@ -39,16 +48,107 @@ interface ProductDetailProps {
   product: Product;
 }
 
+/* ── Shared building blocks ─────────────────────────────────────────── */
+
+function SectionCard({
+  title,
+  icon,
+  editHref,
+  className = "",
+  bodyClassName = "",
+  children,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  editHref?: string;
+  className?: string;
+  bodyClassName?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`rounded-lg border bg-card shadow-sm ${className}`}>
+      <div className="flex items-center justify-between px-4 py-3 border-b">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          {icon && <span className="text-primary">{icon}</span>}
+          {title}
+        </h3>
+        {editHref && (
+          <Link
+            href={editHref}
+            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
+          >
+            <Pencil className="size-3" />
+            Edit
+          </Link>
+        )}
+      </div>
+      <div className={`p-4 ${bodyClassName}`}>{children}</div>
+    </div>
+  );
+}
+
+function StatusRow({
+  icon,
+  label,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span className="text-muted-foreground/70">{icon}</span>
+        {label}
+      </span>
+      <div className="text-sm font-medium text-right">{children}</div>
+    </div>
+  );
+}
+
+function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="space-y-0.5">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-medium">{value}</p>
+    </div>
+  );
+}
+
+function InfoLine({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <span className="flex items-center gap-2 text-muted-foreground">
+        {icon}
+        {label}
+      </span>
+      <span className="font-medium text-right">{value}</span>
+    </div>
+  );
+}
+
 export default function ProductDetail({ product }: ProductDetailProps) {
   const [mainImage, setMainImage] = useState<string | undefined>(
     product?.attachment?.url
   );
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   const allImages = [
     product?.attachment,
     ...(product.gallery?.attachments || []),
   ].filter((image): image is NonNullable<typeof image> => Boolean(image));
+
+  const editHref = `/admin/products/${product?.id}/edit`;
 
   const handleImageClick = (url: string | undefined, index: number) => {
     setMainImage(url);
@@ -68,9 +168,19 @@ export default function ProductDetail({ product }: ProductDetailProps) {
     setCurrentImageIndex(newIndex);
   };
 
+  const handleCopyId = async () => {
+    try {
+      await navigator.clipboard.writeText(String(product.id));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard unavailable — silently ignore
+    }
+  };
+
   const hasActive = hasActiveDiscount(product);
   const discountedPrice = getDiscountedPrice(product);
-  const discountLabel = getDiscountLabel(product);
+  const effectivePrice = hasActive ? discountedPrice : product.sellingPrice;
 
   // Calculate savings
   let savingsAmount = 0;
@@ -90,50 +200,83 @@ export default function ProductDetail({ product }: ProductDetailProps) {
     }
   }
 
+  const profitPerUnit = effectivePrice - product.purchasePrice;
+  const profitMargin =
+    product.purchasePrice > 0
+      ? Math.round((profitPerUnit / product.purchasePrice) * 100)
+      : 0;
+
   return (
-    <div className="container mx-auto px-4 py-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center text-sm text-muted-foreground">
+    <div className="px-4 py-4 space-y-4">
+      {/* ── Top bar ──────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" className="gap-1.5 -ml-2" asChild>
           <Link href="/admin/products/products-list">
-            <Button variant="ghost" size="sm" className="gap-1">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Products
-            </Button>
+            <ArrowLeft className="size-4" />
+            Back to Products
           </Link>
+        </Button>
 
-          <Separator orientation="vertical" className="mx-2 h-4" />
-          <span>{product.category?.name}</span>
-          <span className="mx-2">/</span>
-          <span>{product.brand?.name}</span>
-          <span className="mx-2">/</span>
-          <span className="font-medium text-foreground">{product.name}</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link href={`/admin/products/${product?.id}/edit`}>
-            <Button variant="default" size="sm" className="gap-1">
-              <Edit className="h-4 w-4" />
-              Edit
-            </Button>
+        <Button size="sm" asChild>
+          <Link href={editHref}>
+            <Pencil className="size-3.5" />
+            Edit Product
           </Link>
-        </div>
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Product Images Section */}
-        <div className="flex flex-col gap-4">
-          <div className="bg-white ">
-            <div className="relative aspect-3/2 overflow-hidden rounded-md border bg-background/50">
-              <div className="absolute inset-0 bg-background/5 backdrop-blur-[1px] z-0"></div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+        {/* ── Left column: gallery + status ────────────────────────── */}
+        <div className="lg:col-span-1 flex flex-col gap-4">
+          {/* Gallery */}
+          <div className="rounded-lg border bg-card shadow-sm p-3">
+            <div className="relative aspect-square overflow-hidden rounded-lg border bg-muted">
+              <Image
+                src={mainImage || FALLBACK_IMAGE}
+                alt={product.name}
+                fill
+                sizes="(max-width: 1024px) 100vw, 20rem"
+                className="object-cover"
+                priority
+              />
+
+              {hasActive && (
+                <Badge className="absolute top-2.5 left-2.5 bg-red-500 hover:bg-red-500 text-white shadow-sm">
+                  {product.discountType === "percentage"
+                    ? `${product.discountValue}% OFF`
+                    : `${formatCurrencyEnglish(savingsAmount)} OFF`}
+                </Badge>
+              )}
+
+              {allImages.length > 1 && (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-1/2 left-2 -translate-y-1/2 size-7 rounded-full bg-white/85 hover:bg-white text-gray-900 shadow-sm"
+                    onClick={handlePrevImage}
+                  >
+                    <ChevronLeft className="size-4" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-1/2 right-2 -translate-y-1/2 size-7 rounded-full bg-white/85 hover:bg-white text-gray-900 shadow-sm"
+                    onClick={handleNextImage}
+                  >
+                    <ChevronRight className="size-4" />
+                  </Button>
+                </>
+              )}
 
               <Dialog>
                 <DialogTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="icon"
-                    className="absolute top-2 right-2 z-10 bg-white/80 hover:bg-white"
+                    className="absolute bottom-2.5 right-2.5 size-7 rounded-full bg-white/85 hover:bg-white text-gray-900 shadow-sm"
                   >
-                    <Maximize2 className="h-4 w-4" />
+                    <Maximize2 className="size-3.5" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-4xl">
@@ -143,697 +286,732 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                       alt={product.name}
                       fill
                       sizes="(max-width: 768px) 100vw, 56rem"
-                      className="object-cover z-10"
+                      className="object-cover"
                       priority
                     />
                   </div>
-                  <div className="flex justify-center gap-2 mt-4">
-                    {allImages.map((image, index) => (
-                      <div
-                        key={image.id}
-                        className={`relative aspect-3/2 w-16 overflow-hidden rounded-md border cursor-pointer transition-all ${mainImage === image.url ? "border-primary" : ""
+                  {allImages.length > 1 && (
+                    <div className="flex justify-center gap-2">
+                      {allImages.map((image, index) => (
+                        <button
+                          key={image.id}
+                          className={`relative aspect-square w-14 overflow-hidden rounded-md border-2 cursor-pointer transition-all ${
+                            mainImage === image.url
+                              ? "border-primary"
+                              : "border-transparent opacity-70 hover:opacity-100"
                           }`}
-                        onClick={() => handleImageClick(image.url, index)}
-                      >
-                        <Image
-                          src={image.url || FALLBACK_IMAGE}
-                          alt={`${product.name} image ${index + 1}`}
-                          fill
-                          sizes="64px"
-                          className="object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
+                          onClick={() => handleImageClick(image.url, index)}
+                        >
+                          <Image
+                            src={image.url || FALLBACK_IMAGE}
+                            alt={`${product.name} image ${index + 1}`}
+                            fill
+                            sizes="56px"
+                            className="object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </DialogContent>
               </Dialog>
-
-              <Image
-                src={mainImage || FALLBACK_IMAGE}
-                alt={product.name}
-                fill
-                sizes="100vw"
-                className="object-cover z-10"
-                priority
-              />
-
-              {product.isFeatured && (
-                <Badge className="absolute top-2 left-2 z-10 bg-amber-500 text-white">
-                  <Star className="h-3 w-3 mr-1 fill-current" />
-                  Featured
-                </Badge>
-              )}
-
-              {hasActive && (
-                <Badge className="absolute bottom-2 left-2 z-10 bg-red-500 text-white">
-                  {product.discountType === "percentage" ? (
-                    <>{product.discountValue}% OFF</>
-                  ) : (
-                    <>SAVE {formatCurrencyEnglish(savingsAmount)}</>
-                  )}
-                </Badge>
-              )}
-
-              <Button
-                variant="outline"
-                size="icon"
-                className="absolute top-1/2 left-2 z-10 transform -translate-y-1/2 bg-white/80 hover:bg-white"
-                onClick={handlePrevImage}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-
-              <Button
-                variant="outline"
-                size="icon"
-                className="absolute top-1/2 right-2 z-10 transform -translate-y-1/2 bg-white/80 hover:bg-white"
-                onClick={handleNextImage}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
             </div>
 
-            <div className="grid grid-cols-5 gap-2 mt-4">
-              <div
-                className={`relative aspect-3/2 overflow-hidden rounded-md border cursor-pointer transition-all ${mainImage === product?.attachment?.url
-                  ? "border-primary"
-                  : ""
+            {/* Thumbnails */}
+            <div
+              className="grid mt-3 gap-2"
+              style={{
+                gridTemplateColumns: `repeat(${Math.min(
+                  allImages.length + 1,
+                  4
+                )}, minmax(0, 1fr))`,
+              }}
+            >
+              {allImages.map((image, index) => (
+                <button
+                  key={image.id}
+                  className={`relative aspect-square overflow-hidden rounded-md border-2 cursor-pointer transition-all ${
+                    mainImage === image.url
+                      ? "border-primary"
+                      : "border-border opacity-75 hover:opacity-100"
                   }`}
-                onClick={() => handleImageClick(product?.attachment?.url, 0)}
+                  onClick={() => handleImageClick(image.url, index)}
+                >
+                  <Image
+                    src={image.url || FALLBACK_IMAGE}
+                    alt={`${product.name} image ${index + 1}`}
+                    fill
+                    sizes="72px"
+                    className="object-cover"
+                  />
+                </button>
+              ))}
+              <Link
+                href={editHref}
+                className="aspect-square rounded-md border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors"
               >
-                <Image
-                  src={product?.attachment?.url || FALLBACK_IMAGE}
-                  alt={`${product.name} main image`}
-                  fill
-                  sizes="20vw"
-                  className="object-cover hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-
-              {product.gallery &&
-                product.gallery.attachments &&
-                product.gallery.attachments.map((image, index) => (
-                  <div
-                    key={image.id}
-                    className={`relative aspect-3/2 overflow-hidden rounded-md border cursor-pointer transition-all ${mainImage === image.url ? "border-primary" : ""
-                      }`}
-                    onClick={() => handleImageClick(image.url, index + 1)}
-                  >
-                    <Image
-                      src={image.url || FALLBACK_IMAGE}
-                      alt={`${product.name} gallery image`}
-                      fill
-                      sizes="20vw"
-                      className="object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                ))}
+                <ImagePlus className="size-4" />
+                <span className="text-[10px] font-medium">Add Image</span>
+              </Link>
             </div>
           </div>
 
-          <div className="bg-white p-3 rounded-lg border shadow-sm">
-            <h2 className="text-base font-semibold mb-2">Product Status</h2>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Status</span>
+          {/* Product Status */}
+          <SectionCard title="Product Status" editHref={editHref}>
+            <div className="space-y-3.5">
+              <StatusRow icon={<Check className="size-3.5" />} label="Status">
                 {product.isActive ? (
-                  <Badge
-                    variant="outline"
-                    className="bg-green-100 text-green-800 border-green-200"
-                  >
+                  <Badge className="bg-emerald-500 hover:bg-emerald-500 text-white">
                     Active
                   </Badge>
                 ) : (
-                  <Badge
-                    variant="outline"
-                    className="bg-red-100 text-red-800 border-red-200"
-                  >
+                  <Badge className="bg-red-500 hover:bg-red-500 text-white">
                     Inactive
                   </Badge>
                 )}
-              </div>
+              </StatusRow>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Featured</span>
+              <StatusRow icon={<Star className="size-3.5" />} label="Featured">
                 {product.isFeatured ? (
                   <Badge
                     variant="outline"
-                    className="bg-amber-100 text-amber-800 border-amber-200"
+                    className="bg-amber-50 text-amber-700 border-amber-200"
                   >
                     Yes
                   </Badge>
                 ) : (
-                  <Badge
-                    variant="outline"
-                    className="bg-gray-100 text-gray-800 border-gray-200"
-                  >
-                    No
-                  </Badge>
+                  <span className="text-muted-foreground font-normal">No</span>
                 )}
-              </div>
+              </StatusRow>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Stock</span>
+              <StatusRow icon={<Box className="size-3.5" />} label="Stock">
                 {product.stock > 0 ? (
                   <Badge
                     variant="outline"
-                    className="bg-blue-100 text-blue-800 border-blue-200"
+                    className="bg-blue-50 text-blue-700 border-blue-200"
                   >
                     {product.stock} Available
                   </Badge>
                 ) : (
                   <Badge
                     variant="outline"
-                    className="bg-red-100 text-red-800 border-red-200"
+                    className="bg-red-50 text-red-700 border-red-200"
                   >
                     Out of Stock
                   </Badge>
                 )}
-              </div>
+              </StatusRow>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">SKU</span>
-                <span className="font-medium">{product.productSku}</span>
-              </div>
+              <StatusRow icon={<Tag className="size-3.5" />} label="SKU">
+                <span className="font-mono text-xs">
+                  {product.productSku}
+                </span>
+              </StatusRow>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Created</span>
-                <span className="text-sm">
+              <StatusRow
+                icon={<Calendar className="size-3.5" />}
+                label="Created"
+              >
+                <span className="font-normal">
                   {formatDateTime(product.createdAt)}
                 </span>
-              </div>
+              </StatusRow>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  Last Updated
-                </span>
-                <span className="text-sm">
+              <StatusRow
+                icon={<History className="size-3.5" />}
+                label="Last Updated"
+              >
+                <span className="font-normal">
                   {formatDateTime(product.updatedAt)}
                 </span>
-              </div>
+              </StatusRow>
             </div>
-          </div>
+          </SectionCard>
         </div>
 
-        {/* Product Details Section */}
-        <div className="md:col-span-2 space-y-4">
-          <div className="bg-white p-3 rounded-lg border shadow-sm">
-            <h2 className="text-base font-semibold mb-2">Product Information</h2>
-            <div className="space-y-4">
-              <div>
-                <h1 className="text-xl font-bold">{product.name}</h1>
-                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                  <Badge variant="outline" className="flex items-center gap-1 text-xs px-2 py-0.5">
-                    <Tag className="h-2.5 w-2.5" />
-                    {product.productSku}
+        {/* ── Right column ─────────────────────────────────────────── */}
+        <div className="lg:col-span-3 space-y-4">
+          {/* Product Information */}
+          <div className="rounded-lg border bg-card shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold">Product Information</h3>
+                {product.isActive ? (
+                  <Badge className="bg-emerald-500 hover:bg-emerald-500 text-white">
+                    Active
                   </Badge>
-                  <Badge variant="outline" className="flex items-center gap-1 text-xs px-2 py-0.5">
-                    <Package className="h-2.5 w-2.5" />
-                    {product.unit.name}
+                ) : (
+                  <Badge className="bg-red-500 hover:bg-red-500 text-white">
+                    Inactive
+                  </Badge>
+                )}
+              </div>
+              <button
+                onClick={handleCopyId}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Product ID:{" "}
+                <span className="font-medium text-foreground">
+                  {product.id}
+                </span>
+                {copied ? (
+                  <Check className="size-3 text-emerald-500" />
+                ) : (
+                  <Copy className="size-3" />
+                )}
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Title + meta */}
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold leading-tight">
+                    {product.name}
+                  </h1>
+                  <Link
+                    href={editHref}
+                    className="p-1 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                  >
+                    <Pencil className="size-3.5" />
+                  </Link>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <Badge variant="outline" className="gap-1 font-normal">
+                    <Tag className="size-3 text-muted-foreground" />
+                    <span className="font-mono text-xs">
+                      {product.productSku}
+                    </span>
+                  </Badge>
+                  <Badge variant="outline" className="gap-1 font-normal">
+                    <Package className="size-3 text-muted-foreground" />
+                    {product.unit?.name}
                   </Badge>
                   {product.weight && (
-                    <Badge
-                      variant="outline"
-                      className="flex items-center gap-1 text-xs px-2 py-0.5"
-                    >
-                      <Weight className="h-2.5 w-2.5" />
+                    <Badge variant="outline" className="gap-1 font-normal">
+                      <Weight className="size-3 text-muted-foreground" />
                       {product.weight}g
                     </Badge>
                   )}
                 </div>
-              </div>
 
-              {/* Tags */}
-              {product.tags && product.tags.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 mt-3">
-                  {product.tags.map((tag) => (
-                    <Link
-                      key={tag}
-                      href={`/products?tags=${tag}`}
-                      className="flex items-center gap-1.5 border-2 border-red-200 bg-white text-primaryColor px-3 py-0.5 rounded-full text-sm font-medium hover:border-primaryColor hover:bg-red-50 hover:shadow-sm transition-all capitalize"
+                {/* Brand / Category chips */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+                  {product.brand && (
+                    <Badge
+                      variant="outline"
+                      className="gap-1 font-normal bg-muted/50"
                     >
-                      {tag}
-                    </Link>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex items-center gap-4">
-                <div className="flex items-center">
-                  {product.brand?.attachment && (
-                    <div className="relative h-8 w-8 overflow-hidden border mr-2">
-                      <Image
-                        src={product.brand.attachment.url || FALLBACK_IMAGE}
-                        alt={product.brand.name}
-                        fill
-                        sizes="32px"
-                        className="object-cover"
-                      />
-                    </div>
+                      <Store className="size-3 text-muted-foreground" />
+                      {product.brand.name}
+                    </Badge>
                   )}
-                  <span className="font-medium">{product.brand.name}</span>
-                </div>
-                <Separator orientation="vertical" className="h-6" />
-                <div className="flex items-center">
-                  {product.category?.attachment && (
-                    <div className="relative h-8 w-8 overflow-hidden border mr-2">
-                      <Image
-                        src={
-                          product.category.attachment.url || FALLBACK_IMAGE
-                        }
-                        alt={product.category.name}
-                        fill
-                        sizes="32px"
-                        className="object-cover"
-                      />
-                    </div>
+                  {product.category && (
+                    <Badge
+                      variant="outline"
+                      className="gap-1 font-normal bg-muted/50"
+                    >
+                      <Layers className="size-3 text-muted-foreground" />
+                      {product.category.name}
+                    </Badge>
                   )}
-                  <span>{product.category.name}</span>
+                  <Link
+                    href={editHref}
+                    className="inline-flex items-center gap-1 rounded-full border border-dashed px-2.5 py-0.5 text-xs font-medium text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors"
+                  >
+                    <Tags className="size-3" />
+                    {product.tags?.length
+                      ? `${product.tags.length} Tag${
+                          product.tags.length > 1 ? "s" : ""
+                        }`
+                      : "Add Tag"}
+                  </Link>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <Separator />
+
+              {/* Price grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                 <div>
-                  <p className="text-xs text-muted-foreground">Selling Price</p>
-                  <div className="flex items-baseline gap-2">
-                    {hasActive ? (
-                      <>
-                        <p className="text-lg font-bold text-primary">
-                          {formatCurrencyEnglish(discountedPrice)}
-                        </p>
-                        <p className="text-xs text-muted-foreground line-through">
-                          {formatCurrencyEnglish(product.sellingPrice)}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-lg font-bold text-primary">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      Selling Price
+                    </p>
+                    <Link
+                      href={editHref}
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Pencil className="size-3" />
+                    </Link>
+                  </div>
+                  <div className="flex items-baseline gap-2 mt-0.5">
+                    <span className="text-2xl font-bold text-primary">
+                      {formatCurrencyEnglish(effectivePrice)}
+                    </span>
+                    {hasActive && (
+                      <span className="text-sm text-muted-foreground line-through">
                         {formatCurrencyEnglish(product.sellingPrice)}
-                      </p>
+                      </span>
                     )}
                   </div>
-                </div>
 
-                <div>
-                  <p className="text-xs text-muted-foreground">
-                    Purchase Price
-                  </p>
-                  <p className="text-lg font-medium">
-                    {formatCurrencyEnglish(product.purchasePrice)}
-                  </p>
-                </div>
-
-                {hasActive && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Discount</p>
-                    <div className="flex items-center gap-1.5">
-                      {product.discountType === "fixed" ? (
-                        <>
-                          <Badge
-                            variant="outline"
-                            className="flex items-center gap-1 bg-red-50 text-red-600 border-red-200 text-xs px-2 py-0.5"
-                          >
-                            <Tag className="h-2.5 w-2.5" />
-                            {formatCurrencyEnglish(
-                              product.discountValue ?? 0
-                            )}{" "}
-                            OFF
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className="bg-red-50 text-red-600 border-red-200 text-xs px-2 py-0.5"
-                          >
-                            {savingsPercentage}% Savings
-                          </Badge>
-                        </>
-                      ) : (
-                        <>
-                          <Badge
-                            variant="outline"
-                            className="flex items-center gap-1 bg-red-50 text-red-600 border-red-200 text-xs px-2 py-0.5"
-                          >
-                            <Percent className="h-2.5 w-2.5" />
-                            {product.discountValue}% OFF
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className="bg-red-50 text-red-600 border-red-200 text-xs px-2 py-0.5"
-                          >
-                            Save {formatCurrencyEnglish(savingsAmount)}
-                          </Badge>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {hasActive &&
-                  product.discountStartDate &&
-                  product.discountEndDate && (
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        Discount Period
+                  {hasActive && (
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Discount
                       </p>
-                      <p className="text-sm font-medium flex items-center gap-1">
-                        <Calendar className="h-2.5 w-2.5 text-muted-foreground" />
-                        {formatDateTime(product.discountStartDate)} -{" "}
-                        {formatDateTime(product.discountEndDate)}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge className="bg-red-500 hover:bg-red-500 text-white gap-1">
+                          {product.discountType === "percentage" ? (
+                            <>
+                              <Percent className="size-3" />
+                              {product.discountValue}% OFF
+                            </>
+                          ) : (
+                            <>
+                              <Tag className="size-3" />
+                              {formatCurrencyEnglish(
+                                product.discountValue ?? 0
+                              )}{" "}
+                              OFF
+                            </>
+                          )}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className="bg-red-50 text-red-700 border-red-200"
+                        >
+                          Save {savingsPercentage}%
+                        </Badge>
+                      </div>
                     </div>
                   )}
+                </div>
+
+                <div className="sm:border-l sm:pl-6">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      Purchase Price
+                    </p>
+                    <Link
+                      href={editHref}
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Pencil className="size-3" />
+                    </Link>
+                  </div>
+                  <p className="text-2xl font-bold mt-0.5">
+                    {formatCurrencyEnglish(product.purchasePrice)}
+                  </p>
+
+                  {hasActive &&
+                    product.discountStartDate &&
+                    product.discountEndDate && (
+                      <div className="mt-2">
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Discount Period
+                        </p>
+                        <p className="text-xs font-medium flex items-center gap-1">
+                          <Calendar className="size-3 text-muted-foreground" />
+                          {formatDateTime(product.discountStartDate)} –{" "}
+                          {formatDateTime(product.discountEndDate)}
+                        </p>
+                      </div>
+                    )}
+                </div>
               </div>
 
+              <Separator />
+
+              {/* Short description */}
               <div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  Description
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Short Description
+                  </p>
+                  <Link
+                    href={editHref}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Pencil className="size-3" />
+                  </Link>
+                </div>
+                <p className="text-sm leading-relaxed text-foreground/90">
+                  {product.description || "No description yet."}
                 </p>
-                <p className="text-xs leading-relaxed">{product.description}</p>
               </div>
             </div>
           </div>
 
-          <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="details" className="flex items-center gap-1">
-                <Info className="h-4 w-4" />
-                Details
+          {/* ── Tabs ─────────────────────────────────────────────── */}
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="w-full justify-start gap-1 rounded-none bg-transparent border-b p-0 h-auto overflow-x-auto">
+              <TabsTrigger
+                value="overview"
+                className="gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 h-auto shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-primary dark:data-[state=active]:bg-transparent"
+              >
+                <PieChart className="size-4" />
+                Overview
               </TabsTrigger>
               <TabsTrigger
                 value="productDetails"
-                className="flex items-center gap-1"
+                className="gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 h-auto shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-primary dark:data-[state=active]:bg-transparent"
               >
-                <FileText className="h-4 w-4" />
+                <FileText className="size-4" />
                 Product Details
-              </TabsTrigger>
-              <TabsTrigger value="supplier" className="flex items-center gap-1">
-                <Building className="h-4 w-4" />
-                Supplier
-              </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center gap-1">
-                <History className="h-4 w-4" />
-                History
               </TabsTrigger>
               <TabsTrigger
                 value="inventory"
-                className="flex items-center gap-1"
+                className="gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 h-auto shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-primary dark:data-[state=active]:bg-transparent"
               >
-                <Layers className="h-4 w-4" />
+                <Layers className="size-4" />
                 Inventory
+              </TabsTrigger>
+              <TabsTrigger
+                value="supplier"
+                className="gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 h-auto shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-primary dark:data-[state=active]:bg-transparent"
+              >
+                <Building2 className="size-4" />
+                Supplier
+              </TabsTrigger>
+              <TabsTrigger
+                value="history"
+                className="gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 h-auto shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-primary dark:data-[state=active]:bg-transparent"
+              >
+                <History className="size-4" />
+                History
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="details" className="space-y-3 pt-2">
-              <div className="bg-white p-3 rounded-lg border shadow-sm">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">SKU</p>
-                    <p className="font-medium">{product.productSku}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Unit</p>
-                    <p className="font-medium">{product.unit.name}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      Purchase Price
-                    </p>
-                    <p className="font-medium">
-                      {formatCurrencyEnglish(product.purchasePrice)}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Weight</p>
-                    <p className="font-medium">{product.weight || "N/A"}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      Total Value (Sale Price)
-                    </p>
-                    <p className="font-medium">
-                      {formatCurrencyEnglish(
-                        hasActive
-                          ? discountedPrice * product.stock
-                          : product.sellingPrice * product.stock
-                      )}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      Total Value (Purchase Price)
-                    </p>
-                    <p className="font-medium">
-                      {formatCurrencyEnglish(
+            {/* ── Overview ─────────────────────────────────────── */}
+            <TabsContent value="overview" className="mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Pricing summary */}
+                <SectionCard title="Pricing" editHref={editHref}>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3.5">
+                    <DetailItem label="SKU" value={
+                      <span className="font-mono text-xs">
+                        {product.productSku}
+                      </span>
+                    } />
+                    <DetailItem label="Unit" value={product.unit?.name || "N/A"} />
+                    <DetailItem
+                      label="Purchase Price"
+                      value={formatCurrencyEnglish(product.purchasePrice)}
+                    />
+                    <DetailItem
+                      label="Weight"
+                      value={product.weight ? `${product.weight}g` : "N/A"}
+                    />
+                    <DetailItem
+                      label="Total Cost (Purchase)"
+                      value={formatCurrencyEnglish(
                         product.purchasePrice * product.stock
                       )}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      Profit Margin
-                    </p>
-                    <p className="font-medium">
-                      {Math.round(
-                        (((hasActive
-                          ? discountedPrice
-                          : product.sellingPrice) -
-                          product.purchasePrice) /
-                          product.purchasePrice) *
-                        100
+                    />
+                    <DetailItem
+                      label="Total Value (Sale)"
+                      value={formatCurrencyEnglish(
+                        effectivePrice * product.stock
                       )}
-                      %
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      Profit per Unit
-                    </p>
-                    <p className="font-medium">
-                      {formatCurrencyEnglish(
-                        (hasActive ? discountedPrice : product.sellingPrice) -
-                        product.purchasePrice
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tags Section */}
-              {product.tags && product.tags.length > 0 && (
-                <div className="bg-white p-3 rounded-lg border shadow-sm mt-3">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-                      <h3 className="text-sm font-semibold">Product Tags</h3>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {product.tags.map((tag) => (
-                        <Link
-                          key={tag}
-                          href={`/products?tags=${tag}`}
-                          className="inline-flex items-center gap-1 border-2 border-red-200 bg-white text-primaryColor px-2.5 py-0.5 rounded-full text-xs font-medium hover:border-primaryColor hover:bg-red-50 hover:shadow-sm transition-all capitalize"
+                    />
+                    <DetailItem
+                      label="Profit Margin"
+                      value={
+                        <span
+                          className={
+                            profitMargin >= 0
+                              ? "text-emerald-600"
+                              : "text-red-600"
+                          }
                         >
-                          {tag}
-                        </Link>
-                      ))}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">
-                      Click on a tag to view all products with this tag
-                    </p>
+                          {profitMargin}%
+                        </span>
+                      }
+                    />
+                    <DetailItem
+                      label="Profit per Unit"
+                      value={
+                        <span
+                          className={
+                            profitPerUnit >= 0
+                              ? "text-emerald-600"
+                              : "text-red-600"
+                          }
+                        >
+                          {formatCurrencyEnglish(profitPerUnit)}
+                        </span>
+                      }
+                    />
                   </div>
-                </div>
-              )}
+                </SectionCard>
+
+                {/* Category & Tags */}
+                <SectionCard title="Category & Tags" editHref={editHref}>
+                  <div className="space-y-4">
+                    {product.category && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1.5">
+                          Category
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className="gap-1 font-normal bg-muted/50"
+                        >
+                          <Layers className="size-3 text-muted-foreground" />
+                          {product.category.name}
+                        </Badge>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">
+                        Tags
+                      </p>
+                      {product.tags && product.tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {product.tags.map((tag) => (
+                            <Link
+                              key={tag}
+                              href={`/products?tags=${tag}`}
+                              className="inline-flex items-center bg-red-500 text-white px-2.5 py-0.5 rounded-full text-xs font-medium hover:bg-red-600 transition-colors capitalize"
+                            >
+                              {tag}
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No tags yet.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </SectionCard>
+
+                {/* Additional information */}
+                <SectionCard title="Additional Information" editHref={editHref}>
+                  <div className="space-y-3">
+                    {product.brand && (
+                      <InfoLine
+                        icon={<Store className="size-3.5" />}
+                        label="Brand"
+                        value={product.brand.name}
+                      />
+                    )}
+                    {product.category && (
+                      <InfoLine
+                        icon={<Layers className="size-3.5" />}
+                        label="Category"
+                        value={product.category.name}
+                      />
+                    )}
+                    <InfoLine
+                      icon={<Package className="size-3.5" />}
+                      label="Unit"
+                      value={product.unit?.name || "N/A"}
+                    />
+                    <InfoLine
+                      icon={<Weight className="size-3.5" />}
+                      label="Weight"
+                      value={product.weight ? `${product.weight}g` : "N/A"}
+                    />
+                    <InfoLine
+                      icon={<Box className="size-3.5" />}
+                      label="Total Sales"
+                      value={product.saleCount ?? 0}
+                    />
+                  </div>
+                </SectionCard>
+
+                {/* Description */}
+                <SectionCard title="Product Description" editHref={editHref}>
+                  {product.description ? (
+                    <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line">
+                      {product.description}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No description yet.
+                    </p>
+                  )}
+                </SectionCard>
+              </div>
             </TabsContent>
 
-            <TabsContent value="productDetails" className="pt-2">
-              <div className="bg-white p-3 rounded-lg border shadow-sm">
-                <h3 className="font-semibold text-base mb-3 flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Product Details
-                </h3>
+            {/* ── Product Details (rich text) ──────────────────── */}
+            <TabsContent value="productDetails" className="mt-4">
+              <SectionCard title="Product Details" editHref={editHref}>
                 {product.productDetails ? (
                   <div
                     className="prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: product.productDetails }}
                   />
                 ) : (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">No detailed product information available.</p>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="size-10 mx-auto mb-3 opacity-40" />
+                    <p className="text-sm font-medium">
+                      No detailed product information available.
+                    </p>
                     <p className="text-xs mt-1">
                       Add product details in the edit form to provide more
                       information about this product.
                     </p>
                   </div>
                 )}
-              </div>
+              </SectionCard>
             </TabsContent>
 
-            <TabsContent value="supplier" className="pt-2">
-              <div className="bg-white p-3 rounded-lg border shadow-sm">
-                <div className="flex items-center gap-3">
-                  {product.supplier?.attachment && (
-                    <div className="relative h-12 w-12 overflow-hidden rounded-lg border">
-                      <Image
-                        src={
-                          product.supplier.attachment.url || FALLBACK_IMAGE
-                        }
-                        alt={product.supplier.name}
-                        fill
-                        sizes="48px"
-                        className="object-cover"
-                      />
-                    </div>
-                  )}
+            {/* ── Inventory ────────────────────────────────────── */}
+            <TabsContent value="inventory" className="mt-4">
+              <SectionCard title="Inventory">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="rounded-lg border bg-muted/40 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Current Stock
+                    </p>
+                    <p className="text-xl font-bold mt-0.5">
+                      {product.stock}{" "}
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {product.unit?.name}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="rounded-lg border bg-muted/40 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Inventory Value (Purchase)
+                    </p>
+                    <p className="text-xl font-bold mt-0.5">
+                      {formatCurrencyEnglish(
+                        product.purchasePrice * product.stock
+                      )}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border bg-muted/40 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Retail Value (Sale)
+                    </p>
+                    <p className="text-xl font-bold mt-0.5">
+                      {formatCurrencyEnglish(effectivePrice * product.stock)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <AlertTriangle className="size-4 text-amber-500 shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="font-semibold text-base">
-                      {product.supplier.name}
-                    </h3>
-                    <div className="grid grid-cols-1 gap-1 mt-1.5">
-                      <p className="text-sm flex items-center gap-2">
-                        <Building className="h-4 w-4 text-muted-foreground" />
-                        {product.supplier.address}
-                      </p>
-                      <p className="text-sm flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        {product.supplier.email}
-                      </p>
-                      <p className="text-sm flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-muted-foreground" />
-                        {product.supplier.phone}
-                      </p>
-                    </div>
+                    <p className="text-sm font-medium text-amber-800">
+                      Low stock alert
+                    </p>
+                    <p className="text-xs text-amber-700">
+                      Get notified when stock falls below 3 units.
+                    </p>
                   </div>
                 </div>
-              </div>
+              </SectionCard>
             </TabsContent>
 
-            <TabsContent value="history" className="pt-2">
-              <div className="bg-white p-3 rounded-lg border shadow-sm">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Created by</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        {product.createdBy.profilePhoto && (
-                          <div className="relative h-6 w-6 overflow-hidden rounded-full border">
-                            <Image
-                              src={
-                                product.createdBy.profilePhoto.url ||
-                                FALLBACK_IMAGE ||
-                                FALLBACK_IMAGE
-                              }
-                              alt={product.createdBy.name}
-                              fill
-                              sizes="24px"
-                              className="object-cover"
-                            />
-                          </div>
-                        )}
-                        <p className="text-sm">{product.createdBy.name}</p>
+            {/* ── Supplier ─────────────────────────────────────── */}
+            <TabsContent value="supplier" className="mt-4">
+              <SectionCard title="Supplier">
+                {product.supplier ? (
+                  <div className="flex items-start gap-4">
+                    {product.supplier.attachment && (
+                      <div className="relative size-14 overflow-hidden rounded-lg border bg-muted shrink-0">
+                        <Image
+                          src={
+                            product.supplier.attachment.url || FALLBACK_IMAGE
+                          }
+                          alt={product.supplier.name}
+                          fill
+                          sizes="56px"
+                          className="object-cover"
+                        />
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">
-                        Created At
+                    )}
+                    <div className="min-w-0 space-y-2">
+                      <p className="font-semibold">
+                        {product.supplier.name}
                       </p>
-                      <p className="text-sm">
-                        {formatDateTime(product.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Last updated by</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        {product.updatedBy.profilePhoto && (
-                          <div className="relative h-6 w-6 overflow-hidden rounded-full border">
-                            <Image
-                              src={
-                                product.updatedBy.profilePhoto.url ||
-                                FALLBACK_IMAGE ||
-                                FALLBACK_IMAGE
-                              }
-                              alt={product.updatedBy.name}
-                              fill
-                              sizes="24px"
-                              className="object-cover"
-                            />
-                          </div>
-                        )}
-                        <p className="text-sm">{product.updatedBy.name}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">
-                        Updated At
-                      </p>
-                      <p className="text-sm">
-                        {formatDateTime(product.updatedAt)}
-                      </p>
+                      {product.supplier.address && (
+                        <p className="text-sm flex items-center gap-2 text-muted-foreground">
+                          <Building2 className="size-3.5 shrink-0" />
+                          {product.supplier.address}
+                        </p>
+                      )}
+                      {product.supplier.email && (
+                        <p className="text-sm flex items-center gap-2 text-muted-foreground">
+                          <Mail className="size-3.5 shrink-0" />
+                          {product.supplier.email}
+                        </p>
+                      )}
+                      {product.supplier.phone && (
+                        <p className="text-sm flex items-center gap-2 text-muted-foreground">
+                          <Phone className="size-3.5 shrink-0" />
+                          {product.supplier.phone}
+                        </p>
+                      )}
                     </div>
                   </div>
-
-                  <div className="pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full gap-1"
-                    >
-                      <Clock className="h-4 w-4" />
-                      View Full History
-                    </Button>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Building2 className="size-10 mx-auto mb-3 opacity-40" />
+                    <p className="text-sm">No supplier assigned.</p>
                   </div>
-                </div>
-              </div>
+                )}
+              </SectionCard>
             </TabsContent>
 
-            <TabsContent value="inventory" className="pt-2">
-              <div className="bg-white p-3 rounded-lg border shadow-sm">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Current Stock</p>
-                      <p className="text-xl font-bold mt-1">
-                        {product.stock} {product.unit.name}s
-                      </p>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">
-                        Low Stock Alert
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-500" />
-                        <p className="font-medium">When below 3 units</p>
+            {/* ── History ──────────────────────────────────────── */}
+            <TabsContent value="history" className="mt-4">
+              <SectionCard title="History">
+                <div className="space-y-4">
+                  {[
+                    {
+                      label: "Created by",
+                      name: product.createdBy?.name,
+                      photo: product.createdBy?.profilePhoto?.url,
+                      date: product.createdAt,
+                      dateLabel: "Created At",
+                    },
+                    {
+                      label: "Last updated by",
+                      name: product.updatedBy?.name,
+                      photo: product.updatedBy?.profilePhoto?.url,
+                      date: product.updatedAt,
+                      dateLabel: "Updated At",
+                    },
+                  ].map((entry, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="relative size-9 overflow-hidden rounded-full border bg-muted shrink-0">
+                        {entry.photo && (
+                          <Image
+                            src={entry.photo || FALLBACK_IMAGE}
+                            alt={entry.name || ""}
+                            fill
+                            sizes="36px"
+                            className="object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-muted-foreground">
+                          {entry.label}
+                        </p>
+                        <p className="text-sm font-medium truncate">
+                          {entry.name || "Unknown"}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs text-muted-foreground">
+                          {entry.dateLabel}
+                        </p>
+                        <p className="text-sm">{formatDateTime(entry.date)}</p>
                       </div>
                     </div>
-
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">
-                        Last Restocked
-                      </p>
-                      <p className="font-medium">2025-04-15</p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">
-                        Inventory Value
-                      </p>
-                      <p className="font-medium">
-                        {formatCurrencyEnglish(
-                          product.purchasePrice * product.stock
-                        )}
-                      </p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              </div>
+              </SectionCard>
             </TabsContent>
           </Tabs>
         </div>
