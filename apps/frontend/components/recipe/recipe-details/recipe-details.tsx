@@ -1,3 +1,4 @@
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatDateTime } from "@/lib/utils";
@@ -60,7 +61,7 @@ export default async function RecipeDetails({
         <div className="bg-white rounded-md shadow-sm overflow-hidden mb-8">
           <div className="relative h-[400px]">
             <Image
-              src={recipeData.attachment.url || "/placeholder.svg"}
+              src={recipeData.attachment?.url || "/placeholder.svg"}
               alt={recipeData.title}
               fill
               className="object-cover"

@@ -40,15 +40,17 @@ interface ProductDetailProps {
 }
 
 export default function ProductDetail({ product }: ProductDetailProps) {
-  const [mainImage, setMainImage] = useState(product.attachment.url);
+  const [mainImage, setMainImage] = useState<string | undefined>(
+    product?.attachment?.url
+  );
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const allImages = [
-    product.attachment,
+    product?.attachment,
     ...(product.gallery?.attachments || []),
-  ];
+  ].filter((image): image is NonNullable<typeof image> => Boolean(image));
 
-  const handleImageClick = (url: string, index: number) => {
+  const handleImageClick = (url: string | undefined, index: number) => {
     setMainImage(url);
     setCurrentImageIndex(index);
   };
@@ -100,9 +102,9 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           </Link>
 
           <Separator orientation="vertical" className="mx-2 h-4" />
-          <span>{product.category.name}</span>
+          <span>{product.category?.name}</span>
           <span className="mx-2">/</span>
-          <span>{product.brand.name}</span>
+          <span>{product.brand?.name}</span>
           <span className="mx-2">/</span>
           <span className="font-medium text-foreground">{product.name}</span>
         </div>
@@ -213,14 +215,14 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
             <div className="grid grid-cols-5 gap-2 mt-4">
               <div
-                className={`relative aspect-3/2 overflow-hidden rounded-md border cursor-pointer transition-all ${mainImage === product.attachment.url
+                className={`relative aspect-3/2 overflow-hidden rounded-md border cursor-pointer transition-all ${mainImage === product?.attachment?.url
                   ? "border-primary"
                   : ""
                   }`}
-                onClick={() => handleImageClick(product.attachment.url, 0)}
+                onClick={() => handleImageClick(product?.attachment?.url, 0)}
               >
                 <Image
-                  src={product.attachment.url || FALLBACK_IMAGE}
+                  src={product?.attachment?.url || FALLBACK_IMAGE}
                   alt={`${product.name} main image`}
                   fill
                   sizes="20vw"
@@ -378,7 +380,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
               <div className="flex items-center gap-4">
                 <div className="flex items-center">
-                  {product.brand.attachment && (
+                  {product.brand?.attachment && (
                     <div className="relative h-8 w-8 overflow-hidden border mr-2">
                       <Image
                         src={product.brand.attachment.url || FALLBACK_IMAGE}
@@ -393,7 +395,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 </div>
                 <Separator orientation="vertical" className="h-6" />
                 <div className="flex items-center">
-                  {product.category.attachment && (
+                  {product.category?.attachment && (
                     <div className="relative h-8 w-8 overflow-hidden border mr-2">
                       <Image
                         src={
@@ -668,7 +670,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             <TabsContent value="supplier" className="pt-2">
               <div className="bg-white p-3 rounded-lg border shadow-sm">
                 <div className="flex items-center gap-3">
-                  {product.supplier.attachment && (
+                  {product.supplier?.attachment && (
                     <div className="relative h-12 w-12 overflow-hidden rounded-lg border">
                       <Image
                         src={

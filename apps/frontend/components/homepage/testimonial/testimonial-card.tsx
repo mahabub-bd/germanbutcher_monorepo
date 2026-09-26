@@ -1,3 +1,4 @@
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { Testimonial } from "@/utils/types";
 import { Quote, Star } from "lucide-react";
 import Image from "next/image";
@@ -46,7 +47,7 @@ export function TestimonialCard({ testimonial }: TestimonialProps) {
             <div className="relative">
               <div className="w-16 h-16 rounded-full overflow-hidden mr-4 shadow-lg relative">
                 <Image
-                  src={testimonial.attachment.url || "/placeholder.svg"}
+                  src={testimonial.attachment?.url || "/placeholder.svg"}
                   alt={testimonial.name}
                   width={64}
                   height={64}
