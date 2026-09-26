@@ -1,6 +1,7 @@
 "use client";
 
 import { formatCurrencyEnglish } from "@/lib/utils";
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import {
   getDiscountedPrice,
   getStockStatus,
@@ -33,7 +34,7 @@ export function ProductSearchItem({
       {/* Image Container - 16:9 Aspect Ratio */}
       <div className="relative w-20 sm:w-28 md:w-32 aspect-video bg-gray-100 rounded-md sm:rounded-lg overflow-hidden shrink-0">
         <Image
-          src={product.attachment?.url || "/placeholder.svg"}
+          src={product.attachment?.url || FALLBACK_IMAGE}
           alt={product.name}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-300"

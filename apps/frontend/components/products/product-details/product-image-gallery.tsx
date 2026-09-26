@@ -1,5 +1,6 @@
 "use client";
 
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import type { Attachment, Product } from "@/utils/types";
 import { Leaf, Maximize2 } from "lucide-react";
 import Image from "next/image";
@@ -10,16 +11,20 @@ interface ProductImageGalleryProps {
 }
 
 export function ProductImageGallery({ product }: ProductImageGalleryProps) {
-  const [selectedImage, setSelectedImage] = useState(product?.attachment?.url);
+  const [selectedImage, setSelectedImage] = useState<string | undefined>(
+    product?.attachment?.url
+  );
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
   const [isMainImageLoading, setIsMainImageLoading] = useState(true);
   const [loadingThumbnails, setLoadingThumbnails] = useState<Set<string>>(
-    new Set([
-      product.attachment.url,
-      ...(product?.gallery?.attachments?.map((img: Attachment) => img.url) ||
-        []),
-    ])
+    new Set(
+      [
+        product?.attachment?.url,
+        ...(product?.gallery?.attachments?.map((img: Attachment) => img.url) ||
+          []),
+      ].filter((url): url is string => Boolean(url))
+    )
   );
   const imageRef = useRef<HTMLDivElement>(null);
   const thumbnailsRef = useRef<HTMLDivElement>(null);
@@ -47,7 +52,8 @@ export function ProductImageGallery({ product }: ProductImageGalleryProps) {
     setIsMainImageLoading(false);
   };
 
-  const handleThumbnailLoad = (url: string) => {
+  const handleThumbnailLoad = (url?: string) => {
+    if (!url) return;
     setLoadingThumbnails((prev) => {
       const newSet = new Set(prev);
       newSet.delete(url);
@@ -55,7 +61,7 @@ export function ProductImageGallery({ product }: ProductImageGalleryProps) {
     });
   };
 
-  const handleImageChange = (url: string) => {
+  const handleImageChange = (url?: string) => {
     setSelectedImage(url);
     setIsMainImageLoading(true);
   };
@@ -80,7 +86,7 @@ export function ProductImageGallery({ product }: ProductImageGalleryProps) {
 
         {/* Main Image */}
         <Image
-          src={selectedImage || "/placeholder.svg"}
+          src={selectedImage || FALLBACK_IMAGE}
           alt={product.name}
           title={product.name}
           fill
@@ -93,7 +99,7 @@ export function ProductImageGallery({ product }: ProductImageGalleryProps) {
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: `url(${selectedImage || "/placeholder.svg"}) no-repeat`,
+              background: `url(${selectedImage || FALLBACK_IMAGE}) no-repeat`,
               backgroundSize: "200%",
               backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
               opacity: 0.8,
@@ -135,7 +141,7 @@ export function ProductImageGallery({ product }: ProductImageGalleryProps) {
               <div className="absolute inset-0 bg-gray-200 animate-pulse" />
             )}
             <Image
-              src={product?.attachment?.url || "/placeholder.svg"}
+              src={product?.attachment?.url || FALLBACK_IMAGE}
               alt={product?.name}
               title={product?.name}
               fill
@@ -157,7 +163,7 @@ export function ProductImageGallery({ product }: ProductImageGalleryProps) {
                 <div className="absolute inset-0 bg-gray-200 animate-pulse" />
               )}
               <Image
-                src={image.url || "/placeholder.svg"}
+                src={image.url || FALLBACK_IMAGE}
                 alt={image.fileName}
                 title={image.fileName}
                 fill

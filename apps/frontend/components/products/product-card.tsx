@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { formatCurrencyEnglish, formatWeight } from "@/lib/utils";
 import type { Product } from "@/utils/types";
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { DiscountType } from "@/utils/types";
 import { Clock, Weight } from "lucide-react";
 import Image from "next/image";
@@ -94,19 +95,17 @@ export default function ProductCard({
       <Link href={`/product/${product?.slug}`} className="block">
         {/* Image Container */}
         <div className="w-full aspect-3/2 bg-gray-100 overflow-hidden relative mb-3">
-          {product?.attachment?.url && (
-            <Image
-              src={product.attachment.url}
-              alt={product.name}
-              title={product.name}
-              fill
-              className={`object-cover transition-all duration-300 group-hover:scale-105 ${
-                isOutOfStock ? "grayscale" : ""
-              }`}
-              loading="lazy"
-              sizes="(max-width: 768px) 260px, (max-width: 1024px) 280px, 320px"
-            />
-          )}
+          <Image
+            src={product?.attachment?.url || FALLBACK_IMAGE}
+            alt={product.name}
+            title={product.name}
+            fill
+            className={`object-cover transition-all duration-300 group-hover:scale-105 ${
+              isOutOfStock ? "grayscale" : ""
+            }`}
+            loading="lazy"
+            sizes="(max-width: 768px) 260px, (max-width: 1024px) 280px, 320px"
+          />
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           {/* Out of Stock Overlay */}

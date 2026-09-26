@@ -1,4 +1,5 @@
 "use client";
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 
 import { StatusCard } from "@/components/admin/dashboard/status-card";
 import { Badge } from "@/components/ui/badge";
@@ -147,7 +148,7 @@ export function TestimonialList() {
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 <Image
-                  src={testimonial.attachment.url}
+                  src={testimonial.attachment?.url || FALLBACK_IMAGE}
                   width={40}
                   height={40}
                   className="w-10 h-10 rounded-full object-cover border"
