@@ -1,5 +1,6 @@
 "use client";
 
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -136,7 +137,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 <DialogContent className="max-w-4xl">
                   <div className="relative aspect-video w-full overflow-hidden rounded-lg">
                     <Image
-                      src={mainImage || "/placeholder.svg"}
+                      src={mainImage || FALLBACK_IMAGE}
                       alt={product.name}
                       fill
                       sizes="(max-width: 768px) 100vw, 56rem"
@@ -153,7 +154,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                         onClick={() => handleImageClick(image.url, index)}
                       >
                         <Image
-                          src={image.url || "/placeholder.svg"}
+                          src={image.url || FALLBACK_IMAGE}
                           alt={`${product.name} image ${index + 1}`}
                           fill
                           sizes="64px"
@@ -166,7 +167,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               </Dialog>
 
               <Image
-                src={mainImage || "/placeholder.svg"}
+                src={mainImage || FALLBACK_IMAGE}
                 alt={product.name}
                 fill
                 sizes="100vw"
@@ -219,7 +220,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 onClick={() => handleImageClick(product.attachment.url, 0)}
               >
                 <Image
-                  src={product.attachment.url || "/placeholder.svg"}
+                  src={product.attachment.url || FALLBACK_IMAGE}
                   alt={`${product.name} main image`}
                   fill
                   sizes="20vw"
@@ -237,7 +238,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                     onClick={() => handleImageClick(image.url, index + 1)}
                   >
                     <Image
-                      src={image.url || "/placeholder.svg"}
+                      src={image.url || FALLBACK_IMAGE}
                       alt={`${product.name} gallery image`}
                       fill
                       sizes="20vw"
@@ -380,7 +381,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                   {product.brand.attachment && (
                     <div className="relative h-8 w-8 overflow-hidden border mr-2">
                       <Image
-                        src={product.brand.attachment.url || "/placeholder.svg"}
+                        src={product.brand.attachment.url || FALLBACK_IMAGE}
                         alt={product.brand.name}
                         fill
                         sizes="32px"
@@ -396,7 +397,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                     <div className="relative h-8 w-8 overflow-hidden border mr-2">
                       <Image
                         src={
-                          product.category.attachment.url || "/placeholder.svg"
+                          product.category.attachment.url || FALLBACK_IMAGE
                         }
                         alt={product.category.name}
                         fill
@@ -671,7 +672,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                     <div className="relative h-12 w-12 overflow-hidden rounded-lg border">
                       <Image
                         src={
-                          product.supplier.attachment.url || "/placeholder.svg"
+                          product.supplier.attachment.url || FALLBACK_IMAGE
                         }
                         alt={product.supplier.name}
                         fill
@@ -715,8 +716,8 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                             <Image
                               src={
                                 product.createdBy.profilePhoto.url ||
-                                "/placeholder.svg" ||
-                                "/placeholder.svg"
+                                FALLBACK_IMAGE ||
+                                FALLBACK_IMAGE
                               }
                               alt={product.createdBy.name}
                               fill
@@ -749,8 +750,8 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                             <Image
                               src={
                                 product.updatedBy.profilePhoto.url ||
-                                "/placeholder.svg" ||
-                                "/placeholder.svg"
+                                FALLBACK_IMAGE ||
+                                FALLBACK_IMAGE
                               }
                               alt={product.updatedBy.name}
                               fill

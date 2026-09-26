@@ -9,6 +9,7 @@ import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrencyEnglish } from "@/lib/utils";
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import {
   getDiscountedPrice,
   hasActiveDiscount,
@@ -132,7 +133,7 @@ function WishlistItemCard({ item, onRemove }: WishlistItemCardProps) {
             </div>
           )}
           <Image
-            src={product.attachment?.url || "/placeholder-image.jpg"}
+            src={product.attachment?.url || FALLBACK_IMAGE}
             alt={product.name}
             fill
             className={`object-cover transition-transform duration-300 group-hover:scale-105 ${

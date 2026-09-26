@@ -1,4 +1,5 @@
 import { formatCurrencyEnglish } from "@/lib/utils";
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import type { Product } from "@/utils/types";
 import type { Metadata } from "next";
 
@@ -67,7 +68,7 @@ export function generateProductMetadata({
       siteName: "German Butcher Bangladesh",
       images: [
         {
-          url: product.attachment?.url || "/placeholder-product.jpg",
+          url: product.attachment?.url || FALLBACK_IMAGE,
           width: 1200,
           height: 630,
           alt: product.name,
@@ -88,7 +89,7 @@ export function generateProductMetadata({
       card: "summary_large_image",
       title: `${product.name} - ${formatCurrencyEnglish(finalPrice)}`,
       description: metaDescription,
-      images: [product.attachment?.url || "/placeholder-product.jpg"],
+      images: [product.attachment?.url || FALLBACK_IMAGE],
       creator: "@yourstore", // Replace with your Twitter handle
     },
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
+
 import { Badge } from "@/components/ui/badge";
 import { useCartContext } from "@/contexts/cart-context";
 import { formatCurrencyEnglish } from "@/lib/utils";
@@ -122,7 +124,7 @@ export function CartItemProduct({ item }: { item: CartItem }) {
           )}
 
           <Image
-            src={item.product.attachment?.url || "/placeholder.svg"}
+            src={item.product.attachment?.url || FALLBACK_IMAGE}
             alt={item.product.name}
             fill
             className="object-cover grayscale"
@@ -182,7 +184,7 @@ export function CartItemProduct({ item }: { item: CartItem }) {
         )}
 
         <Image
-          src={item.product.attachment?.url || "/placeholder.svg"}
+          src={item.product.attachment?.url || FALLBACK_IMAGE}
           alt={item.product.name}
           fill
           className={`object-cover ${isOutOfStock ? "grayscale" : ""}`}

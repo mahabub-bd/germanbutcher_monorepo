@@ -1,5 +1,7 @@
 "use client";
 
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
+
 import {
   AlertCircle,
   Beef,
@@ -189,7 +191,7 @@ export function CartItemProductPage({ item }: { item: CartItem }) {
             </div>
           )}
           <Image
-            src={item.product.attachment?.url || "/placeholder.svg"}
+            src={item.product.attachment?.url || FALLBACK_IMAGE}
             alt={item.product.name}
             fill
             className="object-cover grayscale"
@@ -238,7 +240,7 @@ export function CartItemProductPage({ item }: { item: CartItem }) {
             </div>
           )}
           <Image
-            src={item.product.attachment?.url || "/placeholder.svg"}
+            src={item.product.attachment?.url || FALLBACK_IMAGE}
             alt={item.product.name}
             fill
             className={`object-cover transition-transform duration-300 group-hover:scale-105 ${

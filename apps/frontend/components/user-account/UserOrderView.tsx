@@ -1,5 +1,7 @@
 "use client";
 
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
+
 import { PaymentsTable } from "@/app/admin/order/[id]/payments/payment-table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -291,7 +293,7 @@ export default function OrderView({ order, onBack }: OrderViewProps) {
 
                         <Image
                           src={
-                            item.product.attachment?.url || "/placeholder.svg"
+                            item.product.attachment?.url || FALLBACK_IMAGE
                           }
                           alt={item.product.name}
                           fill
@@ -469,7 +471,7 @@ export default function OrderView({ order, onBack }: OrderViewProps) {
               <div className="flex items-center space-x-3 mb-4">
                 <Avatar className="size-10">
                   <AvatarImage
-                    src={order.user.profilePhoto?.url || "/placeholder.svg"}
+                    src={order.user.profilePhoto?.url || FALLBACK_IMAGE}
                     alt={order.user.name}
                   />
                   <AvatarFallback>{order.user.name.charAt(0)}</AvatarFallback>

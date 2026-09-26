@@ -1,5 +1,7 @@
 "use client";
 
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
+
 import { Badge } from "@/components/ui/badge";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import type { OrderItem } from "@/utils/types";
@@ -38,7 +40,7 @@ export function OrderItems({ items }: OrderItemsProps) {
             >
               <div className="relative size-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                 <Image
-                  src={item.product.attachment?.url || "/placeholder.svg"}
+                  src={item.product.attachment?.url || FALLBACK_IMAGE}
                   alt={item.product.name}
                   fill
                   className="object-cover"

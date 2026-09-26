@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { formatCurrencyEnglish, formatWeight } from "@/lib/utils";
 import type { Product } from "@/utils/types";
+import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { DiscountType } from "@/utils/types";
 import Image from "next/image";
 import Link from "next/link";
@@ -42,16 +43,14 @@ export default async function RecommendedProductCard({
         {/* Image Container */}
         <div className="w-45 h-35 absolute -top-22.5 left-1/2 -translate-x-1/2 bg-gray-100 rounded-md overflow-hidden mb-3">
           <div className="relative w-full h-full">
-            {product?.attachment?.url && (
-              <Image
-                src={product.attachment.url}
-                alt={product.name}
-                fill
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
-                loading="lazy"
-                sizes="100%"
-              />
-            )}
+            <Image
+              src={product?.attachment?.url || FALLBACK_IMAGE}
+              alt={product.name}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+              sizes="100%"
+            />
             {isDiscountActive &&
               product.discountType &&
               product.discountValue && (
