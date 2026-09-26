@@ -545,32 +545,45 @@ export class OrderService {
     };
   }
 
-  /** Orders received today vs yesterday (cancelled excluded). */
+  /** Orders received today vs yesterday (cancelled excluded). Day
+   * boundaries follow Bangladesh time (UTC+6, no DST) because the DB server
+   * runs in UTC — using CURRENT_DATE would bucket orders by GMT days. */
   async getTodaySnapshot(): Promise<{
     todayOrders: number;
     todayValue: number;
     yesterdayOrders: number;
     yesterdayValue: number;
   }> {
+    const BDT_OFFSET_MS = 6 * 60 * 60 * 1000;
+    const bdtNow = new Date(Date.now() + BDT_OFFSET_MS);
+    const bdtDayStartUtcMs =
+      Date.UTC(
+        bdtNow.getUTCFullYear(),
+        bdtNow.getUTCMonth(),
+        bdtNow.getUTCDate(),
+      ) - BDT_OFFSET_MS;
+
+    const yesterdayStart = new Date(bdtDayStartUtcMs - 24 * 60 * 60 * 1000);
+    const todayStart = new Date(bdtDayStartUtcMs);
+    const tomorrowStart = new Date(bdtDayStartUtcMs + 24 * 60 * 60 * 1000);
+
     const result: Record<string, string>[] = await this.orderRepository.query(
       `SELECT
          COUNT(*) FILTER (
-           WHERE "createdAt" >= date_trunc('day', CURRENT_DATE)
+           WHERE "createdAt" >= $2 AND "createdAt" < $3
          ) AS today_orders,
          COALESCE(SUM("totalValue") FILTER (
-           WHERE "createdAt" >= date_trunc('day', CURRENT_DATE)
+           WHERE "createdAt" >= $2 AND "createdAt" < $3
          ), 0) AS today_value,
          COUNT(*) FILTER (
-           WHERE "createdAt" >= date_trunc('day', CURRENT_DATE - INTERVAL '1 day')
-             AND "createdAt" < date_trunc('day', CURRENT_DATE)
+           WHERE "createdAt" >= $1 AND "createdAt" < $2
          ) AS yesterday_orders,
          COALESCE(SUM("totalValue") FILTER (
-           WHERE "createdAt" >= date_trunc('day', CURRENT_DATE - INTERVAL '1 day')
-             AND "createdAt" < date_trunc('day', CURRENT_DATE)
+           WHERE "createdAt" >= $1 AND "createdAt" < $2
          ), 0) AS yesterday_value
        FROM "order"
-       WHERE "orderStatus" != $1`,
-      [OrderStatus.CANCELLED],
+       WHERE "orderStatus" != $4`,
+      [yesterdayStart, todayStart, tomorrowStart, OrderStatus.CANCELLED],
     );
 
     const row = result[0] ?? {};
