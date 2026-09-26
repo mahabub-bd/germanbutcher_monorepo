@@ -1,10 +1,10 @@
 # Multi-stage Dockerfile for NestJS Backend
 # Stage 1: Dependencies
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 WORKDIR /app
 
 # Install pnpm
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@latest
 
 # Copy dependency files
 COPY package.json pnpm-lock.yaml* ./
@@ -13,11 +13,11 @@ COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile
 
 # Stage 2: Builder
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 
 # Install pnpm
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@latest
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -33,11 +33,11 @@ RUN pnpm build
 RUN mkdir -p /app/public
 
 # Stage 3: Production Runner
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 
 # Install pnpm
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@latest
 
 # Set environment
 ENV NODE_ENV=production
