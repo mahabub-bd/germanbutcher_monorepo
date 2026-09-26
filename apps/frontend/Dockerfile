@@ -12,7 +12,7 @@ RUN apk add --no-cache libc6-compat python3 make g++ \
     && rm -rf /var/cache/apk/*
 
 # Install pnpm
-RUN npm install -g pnpm@12
+RUN npm install -g pnpm@10
 
 FROM build-tools AS deps
 
