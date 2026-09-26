@@ -1,5 +1,5 @@
 # Base stage - minimal Alpine with Node.js only
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -12,7 +12,7 @@ RUN apk add --no-cache libc6-compat python3 make g++ \
     && rm -rf /var/cache/apk/*
 
 # Install pnpm
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@10
 
 FROM build-tools AS deps
 
@@ -44,7 +44,7 @@ ENV NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
 RUN pnpm run build
 
 # Production stage - start from clean base (no build tools)
-FROM node:22-alpine AS production
+FROM node:24-alpine AS production
 
 ENV NODE_ENV=production
 ENV PORT=3002

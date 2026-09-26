@@ -3,8 +3,8 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm@latest
+# Install pnpm (pinned major: pnpm 12 fails installs on unapproved build scripts)
+RUN npm install -g pnpm@10
 
 # Copy dependency files
 COPY package.json pnpm-lock.yaml* ./
@@ -16,8 +16,8 @@ RUN pnpm install --frozen-lockfile
 FROM node:24-alpine AS builder
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm@latest
+# Install pnpm (pinned major: pnpm 12 fails installs on unapproved build scripts)
+RUN npm install -g pnpm@10
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -36,8 +36,8 @@ RUN mkdir -p /app/public
 FROM node:24-alpine AS runner
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm@latest
+# Install pnpm (pinned major: pnpm 12 fails installs on unapproved build scripts)
+RUN npm install -g pnpm@10
 
 # Set environment
 ENV NODE_ENV=production
