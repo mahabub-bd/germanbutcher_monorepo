@@ -97,7 +97,20 @@ const paymentSchema = z.object({
 const productSchema = z
   .object({
     name: z.string().min(1, "Product name is required"),
-    description: z.string().min(1, "Description is required"),
+    slug: z
+      .string()
+      .refine((val) => val === "" || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(val), {
+        message:
+          "Slug can only contain lowercase letters, numbers and hyphens",
+      })
+      .refine((val) => val === "" || (val.length >= 3 && val.length <= 100), {
+        message: "Slug must be between 3 and 100 characters",
+      })
+      .optional(),
+    description: z
+      .string()
+      .min(1, "Description is required")
+      .max(2000, "Description must be 2000 characters or less"),
     productDetails: z.string().optional(),
     sellingPrice: z.union([z.string(), z.number()])
       .transform((val) => typeof val === 'string' ? parseInt(val) : val)

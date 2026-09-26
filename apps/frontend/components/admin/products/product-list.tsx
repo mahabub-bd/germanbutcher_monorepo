@@ -3,6 +3,7 @@
 import type React from "react";
 
 import { StatusCard } from "@/components/admin/dashboard/status-card";
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,8 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
-import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import {
   Table,
   TableBody,
@@ -29,9 +28,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 
-import { PaginationComponent } from "@/components/common/pagination";
 import { revalidateProducts } from "@/actions/revalidate";
+import { PaginationComponent } from "@/components/common/pagination";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
 import type { Brand, Category, Product } from "@/utils/types";
@@ -434,7 +434,12 @@ export function ProductList({
                 <ProductImage product={product} height={60} width={60} />
               </TableCell>
               <TableCell className="font-medium text-wrap">
-                {product.name}
+                <Link
+                  href={`/admin/products/${product.id}/view`}
+
+                >
+                  {product.name}
+                </Link>
               </TableCell>
               <TableCell>{product?.productSku}</TableCell>
               <TableCell>
