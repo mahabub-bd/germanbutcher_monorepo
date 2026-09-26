@@ -17,7 +17,7 @@ FROM node:24-alpine AS builder
 WORKDIR /app
 
 # Install pnpm (pinned major: pnpm 12 fails installs on unapproved build scripts)
-RUN npm install -g pnpm@10
+RUN npm install -g pnpm@12
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -37,7 +37,7 @@ FROM node:24-alpine AS runner
 WORKDIR /app
 
 # Install pnpm (pinned major: pnpm 12 fails installs on unapproved build scripts)
-RUN npm install -g pnpm@10
+RUN npm install -g pnpm@12
 
 # Set environment
 ENV NODE_ENV=production
