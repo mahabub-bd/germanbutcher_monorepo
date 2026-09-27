@@ -9,6 +9,7 @@ import { OrderTimeline } from "@/components/admin/orders/order-timeline";
 import { PaymentHistory } from "@/components/admin/orders/payment-history";
 import { ShippingAddress } from "@/components/admin/orders/shipping-address";
 import { fetchOrderById } from "@/utils/api-utils";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import type { Order } from "@/utils/types";
 import { pdf } from "@react-pdf/renderer";
 import { useState } from "react";
@@ -30,6 +31,7 @@ export default function OrderView({
 }: OrderViewProps) {
   const [currentOrder, setCurrentOrder] = useState<Order>(order);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const businessSettings = useBusinessSettings();
 
   const handleRefreshOrder = async () => {
     setIsRefreshing(true);
@@ -45,7 +47,9 @@ export default function OrderView({
   };
 
   const handleGeneratePDF = async () => {
-    const blob = await pdf(<OrderPDFDocument order={currentOrder} />).toBlob();
+    const blob = await pdf(
+      <OrderPDFDocument order={currentOrder} settings={businessSettings} />
+    ).toBlob();
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -61,7 +65,7 @@ export default function OrderView({
       <OrderActions
         order={currentOrder}
         onGeneratePDF={handleGeneratePDF}
-        onThermalPrint={() => printThermalInvoice(currentOrder)}
+        onThermalPrint={() => printThermalInvoice(currentOrder, businessSettings)}
         onBack={onBack}
         onPrevOrder={onPrevOrder}
         onNextOrder={onNextOrder}

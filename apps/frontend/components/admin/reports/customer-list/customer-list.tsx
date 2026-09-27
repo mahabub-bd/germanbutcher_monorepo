@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrencyEnglish } from "@/lib/utils";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
   endOfMonth,
   endOfWeek,
@@ -76,6 +77,7 @@ export default function CustomerListReport({
 }: Props) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const settings = useBusinessSettings();
 
   const [startDate, setStartDate] = useState<Date | undefined>(
     fromDate ? new Date(fromDate) : undefined
@@ -235,6 +237,7 @@ export default function CustomerListReport({
                   customers={customers}
                   summary={summary}
                   dateRange={dateRange}
+                  settings={settings}
                 />
               }
               fileName={`customer-list-${new Date().toISOString().split("T")[0]}.pdf`}

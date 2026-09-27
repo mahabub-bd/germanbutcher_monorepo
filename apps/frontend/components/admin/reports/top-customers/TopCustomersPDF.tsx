@@ -2,12 +2,14 @@
 
 import {
   Document,
-  Image,
   Page,
   StyleSheet,
   Text,
   View,
 } from "@react-pdf/renderer";
+
+import { ReportPDFHeader } from "../report-pdf-header";
+import type { BusinessSettings } from "@/utils/types";
 
 interface TopCustomer {
   id: number;
@@ -27,6 +29,7 @@ interface Props {
   customers: TopCustomer[];
   sortBy: string;
   timeFilterLabel: string;
+  settings?: BusinessSettings | null;
 }
 
 const styles = StyleSheet.create({
@@ -163,7 +166,12 @@ const formatCurrency = (num: number) =>
     minimumFractionDigits: 2,
   });
 
-export function TopCustomersPDF({ customers, sortBy, timeFilterLabel }: Props) {
+export function TopCustomersPDF({
+  customers,
+  sortBy,
+  timeFilterLabel,
+  settings,
+}: Props) {
   const totalOrders = customers.reduce(
     (sum, c) => sum + c.statistics.totalOrders,
     0
@@ -178,17 +186,7 @@ export function TopCustomersPDF({ customers, sortBy, timeFilterLabel }: Props) {
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.companyInfo}>
-            <Text style={styles.companyName}>German Butcher</Text>
-            <Text style={styles.companyAddress}>
-              House-56/B, Road-132, Gulshan-1, Dhaka
-            </Text>
-            <Text style={styles.companyAddress}>Mobile: 01404-009000</Text>
-            <Text style={styles.companyAddress}>www.germanbutcherbd.com</Text>
-          </View>
-          <Image style={styles.logo} src="/images/logo3.png" />
-        </View>
+        <ReportPDFHeader settings={settings} styles={styles} />
 
         {/* Title */}
         <Text style={styles.reportTitle}>Top Customers Report</Text>

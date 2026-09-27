@@ -5,6 +5,7 @@ import { CartProvider } from "@/providers/cart-provider";
 import { NotificationProvider } from "@/providers/notification-provider";
 import { SearchProvider } from "@/providers/search-provider";
 import { fetchProtectedData } from "@/utils/api-utils";
+import { getBusinessSettings } from "@/utils/business-settings-server";
 import type { Cart } from "@/utils/types";
 import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
 import type { Metadata } from "next";
@@ -32,7 +33,24 @@ const castorTwoW01 = localFont({
 // Combine font variables
 const fontVariables = `${quicksand.variable} ${castorTwoW01.variable}`;
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getBusinessSettings();
+  // The OG/twitter logo comes from Business Settings; until a logo is
+  // uploaded only the static twitter-card image is used.
+  const logoUrl = settings?.logo?.url;
+  const logoImage = logoUrl
+    ? [
+        {
+          url: logoUrl,
+          width: 1200,
+          height: 630,
+          alt: "German Butcher Logo",
+          type: "image/png",
+        },
+      ]
+    : [];
+
+  return {
   title: {
     default: "German Butcher - Premium German Sausages & Meat Products in Bangladesh",
     template: "%s | German Butcher",
@@ -105,13 +123,7 @@ export const metadata: Metadata = {
         alt: "German Butcher - Premium German Sausages & Meat Products",
         type: "image/png",
       },
-      {
-        url: "https://germanbutcherbd.com/images/logo3.png",
-        width: 1200,
-        height: 630,
-        alt: "German Butcher Logo",
-        type: "image/png",
-      },
+      ...logoImage,
     ],
     locale: "en_US",
     type: "website",
@@ -131,7 +143,7 @@ export const metadata: Metadata = {
         height: 630,
         alt: "German Butcher - Premium German Sausages & Meat Products",
       },
-      "https://germanbutcherbd.com/images/logo3.png",
+      ...logoImage,
     ],
   },
 
@@ -166,7 +178,8 @@ export const metadata: Metadata = {
   },
   category: "food",
   referrer: "origin-when-cross-origin",
-};
+  };
+}
 
 export default async function RootLayout({
   children,

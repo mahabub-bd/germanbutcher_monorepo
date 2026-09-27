@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrencyEnglish } from "@/lib/utils";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
   endOfMonth,
   endOfWeek,
@@ -100,6 +101,7 @@ export default function OrderReportList({
 }: OrderReportProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const settings = useBusinessSettings();
 
   const [startDate, setStartDate] = useState<Date | undefined>(
     fromDate ? new Date(fromDate) : undefined
@@ -280,7 +282,7 @@ export default function OrderReportList({
 
         {orders.length > 0 && mounted && (
           <PDFDownloadLink
-            document={<OrderReportPDF orders={orders} />}
+            document={<OrderReportPDF orders={orders} settings={settings} />}
             fileName={`order-report-${new Date().toISOString().split("T")[0]}.pdf`}
           >
             {({ loading, error }) => (

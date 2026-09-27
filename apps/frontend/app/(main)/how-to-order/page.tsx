@@ -1,4 +1,5 @@
 import { HeadingPrimary } from "@/components/common/heading-primary";
+import { getBusinessSettings } from "@/utils/business-settings-server";
 import {
   AlertTriangle,
   CheckCircle,
@@ -116,25 +117,6 @@ const paymentMethods: PaymentMethod[] = [
   },
 ];
 
-const contactMethods: ContactMethod[] = [
-  {
-    icon: <Phone className="w-8 h-8 text-red-600" />,
-    title: "Call Us",
-    description: "Speak directly with our support team",
-    action: "+8809666791991",
-    href: "tel:+8809666791991",
-    available: "9 AM - 6 PM, Daily",
-  },
-  {
-    icon: <MessageSquare className="w-8 h-8 text-red-600" />,
-    title: "Live Chat",
-    description: "Get instant help through our online chat",
-    action: "Start Chat Now",
-    href: "#",
-    available: "24/7 Available",
-  },
-];
-
 // Components
 const OrderStepCard: React.FC<{ step: OrderStep }> = ({ step }) => (
   <div className="relative bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 group">
@@ -212,7 +194,31 @@ const ContactMethodCard: React.FC<{ method: ContactMethod }> = ({ method }) => (
   </div>
 );
 
-const HowToOrderPage: React.FC = () => {
+const HowToOrderPage = async () => {
+  const settings = await getBusinessSettings();
+
+  // Only channels configured in Business Settings are offered.
+  const contactMethods: ContactMethod[] = [
+    settings?.phone && {
+      icon: <Phone className="w-8 h-8 text-red-600" />,
+      title: "Call Us",
+      description: "Speak directly with our support team",
+      action: settings.phone,
+      href: `tel:${settings.phone}`,
+      available: "9 AM - 6 PM, Daily",
+    },
+    (settings?.whatsappNumber || settings?.messengerUrl) && {
+      icon: <MessageSquare className="w-8 h-8 text-red-600" />,
+      title: "Live Chat",
+      description: "Get instant help through our online chat",
+      action: "Start Chat Now",
+      href: settings?.whatsappNumber
+        ? `https://wa.me/${settings.whatsappNumber.replace("+", "")}`
+        : settings.messengerUrl || "#",
+      available: "24/7 Available",
+    },
+  ].filter(Boolean) as ContactMethod[];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Ordering Steps */}

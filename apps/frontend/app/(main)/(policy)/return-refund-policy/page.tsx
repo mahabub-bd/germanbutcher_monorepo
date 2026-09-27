@@ -1,3 +1,5 @@
+import { PolicyContactLinks } from "@/components/common/policy-contact-links";
+import { getBusinessSettings } from "@/utils/business-settings-server";
 import { HeadingPrimary } from "@/components/common/heading-primary";
 import {
   AlertTriangle,
@@ -9,9 +11,11 @@ import {
   Shield,
   XCircle,
 } from "lucide-react";
-import React from "react";
 
-const RefundPolicy: React.FC = () => {
+const RefundPolicy = async () => {
+  const settings = await getBusinessSettings();
+  const phone = settings?.phone?.trim() || "";
+  const email = settings?.email?.trim() || "";
   return (
     <div className="min-h-screen py-8 px-4 sm:px-2">
       <div className="container mx-auto">
@@ -194,8 +198,11 @@ const RefundPolicy: React.FC = () => {
                 {
                   step: "1",
                   title: "Contact Customer Service",
-                  description:
-                    "Call us at +8809666791991 or email support@germanbutcherbd.com to initiate a return request.",
+                  description: `Contact customer service${
+                    phone || email
+                      ? ` at ${[phone, email].filter(Boolean).join(" or ")}`
+                      : ""
+                  } to initiate a return request.`,
                 },
                 {
                   step: "2",
@@ -274,20 +281,7 @@ const RefundPolicy: React.FC = () => {
             Our customer service team is here to help with any questions about
             returns, refunds, or cancellations.
           </p>
-          <div className="flex flex-col space-y-2 sm:flex-row sm:justify-center sm:space-x-6 sm:space-y-0">
-            <a
-              href="tel:+8809666791991"
-              className="text-blue-600 hover:text-blue-800 font-medium text-sm sm:text-base"
-            >
-              📞 +8809666791991
-            </a>
-            <a
-              href="mailto:support@germanbutcherbd.com"
-              className="text-blue-600 hover:text-blue-800 font-medium text-sm sm:text-base break-all"
-            >
-              ✉️ support@germanbutcherbd.com
-            </a>
-          </div>
+          <PolicyContactLinks settings={settings} />
           <p className="text-gray-500 text-xs mt-4">
             Customer service hours: Sunday - Thursday, 9:00 AM - 6:00 PM (GMT+6)
           </p>

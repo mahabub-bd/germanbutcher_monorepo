@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrencyEnglish } from "@/lib/utils";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
   endOfMonth,
   endOfWeek,
@@ -88,6 +89,7 @@ export default function OrderPaymentList({
 }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const settings = useBusinessSettings();
 
   const [startDate, setStartDate] = useState<Date | undefined>(
     fromDate ? new Date(fromDate) : undefined
@@ -276,7 +278,7 @@ export default function OrderPaymentList({
 
         {payments.length > 0 && mounted && (
           <PDFDownloadLink
-            document={<PaymentReportPDF payments={payments} />}
+            document={<PaymentReportPDF payments={payments} settings={settings} />}
             fileName={`order-payments-${new Date().toISOString().split("T")[0]}.pdf`}
           >
             {({ loading, error }) => (

@@ -1,5 +1,6 @@
 import { formatDateTime } from "@/lib/utils";
-import type { Order, OrderItem } from "@/utils/types";
+import { pdfImageUrl } from "@/utils/pdf-image";
+import type { BusinessSettings, Order, OrderItem } from "@/utils/types";
 import {
   Document,
   Image,
@@ -341,9 +342,24 @@ const styles = StyleSheet.create({
 
 interface OrderPDFDocumentProps {
   order: Order;
+  settings?: BusinessSettings | null;
 }
 
-export const OrderPDFDocument = ({ order }: OrderPDFDocumentProps) => {
+export const OrderPDFDocument = ({
+  order,
+  settings,
+}: OrderPDFDocumentProps) => {
+  // Only settings values are printed — lines without a configured value
+  // are omitted entirely.
+  const businessName = settings?.businessName?.trim() || "";
+  const address = settings?.address?.trim() || "";
+  const phone = settings?.phone?.trim() || "";
+  const email = settings?.email?.trim() || "";
+  const websiteUrl = settings?.websiteUrl?.trim() || "";
+  // PNG logo from Business Settings, served via our same-origin proxy
+  // (react-pdf cannot use WebP images or S3 URLs without CORS headers).
+  const invoiceLogoUrl = pdfImageUrl(settings?.invoiceLogo?.url);
+
   // Calculate order summary using stored prices from OrderItem
   const calculateOrderSummary = () => {
     // Calculate subtotal from stored item prices
@@ -403,13 +419,19 @@ export const OrderPDFDocument = ({ order }: OrderPDFDocumentProps) => {
         {/* Header with Logo */}
         <View style={styles.header}>
           <View style={styles.logoSection}>
-            <Image style={styles.logo} src="/images/logo3.png" />
-            <View style={styles.companyInfo}>
-              <Text style={styles.companyName}>German Butcher</Text>
-              <Text style={styles.companyAddress}>
-                House-56/B, Road-132, Gulshan-1, Dhaka
-              </Text>
-              <Text style={styles.companyContact}>Mobile: 01404-009000</Text>
+            <View style={styles.logoSection}>
+              <Image style={styles.logo} src={invoiceLogoUrl} />
+              <View style={styles.companyInfo}>
+                {businessName ? (
+                  <Text style={styles.companyName}>{businessName}</Text>
+                ) : null}
+                {address ? (
+                  <Text style={styles.companyAddress}>{address}</Text>
+                ) : null}
+                {phone ? (
+                  <Text style={styles.companyContact}>Mobile: {phone}</Text>
+                ) : null}
+              </View>
             </View>
           </View>
           <View style={styles.invoiceHeader}>
@@ -640,13 +662,19 @@ export const OrderPDFDocument = ({ order }: OrderPDFDocumentProps) => {
           <View style={styles.footerContent}>
             <View style={styles.footerLeft}>
               <Text style={styles.thankYou}>
-                Thank you for choosing German Butcher
+                {businessName
+                  ? `Thank you for choosing ${businessName}`
+                  : "Thank you for your order!"}
               </Text>
-              <Text style={styles.contact}>
-                Email: support@germanbutcherbd.com
-              </Text>
-              <Text style={styles.contact}>Phone: +8809666791991</Text>
-              <Text style={styles.contact}>Web: www.germanbutcherbd.com</Text>
+              {email ? (
+                <Text style={styles.contact}>Email: {email}</Text>
+              ) : null}
+              {phone ? (
+                <Text style={styles.contact}>Phone: {phone}</Text>
+              ) : null}
+              {websiteUrl ? (
+                <Text style={styles.contact}>Web: {websiteUrl}</Text>
+              ) : null}
             </View>
             <View style={styles.footerRight}>
               <Text style={styles.printDate}>

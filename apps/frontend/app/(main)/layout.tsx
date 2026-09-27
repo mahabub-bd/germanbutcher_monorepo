@@ -6,6 +6,8 @@ import { Header } from "@/components/header";
 import { MobileBottomHeader } from "@/components/header/mobile-bottom-header";
 import { GoToTop } from "@/components/ui/go-to-top";
 import { VisitorHeartbeat } from "@/components/common/visitor-heartbeat";
+import { fetchPublicData } from "@/utils/api-utils";
+import type { BusinessSettings } from "@/utils/types";
 
 import type React from "react";
 import RouteLoadingBar from "../../components/common/loading";
@@ -16,9 +18,16 @@ export default async function MainLayout({
   children: React.ReactNode;
 }) {
   const user = await getUser();
+
+  // Public settings endpoint (60s ISR). Null when the API is unreachable —
+  // consumers render only what is configured in Business Settings.
+  const businessSettings = await fetchPublicData<BusinessSettings>(
+    "business-settings"
+  ).catch(() => null);
+
   return (
     <div>
-      <Header />
+      <Header settings={businessSettings} />
       <VisitorHeartbeat />
       <RouteLoadingBar
         height="3px"
@@ -27,9 +36,9 @@ export default async function MainLayout({
       />
       <main className="flex-1">{children}</main>
       <GoToTop />
-      <WhatsAppMessengerWidget />
+      <WhatsAppMessengerWidget business={businessSettings} />
       <MobileBottomHeader user={user} />
-      <Footer />
+      <Footer settings={businessSettings} />
       <Copyright />
     </div>
   );

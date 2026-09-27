@@ -1,3 +1,5 @@
+import { PolicyContactLinks } from "@/components/common/policy-contact-links";
+import { getBusinessSettings } from "@/utils/business-settings-server";
 import { HeadingPrimary } from "@/components/common/heading-primary";
 import {
   AlertTriangle,
@@ -8,9 +10,9 @@ import {
   Shield,
   Users,
 } from "lucide-react";
-import React from "react";
 
-const PrivacyPolicyComponent: React.FC = () => {
+const PrivacyPolicyComponent = async () => {
+  const settings = await getBusinessSettings();
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6">
       <div className="container mx-auto">
@@ -279,20 +281,7 @@ const PrivacyPolicyComponent: React.FC = () => {
             If you have any questions about this Privacy Policy or how we handle
             your data, please contact us.
           </p>
-          <div className="flex flex-col space-y-2 sm:flex-row sm:justify-center sm:space-x-6 sm:space-y-0">
-            <a
-              href="tel:+8809666791991"
-              className="text-blue-600 hover:text-blue-800 font-medium text-sm sm:text-base"
-            >
-              📞 +8809666791991
-            </a>
-            <a
-              href="mailto:support@germanbutcherbd.com"
-              className="text-blue-600 hover:text-blue-800 font-medium text-sm sm:text-base break-all"
-            >
-              ✉️ support@germanbutcherbd.com
-            </a>
-          </div>
+          <PolicyContactLinks settings={settings} />
           <p className="text-gray-500 text-xs mt-4">
             This Privacy Policy was last updated on 27 July 2025. We may update
             this policy from time to time.

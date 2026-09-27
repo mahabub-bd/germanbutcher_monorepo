@@ -1,5 +1,7 @@
-import { contactInfo, footerMenuData, socialPlatforms } from "@/constants";
-import { BgFooter, GermanbutcherLogo } from "@/public/images";
+import { footerMenuData, socialPlatforms } from "@/constants";
+import type { BusinessSettings } from "@/utils/types";
+import { BgFooter } from "@/public/images";
+import { Mail, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -107,7 +109,38 @@ const ContactItem = ({ icon: Icon, label, value, href }: ContactItemProps) => (
 );
 
 // Main Footer Component
-export default function Footer() {
+export default function Footer({
+  settings,
+}: {
+  settings?: BusinessSettings | null;
+}) {
+  // Only configured values are rendered — no hardcoded fallbacks.
+  const contactItems = [
+    settings?.phone && {
+      icon: Phone,
+      label: "Call Us",
+      value: settings.phone,
+      href: `tel:${settings.phone}`,
+    },
+    settings?.email && {
+      icon: Mail,
+      label: "Email Us",
+      value: settings.email,
+      href: `mailto:${settings.email}`,
+    },
+    settings?.address && {
+      icon: MapPin,
+      label: "Visit Us",
+      value: settings.address,
+      href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`,
+    },
+  ].filter(Boolean) as {
+    icon: React.ElementType;
+    label: string;
+    value: string;
+    href: string;
+  }[];
+
   return (
     <footer
       className="relative text-white overflow-hidden 
@@ -136,17 +169,19 @@ export default function Footer() {
     order-1"
           >
             {/* Logo Container */}
-            <div className="p-2 sm:p-2">
-              <Image
-                src={GermanbutcherLogo || "/placeholder.svg"}
-                alt="German Butcher Logo"
-                title="German Butcher Logo"
-                width={100}
-                height={100}
-                className="w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] object-contain"
-                priority
-              />
-            </div>
+            {settings?.logo?.url && (
+              <div className="p-2 sm:p-2">
+                <Image
+                  src={settings.logo.url}
+                  alt={`${settings.businessName || "Business"} Logo`}
+                  title={`${settings.businessName || "Business"} Logo`}
+                  width={100}
+                  height={100}
+                  className="w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] object-contain"
+                  priority
+                />
+              </div>
+            )}
 
             {/* Social Media Icons */}
             <SocialLinks />
@@ -180,7 +215,7 @@ export default function Footer() {
           >
             {/* Contact Information */}
             <div className="space-y-4 sm:space-y-6 w-full max-w-sm lg:max-w-none">
-              {contactInfo.map((info) => (
+              {contactItems.map((info) => (
                 <ContactItem
                   key={info.label}
                   icon={info.icon}
