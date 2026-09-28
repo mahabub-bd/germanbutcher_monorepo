@@ -1,8 +1,17 @@
 type UserRole = "superadmin" | "admin" | "modaretor" | "user";
 
-export type PaginatedResponse<T> = {
+/** Common envelope shared by every API response type. */
+export type ApiEnvelope = {
   message: string;
   statusCode: number;
+};
+
+/** Envelope for endpoints that return either a single entity or a list of them. */
+export type SingleOrListResponse<T> = ApiEnvelope & {
+  data: T | T[];
+};
+
+export type PaginatedResponse<T> = ApiEnvelope & {
   data: T[];
   total: number;
   page: number;
@@ -207,37 +216,12 @@ export interface Product {
   discountEndDate?: string;
 }
 
-export interface ProductResponse {
-  message: string;
-  statusCode: number;
-  data: Product | Product[];
-}
+export type ProductResponse = SingleOrListResponse<Product>;
 
-export interface OrderResponse {
-  message: string;
-  statusCode: number;
-  data: Order[];
-
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-export interface BrandResponse {
-  message: string;
-  statusCode: number;
-  data: Brand | Brand[];
-}
-export interface CategoryResponse {
-  message: string;
-  statusCode: number;
-  data: Category | Category[];
-}
-export interface UserResponse {
-  message: string;
-  statusCode: number;
-  data: UserTypes | UserTypes[];
-}
+export type OrderResponse = PaginatedResponse<Order>;
+export type BrandResponse = SingleOrListResponse<Brand>;
+export type CategoryResponse = SingleOrListResponse<Category>;
+export type UserResponse = SingleOrListResponse<UserTypes>;
 
 export interface Attachment {
   id: number;
@@ -275,10 +259,7 @@ export interface ApiResponseusers {
     };
   };
 }
-export type authResponse = {
-  message: string;
-  statusCode: number;
-};
+export type authResponse = ApiEnvelope;
 
 export interface BusinessSettings {
   businessName: string | null;
@@ -311,11 +292,9 @@ export interface MenuItem {
   children: MenuItem[];
 }
 
-export interface MenuTreeResponse {
-  message: string;
-  statusCode: number;
+export type MenuTreeResponse = ApiEnvelope & {
   data: MenuItem[];
-}
+};
 
 export interface ApiResponse {
   data: [];
@@ -458,22 +437,6 @@ export enum BannerType {
   FEATURED = "featured",
 }
 
-export interface Banner {
-  id: number;
-  title: string;
-  description: string;
-  targetUrl: string;
-  position: string;
-  type: string;
-  isActive: boolean;
-  displayOrder: number;
-  createdAt: string;
-  updatedAt: string;
-  image: Attachment;
-  createdBy: User;
-  updatedBy: User;
-}
-
 export interface Cart {
   id: number;
   createdAt: string | Date;
@@ -589,16 +552,34 @@ export interface DeliverySettings {
   freeDeliveryThreshold: string | number;
 }
 
-export interface PaymentMethod {
+export interface FreeDeliveryCampaign {
   id: number;
   name: string;
-  code: string;
   isActive: boolean;
-  description: string;
+  validFrom: string | null;
+  validUntil: string | null;
+  daysOfWeek: number[] | null;
+  startTime: string | null;
+  endTime: string | null;
+  minOrderAmount: string | number;
+  minQuantity: number | null;
+  newCustomersOnly: boolean;
+  usageCount: number;
+  products: { id: number; name: string }[];
+  categories: { id: number; name: string }[];
   createdAt: string;
   updatedAt: string;
-  createdBy: User;
-  updatedBy: User;
+}
+
+export interface FreeDeliveryCheckResult {
+  freeDelivery: boolean;
+  /** "campaign" — matched; "pending" — below the campaign minimum; "none" */
+  source: "campaign" | "pending" | "none";
+  campaignName?: string;
+  /** Minimum order amount of the pending campaign (source = "pending") */
+  minOrderAmount?: number;
+  /** Amount still needed to unlock the pending campaign */
+  remaining?: number;
 }
 
 export interface Address {
@@ -928,11 +909,9 @@ export interface DeliveryManResponse {
   };
 }
 
-export interface DeliveryManDetailResponse {
-  message: string;
-  statusCode: number;
+export type DeliveryManDetailResponse = ApiEnvelope & {
   data: DeliveryMan;
-}
+};
 
 // Analytics Types
 export type AnalyticsPeriod = "1h" | "24h" | "7d" | "30d";

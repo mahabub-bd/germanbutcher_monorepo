@@ -4,38 +4,48 @@ import { Award, Clock, Shield, Truck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { FeatureList, type FeatureItem } from "./feature-list";
 import { fetchData } from "@/utils/api-utils";
-import type { DeliverySettings } from "@/utils/types";
+import type { FreeDeliveryCampaign } from "@/utils/types";
 
 export function ProductFeatures() {
-  // Free delivery line mirrors the configured threshold (admin-managed).
-  // Label + desc stay consistent: "Free Delivery" only when it actually is.
+  // Free delivery line derived from active campaigns: the lowest minimum
+  // among "always-on" campaigns (no schedule/product/customer restrictions)
+  // applies to any order, so it is what this product-level badge advertises.
   const [freeDelivery, setFreeDelivery] = useState({
-    label: "Free Delivery",
-    desc: "On orders over ৳1500",
+    label: "Delivery",
+    desc: "Charges apply at checkout",
   });
 
   useEffect(() => {
-    fetchData("delivery-settings")
-      .then((response) => {
-        const settings = response as DeliverySettings;
-        if (!settings) return;
-        if (settings.freeDeliveryEnabled) {
-          const threshold = Number(settings.freeDeliveryThreshold);
-          if (threshold > 0) {
-            setFreeDelivery({
-              label: "Free Delivery",
-              desc: `On orders over ৳${threshold.toLocaleString()}`,
-            });
-          }
+    fetchData<FreeDeliveryCampaign[]>("free-delivery-campaigns/active")
+      .then((campaigns) => {
+        if (!campaigns?.length) return;
+        const alwaysOn = campaigns.filter(
+          (c) =>
+            !c.newCustomersOnly &&
+            !c.products?.length &&
+            !c.categories?.length &&
+            !c.daysOfWeek?.length &&
+            !c.startTime &&
+            !c.endTime
+        );
+        if (!alwaysOn.length) return;
+        const minimum = Math.min(
+          ...alwaysOn.map((c) => Number(c.minOrderAmount || 0))
+        );
+        if (minimum > 0) {
+          setFreeDelivery({
+            label: "Free Delivery",
+            desc: `On orders over ৳${minimum.toLocaleString()}`,
+          });
         } else {
           setFreeDelivery({
-            label: "Delivery",
-            desc: "Charges apply at checkout",
+            label: "Free Delivery",
+            desc: "On all orders",
           });
         }
       })
       .catch((error) =>
-        console.error("Error fetching delivery settings:", error)
+        console.error("Error fetching free delivery campaigns:", error)
       );
   }, []);
 

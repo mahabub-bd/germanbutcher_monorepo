@@ -1,5 +1,6 @@
 "use client";
 
+import { FreeDeliveryBanner } from "@/components/cart/free-delivery-banner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -27,6 +28,9 @@ interface OrderSummaryProps {
   shippingCost: number;
   isFreeDelivery?: boolean;
   freeDeliveryRemaining?: number | null;
+  freeDeliverySource?: "campaign" | "pending" | "none";
+  freeDeliveryCampaignName?: string;
+  freeDeliveryMinOrderAmount?: number;
   total: number;
   isSubmitting: boolean;
   onSubmit: () => void;
@@ -44,6 +48,9 @@ export function OrderSummary({
   shippingCost,
   isFreeDelivery = false,
   freeDeliveryRemaining = null,
+  freeDeliverySource,
+  freeDeliveryCampaignName,
+  freeDeliveryMinOrderAmount,
   total,
   isSubmitting,
   onSubmit,
@@ -123,10 +130,14 @@ export function OrderSummary({
             )}
           </div>
           {freeDeliveryRemaining !== null && (
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Add {formatCurrencyEnglish(freeDeliveryRemaining)} more to get
-              free delivery
-            </p>
+            <FreeDeliveryBanner
+              itemCount={1}
+              source={freeDeliverySource}
+              campaignName={freeDeliveryCampaignName}
+              remaining={freeDeliveryRemaining}
+              minOrderAmount={freeDeliveryMinOrderAmount}
+              className="mt-2"
+            />
           )}
         </div>
 
