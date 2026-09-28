@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrencyEnglish } from "@/lib/utils";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { ShoppingCart, XCircle } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -54,6 +55,7 @@ export default function MonthlyOrderReportList({
 }: Props) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const settings = useBusinessSettings();
 
   useEffect(() => {
     setMounted(true);
@@ -110,7 +112,11 @@ export default function MonthlyOrderReportList({
         {monthlyData.length > 0 && mounted && (
           <PDFDownloadLink
             document={
-              <MonthlyOrderPDF monthlyData={monthlyData} year={selectedYear} />
+              <MonthlyOrderPDF
+                monthlyData={monthlyData}
+                year={selectedYear}
+                settings={settings}
+              />
             }
             fileName={`monthly-order-report-${selectedYear ?? "all"}-${new Date().toISOString().split("T")[0]}.pdf`}
           >

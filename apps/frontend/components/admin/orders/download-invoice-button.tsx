@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import type { Order } from "@/utils/types";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { Download } from "lucide-react";
@@ -15,9 +16,11 @@ export function DownloadInvoiceButton({
   order,
   className,
 }: DownloadInvoiceButtonProps) {
+  const settings = useBusinessSettings();
+
   return (
     <PDFDownloadLink
-      document={<OrderPDFDocument order={order} />}
+      document={<OrderPDFDocument order={order} settings={settings} />}
       fileName={`invoice-${order.orderNo}.pdf`}
       className={className}
     >

@@ -1,16 +1,28 @@
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
-import type { Order, OrderItem } from "@/utils/types";
+import type { BusinessSettings, Order, OrderItem } from "@/utils/types";
 
 /**
  * Open a print window with an 80mm thermal invoice for the order.
  * Used by the Print action in the OrderActions header.
  */
-export function printThermalInvoice(order: Order): void {
+export function printThermalInvoice(
+  order: Order,
+  settings?: BusinessSettings | null
+): void {
   // Create a new window for printing
   const printWindow = window.open("", "", "width=300,height=600");
   if (!printWindow) {
     throw new Error("Failed to open print window");
   }
+
+  // Only settings values are printed — lines without a configured value
+  // are omitted entirely.
+  const businessName = settings?.businessName?.trim() || "";
+  const address = settings?.address?.trim() || "";
+  const phone = settings?.phone?.trim() || "";
+  const email = settings?.email?.trim() || "";
+  const websiteUrl = settings?.websiteUrl?.trim() || "";
+  const logoUrl = settings?.logo?.url || "";
 
   const orderSummary = calculateOrderSummary(order);
 
@@ -142,11 +154,11 @@ export function printThermalInvoice(order: Order): void {
 
   <!-- Header -->
   <div class="center">
-    <img class="logo" src="/images/logo3.png" alt="German Butcher Logo" title="German Butcher" />
-    <div class="large">GERMAN BUTCHER</div>
-    <div class="small" style="margin-top: 2px;">House-56/B, Road-132, Gulshan-1, Dhaka</div>
-    <div class="small">Mobile: 01404-009000</div>
-    <div class="small">support@germanbutcher.com</div>
+    ${logoUrl ? `<img class="logo" src="${logoUrl}" alt="Business Logo" />` : ""}
+    ${businessName ? `<div class="large">${businessName.toUpperCase()}</div>` : ""}
+    ${address ? `<div class="small" style="margin-top: 2px;">${address}</div>` : ""}
+    ${phone ? `<div class="small">Mobile: ${phone}</div>` : ""}
+    ${email ? `<div class="small">${email}</div>` : ""}
     <div class="separator"></div>
     <div style="font-weight: 700; margin: 3px 0;">INVOICE</div>
   </div>
@@ -241,7 +253,7 @@ export function printThermalInvoice(order: Order): void {
   <!-- Footer -->
   <div class="footer" style="margin-top: 15px;">
     <div style="margin-bottom: 5px;">Thank you for your order!</div>
-    <div>Visit again at <strong>germanbutcherbd.com</strong></div>
+    ${websiteUrl ? `<div>Visit again at <strong>${websiteUrl}</strong></div>` : ""}
   </div>
 
   <div class="footer" style="margin-top: 15px; padding-top: 10px;">

@@ -2,12 +2,14 @@
 
 import {
   Document,
-  Image,
   Page,
   StyleSheet,
   Text,
   View,
 } from "@react-pdf/renderer";
+
+import { ReportPDFHeader } from "../report-pdf-header";
+import type { BusinessSettings } from "@/utils/types";
 
 interface Customer {
   name: string;
@@ -43,6 +45,7 @@ interface Order {
 
 interface Props {
   orders: Order[];
+  settings?: BusinessSettings | null;
 }
 
 const styles = StyleSheet.create({
@@ -141,7 +144,7 @@ const formatCurrency = (num: number) =>
     minimumFractionDigits: 2,
   });
 
-export function OrderReportPDF({ orders }: Props) {
+export function OrderReportPDF({ orders, settings }: Props) {
   const totalValue = orders.reduce((a, b) => a + b.totalValue, 0);
   const totalDiscount = orders.reduce((a, b) => a + b.totalDiscount, 0);
   const totalPaid = orders.reduce((a, b) => a + b.paidAmount, 0);
@@ -150,17 +153,7 @@ export function OrderReportPDF({ orders }: Props) {
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.companyInfo}>
-            <Text style={styles.companyName}>German Butcher</Text>
-            <Text style={styles.companyAddress}>
-              House-56/B, Road-132, Gulshan-1, Dhaka
-            </Text>
-            <Text style={styles.companyAddress}>Mobile: 01404-009000</Text>
-            <Text style={styles.companyAddress}>www.germanbutcherbd.com</Text>
-          </View>
-          <Image style={styles.logo} src="/images/logo3.png" />
-        </View>
+        <ReportPDFHeader settings={settings} styles={styles} />
 
         {/* Title */}
         <Text style={styles.reportTitle}>Order Summary Report</Text>

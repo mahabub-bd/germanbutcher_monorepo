@@ -13,15 +13,20 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { GermanbutcherLogo } from "@/public/images";
-import { User } from "@/utils/types";
+import { BusinessSettings, User } from "@/utils/types";
 import MobileAuth from "../auth/mobile-auth";
 import { CategoryLinks } from "./category-links";
 import { NavLinks } from "./nav-links";
 
 type TabType = "navigation" | "categories";
 
-export function MobileMenu({ user }: { user: User }) {
+export function MobileMenu({
+  user,
+  settings,
+}: {
+  user: User;
+  settings?: BusinessSettings | null;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("categories");
 
@@ -65,26 +70,24 @@ export function MobileMenu({ user }: { user: User }) {
                 aria-label="Go to homepage"
                 onClick={handleClose}
               >
-                <span className="flex size-14 items-center justify-center rounded-2xl border border-white bg-white p-1.5 shadow-sm">
-                  <Image
-                    src={
-                      GermanbutcherLogo ||
-                      "/placeholder.svg?height=32&width=32&query=German Butcher logo"
-                    }
-                    alt="German Butcher logo"
-                    width={44}
-                    height={44}
-                    className="max-h-full max-w-full object-contain"
-                  />
-                </span>
-                <span className="text-left leading-tight">
-                  <span className="block font-castor text-xl text-primaryColor">
-                    German Butcher
+                {settings?.logo?.url && (
+                  <span className="flex size-14 items-center justify-center rounded-2xl border border-white bg-white p-1.5 shadow-sm">
+                    <Image
+                      src={settings.logo.url}
+                      alt={`${settings.businessName || "Business"} logo`}
+                      width={44}
+                      height={44}
+                      className="max-h-full max-w-full object-contain"
+                    />
                   </span>
-                  <span className="block pt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">
-                    Quality meats
+                )}
+                {settings?.businessName && (
+                  <span className="text-left leading-tight">
+                    <span className="block font-castor text-xl text-primaryColor">
+                      {settings.businessName}
+                    </span>
                   </span>
-                </span>
+                )}
               </Link>
 
               <SheetClose

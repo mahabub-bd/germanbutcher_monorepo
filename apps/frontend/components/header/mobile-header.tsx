@@ -2,12 +2,19 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { getUser } from "@/actions/auth";
-import { GermanbutcherLogo } from "@/public/images";
+import type { BusinessSettings } from "@/utils/types";
 import { SearchBar } from "../homepage/search/search-bar";
 import { MobileMenu } from "./mobile-menu";
 
-export async function MobileHeader() {
+export async function MobileHeader({
+  settings,
+}: {
+  settings?: BusinessSettings | null;
+}) {
   const user = await getUser();
+  const logoUrl = settings?.logo?.url;
+  const businessName = settings?.businessName || "";
+
   return (
     <header className="lg:hidden sticky top-0 z-40 bg-primaryColor shadow-lg">
       <div className="flex items-center justify-between py-2 px-2">
@@ -17,24 +24,27 @@ export async function MobileHeader() {
             className="flex items-center justify-center size-16 "
             aria-label="Go to homepage"
           >
-            <Image
-              src={
-                GermanbutcherLogo ||
-                "/placeholder.svg?height=48&width=48&query=German Butcher logo" ||
-                "/placeholder.svg" ||
-                "/placeholder.svg"
-              }
-              alt="German Butcher logo"
-              title="German Butcher logo"
-              width={60}
-              height={60}
-              className="max-w-full max-h-full object-contain"
-            />
+            {logoUrl ? (
+              <Image
+                src={logoUrl}
+                alt={`${businessName} logo`}
+                title={`${businessName} logo`}
+                width={60}
+                height={60}
+                className="max-w-full max-h-full object-contain"
+              />
+            ) : (
+              businessName && (
+                <span className="text-base font-bold text-white">
+                  {businessName}
+                </span>
+              )
+            )}
           </Link>
         </div>
 
         <SearchBar />
-        <MobileMenu user={user} />
+        <MobileMenu user={user} settings={settings} />
       </div>
     </header>
   );

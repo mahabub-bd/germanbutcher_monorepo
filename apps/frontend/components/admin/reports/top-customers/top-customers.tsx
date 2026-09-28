@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrencyEnglish } from "@/lib/utils";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { Award, Crown, ShoppingCart, TrendingUp, Users } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -81,6 +82,7 @@ export default function TopCustomersReport({
 }: TopCustomersReportProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const settings = useBusinessSettings();
 
   useEffect(() => {
     setMounted(true);
@@ -200,6 +202,7 @@ export default function TopCustomersReport({
                   customers={customers}
                   sortBy={sortBy}
                   timeFilterLabel={TIME_FILTER_LABELS[timeFilter]}
+                  settings={settings}
                 />
               }
               fileName={`top-customers-${timeFilter}-${new Date()

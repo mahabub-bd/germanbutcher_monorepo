@@ -9,6 +9,9 @@ import {
   View,
 } from "@react-pdf/renderer";
 
+import type { BusinessSettings } from "@/utils/types";
+import { pdfImageUrl } from "@/utils/pdf-image";
+
 interface PaymentMethod {
   name: string;
   code: string;
@@ -44,6 +47,7 @@ interface PaymentRecord {
 interface Props {
   payments: PaymentRecord[];
   orderId?: string;
+  settings?: BusinessSettings | null;
 }
 
 const styles = StyleSheet.create({
@@ -202,7 +206,7 @@ const formatCurrency = (num: number) =>
     minimumFractionDigits: 2,
   });
 
-export function PaymentReportPDF({ payments, orderId }: Props) {
+export function PaymentReportPDF({ payments, orderId, settings }: Props) {
   const totalAmount = payments.reduce(
     (sum, p) => sum + parseFloat(p.amount || "0"),
     0
@@ -216,16 +220,28 @@ export function PaymentReportPDF({ payments, orderId }: Props) {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoSection}>
-            <Image style={styles.logo} src="/images/logo3.png" />
+            <Image style={styles.logo} src={pdfImageUrl(settings?.invoiceLogo?.url)} />
             <View style={styles.companyInfo}>
-              <Text style={styles.companyName}>German Butcher</Text>
-              <Text style={styles.companyAddress}>
-                House-56/B, Road-132, Gulshan-1, Dhaka
-              </Text>
-              <Text style={styles.companyContact}>Mobile: 01404-009000</Text>
-              <Text style={styles.companyContact}>
-                Web: www.germanbutcherbd.com
-              </Text>
+              {settings?.businessName?.trim() ? (
+                <Text style={styles.companyName}>
+                  {settings.businessName.trim()}
+                </Text>
+              ) : null}
+              {settings?.address?.trim() ? (
+                <Text style={styles.companyAddress}>
+                  {settings.address.trim()}
+                </Text>
+              ) : null}
+              {settings?.phone?.trim() ? (
+                <Text style={styles.companyContact}>
+                  Mobile: {settings.phone.trim()}
+                </Text>
+              ) : null}
+              {settings?.websiteUrl?.trim() ? (
+                <Text style={styles.companyContact}>
+                  Web: {settings.websiteUrl.trim()}
+                </Text>
+              ) : null}
             </View>
           </View>
           <Text style={styles.reportTitle}>Payment Report</Text>

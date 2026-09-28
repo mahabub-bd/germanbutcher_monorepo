@@ -2,12 +2,14 @@
 
 import {
   Document,
-  Image,
   Page,
   StyleSheet,
   Text,
   View,
 } from "@react-pdf/renderer";
+
+import { ReportPDFHeader } from "../report-pdf-header";
+import type { BusinessSettings } from "@/utils/types";
 
 interface MonthlyData {
   year: number;
@@ -23,6 +25,7 @@ interface MonthlyData {
 interface Props {
   monthlyData: MonthlyData[];
   year?: number;
+  settings?: BusinessSettings | null;
 }
 
 const styles = StyleSheet.create({
@@ -146,7 +149,7 @@ const formatCurrency = (num: number) =>
     maximumFractionDigits: 2,
   });
 
-export function MonthlyOrderPDF({ monthlyData, year }: Props) {
+export function MonthlyOrderPDF({ monthlyData, year, settings }: Props) {
   const totalAllOrders = monthlyData.reduce((sum, item) => sum + item.allOrderCount, 0);
   const totalAllOrderValue = monthlyData.reduce((sum, item) => sum + item.allOrderValue, 0);
   const totalOrders = monthlyData.reduce((sum, item) => sum + item.orderCount, 0);
@@ -164,17 +167,7 @@ export function MonthlyOrderPDF({ monthlyData, year }: Props) {
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.companyInfo}>
-            <Text style={styles.companyName}>German Butcher</Text>
-            <Text style={styles.companyAddress}>
-              House-56/B, Road-132, Gulshan-1, Dhaka
-            </Text>
-            <Text style={styles.companyAddress}>Mobile: 01404-009000</Text>
-            <Text style={styles.companyAddress}>www.germanbutcherbd.com</Text>
-          </View>
-          <Image style={styles.logo} src="/images/logo3.png" />
-        </View>
+        <ReportPDFHeader settings={settings} styles={styles} />
 
         {/* Title */}
         <Text style={styles.reportTitle}>Monthly Order Summary Report</Text>

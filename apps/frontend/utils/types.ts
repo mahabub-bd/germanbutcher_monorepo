@@ -280,6 +280,24 @@ export type authResponse = {
   statusCode: number;
 };
 
+export interface BusinessSettings {
+  businessName: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  whatsappNumber: string | null;
+  messengerUrl: string | null;
+  websiteUrl: string | null;
+  logo: {
+    id: string;
+    url: string;
+  } | null;
+  invoiceLogo: {
+    id: string;
+    url: string;
+  } | null;
+}
+
 export interface MenuItem {
   parentId: number | null;
   id: number;

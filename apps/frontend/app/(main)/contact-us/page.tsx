@@ -1,12 +1,13 @@
 "use client";
 import { HeadingPrimary } from "@/components/common/heading-primary";
-import { contactInfo } from "@/constants";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { postData } from "@/utils/api-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertCircle,
   CheckCircle,
   Mail,
+  MapPin,
   MessageSquare,
   Phone,
   Send,
@@ -42,6 +43,33 @@ type ContactFormData = z.infer<typeof contactSchema>;
 
 const ContactPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const business = useBusinessSettings();
+
+  const contactItems = [
+    business?.phone && {
+      icon: Phone,
+      label: "Call Us",
+      value: business.phone,
+      href: `tel:${business.phone}`,
+    },
+    business?.email && {
+      icon: Mail,
+      label: "Email Us",
+      value: business.email,
+      href: `mailto:${business.email}`,
+    },
+    business?.address && {
+      icon: MapPin,
+      label: "Visit Us",
+      value: business.address,
+      href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address)}`,
+    },
+  ].filter(Boolean) as {
+    icon: React.ElementType;
+    label: string;
+    value: string;
+    href: string;
+  }[];
 
   const {
     register,
@@ -113,7 +141,7 @@ const ContactPage = () => {
             </div>
 
             <div className="flex flex-col gap-4">
-              {contactInfo.map((item, index) => {
+              {contactItems.map((item, index) => {
                 const IconComponent = item.icon;
                 return (
                   <a

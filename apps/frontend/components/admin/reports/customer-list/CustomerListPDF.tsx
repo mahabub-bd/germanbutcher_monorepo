@@ -2,12 +2,14 @@
 
 import {
   Document,
-  Image,
   Page,
   StyleSheet,
   Text,
   View,
 } from "@react-pdf/renderer";
+
+import { ReportPDFHeader } from "../report-pdf-header";
+import type { BusinessSettings } from "@/utils/types";
 
 interface Customer {
   name: string;
@@ -30,6 +32,7 @@ interface Props {
   customers: Customer[];
   summary: Summary;
   dateRange: string;
+  settings?: BusinessSettings | null;
 }
 
 const styles = StyleSheet.create({
@@ -181,7 +184,12 @@ const formatDate = (dateStr: string) => {
   });
 };
 
-export function CustomerListPDF({ customers, summary, dateRange }: Props) {
+export function CustomerListPDF({
+  customers,
+  summary,
+  dateRange,
+  settings,
+}: Props) {
   const avgPerCustomer =
     summary.totalCustomers > 0
       ? summary.totalOrderValue / summary.totalCustomers
@@ -191,17 +199,7 @@ export function CustomerListPDF({ customers, summary, dateRange }: Props) {
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.companyInfo}>
-            <Text style={styles.companyName}>German Butcher</Text>
-            <Text style={styles.companyAddress}>
-              House-56/B, Road-132, Gulshan-1, Dhaka
-            </Text>
-            <Text style={styles.companyAddress}>Mobile: 01404-009000</Text>
-            <Text style={styles.companyAddress}>www.germanbutcherbd.com</Text>
-          </View>
-          <Image style={styles.logo} src="/images/logo3.png" />
-        </View>
+        <ReportPDFHeader settings={settings} styles={styles} />
 
         {/* Title */}
         <Text style={styles.reportTitle}>Customer List Report</Text>
