@@ -2,8 +2,9 @@ import { getUser } from '@/actions/auth';
 import { cn } from '@/lib/utils';
 
 import AuthBtn from '../auth/auth-button';
+import { CartModalWrapper } from '../cart/cart-modal-wrapper';
 
-import { CartButtonHeaderWrapper } from '../cart/cart-button-header-wrapper';
+
 
 interface UserActionsProps {
   compact?: boolean;
@@ -25,7 +26,7 @@ export default async function UserActions({
       )}
     >
       <AuthBtn user={user} compact={compact} />
-      <CartButtonHeaderWrapper compact={compact} />
+      <CartModalWrapper compact={compact} />
     </div>
   );
 }

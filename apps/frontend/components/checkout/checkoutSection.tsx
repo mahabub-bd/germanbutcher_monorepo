@@ -15,7 +15,6 @@ import { refreshDashboard, serverRevalidate } from "@/utils/revalidatePath";
 import type {
   Address,
   CartItem,
-  DeliverySettings,
   PaymentMethod,
   ShippingMethod,
   User as UserType,
@@ -31,6 +30,7 @@ import { OrderSummary } from "@/components/checkout/order-summary";
 import { PaymentMethodSelector } from "@/components/checkout/payment-method-selector";
 import { ShippingInformation } from "@/components/checkout/shipping-information";
 import { ShippingMethodSelector } from "@/components/checkout/shipping-method-selector";
+import { useFreeDelivery } from "@/components/cart/use-free-delivery";
 import { postData } from "@/utils/api-utils";
 
 export default function CheckoutPage({ user }: { user?: UserType }) {
@@ -42,8 +42,6 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
 
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [deliverySettings, setDeliverySettings] =
-    useState<DeliverySettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const [selectedShippingMethod, setSelectedShippingMethod] = useState("");
@@ -79,18 +77,20 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
 
   const couponDiscount = Number(appliedCoupon?.discount || 0);
   const payableSubtotal = Number(discountedSubtotal) - couponDiscount;
-  const freeDeliveryThreshold = Number(
-    deliverySettings?.freeDeliveryThreshold ?? 0
-  );
-  const isFreeDelivery = Boolean(deliverySettings?.freeDeliveryEnabled) &&
-    freeDeliveryThreshold > 0 &&
-    payableSubtotal >= freeDeliveryThreshold;
-  const effectiveShippingCost = isFreeDelivery ? 0 : shippingCost;
+
+  // Server-side campaign evaluation (date range, day/time, products,
+  // categories, new customers)
+  const freeDeliveryCheck = useFreeDelivery({
+    payableSubtotal,
+    itemCount,
+    items: (cart?.items ?? []).map((item) => ({
+      productId: item.product.id,
+      quantity: item.quantity,
+    })),
+  });
+  const effectiveFreeDelivery = freeDeliveryCheck?.freeDelivery ?? false;
+  const effectiveShippingCost = effectiveFreeDelivery ? 0 : shippingCost;
   const total = payableSubtotal + effectiveShippingCost;
-  const freeDeliveryRemaining =
-    deliverySettings?.freeDeliveryEnabled && !isFreeDelivery
-      ? Math.max(freeDeliveryThreshold - payableSubtotal, 0)
-      : null;
 
   useEffect(() => {
     if (user) {
@@ -106,18 +106,15 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
   useEffect(() => {
     const fetchMethods = async () => {
       try {
-        const [shippingResponse, paymentResponse, deliverySettingsResponse] =
-          await Promise.all([
-            fetchData("shipping-methods?isActive=true") as Promise<
-              ShippingMethod[]
-            >,
-            fetchData("order-payment-methods") as Promise<PaymentMethod[]>,
-            fetchData("delivery-settings") as Promise<DeliverySettings>,
-          ]);
+        const [shippingResponse, paymentResponse] = await Promise.all([
+          fetchData("shipping-methods?isActive=true") as Promise<
+            ShippingMethod[]
+          >,
+          fetchData("order-payment-methods") as Promise<PaymentMethod[]>,
+        ]);
 
         setShippingMethods(shippingResponse as ShippingMethod[]);
         setPaymentMethods(paymentResponse as PaymentMethod[]);
-        setDeliverySettings(deliverySettingsResponse as DeliverySettings);
 
         if ((shippingResponse as ShippingMethod[]).length > 0) {
           setSelectedShippingMethod(shippingResponse[0].id.toString());
@@ -418,7 +415,7 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
               shippingMethods={shippingMethods}
               selectedMethod={selectedShippingMethod}
               onSelectMethod={setSelectedShippingMethod}
-              isFreeDelivery={isFreeDelivery}
+              isFreeDelivery={effectiveFreeDelivery}
             />
 
             <PaymentMethodSelector
@@ -443,8 +440,11 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
                 productDiscounts={productDiscounts}
                 appliedCoupon={appliedCoupon}
                 shippingCost={effectiveShippingCost}
-                isFreeDelivery={isFreeDelivery}
-                freeDeliveryRemaining={freeDeliveryRemaining}
+                isFreeDelivery={effectiveFreeDelivery}
+                freeDeliveryRemaining={freeDeliveryCheck?.remaining ?? null}
+                freeDeliverySource={freeDeliveryCheck?.source}
+                freeDeliveryCampaignName={freeDeliveryCheck?.campaignName}
+                freeDeliveryMinOrderAmount={freeDeliveryCheck?.minOrderAmount}
                 total={total}
                 isSubmitting={isSubmitting}
                 onSubmit={handleSubmit}
@@ -465,8 +465,11 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
                 productDiscounts={productDiscounts}
                 appliedCoupon={appliedCoupon}
                 shippingCost={effectiveShippingCost}
-                isFreeDelivery={isFreeDelivery}
-                freeDeliveryRemaining={freeDeliveryRemaining}
+                isFreeDelivery={effectiveFreeDelivery}
+                freeDeliveryRemaining={freeDeliveryCheck?.remaining ?? null}
+                freeDeliverySource={freeDeliveryCheck?.source}
+                freeDeliveryCampaignName={freeDeliveryCheck?.campaignName}
+                freeDeliveryMinOrderAmount={freeDeliveryCheck?.minOrderAmount}
                 total={total}
                 isSubmitting={isSubmitting}
                 onSubmit={handleSubmit}

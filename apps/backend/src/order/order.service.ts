@@ -4,7 +4,7 @@ import { Address } from 'src/address/entities/address.entity';
 import { OrderStatus, PaymentStatus, CancellationReason } from 'src/common/enums';
 import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { DeliveryMan } from 'src/delivery-man/entities/delivery-man.entity';
-import { DeliverySettingsService } from 'src/delivery-settings/delivery-settings.service';
+import { FreeDeliveryCampaignsService } from 'src/free-delivery-campaigns/free-delivery-campaigns.service';
 
 import { EmailService } from 'src/email/email.service';
 import { NotificationService } from 'src/notification/notification.service';
@@ -65,7 +65,7 @@ export class OrderService {
     private readonly notificationService: NotificationService,
     private readonly smsService: SmsService,
     private readonly couponUsageLogService: CouponUsageLogService,
-    private readonly deliverySettingsService: DeliverySettingsService,
+    private readonly freeDeliveryCampaignsService: FreeDeliveryCampaignsService,
   ) {}
 
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -192,6 +192,7 @@ export class OrderService {
       // Store pricing details for this item
       itemPricingDetails.push({
         productId: item.productId,
+        categoryId: product.category?.id,
         quantity: item.quantity,
         unitPrice: price,
         unitDiscount: productDiscount,
@@ -246,18 +247,44 @@ export class OrderService {
       }
     }
 
-    // Add shipping cost — waived entirely when free delivery is enabled and
-    // the payable subtotal (after product + coupon discounts) crosses the
-    // configured threshold
+    // Add shipping cost — waived when a free-delivery campaign matches the
+    // payable subtotal (after product + coupon discounts)
     const payableSubtotal = totalValue;
-    const deliverySettings = await this.deliverySettingsService.getSettings();
-    const freeDeliveryEligible =
-      deliverySettings.freeDeliveryEnabled &&
-      Number(deliverySettings.freeDeliveryThreshold) > 0 &&
-      payableSubtotal >= Number(deliverySettings.freeDeliveryThreshold);
+    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+    let freeDeliveryEligible = false;
+    let matchedCampaignId: number | null = null;
+    try {
+      const evaluation = await this.freeDeliveryCampaignsService.evaluate({
+        payableSubtotal,
+        totalQuantity,
+        items: itemPricingDetails.map(({ productId, categoryId }) => ({
+          productId,
+          categoryId,
+        })),
+        userId: user.id,
+      });
+      freeDeliveryEligible = evaluation.eligible;
+      matchedCampaignId = evaluation.campaign?.id ?? null;
+    } catch (error) {
+      this.logger.error(
+        `Free delivery campaign evaluation failed for ${orderNo}: ${error}`,
+      );
+    }
+
     const chargedShipping = freeDeliveryEligible
       ? 0
       : Number(shippingMethod.cost);
+
+    if (matchedCampaignId) {
+      try {
+        await this.freeDeliveryCampaignsService.incrementUsage(matchedCampaignId);
+      } catch (error) {
+        this.logger.error(
+          `Failed to increment free delivery campaign usage: ${error}`,
+        );
+      }
+    }
+
     totalValue += chargedShipping;
 
     // Round final values

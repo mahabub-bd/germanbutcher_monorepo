@@ -76,7 +76,7 @@ function InfoField({
         <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </dt>
-        <dd className="mt-0.5 font-semibold text-gray-900 dark:text-gray-50 break-words">
+        <dd className="mt-0.5 font-semibold text-gray-900 dark:text-gray-50 [overflow-wrap:anywhere]">
           {href && value?.trim() ? (
             <a
               href={href}
@@ -254,7 +254,7 @@ export function BusinessSettingsCard() {
         ) : (
           <div>
             {/* Card header */}
-            <div className="flex items-start justify-between gap-4 border-b border-gray-100 pb-5 dark:border-gray-800">
+            <div className="flex flex-col-reverse gap-3 border-b border-gray-100 pb-5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 dark:border-gray-800">
               <div>
                 <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50">
                   Business Information
@@ -263,15 +263,20 @@ export function BusinessSettingsCard() {
                   Used across the storefront, chat, invoices and reports.
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={handleEdit}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEdit}
+                className="w-full sm:w-auto sm:shrink-0"
+              >
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit
               </Button>
             </div>
 
-            <div className="mt-6 grid gap-8 lg:grid-cols-[auto,1fr]">
+            <div className="mt-6 grid gap-6 lg:grid-cols-[auto,1fr] lg:gap-8">
               {/* Logos */}
-              <div className="flex gap-5">
+              <div className="flex justify-center gap-5 sm:justify-start">
                 <LogoTile
                   url={settings?.logo?.url}
                   label="Website Logo"
@@ -362,7 +367,7 @@ export function BusinessSettingsCard() {
             {/* Logo upload */}
             <div className="space-y-2">
               <Label htmlFor="business-logo">Logo</Label>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {logoPreview ? (
                   <Image
                     src={logoPreview}
@@ -375,13 +380,13 @@ export function BusinessSettingsCard() {
                 ) : (
                   <div className="w-16 h-16 rounded-lg border border-dashed border-gray-300 dark:border-gray-700" />
                 )}
-                <div className="flex flex-col gap-1">
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <Input
                     id="business-logo"
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
-                    className="w-fit"
+                    className="w-full max-w-full text-xs"
                     onChange={handleLogoChange}
                   />
                   {logoFile && (
@@ -404,7 +409,7 @@ export function BusinessSettingsCard() {
               <Label htmlFor="business-invoice-logo">
                 Invoice Logo (PNG only)
               </Label>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {invoiceLogoPreview ? (
                   <Image
                     src={invoiceLogoPreview}
@@ -417,13 +422,13 @@ export function BusinessSettingsCard() {
                 ) : (
                   <div className="w-16 h-16 rounded-lg border border-dashed border-gray-300 dark:border-gray-700" />
                 )}
-                <div className="flex flex-col gap-1">
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <Input
                     id="business-invoice-logo"
                     ref={invoiceFileInputRef}
                     type="file"
                     accept="image/png"
-                    className="w-fit"
+                    className="w-full max-w-full text-xs"
                     onChange={handleInvoiceLogoChange}
                   />
                   {invoiceLogoFile && (
@@ -479,11 +484,12 @@ export function BusinessSettingsCard() {
             </p>
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
             <Button
               variant="outline"
               onClick={() => setIsEditOpen(false)}
               disabled={isSaving}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -491,7 +497,7 @@ export function BusinessSettingsCard() {
               onClick={handleSave}
               disabled={isSaving}
               aria-busy={isSaving}
-              className="bg-primaryColor hover:bg-primaryColor/90 dark:bg-red-700 dark:hover:bg-red-600"
+              className="w-full bg-primaryColor hover:bg-primaryColor/90 sm:w-auto dark:bg-red-700 dark:hover:bg-red-600"
             >
               {isSaving ? "Saving..." : "Save Changes"}
             </Button>

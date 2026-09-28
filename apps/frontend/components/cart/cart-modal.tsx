@@ -1,8 +1,8 @@
 "use client";
 
-import { ShoppingCart, Tag, Trash2, X } from "lucide-react";
+import { ShoppingCart, Trash2, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -19,14 +19,14 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useCartContext } from "@/contexts/cart-context";
-import { fetchData } from "@/utils/api-utils";
 import { cn, formatCurrencyEnglish } from "@/lib/utils";
-import type { Cart, CartItem, DeliverySettings } from "@/utils/types";
+import type { Cart, CartItem } from "@/utils/types";
 import { CartItemProduct } from "./cart-item";
 import { EmptyCart } from "./empty-cart";
 import { FreeDeliveryBanner } from "./free-delivery-banner";
+import { useFreeDelivery } from "./use-free-delivery";
 
-export function CartButtonHeader({
+export function CartModal({
   cart,
   compact,
 }: {
@@ -46,8 +46,6 @@ export function CartButtonHeader({
   const [isRemovingAll, setIsRemovingAll] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
-  const [deliverySettings, setDeliverySettings] =
-    useState<DeliverySettings | null>(null);
 
   const {
     itemCount,
@@ -59,22 +57,17 @@ export function CartButtonHeader({
   const couponDiscount = Number(appliedCoupon?.discount || 0);
   const total = discountedSubtotal - couponDiscount;
 
-  // Free delivery eligibility mirrors checkout/backend: payable subtotal
-  // (after discounts) vs the configured threshold
-  useEffect(() => {
-    fetchData("delivery-settings")
-      .then((response) => setDeliverySettings(response as DeliverySettings))
-      .catch((error) =>
-        console.error("Error fetching delivery settings:", error)
-      );
-  }, []);
-
-  const freeDeliveryThreshold = Number(
-    deliverySettings?.freeDeliveryThreshold ?? 0
-  );
-  const isFreeDelivery = Boolean(deliverySettings?.freeDeliveryEnabled) &&
-    freeDeliveryThreshold > 0 &&
-    discountedSubtotal - couponDiscount >= freeDeliveryThreshold;
+  // Server-side campaign evaluation (date range, day/time, products,
+  // categories, new customers)
+  const freeDeliveryCheck = useFreeDelivery({
+    payableSubtotal: discountedSubtotal - couponDiscount,
+    itemCount,
+    items: (cart?.items ?? []).map((item: CartItem) => ({
+      productId: item.product.id,
+      quantity: item.quantity,
+    })),
+  });
+  const effectiveFreeDelivery = freeDeliveryCheck?.freeDelivery ?? false;
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -194,20 +187,18 @@ export function CartButtonHeader({
         {itemCount > 0 && (
           <div className="border-t">
             <div className="p-4 sm:p-6 space-y-4">
-              {/* Free delivery progress banner */}
+              {/* Free delivery banner */}
               <FreeDeliveryBanner
-                enabled={Boolean(deliverySettings?.freeDeliveryEnabled)}
-                threshold={freeDeliveryThreshold}
-                payableSubtotal={discountedSubtotal - couponDiscount}
                 itemCount={itemCount}
+                source={freeDeliveryCheck?.source}
+                campaignName={freeDeliveryCheck?.campaignName}
+                remaining={freeDeliveryCheck?.remaining}
+                minOrderAmount={freeDeliveryCheck?.minOrderAmount}
               />
 
               {/* Coupon Section */}
               <div className="space-y-2">
-                <h3 className="text-sm font-medium flex items-center">
-                  <Tag className="mr-2 h-4 w-4" />
-                  Apply Discount Code
-                </h3>
+
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Input
@@ -284,9 +275,9 @@ export function CartButtonHeader({
                     </div>
                   )}
 
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Shipping</span>
-                    {isFreeDelivery ? (
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Delivery Fee</span>
+                    {effectiveFreeDelivery ? (
                       <span className="font-semibold text-green-600 dark:text-green-400">
                         FREE
                       </span>

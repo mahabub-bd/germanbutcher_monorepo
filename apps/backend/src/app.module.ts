@@ -23,6 +23,7 @@ import { CouponModule } from './coupon/coupon.module';
 import { CouponUsageLogModule } from './coupon-usage-log/coupon-usage-log.module';
 import { DeliverySettingsModule } from './delivery-settings/delivery-settings.module';
 import { GalleryModule } from './gallery/gallery.module';
+import { FreeDeliveryCampaignsModule } from './free-delivery-campaigns/free-delivery-campaigns.module';
 import { MenuPermissionModule } from './menu-permission/menu-permission.module';
 import { MenuModule } from './menu/menu.module';
 import { NotificationModule } from './notification/notification.module';
@@ -111,6 +112,7 @@ import { WishlistModule } from './wishlist/wishlist.module';
     CouponUsageLogModule,
     BusinessSettingsModule,
     DeliverySettingsModule,
+    FreeDeliveryCampaignsModule,
     DeliveryManModule,
     GalleryModule,
     MenuModule,
