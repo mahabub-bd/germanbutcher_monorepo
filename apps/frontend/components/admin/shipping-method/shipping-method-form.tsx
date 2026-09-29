@@ -25,6 +25,9 @@ const shippingMethodSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   cost: z.string().min(1, "Cost is required"),
   isActive: z.boolean(),
+  requiresOnlinePayment: z.boolean(),
+  isExcludedFromFreeDelivery: z.boolean(),
+  displayOrder: z.string().min(1, "Display order is required"),
   deliveryTime: z.string().min(1, "Delivery time is required"),
   description: z.string().min(1, "Description is required"),
 });
@@ -48,6 +51,10 @@ export function ShippingMethodForm({
       name: shippingMethod?.name || "",
       cost: shippingMethod?.cost || "",
       isActive: shippingMethod?.isActive ?? true,
+      requiresOnlinePayment: shippingMethod?.requiresOnlinePayment ?? false,
+      isExcludedFromFreeDelivery:
+        shippingMethod?.isExcludedFromFreeDelivery ?? false,
+      displayOrder: String(shippingMethod?.displayOrder ?? 0),
       deliveryTime: shippingMethod?.deliveryTime || "",
       description: shippingMethod?.description || "",
     },
@@ -78,8 +85,8 @@ export function ShippingMethodForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 w-full mx-auto">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full mx-auto">
           <FormField
             control={form.control}
             name="name"
@@ -138,26 +145,47 @@ export function ShippingMethodForm({
 
           <FormField
             control={form.control}
-            name="description"
+            name="displayOrder"
             render={({ field }) => (
               <FormItem className="space-y-2">
-                <FormLabel>Description</FormLabel>
+                <FormLabel>Display Order</FormLabel>
                 <FormControl>
-                  <Textarea
-                    placeholder="Enter a description of the shipping method"
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Lower numbers show first (e.g. 1)"
                     {...field}
-                    className="w-full min-h-[100px]"
+                    className="w-full"
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem className="space-y-2 md:col-span-2">
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Enter a description of the shipping method"
+                    {...field}
+                    className="w-full min-h-[64px]"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="isActive"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 space-y-0">
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border px-3 py-2.5 space-y-0">
                 <div className="space-y-0.5">
                   <FormLabel>Active Status</FormLabel>
                 </div>
@@ -170,9 +198,52 @@ export function ShippingMethodForm({
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="requiresOnlinePayment"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between gap-2 rounded-lg border px-3 py-2.5 space-y-0">
+                <div className="space-y-0.5">
+                  <FormLabel>Online Payment Only</FormLabel>
+                  <p className="text-xs text-muted-foreground">
+                    Cash on delivery is rejected for this method
+                  </p>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="isExcludedFromFreeDelivery"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between gap-2 rounded-lg border px-3 py-2.5 space-y-0 md:col-span-2">
+                <div className="space-y-0.5">
+                  <FormLabel>Exclude from Free Delivery</FormLabel>
+                  <p className="text-xs text-muted-foreground">
+                    Free delivery campaigns never waive this method&apos;s cost
+                    (e.g. express delivery)
+                  </p>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
         </div>
 
-        <div className="flex justify-end space-x-4 pt-2 mx-auto">
+        <div className="flex justify-end space-x-3 pt-1 mx-auto">
           <Button
             type="button"
             variant="outline"

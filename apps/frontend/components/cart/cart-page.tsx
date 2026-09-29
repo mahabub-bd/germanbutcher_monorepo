@@ -28,7 +28,7 @@ import type { Cart, CartItem } from "@/utils/types";
 import { CartItemProductPage } from "./cart-item-product-page";
 import { EmptyCart } from "./empty-cart";
 import { FreeDeliveryBanner } from "./free-delivery-banner";
-import { useFreeDelivery } from "./use-free-delivery";
+import { useFreeDelivery } from "@/hooks/use-free-delivery";
 
 export function CartPage({ cart }: { cart?: Cart }) {
   const {
@@ -110,7 +110,7 @@ export function CartPage({ cart }: { cart?: Cart }) {
         {/* Cart Header */}
         <div className="mb-6 flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-red-50 text-primaryColor dark:bg-red-950/40">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-sm bg-red-50 text-primaryColor dark:bg-red-950/40">
               <ShoppingCart className="h-6 w-6" />
             </div>
             <div>
@@ -129,7 +129,7 @@ export function CartPage({ cart }: { cart?: Cart }) {
               size="sm"
               onClick={handleRemoveAll}
               disabled={isRemovingAll}
-              className="h-10 gap-2 rounded-lg bg-red-50 px-4 text-sm font-medium text-primaryColor hover:bg-red-100 hover:text-primaryColor dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-950/60"
+              className="h-10 gap-2 rounded-sm bg-red-50 px-4 text-sm font-medium text-primaryColor hover:bg-red-100 hover:text-primaryColor dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-950/60"
             >
               {isRemovingAll ? (
                 "Clearing..."
@@ -188,7 +188,7 @@ export function CartPage({ cart }: { cart?: Cart }) {
       {/* Order Summary */}
       {itemCount > 0 && (
         <div className="lg:sticky lg:top-24">
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <div className="rounded-md border border-gray-100 bg-white md:p-4 p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-50">
               Order Summary
             </h2>

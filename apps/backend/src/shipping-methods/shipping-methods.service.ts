@@ -2,6 +2,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { User } from 'src/user/entities/user.entity';
 import { CreateShippingMethodDto } from './dto/create-shipping-method.dto';
 import { UpdateShippingMethodDto } from './dto/update-shipping-method.dto';
 import { ShippingMethod } from './entities/shipping-method.entity';
@@ -15,10 +16,15 @@ export class ShippingMethodsService {
 
   async create(
     createShippingMethodDto: CreateShippingMethodDto,
+    userId?: number,
   ): Promise<ShippingMethod> {
     const shippingMethod = this.shippingMethodRepository.create(
       createShippingMethodDto,
     );
+    if (userId) {
+      shippingMethod.createdBy = { id: userId } as User;
+      shippingMethod.updatedBy = { id: userId } as User;
+    }
     return await this.shippingMethodRepository.save(shippingMethod);
   }
 
@@ -29,7 +35,10 @@ export class ShippingMethodsService {
       where.isActive = isActive === 'true';
     }
 
-    return await this.shippingMethodRepository.find({ where });
+    return await this.shippingMethodRepository.find({
+      where,
+      order: { displayOrder: 'ASC', id: 'ASC' },
+    });
   }
 
   async findOne(id: number): Promise<ShippingMethod> {
@@ -45,9 +54,13 @@ export class ShippingMethodsService {
   async update(
     id: number,
     updateShippingMethodDto: UpdateShippingMethodDto,
+    userId?: number,
   ): Promise<ShippingMethod> {
     const shippingMethod = await this.findOne(id);
     Object.assign(shippingMethod, updateShippingMethodDto);
+    if (userId) {
+      shippingMethod.updatedBy = { id: userId } as User;
+    }
     return await this.shippingMethodRepository.save(shippingMethod);
   }
 

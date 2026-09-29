@@ -39,7 +39,7 @@ export default function Home() {
       <section className="md:py-10 py-5 product-bg">
         <div className="container mx-auto ">
           <ProductList
-            endpoint="products?featured=true&limit=10&page=1"
+            endpoint="products?featured=true&isActive=true&limit=10&page=1"
             isHomePage
             href="products/featured/"
           >

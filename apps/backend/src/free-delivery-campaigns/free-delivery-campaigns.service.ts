@@ -27,6 +27,30 @@ export interface EvaluateResult {
   campaign: FreeDeliveryCampaign | null;
 }
 
+/** Minimal product info exposed on the public /active endpoint. */
+export interface CampaignProductSummary {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+/** Minimal category info exposed on the public /active endpoint. */
+export interface CampaignCategorySummary {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+/** Campaign as returned by the public /active endpoint (no full product/
+ * category entities — those leak admin data like user password hashes). */
+export type ActiveCampaignSummary = Omit<
+  FreeDeliveryCampaign,
+  'products' | 'categories'
+> & {
+  products: CampaignProductSummary[];
+  categories: CampaignCategorySummary[];
+};
+
 export interface FreeDeliveryCheckResult {
   freeDelivery: boolean;
   /** 'campaign' — matched; 'pending' — matched except min order amount; 'none' */
@@ -149,6 +173,29 @@ export class FreeDeliveryCampaignsService {
         (!campaign.validUntil ||
           now <= new Date(campaign.validUntil).getTime()),
     );
+  }
+
+  /** Trim nested product/category entities to the fields the storefront
+   * needs — full entities expose supplier/admin data (incl. password hashes). */
+  toActiveSummaries(
+    campaigns: FreeDeliveryCampaign[],
+  ): ActiveCampaignSummary[] {
+    return campaigns.map((campaign) => {
+      const { products, categories, ...rest } = campaign;
+      return {
+        ...rest,
+        products: (products ?? []).map(({ id, name, slug }) => ({
+          id,
+          name,
+          slug,
+        })),
+        categories: (categories ?? []).map(({ id, name, slug }) => ({
+          id,
+          name,
+          slug,
+        })),
+      };
+    });
   }
 
   /**

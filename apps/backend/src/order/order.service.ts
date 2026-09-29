@@ -23,6 +23,10 @@ import { OrderStatusTrack } from './entities/order-status-track.entity';
 import { Order } from './entities/order.entity';
 import { CouponUsageLogService } from 'src/coupon-usage-log/coupon-usage-log.service';
 import { DiscountType } from 'src/common/enums';
+
+/** System identifier of the offline payment method (order_payment_method.code) */
+const CASH_ON_DELIVERY_CODE = 'cash_on_delivery';
+
 export interface FindAllOrdersOptions {
   page?: number;
   limit?: number;
@@ -128,6 +132,14 @@ export class OrderService {
       throw new NotFoundException(
         `Payment method with ID ${paymentMethodId} not found`,
       );
+    if (
+      shippingMethod.requiresOnlinePayment &&
+      paymentMethod.code === CASH_ON_DELIVERY_CODE
+    ) {
+      throw new BadRequestException(
+        `Cash on delivery is not available for the ${shippingMethod.name} shipping method. Please pay online.`,
+      );
+    }
     if (couponId && !coupon)
       throw new NotFoundException(`Coupon ${couponId} not found`);
 
@@ -271,11 +283,16 @@ export class OrderService {
       );
     }
 
-    const chargedShipping = freeDeliveryEligible
+    // Methods excluded from free delivery (e.g. express) always pay their
+    // full cost, even when a campaign matches.
+    const freeDeliveryApplied =
+      freeDeliveryEligible && !shippingMethod.isExcludedFromFreeDelivery;
+
+    const chargedShipping = freeDeliveryApplied
       ? 0
       : Number(shippingMethod.cost);
 
-    if (matchedCampaignId) {
+    if (matchedCampaignId && freeDeliveryApplied) {
       try {
         await this.freeDeliveryCampaignsService.incrementUsage(matchedCampaignId);
       } catch (error) {

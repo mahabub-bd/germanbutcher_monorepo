@@ -749,8 +749,9 @@ export class ProductService {
 
     if (updateDto.attachment) {
       product.attachment = await this.validateAttachment(updateDto.attachment);
-    } else if (updateDto.attachment === null || updateDto.attachment === undefined) {
-      // Handle explicit removal of attachment
+    } else if (updateDto.attachment === null) {
+      // Explicit removal only — an absent field (e.g. an isActive-only
+      // toggle PATCH) must leave the current attachment untouched.
       product.attachment = null;
     }
 

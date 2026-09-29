@@ -139,11 +139,14 @@ export function CustomerDetail() {
               Joined {formatDateTime(customer.createdAt)}
             </p>
           </div>
-          <Button variant="default" asChild size="sm" className="h-7 text-xs px-2.5">
-            <Link href="/admin/customer/customer-list?page=1&limit=10">
-              <ArrowLeft className="h-3 w-3 mr-1" />
-              Back
-            </Link>
+          <Button
+            variant="default"
+            size="sm"
+            className="h-7 text-xs px-2.5"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="h-3 w-3 mr-1" />
+            Back
           </Button>
         </div>
 

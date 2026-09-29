@@ -5,11 +5,12 @@ import { formatCurrencyEnglish, formatWeight } from "@/lib/utils";
 import type { Product } from "@/utils/types";
 import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { DiscountType } from "@/utils/types";
-import { Clock, Weight } from "lucide-react";
+import { Clock, Truck, Weight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AddToCartButton } from "../cart/add-to-cart-button";
+import { useProductFreeDelivery } from "./use-product-free-delivery";
 
 interface TimeRemaining {
   days: number;
@@ -87,6 +88,7 @@ export default function ProductCard({
       : null;
 
   const isOutOfStock = !product?.stock;
+  const hasFreeDelivery = useProductFreeDelivery(product);
 
   return (
     <div
@@ -124,25 +126,25 @@ export default function ProductCard({
           {isDiscountActive &&
             product.discountType &&
             product.discountValue && (
-              <div className="absolute top-0.5 right-0.5 z-10">
-                <div className="relative w-18 h-18 animate-[spin_3s_linear_infinite]">
+              <div className="absolute top-1 right-1 z-10">
+                <div className="relative w-12 h-12 animate-[spin_3s_linear_infinite]">
                   {/* Outer ring */}
-                  <div className="absolute inset-0 rounded-full border-4 border-dashed border-primaryColor/30 animate-[spin_4s_linear_infinite_reverse]"></div>
+                  <div className="absolute inset-0 rounded-full border-2 border-dashed border-primaryColor/30 animate-[spin_4s_linear_infinite_reverse]"></div>
 
                   {/* Main badge with 3D effect */}
-                  <div className="absolute inset-2 bg-linear-to-br from-red-800 via-primaryColor to-orange-800 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.5)] transform hover:scale-110 transition-transform duration-300">
+                  <div className="absolute inset-1.5 bg-linear-to-br from-red-800/80 via-primaryColor/80 to-orange-800/80 backdrop-blur-sm rounded-full shadow-[0_0_12px_rgba(239,68,68,0.5)] transform hover:scale-110 transition-transform duration-300">
                     {/* Inner shine effect */}
                     <div className="absolute inset-0 bg-linear-to-tr from-white/20 to-transparent rounded-full"></div>
                   </div>
 
                   {/* Content - counter-rotate to keep text upright */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-white animate-[spin_3s_linear_infinite_reverse]">
-                    <div className="text-[13px] leading-none font-black drop-shadow-lg">
+                    <div className="text-[10px] leading-none font-black drop-shadow-lg">
                       {product.discountType === DiscountType.PERCENTAGE
                         ? `${parseFloat(product.discountValue.toString())}%`
                         : `৳${parseFloat(product.discountValue.toString())}`}
                     </div>
-                    <span className="text-[13px] uppercase tracking-wider font-bold mt-0.5">
+                    <span className="text-[9px] uppercase tracking-wider font-bold mt-0.5">
                       OFF
                     </span>
                   </div>
@@ -161,6 +163,15 @@ export default function ProductCard({
                   {String(timeRemaining.seconds).padStart(2, "0")}
                 </div>
               </div>
+            </div>
+          )}
+          {/* Free Delivery Badge - Bottom Left */}
+          {hasFreeDelivery && !isOutOfStock && (
+            <div className="absolute bottom-1.5 left-1.5 z-10">
+              <span className="inline-flex items-center gap-1 bg-white text-primaryColor rounded-full px-2 py-0.5 text-[10px] font-semibold shadow-sm">
+                <Truck className="w-3 h-3" />
+                Free Delivery
+              </span>
             </div>
           )}
         </div>

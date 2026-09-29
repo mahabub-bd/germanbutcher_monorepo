@@ -24,7 +24,7 @@ import type { Cart, CartItem } from "@/utils/types";
 import { CartItemProduct } from "./cart-item";
 import { EmptyCart } from "./empty-cart";
 import { FreeDeliveryBanner } from "./free-delivery-banner";
-import { useFreeDelivery } from "./use-free-delivery";
+import { useFreeDelivery } from "@/hooks/use-free-delivery";
 
 export function CartModal({
   cart,

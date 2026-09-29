@@ -12,7 +12,7 @@ export default async function RecipeDetilsPage({
     <div>
       <section className="md:py-10 py-5">
         <div className="container mx-auto px-4">
-          <ProductList endpoint={`products?search=${search}`}>
+          <ProductList endpoint={`products?search=${search}&isActive=true`}>
             <HeadingPrimary
               title={search ? `Results for "${search}"` : "OUR BRANDS"}
               subtitle="Shop from trusted brands you love"

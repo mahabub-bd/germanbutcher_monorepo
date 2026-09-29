@@ -22,6 +22,7 @@ import type {
 
 import { mobileLogin, verifyOtp } from "@/actions/auth";
 import { OtpVerificationModal } from "@/components/auth/otp-verification-modal";
+import { useFreeDelivery } from "@/hooks/use-free-delivery";
 import { AccountCreation } from "@/components/checkout/account-creation";
 import { CustomerInformation } from "@/components/checkout/customer-information";
 import { EmptyCartMessage } from "@/components/checkout/empty-cart-message";
@@ -30,7 +31,6 @@ import { OrderSummary } from "@/components/checkout/order-summary";
 import { PaymentMethodSelector } from "@/components/checkout/payment-method-selector";
 import { ShippingInformation } from "@/components/checkout/shipping-information";
 import { ShippingMethodSelector } from "@/components/checkout/shipping-method-selector";
-import { useFreeDelivery } from "@/components/cart/use-free-delivery";
 import { postData } from "@/utils/api-utils";
 
 export default function CheckoutPage({ user }: { user?: UserType }) {
@@ -75,6 +75,36 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
     )?.cost || 0
   );
 
+  // Shipping methods flagged "requires online payment" (e.g. Express) only
+  // accept the online gateway — cash on delivery is not available.
+  const ONLINE_PAYMENT_CODE = "ssl_commarz";
+
+  const isOnlineOnlyShipping = Boolean(
+    shippingMethods.find(
+      (method) => method.id.toString() === selectedShippingMethod
+    )?.requiresOnlinePayment
+  );
+
+  const disabledPaymentMethods = isOnlineOnlyShipping
+    ? [
+        {
+          code: "cash_on_delivery",
+          reason: "Not available with this shipping method",
+        },
+      ]
+    : [];
+
+  // Keep the payment selection valid when Express is chosen (or pre-select
+  // the online gateway right away); restore nothing when switching back.
+  useEffect(() => {
+    if (
+      isOnlineOnlyShipping &&
+      selectedPaymentMethod !== ONLINE_PAYMENT_CODE
+    ) {
+      setSelectedPaymentMethod(ONLINE_PAYMENT_CODE);
+    }
+  }, [isOnlineOnlyShipping, selectedPaymentMethod]);
+
   const couponDiscount = Number(appliedCoupon?.discount || 0);
   const payableSubtotal = Number(discountedSubtotal) - couponDiscount;
 
@@ -89,7 +119,16 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
     })),
   });
   const effectiveFreeDelivery = freeDeliveryCheck?.freeDelivery ?? false;
-  const effectiveShippingCost = effectiveFreeDelivery ? 0 : shippingCost;
+
+  // Methods excluded from free-delivery campaigns (e.g. express) stay
+  // selectable while a campaign waives shipping — they just keep their cost.
+  const isExcludedMethodSelected = Boolean(
+    shippingMethods.find(
+      (method) => method.id.toString() === selectedShippingMethod
+    )?.isExcludedFromFreeDelivery
+  );
+  const isShippingFree = effectiveFreeDelivery && !isExcludedMethodSelected;
+  const effectiveShippingCost = isShippingFree ? 0 : shippingCost;
   const total = payableSubtotal + effectiveShippingCost;
 
   useEffect(() => {
@@ -422,6 +461,7 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
               paymentMethods={paymentMethods}
               selectedMethod={selectedPaymentMethod}
               onSelectMethod={setSelectedPaymentMethod}
+              disabledMethods={disabledPaymentMethods}
             />
 
             {!user && (
@@ -440,8 +480,12 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
                 productDiscounts={productDiscounts}
                 appliedCoupon={appliedCoupon}
                 shippingCost={effectiveShippingCost}
-                isFreeDelivery={effectiveFreeDelivery}
-                freeDeliveryRemaining={freeDeliveryCheck?.remaining ?? null}
+                isFreeDelivery={isShippingFree}
+                freeDeliveryRemaining={
+                  isExcludedMethodSelected
+                    ? null
+                    : freeDeliveryCheck?.remaining ?? null
+                }
                 freeDeliverySource={freeDeliveryCheck?.source}
                 freeDeliveryCampaignName={freeDeliveryCheck?.campaignName}
                 freeDeliveryMinOrderAmount={freeDeliveryCheck?.minOrderAmount}
@@ -465,8 +509,12 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
                 productDiscounts={productDiscounts}
                 appliedCoupon={appliedCoupon}
                 shippingCost={effectiveShippingCost}
-                isFreeDelivery={effectiveFreeDelivery}
-                freeDeliveryRemaining={freeDeliveryCheck?.remaining ?? null}
+                isFreeDelivery={isShippingFree}
+                freeDeliveryRemaining={
+                  isExcludedMethodSelected
+                    ? null
+                    : freeDeliveryCheck?.remaining ?? null
+                }
                 freeDeliverySource={freeDeliveryCheck?.source}
                 freeDeliveryCampaignName={freeDeliveryCheck?.campaignName}
                 freeDeliveryMinOrderAmount={freeDeliveryCheck?.minOrderAmount}
