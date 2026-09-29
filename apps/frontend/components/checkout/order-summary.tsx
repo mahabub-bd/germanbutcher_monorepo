@@ -71,7 +71,7 @@ export function OrderSummary({
   const canPlaceOrder = user;
 
   return (
-    <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <section className="rounded-sm border border-gray-100 bg-white md:p-4 p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900">
       <header>
         <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-50">
           Order Summary

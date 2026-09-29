@@ -32,6 +32,37 @@ export class ShippingMethod {
   @ApiProperty({ example: true, description: 'Activation status' })
   isActive: boolean;
 
+  @Column({ default: false })
+  @ApiProperty({
+    example: false,
+    description:
+      'When true, orders with this shipping method must pay online (cash on delivery is rejected)',
+  })
+  requiresOnlinePayment: boolean;
+
+  @Column({ default: false })
+  @ApiProperty({
+    example: false,
+    description:
+      'When true, free-delivery campaigns never waive this method\'s cost',
+  })
+  isExcludedFromFreeDelivery: boolean;
+
+  @Column({ default: 0 })
+  @ApiProperty({
+    example: 1,
+    description: 'Display order (lower numbers show first)',
+  })
+  displayOrder: number;
+
+  @Column({ default: false })
+  @ApiProperty({
+    example: false,
+    description:
+      'When true, the customer collects the order (no shipping involved, no delivery charges)',
+  })
+  isPickup: boolean;
+
   @CreateDateColumn()
   @ApiProperty({
     example: '2023-05-15T10:00:00Z',

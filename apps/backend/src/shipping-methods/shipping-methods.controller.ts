@@ -9,8 +9,10 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import { Request } from 'express';
 
 import { CreateShippingMethodDto } from './dto/create-shipping-method.dto';
 import { UpdateShippingMethodDto } from './dto/update-shipping-method.dto';
@@ -34,10 +36,12 @@ export class ShippingMethodsController {
   @Roles('superadmin')
   @Post()
   async create(
+    @Req() request: Request & { user?: { userId?: number } },
     @Body() createShippingMethodDto: CreateShippingMethodDto,
   ): Promise<ApiResponseDto<ShippingMethod>> {
     const data = await this.shippingMethodsService.create(
       createShippingMethodDto,
+      request.user?.userId,
     );
     return {
       message: 'Shipping method created successfully',
@@ -80,12 +84,14 @@ export class ShippingMethodsController {
   @Roles('superadmin')
   @Patch(':id')
   async update(
+    @Req() request: Request & { user?: { userId?: number } },
     @Param('id') id: string,
     @Body() updateShippingMethodDto: UpdateShippingMethodDto,
   ): Promise<ApiResponseDto<ShippingMethod>> {
     const data = await this.shippingMethodsService.update(
       +id,
       updateShippingMethodDto,
+      request.user?.userId,
     );
     return {
       message: 'Shipping method updated successfully',

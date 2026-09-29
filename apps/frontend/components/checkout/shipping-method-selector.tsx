@@ -1,16 +1,17 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn, formatCurrencyEnglish } from "@/lib/utils";
 import type { ShippingMethod } from "@/utils/types";
-import { Truck } from "lucide-react";
+import { CheckCircle2, Truck } from "lucide-react";
 
 interface ShippingMethodSelectorProps {
   shippingMethods: ShippingMethod[];
   selectedMethod: string;
   onSelectMethod: (methodId: string) => void;
-  /** When free delivery is unlocked, every method's fee is waived */
+  /** When a free-delivery campaign waives standard shipping */
   isFreeDelivery?: boolean;
 }
 
@@ -21,65 +22,90 @@ export function ShippingMethodSelector({
   isFreeDelivery = false,
 }: ShippingMethodSelectorProps) {
   return (
-    <div className="space-y-4 rounded-lg border bg-white p-4 md:p-5">
+    <section className="space-y-3 rounded-lg border bg-white p-4 md:p-5">
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <Truck className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold">Shipping Method</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Truck className="h-5 w-5 text-primary" />
+          <h2 className="text-base font-semibold">Shipping Method</h2>
+        </div>
+        {isFreeDelivery && (
+          <Badge className="bg-green-50 text-green-700 border border-green-200 hover:bg-green-50">
+            <CheckCircle2 className="mr-1 h-3 w-3" />
+            Free delivery unlocked
+          </Badge>
+        )}
       </div>
 
-      {/* Radio Options */}
+      {/* Options */}
       <RadioGroup
         value={selectedMethod}
         onValueChange={onSelectMethod}
         className="grid grid-cols-1 md:grid-cols-2 gap-3"
       >
         {shippingMethods.map((method) => {
-          const isSelected = selectedMethod === method.id.toString();
+          const value = method.id.toString();
+          const isSelected = selectedMethod === value;
+          const isFree = isFreeDelivery && !method.isExcludedFromFreeDelivery;
+
           return (
             <div
               key={method.id}
+              role="radio"
+              aria-checked={isSelected}
               className={cn(
-                "flex items-center justify-between rounded-md border p-3 transition-all",
-                "hover:bg-gray-50 cursor-pointer",
-                isSelected && "border-primary bg-primary/5"
+                "relative flex items-center justify-between gap-3 rounded-lg border p-3 transition-all",
+                "cursor-pointer hover:border-gray-300 hover:bg-gray-50",
+                isSelected &&
+                  "border-primary ring-1 ring-primary bg-primary/5 hover:border-primary hover:bg-primary/5"
               )}
-              onClick={() => onSelectMethod(method.id.toString())}
+              onClick={() => onSelectMethod(value)}
             >
-              <div className="flex items-center gap-3">
-                <RadioGroupItem
-                  value={method.id.toString()}
-                  id={`shipping-${method.id}`}
-                />
+              <div className="flex items-center gap-3 min-w-0">
+                <RadioGroupItem value={value} id={`shipping-${method.id}`} />
                 <Label
                   htmlFor={`shipping-${method.id}`}
-                  className="cursor-pointer"
+                  className="cursor-pointer space-y-0.5 min-w-0"
                 >
-                  <p className="font-medium text-sm">{method.name}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <span className="block font-medium text-sm truncate">
+                    {method.name}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
                     {method.deliveryTime}
-                  </p>
+                  </span>
                 </Label>
               </div>
 
-              {isFreeDelivery ? (
-                <span className="flex items-center gap-2">
+              {isFree ? (
+                <span className="flex flex-col items-end shrink-0">
                   <span className="text-xs text-muted-foreground line-through">
                     {formatCurrencyEnglish(Number(method.cost))}
                   </span>
-                  <span className="font-semibold text-sm md:text-base text-green-600 dark:text-green-400">
+                  <span className="font-semibold text-sm text-green-600 dark:text-green-400">
                     FREE
                   </span>
                 </span>
               ) : (
-                <span className="font-medium text-sm md:text-base">
-                  {formatCurrencyEnglish(Number(method.cost))}
+                <span className="flex flex-col items-end gap-0.5 shrink-0">
+                  <span
+                    className={cn(
+                      "font-semibold text-sm",
+                      isSelected && "text-primary"
+                    )}
+                  >
+                    {formatCurrencyEnglish(Number(method.cost))}
+                  </span>
+                  {isFreeDelivery && (
+                    <span className="text-[10px] leading-tight text-amber-600 dark:text-amber-400 text-right">
+                      Free delivery not applicable
+                    </span>
+                  )}
                 </span>
               )}
             </div>
           );
         })}
       </RadioGroup>
-    </div>
+    </section>
   );
 }

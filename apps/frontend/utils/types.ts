@@ -539,6 +539,10 @@ export interface ShippingMethod {
   name: string;
   cost: string;
   isActive: boolean;
+  requiresOnlinePayment: boolean;
+  isExcludedFromFreeDelivery: boolean;
+  isPickup: boolean;
+  displayOrder: number;
   deliveryTime: string;
   description: string;
   createdAt: string;

@@ -122,6 +122,7 @@ export function ShippingMethodList() {
             <TableHead className="hidden md:table-cell">Description</TableHead>
             <TableHead className="hidden md:table-cell">Created</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Order</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -151,6 +152,11 @@ export function ShippingMethodList() {
                     {method.isActive ? "Active" : "Inactive"}
                   </span>
                 </div>
+              </TableCell>
+              <TableCell>
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                  {method.displayOrder}
+                </span>
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>

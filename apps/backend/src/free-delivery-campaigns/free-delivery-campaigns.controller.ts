@@ -34,8 +34,14 @@ export class FreeDeliveryCampaignsController {
 
   /** Public: active campaigns for storefront display. */
   @Get('active')
-  async findActive(): Promise<ApiResponseDto<FreeDeliveryCampaign[]>> {
-    const data = await this.campaignsService.getActiveCampaigns();
+  async findActive(): Promise<
+    ApiResponseDto<
+      import('./free-delivery-campaigns.service').ActiveCampaignSummary[]
+    >
+  > {
+    const data = this.campaignsService.toActiveSummaries(
+      await this.campaignsService.getActiveCampaigns(),
+    );
     return {
       message: 'Active free delivery campaigns retrieved successfully',
       statusCode: HttpStatus.OK,

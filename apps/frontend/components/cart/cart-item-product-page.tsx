@@ -183,7 +183,7 @@ export function CartItemProductPage({ item }: { item: CartItem }) {
   // If product is inactive, show a warning message but don't render the full item
   if (isProductInactive) {
     return (
-      <div className="flex items-center gap-4 rounded-xl border border-red-100 bg-red-50/40 p-4 opacity-80 dark:border-red-950 dark:bg-red-950/20">
+      <div className="flex items-center gap-4 rounded-sm border border-red-100 bg-red-50/40 md:p-4 p-2 opacity-80 dark:border-red-950 dark:bg-red-950/20">
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border bg-muted dark:border-gray-700">
           {isImageLoading && (
             <div className="absolute inset-0 flex animate-pulse items-center justify-center bg-gray-200 dark:bg-gray-700">
@@ -224,9 +224,8 @@ export function CartItemProductPage({ item }: { item: CartItem }) {
 
   return (
     <div
-      className={`rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5 dark:border-gray-800 dark:bg-gray-900 ${
-        isOutOfStock ? "opacity-60" : ""
-      }`}
+      className={`rounded-sm border border-gray-100 bg-white md:p-4 p-2 shadow-sm transition-shadow hover:shadow-md sm:p-5 dark:border-gray-800 dark:bg-gray-900 ${isOutOfStock ? "opacity-60" : ""
+        }`}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
         {/* Product Image */}
@@ -243,9 +242,8 @@ export function CartItemProductPage({ item }: { item: CartItem }) {
             src={item.product.attachment?.url || FALLBACK_IMAGE}
             alt={item.product.name}
             fill
-            className={`object-cover transition-transform duration-300 group-hover:scale-105 ${
-              isOutOfStock ? "grayscale" : ""
-            }`}
+            className={`object-cover transition-transform duration-300 group-hover:scale-105 ${isOutOfStock ? "grayscale" : ""
+              }`}
             sizes="(max-width: 640px) 100vw, 144px"
             onLoad={handleImageLoad}
           />
@@ -268,9 +266,8 @@ export function CartItemProductPage({ item }: { item: CartItem }) {
                 className="transition-colors hover:text-primaryColor"
               >
                 <h3
-                  className={`line-clamp-2 text-base font-bold leading-snug text-gray-900 sm:text-lg dark:text-gray-50 ${
-                    isOutOfStock ? "text-muted-foreground" : ""
-                  }`}
+                  className={`line-clamp-2 text-base font-bold leading-snug text-gray-900 sm:text-lg dark:text-gray-50 ${isOutOfStock ? "text-muted-foreground" : ""
+                    }`}
                 >
                   {item.product.name}
                 </h3>
@@ -326,9 +323,8 @@ export function CartItemProductPage({ item }: { item: CartItem }) {
                   </span>
                 )}
                 <span
-                  className={`text-2xl font-bold text-primaryColor dark:text-red-400 ${
-                    isOutOfStock ? "text-muted-foreground" : ""
-                  }`}
+                  className={`text-2xl font-bold text-primaryColor dark:text-red-400 ${isOutOfStock ? "text-muted-foreground" : ""
+                    }`}
                 >
                   {formatCurrencyEnglish(discountedPrice)}
                 </span>
@@ -385,9 +381,8 @@ export function CartItemProductPage({ item }: { item: CartItem }) {
                   Total Price
                 </p>
                 <span
-                  className={`text-2xl font-bold text-gray-900 dark:text-gray-50 ${
-                    isOutOfStock ? "text-muted-foreground" : ""
-                  }`}
+                  className={`text-2xl font-bold text-gray-900 dark:text-gray-50 ${isOutOfStock ? "text-muted-foreground" : ""
+                    }`}
                 >
                   {formatCurrencyEnglish(discountedPrice * localQuantity)}
                 </span>

@@ -2,15 +2,18 @@
 
 import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import type { Attachment, Product } from "@/utils/types";
-import { Leaf, Maximize2 } from "lucide-react";
+import { Leaf, Maximize2, Truck } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState, type MouseEvent } from "react";
+
+import { useProductFreeDelivery } from "../use-product-free-delivery";
 
 interface ProductImageGalleryProps {
   product: Product;
 }
 
 export function ProductImageGallery({ product }: ProductImageGalleryProps) {
+  const hasFreeDelivery = useProductFreeDelivery(product);
   const [selectedImage, setSelectedImage] = useState<string | undefined>(
     product?.attachment?.url
   );
@@ -110,11 +113,20 @@ export function ProductImageGallery({ product }: ProductImageGalleryProps) {
         {/* Trust badges */}
         <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 flex flex-col gap-1.5 sm:gap-2">
 
-          <span className="inline-flex items-center gap-1 sm:gap-1.5 bg-green-100 text-green-800 rounded-full px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-semibold shadow-sm">
+          <span className="inline-flex items-center gap-1 sm:gap-1.5 bg-green-100/75 backdrop-blur-sm text-green-800 rounded-full px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-semibold shadow-sm">
             <Leaf className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             100% Halal
           </span>
         </div>
+
+        {hasFreeDelivery && (
+          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10">
+            <span className="inline-flex items-center gap-1 sm:gap-1.5 bg-white text-primaryColor rounded-full px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-semibold shadow-sm">
+              <Truck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              Free Delivery
+            </span>
+          </div>
+        )}
 
         {/* Zoom indicator */}
         <div className="absolute bottom-3 right-3 z-10">
