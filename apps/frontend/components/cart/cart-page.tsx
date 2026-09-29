@@ -23,12 +23,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useCartContext } from "@/contexts/cart-context";
+import { useFreeDelivery } from "@/hooks/use-free-delivery";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import type { Cart, CartItem } from "@/utils/types";
 import { CartItemProductPage } from "./cart-item-product-page";
 import { EmptyCart } from "./empty-cart";
 import { FreeDeliveryBanner } from "./free-delivery-banner";
-import { useFreeDelivery } from "@/hooks/use-free-delivery";
 
 export function CartPage({ cart }: { cart?: Cart }) {
   const {
@@ -156,17 +156,8 @@ export function CartPage({ cart }: { cart?: Cart }) {
 
         {/* Continue Shopping + Secure Checkout */}
         {itemCount > 0 && (
-          <div className="mt-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <Button
-              asChild
-              variant="outline"
-              className="h-11 rounded-lg border-gray-200 px-6 font-medium dark:border-gray-700"
-            >
-              <Link href="/products">
-                <ArrowLeft className="h-4 w-4" />
-                Continue Shopping
-              </Link>
-            </Button>
+          <div className="mt-6 grid grid-cols-2 items-center justify-between gap-4 sm:flex-row">
+
 
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-50 dark:bg-green-950/40">
@@ -181,6 +172,16 @@ export function CartPage({ cart }: { cart?: Cart }) {
                 </p>
               </div>
             </div>
+            <Button
+              asChild
+              variant="outline"
+              className="h-11 rounded-lg border-gray-200 px-6 font-medium dark:border-gray-700"
+            >
+              <Link href="/products">
+                <ArrowLeft className="h-4 w-4" />
+                Continue Shopping
+              </Link>
+            </Button>
           </div>
         )}
       </div>

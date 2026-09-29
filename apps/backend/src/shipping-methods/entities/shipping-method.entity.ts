@@ -55,6 +55,14 @@ export class ShippingMethod {
   })
   displayOrder: number;
 
+  @Column({ default: false })
+  @ApiProperty({
+    example: false,
+    description:
+      'When true, the customer collects the order (no shipping involved, no delivery charges)',
+  })
+  isPickup: boolean;
+
   @CreateDateColumn()
   @ApiProperty({
     example: '2023-05-15T10:00:00Z',

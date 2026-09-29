@@ -27,6 +27,7 @@ const shippingMethodSchema = z.object({
   isActive: z.boolean(),
   requiresOnlinePayment: z.boolean(),
   isExcludedFromFreeDelivery: z.boolean(),
+  isPickup: z.boolean(),
   displayOrder: z.string().min(1, "Display order is required"),
   deliveryTime: z.string().min(1, "Delivery time is required"),
   description: z.string().min(1, "Description is required"),
@@ -54,6 +55,7 @@ export function ShippingMethodForm({
       requiresOnlinePayment: shippingMethod?.requiresOnlinePayment ?? false,
       isExcludedFromFreeDelivery:
         shippingMethod?.isExcludedFromFreeDelivery ?? false,
+      isPickup: shippingMethod?.isPickup ?? false,
       displayOrder: String(shippingMethod?.displayOrder ?? 0),
       deliveryTime: shippingMethod?.deliveryTime || "",
       description: shippingMethod?.description || "",
@@ -224,12 +226,32 @@ export function ShippingMethodForm({
             control={form.control}
             name="isExcludedFromFreeDelivery"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between gap-2 rounded-lg border px-3 py-2.5 space-y-0 md:col-span-2">
+              <FormItem className="flex flex-row items-center justify-between gap-2 rounded-lg border px-3 py-2.5 space-y-0">
                 <div className="space-y-0.5">
                   <FormLabel>Exclude from Free Delivery</FormLabel>
                   <p className="text-xs text-muted-foreground">
-                    Free delivery campaigns never waive this method&apos;s cost
-                    (e.g. express delivery)
+                    Campaigns never waive this method&apos;s cost
+                  </p>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="isPickup"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between gap-2 rounded-lg border px-3 py-2.5 space-y-0">
+                <div className="space-y-0.5">
+                  <FormLabel>Store Pickup</FormLabel>
+                  <p className="text-xs text-muted-foreground">
+                    Customer collects the order — no shipping involved
                   </p>
                 </div>
                 <FormControl>

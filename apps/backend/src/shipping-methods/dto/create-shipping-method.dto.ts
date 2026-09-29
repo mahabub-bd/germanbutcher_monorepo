@@ -82,4 +82,14 @@ export class CreateShippingMethodDto {
   @IsOptional()
   @IsNumber()
   displayOrder?: number;
+
+  @ApiProperty({
+    description:
+      'When true, the customer collects the order (no shipping involved)',
+    example: false,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isPickup?: boolean;
 }

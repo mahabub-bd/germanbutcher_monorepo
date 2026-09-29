@@ -541,6 +541,7 @@ export interface ShippingMethod {
   isActive: boolean;
   requiresOnlinePayment: boolean;
   isExcludedFromFreeDelivery: boolean;
+  isPickup: boolean;
   displayOrder: number;
   deliveryTime: string;
   description: string;
