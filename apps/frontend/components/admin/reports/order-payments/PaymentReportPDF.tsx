@@ -199,12 +199,12 @@ const styles = StyleSheet.create({
   },
 });
 
+// ৳ is not rendered by @react-pdf's built-in fonts, so use the ASCII "BDT" prefix
 const formatCurrency = (num: number) =>
-  num?.toLocaleString("en-BD", {
-    style: "currency",
-    currency: "BDT",
+  `BDT ${num?.toLocaleString("en-US", {
     minimumFractionDigits: 2,
-  });
+    maximumFractionDigits: 2,
+  })}`;
 
 export function PaymentReportPDF({ payments, orderId, settings }: Props) {
   const totalAmount = payments.reduce(
