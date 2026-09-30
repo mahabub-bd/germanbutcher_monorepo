@@ -803,9 +803,12 @@ export class OrderService {
         'user.name',
         'paymentMethod.id',
         'paymentMethod.name',
+        'shippingMethod.id',
+        'shippingMethod.name',
       ])
       .leftJoin('order.user', 'user')
       .leftJoin('order.paymentMethod', 'paymentMethod')
+      .leftJoin('order.shippingMethod', 'shippingMethod')
       .orderBy('order.createdAt', 'DESC');
 
     this.applyOrderFilters(queryBuilder, {
