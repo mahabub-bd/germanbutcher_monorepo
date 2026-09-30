@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { AttachmentService } from 'src/attachment/attachment.service';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
+import { Product } from 'src/product/entities/product.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -382,6 +383,25 @@ export class CategoryService {
       order: { order: 'ASC' },
     });
 
+    // Active product count per category, summed over the whole subtree so
+    // parent categories show everything their children contain.
+    const rawCounts = await this.categoryRepository.manager
+      .createQueryBuilder(Product, 'product')
+      .select('product.categoryId', 'categoryId')
+      .addSelect('COUNT(product.id)', 'count')
+      .where('product.isActive = :isActive', { isActive: true })
+      .groupBy('product.categoryId')
+      .getRawMany();
+    const directCount = new Map<number, number>(
+      rawCounts.map((row) => [Number(row.categoryId), Number(row.count)]),
+    );
+
+    const subtreeCount = (categoryId: number): number => {
+      const direct = directCount.get(categoryId) ?? 0;
+      const children = categories.filter((c) => c.parentId === categoryId);
+      return children.reduce((sum, child) => sum + subtreeCount(child.id), direct);
+    };
+
     const buildTree = (parentId: number | null): any[] => {
       return categories
         .filter((c) => c.parentId === parentId)
@@ -394,6 +414,7 @@ export class CategoryService {
           isActive: c.isActive,
           parentId: c.parentId,
           isMainCategory: c.isMainCategory,
+          productCount: subtreeCount(c.id),
           children: buildTree(c.id),
         }));
     };

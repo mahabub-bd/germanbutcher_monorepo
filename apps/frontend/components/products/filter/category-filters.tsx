@@ -36,6 +36,7 @@ interface Category {
   name: string;
   parentId?: number | null;
   isMainCategory: boolean;
+  productCount?: number;
   children?: Category[];
 }
 
@@ -353,6 +354,11 @@ export function CategoryFilters({
                           className="text-sm font-medium cursor-pointer"
                         >
                           {category.name}
+                          {typeof category.productCount === "number" && (
+                            <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                              ({category.productCount})
+                            </span>
+                          )}
                         </Label>
                       </div>
                       {category.children && category.children.length > 0 && (
@@ -393,6 +399,12 @@ export function CategoryFilters({
                                 className="text-sm font-normal cursor-pointer text-muted-foreground hover:text-foreground"
                               >
                                 {subCategory.name}
+                                {typeof subCategory.productCount ===
+                                  "number" && (
+                                  <span className="ml-1.5 text-xs font-normal text-muted-foreground/80">
+                                    ({subCategory.productCount})
+                                  </span>
+                                )}
                               </Label>
                             </div>
                           ))}

@@ -104,7 +104,7 @@ export function CartPage({ cart }: { cart?: Cart }) {
     }
   };
   return (
-    <div className="container mx-auto grid grid-cols-1 items-start gap-6 px-4 py-6 sm:px-6 lg:grid-cols-3 lg:gap-8 lg:px-8 lg:py-8">
+    <div className="container mx-auto grid grid-cols-1 items-start gap-6 px-2 py-4 md:px-0 md:py-4 lg:grid-cols-3 lg:gap-8">
       {/* Main Cart Content */}
       <div className="lg:col-span-2">
         {/* Cart Header */}
@@ -167,9 +167,7 @@ export function CartPage({ cart }: { cart?: Cart }) {
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">
                   Secure Checkout
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Your data is safe with us
-                </p>
+
               </div>
             </div>
             <Button
@@ -189,7 +187,7 @@ export function CartPage({ cart }: { cart?: Cart }) {
       {/* Order Summary */}
       {itemCount > 0 && (
         <div className="lg:sticky lg:top-24">
-          <div className="rounded-md border border-gray-100 bg-white md:p-4 p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <div className="rounded-lg border bg-white md:p-4 p-2">
             <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-50">
               Order Summary
             </h2>

@@ -71,7 +71,7 @@ export function OrderSummary({
   const canPlaceOrder = user;
 
   return (
-    <section className="rounded-sm border border-gray-100 bg-white md:p-4 p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <section className="rounded-lg border bg-white md:p-4 p-2">
       <header>
         <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-50">
           Order Summary
@@ -228,7 +228,7 @@ export function OrderSummary({
       </div>
 
       {/* Terms */}
-      <div className="mt-5 border-t border-gray-100 pt-4 dark:border-gray-800">
+      <div className="mt-5 border-t pt-4">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <FileText className="h-3.5 w-3.5 shrink-0" />
           <span>By placing your order, you agree to our</span>

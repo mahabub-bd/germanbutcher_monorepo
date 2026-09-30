@@ -1,6 +1,8 @@
-import { PolicyContactLinks } from "@/components/common/policy-contact-links";
-import { getBusinessSettings } from "@/utils/business-settings-server";
 import { HeadingPrimary } from "@/components/common/heading-primary";
+import { PolicyContactLinks } from "@/components/common/policy-contact-links";
+import { fetchData } from "@/utils/api-utils";
+import { getBusinessSettings } from "@/utils/business-settings-server";
+import type { ShippingMethod } from "@/utils/types";
 import {
   AlertTriangle,
   Building,
@@ -8,6 +10,7 @@ import {
   Clock,
   CreditCard,
   FileText,
+  MapPin,
   Shield,
   Truck,
   Users,
@@ -15,6 +18,11 @@ import {
 
 const TermsAndConditions = async () => {
   const settings = await getBusinessSettings();
+  // Keep the published delivery timeline in sync with the shipping methods
+  // configured in the admin settings.
+  const shippingMethods = await fetchData<ShippingMethod[]>(
+    "shipping-methods?isActive=true"
+  ).catch(() => [] as ShippingMethod[]);
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6">
       <div className="container mx-auto">
@@ -76,20 +84,30 @@ const TermsAndConditions = async () => {
               <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                 <h3 className="font-semibold text-green-800 mb-3 flex items-center">
                   <Clock className="w-4 h-4 mr-2" />
-                  Delivery Timeline
+                  Delivery Timeline &amp; Coverage
                 </h3>
-                <ul className="space-y-2 text-green-700">
-                  <li className="flex items-center">
-                    <CheckCircle className="w-3 h-3 text-green-500 mr-2" />
-                    <span className="font-semibold">Inside Dhaka : </span> 5
-                    days from order confirmation
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-3 h-3 text-green-500 mr-2" />
-                    <span className="font-semibold">Outside Dhaka : </span> 10
-                    days from order confirmation
-                  </li>
+                <ul className="space-y-2 text-green-700 mb-3">
+                  {shippingMethods.map((method) => (
+                    <li key={method.id} className="flex items-center">
+                      <CheckCircle className="w-3 h-3 text-green-500 mr-2 shrink-0" />
+                      <span>
+                        <span className="font-semibold">{method.name}: </span>
+                        {method.deliveryTime}
+                        {method.isPickup && " (no delivery charge)"}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
+                <p className="flex items-start text-sm text-green-700 border-t border-green-200 pt-3">
+                  <MapPin className="w-3.5 h-3.5 text-green-500 mr-2 mt-0.5 shrink-0" />
+                  <span>
+                    Delivery is currently available{" "}
+                    <span className="font-semibold">
+                      inside Dhaka city only
+                    </span>
+                    . Orders from outside Dhaka are not accepted yet.
+                  </span>
+                </p>
               </div>
             </div>
           </div>

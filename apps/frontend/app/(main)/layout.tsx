@@ -1,11 +1,11 @@
 import { getUser } from "@/actions/auth";
+import { VisitorHeartbeat } from "@/components/common/visitor-heartbeat";
 import Copyright from "@/components/footer/copyright";
 import Footer from "@/components/footer/Footer";
 import WhatsAppMessengerWidget from "@/components/footer/live-chat";
 import { Header } from "@/components/header";
 import { MobileBottomHeader } from "@/components/header/mobile-bottom-header";
 import { GoToTop } from "@/components/ui/go-to-top";
-import { VisitorHeartbeat } from "@/components/common/visitor-heartbeat";
 import { fetchPublicData } from "@/utils/api-utils";
 import type { BusinessSettings } from "@/utils/types";
 

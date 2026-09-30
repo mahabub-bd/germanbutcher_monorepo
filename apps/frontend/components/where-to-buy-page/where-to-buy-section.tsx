@@ -85,10 +85,23 @@ function WhereToBuyClient({
         }
       });
 
-      router.push(`?${newParams.toString()}`);
+      // Skip navigation when nothing actually changes — otherwise every
+      // push updates useSearchParams, recreates this callback and re-fires
+      // the filter effect, producing an infinite push/render loop.
+      const queryString = newParams.toString();
+      if (queryString === urlSearchParams.toString()) return;
+
+      router.push(`?${queryString}`);
     },
     [router, urlSearchParams]
   );
+
+  // Keep the latest updateURL in a ref so the filter effect below doesn't
+  // re-run just because a navigation recreated the callback.
+  const updateURLRef = useRef(updateURL);
+  useEffect(() => {
+    updateURLRef.current = updateURL;
+  }, [updateURL]);
 
   const fetchSalesPoints = useCallback(
     async (params: Record<string, string>, showLoading = true) => {
@@ -165,9 +178,9 @@ function WhereToBuyClient({
       district,
     };
 
-    updateURL(params);
+    updateURLRef.current(params);
     fetchSalesPoints(params);
-  }, [debouncedShopSearch, division, district, updateURL, fetchSalesPoints]);
+  }, [debouncedShopSearch, division, district, fetchSalesPoints]);
 
   const handlePageChange = (page: number) => {
     const params = {

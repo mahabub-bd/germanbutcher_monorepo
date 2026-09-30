@@ -157,6 +157,8 @@ export interface Category {
   order: number;
   description: string;
   isMainCategory: boolean;
+  /** Active products in this category incl. subcategories (tree endpoint) */
+  productCount?: number;
   parent: Category;
   children: [Category];
   attachment: Attachment;
