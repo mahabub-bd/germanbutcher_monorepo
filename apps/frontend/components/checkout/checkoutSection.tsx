@@ -404,7 +404,7 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 md:py-8 lg:py-12">
+    <div className="container mx-auto px-2 py-4 md:px-0 md:py-4">
       {/* Header */}
       <div className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>

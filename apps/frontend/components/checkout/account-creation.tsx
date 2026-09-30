@@ -12,7 +12,7 @@ export function AccountCreation({
   onChange,
 }: AccountCreationProps) {
   return (
-    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 bg-white">
+    <div className="flex items-start space-x-3 space-y-0 rounded-lg border bg-white p-4">
       <Checkbox
         id="createAccount"
         checked={createAccount}
