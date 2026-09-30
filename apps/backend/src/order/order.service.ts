@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { Address } from 'src/address/entities/address.entity';
 import { OrderStatus, PaymentStatus, CancellationReason } from 'src/common/enums';
+import {  getDateRangeFromPreset,  parseReportDate,} from 'src/common/utils/report-date-range.util';
 import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { DeliveryMan } from 'src/delivery-man/entities/delivery-man.entity';
 import { FreeDeliveryCampaignsService } from 'src/free-delivery-campaigns/free-delivery-campaigns.service';
@@ -35,6 +36,7 @@ export interface FindAllOrdersOptions {
   orderStatus?: OrderStatus;
   paymentStatus?: PaymentStatus;
   paymentMethodId?: number;
+  shippingMethodId?: number;
 }
 @Injectable()
 export class OrderService {
@@ -748,9 +750,14 @@ export class OrderService {
       orderStatus,
       paymentStatus,
       paymentMethodId,
+      shippingMethodId,
     }: Pick<
       FindAllOrdersOptions,
-      'search' | 'orderStatus' | 'paymentStatus' | 'paymentMethodId'
+      | 'search'
+      | 'orderStatus'
+      | 'paymentStatus'
+      | 'paymentMethodId'
+      | 'shippingMethodId'
     >,
   ): void {
     if (search) {
@@ -768,6 +775,11 @@ export class OrderService {
         paymentMethodId,
       });
     }
+    if (shippingMethodId) {
+      qb.andWhere('order.shippingMethodId = :shippingMethodId', {
+        shippingMethodId,
+      });
+    }
   }
 
   async getAllOrders(
@@ -780,6 +792,7 @@ export class OrderService {
       orderStatus,
       paymentStatus,
       paymentMethodId,
+      shippingMethodId,
       sort,
     } = options;
 
@@ -801,6 +814,7 @@ export class OrderService {
         'order.paidAmount',
         'user.id',
         'user.name',
+        'user.mobileNumber',
         'paymentMethod.id',
         'paymentMethod.name',
         'shippingMethod.id',
@@ -816,6 +830,7 @@ export class OrderService {
       orderStatus,
       paymentStatus,
       paymentMethodId,
+      shippingMethodId,
     });
 
     if (sort === 'date_asc') {
@@ -832,6 +847,7 @@ export class OrderService {
       orderStatus,
       paymentStatus,
       paymentMethodId,
+      shippingMethodId,
     });
 
     const [data, total] = await Promise.all([
@@ -971,98 +987,34 @@ export class OrderService {
 
     return updatedOrder;
   }
+  /** Resolves a report date-range preset to concrete from/to bounds. */
+  private getDateRangeFromPreset(
+    preset: string,
+  ): { from: Date; to: Date } | null {
+    return getDateRangeFromPreset(preset);
+  }
+
+  /** Parses a YYYY-MM-DD report date; endOfDay sets 23:59:59.999. */
+  private parseReportDate(
+    dateStr?: string,
+    endOfDay = false,
+  ): Date | undefined {
+    return parseReportDate(dateStr, endOfDay);
+  }
+
   async getOrderReportByDateRange(
     fromDate?: string,
     toDate?: string,
     dateRangePreset?: string,
     orderStatus?: OrderStatus,
   ) {
-    // --- Helper function to get date range from preset ---
-    const getDateRangeFromPreset = (
-      preset: string,
-    ): { from: Date; to: Date } | null => {
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const startOfDay = new Date(today);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(today);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      switch (preset) {
-        case 'today':
-          return { from: startOfDay, to: endOfDay };
-
-        case 'this_week': {
-          const dayOfWeek = today.getDay();
-          const from = new Date(today);
-          from.setDate(today.getDate() - dayOfWeek);
-          from.setHours(0, 0, 0, 0);
-          return { from, to: endOfDay };
-        }
-
-        case 'last_week': {
-          const dayOfWeek = today.getDay();
-          const from = new Date(today);
-          from.setDate(today.getDate() - dayOfWeek - 7);
-          from.setHours(0, 0, 0, 0);
-          const to = new Date(from);
-          to.setDate(from.getDate() + 6);
-          to.setHours(23, 59, 59, 999);
-          return { from, to };
-        }
-
-        case 'this_month': {
-          const from = new Date(now.getFullYear(), now.getMonth(), 1);
-          from.setHours(0, 0, 0, 0);
-          return { from, to: endOfDay };
-        }
-
-        case 'last_month': {
-          const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          from.setHours(0, 0, 0, 0);
-          const to = new Date(now.getFullYear(), now.getMonth(), 0);
-          to.setHours(23, 59, 59, 999);
-          return { from, to };
-        }
-
-        case 'last_3_months': {
-          const from = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-          from.setHours(0, 0, 0, 0);
-          return { from, to: endOfDay };
-        }
-
-        case 'last_6_months': {
-          const from = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-          from.setHours(0, 0, 0, 0);
-          return { from, to: endOfDay };
-        }
-
-        case 'last_year': {
-          const from = new Date(now.getFullYear() - 1, 0, 1);
-          from.setHours(0, 0, 0, 0);
-          const to = new Date(now.getFullYear() - 1, 11, 31);
-          to.setHours(23, 59, 59, 999);
-          return { from, to };
-        }
-
-        case 'this_year': {
-          const from = new Date(now.getFullYear(), 0, 1);
-          from.setHours(0, 0, 0, 0);
-          return { from, to: endOfDay };
-        }
-
-        default:
-          return null;
-      }
-    };
-
     // --- Determine date range ---
     let from: Date | undefined;
     let to: Date | undefined;
 
     // Use date range preset if provided
     if (dateRangePreset) {
-      const presetRange = getDateRangeFromPreset(dateRangePreset);
+      const presetRange = this.getDateRangeFromPreset(dateRangePreset);
       if (presetRange) {
         from = presetRange.from;
         to = presetRange.to;
@@ -1072,22 +1024,8 @@ export class OrderService {
         );
       }
     } else {
-      // Parse and validate date inputs
-      const parseDate = (
-        dateStr?: string,
-        endOfDay = false,
-      ): Date | undefined => {
-        if (!dateStr) return undefined;
-        const date = new Date(dateStr);
-        if (isNaN(date.getTime())) {
-          throw new Error(`Invalid date format: "${dateStr}". Use YYYY-MM-DD.`);
-        }
-        if (endOfDay) date.setHours(23, 59, 59, 999);
-        return date;
-      };
-
-      from = parseDate(fromDate);
-      to = parseDate(toDate, true);
+      from = this.parseReportDate(fromDate);
+      to = this.parseReportDate(toDate, true);
     }
 
     // --- Build query ---
@@ -1176,6 +1114,263 @@ export class OrderService {
       totalPaid: Math.round(totals.totalPaid * 100) / 100,
       orders: formattedOrders,
     };
+  }
+
+  /**
+   * Day-by-day order summary for a date range: order counts and values,
+   * delivered, cancelled, paid and due per day, plus range totals. Single
+   * grouped query — exists so the daily summary report needs one round trip.
+   */
+  async getDailySummaryReport(
+    fromDate?: string,
+    toDate?: string,
+    dateRangePreset?: string,
+  ) {
+    let from = this.parseReportDate(fromDate);
+    let to = this.parseReportDate(toDate, true);
+
+    if (dateRangePreset) {
+      const presetRange = this.getDateRangeFromPreset(dateRangePreset);
+      if (!presetRange) {
+        throw new Error(
+          `Invalid date range preset: "${dateRangePreset}". Valid values are: today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year.`,
+        );
+      }
+      from = presetRange.from;
+      to = presetRange.to;
+    }
+
+    const params: unknown[] = [];
+    const conditions: string[] = [];
+    if (from) {
+      params.push(from);
+      conditions.push(`"createdAt" >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`"createdAt" <= $${params.length}`);
+    }
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
+
+    const rows: Record<string, string>[] = await this.orderRepository.query(
+      `SELECT
+         TO_CHAR("createdAt", 'YYYY-MM-DD') AS date,
+         COUNT(*) AS order_count,
+         COALESCE(SUM("totalValue"), 0) AS order_value,
+         COALESCE(SUM(CASE WHEN "orderStatus" = 'delivered' THEN 1 END), 0) AS delivered_count,
+         COALESCE(SUM(CASE WHEN "orderStatus" = 'delivered' THEN "totalValue" END), 0) AS delivered_value,
+         COALESCE(SUM(CASE WHEN "orderStatus" = 'cancelled' THEN 1 END), 0) AS cancelled_count,
+         COALESCE(SUM(CASE WHEN "orderStatus" = 'cancelled' THEN "totalValue" END), 0) AS cancelled_value,
+         COALESCE(SUM("paidAmount"), 0) AS paid_amount,
+         COALESCE(SUM("totalValue" - "paidAmount"), 0) AS due_amount
+       FROM "order"
+       ${whereClause}
+       GROUP BY 1
+       ORDER BY 1 DESC`,
+      params,
+    );
+
+    const daily = rows.map((row) => ({
+      date: row.date,
+      orderCount: parseInt(row.order_count, 10) || 0,
+      orderValue: parseFloat(row.order_value) || 0,
+      deliveredCount: parseInt(row.delivered_count, 10) || 0,
+      deliveredValue: parseFloat(row.delivered_value) || 0,
+      cancelledCount: parseInt(row.cancelled_count, 10) || 0,
+      cancelledValue: parseFloat(row.cancelled_value) || 0,
+      paidAmount: parseFloat(row.paid_amount) || 0,
+      dueAmount: parseFloat(row.due_amount) || 0,
+    }));
+
+    const summary = daily.reduce(
+      (acc, d) => ({
+        totalOrders: acc.totalOrders + d.orderCount,
+        totalValue: acc.totalValue + d.orderValue,
+        deliveredOrders: acc.deliveredOrders + d.deliveredCount,
+        deliveredValue: acc.deliveredValue + d.deliveredValue,
+        cancelledOrders: acc.cancelledOrders + d.cancelledCount,
+        paidAmount: acc.paidAmount + d.paidAmount,
+        dueAmount: acc.dueAmount + d.dueAmount,
+      }),
+      {
+        totalOrders: 0,
+        totalValue: 0,
+        deliveredOrders: 0,
+        deliveredValue: 0,
+        cancelledOrders: 0,
+        paidAmount: 0,
+        dueAmount: 0,
+      },
+    );
+
+    return {
+      from: from ? from.toISOString().split('T')[0] : null,
+      to: to ? to.toISOString().split('T')[0] : null,
+      summary,
+      daily,
+    };
+  }
+
+  /** Builds parameterized createdAt range conditions for raw report queries. */
+  private buildCreatedAtRange(
+    from?: Date,
+    to?: Date,
+    column = '"createdAt"',
+  ): { whereClause: string; params: unknown[] } {
+    const params: unknown[] = [];
+    const conditions: string[] = [];
+    if (from) {
+      params.push(from);
+      conditions.push(`${column} >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`${column} <= $${params.length}`);
+    }
+    return {
+      whereClause: conditions.length
+        ? `WHERE ${conditions.join(' AND ')}`
+        : '',
+      params,
+    };
+  }
+
+  /**
+   * Cancelled/refunded orders for a date range with per-order rows and
+   * totals: cancelled count, cancelled value and refunded money.
+   */
+  async getRefundReport(
+    fromDate?: string,
+    toDate?: string,
+    dateRangePreset?: string,
+  ) {
+    let from = this.parseReportDate(fromDate);
+    let to = this.parseReportDate(toDate, true);
+
+    if (dateRangePreset) {
+      const presetRange = this.getDateRangeFromPreset(dateRangePreset);
+      if (!presetRange) {
+        throw new Error(
+          `Invalid date range preset: "${dateRangePreset}". Valid values are: today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year.`,
+        );
+      }
+      from = presetRange.from;
+      to = presetRange.to;
+    }
+
+    const { whereClause, params } = this.buildCreatedAtRange(from, to);
+    const filterClause = whereClause
+      ? `${whereClause} AND o."orderStatus" = 'cancelled'`
+      : 'WHERE o."orderStatus" = \'cancelled\'';
+
+    const rows: Record<string, string>[] = await this.orderRepository.query(
+      `SELECT o.id, o."orderNo",
+              TO_CHAR(o."createdAt", 'YYYY-MM-DD') AS date,
+              o."totalValue", o."paidAmount", o."paymentStatus",
+              t.note AS reason
+       FROM "order" o
+       LEFT JOIN (
+         SELECT "orderId", note,
+                ROW_NUMBER() OVER (PARTITION BY "orderId" ORDER BY id DESC) AS rn
+         FROM order_status_track
+         WHERE status = 'cancelled'
+       ) t ON t."orderId" = o.id AND t.rn = 1
+       ${filterClause}
+       ORDER BY o."createdAt" DESC`,
+      params,
+    );
+
+    const orders = rows.map((row) => ({
+      id: parseInt(row.id, 10),
+      orderNo: row.orderNo,
+      date: row.date,
+      totalValue: parseFloat(row.totalValue) || 0,
+      paidAmount: parseFloat(row.paidAmount) || 0,
+      paymentStatus: row.paymentStatus,
+      reason: row.reason || null,
+    }));
+
+    const summary = {
+      cancelledOrders: orders.length,
+      cancelledValue: orders.reduce((sum, o) => sum + o.totalValue, 0),
+      refundedAmount: orders
+        .filter((o) => o.paymentStatus?.startsWith('refund'))
+        .reduce((sum, o) => sum + o.paidAmount, 0),
+    };
+
+    return { summary, orders };
+  }
+
+  /**
+   * Per-deliveryman delivered order counts and value for a date range.
+   * Delivery men with no deliveries in range are included with zeros so the
+   * report doubles as an activity overview.
+   */
+  async getDeliverymanPerformanceReport(
+    fromDate?: string,
+    toDate?: string,
+    dateRangePreset?: string,
+  ) {
+    let from = this.parseReportDate(fromDate);
+    let to = this.parseReportDate(toDate, true);
+
+    if (dateRangePreset) {
+      const presetRange = this.getDateRangeFromPreset(dateRangePreset);
+      if (!presetRange) {
+        throw new Error(
+          `Invalid date range preset: "${dateRangePreset}". Valid values are: today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year.`,
+        );
+      }
+      from = presetRange.from;
+      to = presetRange.to;
+    }
+
+    const params: unknown[] = [];
+    const conditions: string[] = [
+      `o."deliveryManId" = dm.id`,
+      `o."orderStatus" = 'delivered'`,
+    ];
+    if (from) {
+      params.push(from);
+      conditions.push(`o."createdAt" >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`o."createdAt" <= $${params.length}`);
+    }
+
+    const rows: Record<string, string>[] = await this.orderRepository.query(
+      `SELECT dm.id, dm.name, dm."mobileNumber", dm."isActive",
+              COUNT(o.id) AS deliveries,
+              COALESCE(SUM(o."totalValue"), 0) AS delivered_value
+       FROM delivery_man dm
+       LEFT JOIN "order" o ON ${conditions.join(' AND ')}
+       GROUP BY dm.id, dm.name, dm."mobileNumber", dm."isActive"
+       ORDER BY COUNT(o.id) DESC, dm.name ASC`,
+      params,
+    );
+
+    const deliveryMen = rows.map((row) => ({
+      id: parseInt(row.id, 10),
+      name: row.name,
+      mobileNumber: row.mobileNumber,
+      isActive: row.isActive === 'true' || row.isActive === 't',
+      deliveries: parseInt(row.deliveries, 10) || 0,
+      deliveredValue: parseFloat(row.delivered_value) || 0,
+    }));
+
+    const summary = {
+      totalDeliveries: deliveryMen.reduce((sum, d) => sum + d.deliveries, 0),
+      totalDeliveredValue: deliveryMen.reduce(
+        (sum, d) => sum + d.deliveredValue,
+        0,
+      ),
+      activeDeliveryMen: deliveryMen.filter((d) => d.deliveries > 0).length,
+    };
+
+    return { summary, deliveryMen };
   }
 
   async getMonthlyOrderReport(year?: number) {

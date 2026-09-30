@@ -207,8 +207,8 @@ export default function OrderReportList({
   return (
     <div className="w-full">
       <PageHeader
-        title="Order Reports"
-        description="Filter, view, and export order reports"
+        title="Sales Report"
+        description="Per-order sales for a date range: order value, discount and amount paid"
       />
 
       {/* Filters */}

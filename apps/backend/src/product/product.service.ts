@@ -14,6 +14,7 @@ import { Category } from 'src/category/entities/category.entity';
 import { Gallery } from 'src/gallery/entities/gallery.entity';
 import { Unit } from 'src/unit/entities/unit.entity';
 import { User } from 'src/user/entities/user.entity';
+import { resolveReportRange } from 'src/common/utils/report-date-range.util';
 import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
 import { Supplier } from '../supplier/entities/supplier.entity';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -956,5 +957,118 @@ export class ProductService {
       outOfStock: parseInt(row.out_of_stock, 10) || 0,
       lowStock: parseInt(row.low_stock, 10) || 0,
     };
+  }
+
+  /**
+   * Per-product sold quantity and revenue for a date range (cancelled
+   * orders excluded), plus range totals. Powers the product sales report.
+   */
+  async getSalesReport(
+    fromDate?: string,
+    toDate?: string,
+    preset?: string,
+    limit?: number,
+  ) {
+    const { from, to } = resolveReportRange(fromDate, toDate, preset);
+
+    const params: unknown[] = [];
+    const conditions: string[] = [`o."orderStatus" != 'cancelled'`];
+    if (from) {
+      params.push(from);
+      conditions.push(`o."createdAt" >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`o."createdAt" <= $${params.length}`);
+    }
+    // No limit param → return every product sold in the range
+    const limitClause = limit ? `LIMIT $${params.length + 1}` : '';
+    if (limit) params.push(limit);
+
+    const rows: Record<string, string>[] = await this.productRepository.query(
+      `SELECT p.id, p.name, p.slug, p.stock,
+              COALESCE(SUM(oi.quantity), 0) AS quantity,
+              COALESCE(SUM(oi."totalPrice"), 0) AS revenue,
+              COUNT(DISTINCT o.id) AS order_count
+       FROM order_item oi
+       JOIN "order" o ON o.id = oi."orderId"
+       JOIN product p ON p.id = oi."productId"
+       WHERE ${conditions.join(' AND ')}
+       GROUP BY p.id, p.name, p.slug, p.stock
+       ORDER BY SUM(oi."totalPrice") DESC
+       ${limitClause}`,
+      params,
+    );
+
+    const products = rows.map((row) => ({
+      id: parseInt(row.id, 10),
+      name: row.name,
+      slug: row.slug,
+      stock: parseInt(row.stock, 10) || 0,
+      quantity: parseInt(row.quantity, 10) || 0,
+      revenue: parseFloat(row.revenue) || 0,
+      orderCount: parseInt(row.order_count, 10) || 0,
+    }));
+
+    return {
+      fromDate: from ? from.toISOString().split('T')[0] : null,
+      toDate: to ? to.toISOString().split('T')[0] : null,
+      summary: {
+        totalRevenue: products.reduce((sum, p) => sum + p.revenue, 0),
+        totalQuantity: products.reduce((sum, p) => sum + p.quantity, 0),
+        productCount: products.length,
+      },
+      products,
+    };
+  }
+
+  /**
+   * Stock valuation: total units and value at purchase and selling price,
+   * plus low-stock and out-of-stock lists for restock prioritisation.
+   */
+  async getStockValuationReport() {
+    const summaryRows: Record<string, string>[] =
+      await this.productRepository.query(
+        `SELECT COUNT(*) AS total_products,
+                COALESCE(SUM("stock"), 0) AS total_units,
+                COALESCE(SUM("stock" * "purchasePrice"), 0) AS stock_value_cost,
+                COALESCE(SUM("stock" * "sellingPrice"), 0) AS stock_value_retail,
+                COUNT(*) FILTER (WHERE "stock" = 0) AS out_of_stock,
+                COUNT(*) FILTER (WHERE "stock" > 0 AND "stock" < 5) AS low_stock
+         FROM product`,
+      );
+
+    const sRow = summaryRows[0] ?? {};
+    const summary = {
+      totalProducts: parseInt(sRow.total_products, 10) || 0,
+      totalUnits: parseFloat(sRow.total_units) || 0,
+      stockValueCost: parseFloat(sRow.stock_value_cost) || 0,
+      stockValueRetail: parseFloat(sRow.stock_value_retail) || 0,
+      outOfStock: parseInt(sRow.out_of_stock, 10) || 0,
+      lowStock: parseInt(sRow.low_stock, 10) || 0,
+    };
+
+    // Full product list, lowest stock first so restock-priority items lead
+    const productRows: Record<string, string>[] =
+      await this.productRepository.query(
+        `SELECT id, name, slug, "stock", "purchasePrice", "sellingPrice"
+         FROM product
+         ORDER BY "stock" ASC, name ASC`,
+      );
+
+    const products = productRows.map((row) => {
+      const stock = parseInt(row.stock, 10) || 0;
+      return {
+        id: parseInt(row.id, 10),
+        name: row.name,
+        slug: row.slug,
+        stock,
+        purchasePrice: parseFloat(row.purchasePrice) || 0,
+        sellingPrice: parseFloat(row.sellingPrice) || 0,
+        stockStatus: stock === 0 ? 'out' : stock < 5 ? 'low' : 'ok',
+      };
+    });
+
+    return { summary, products };
   }
 }

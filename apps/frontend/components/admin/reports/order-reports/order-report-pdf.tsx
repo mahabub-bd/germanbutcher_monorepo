@@ -156,7 +156,7 @@ export function OrderReportPDF({ orders, settings }: Props) {
         <ReportPDFHeader settings={settings} styles={styles} />
 
         {/* Title */}
-        <Text style={styles.reportTitle}>Order Summary Report</Text>
+        <Text style={styles.reportTitle}>Sales Report</Text>
 
         {/* Table Header */}
         <View style={styles.tableHeader}>

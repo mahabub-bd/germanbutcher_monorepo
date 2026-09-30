@@ -37,7 +37,7 @@ import {
   getStatusIcon,
 } from "@/utils/order-helper";
 import { listRouteToSlug } from "@/utils/order-list-routes";
-import type { Order, PaymentMethod } from "@/utils/types";
+import type { Order, PaymentMethod, ShippingMethod } from "@/utils/types";
 import {
   DollarSign,
   Eye,
@@ -77,6 +77,7 @@ export function OrderList({
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [searchQuery, setSearchQuery] = useState(
     getInitialParam("search") as string
   );
@@ -85,6 +86,9 @@ export function OrderList({
   );
   const [paymentMethodFilter, setPaymentMethodFilter] = useState(
     getInitialParam("paymentMethodId") as string
+  );
+  const [shippingMethodFilter, setShippingMethodFilter] = useState(
+    getInitialParam("shippingMethodId") as string
   );
 
   const [totalItems, setTotalItems] = useState(0);
@@ -120,9 +124,11 @@ export function OrderList({
     if (statusFilter && statusFilter !== "all")
       params.set("orderStatus", statusFilter);
     if (paymentMethodFilter) params.set("paymentMethodId", paymentMethodFilter);
+    if (shippingMethodFilter)
+      params.set("shippingMethodId", shippingMethodFilter);
 
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname, currentPage, totalPages, limit, searchQuery, statusFilter, paymentMethodFilter]);
+  }, [router, pathname, currentPage, totalPages, limit, searchQuery, statusFilter, paymentMethodFilter, shippingMethodFilter]);
 
   const fetchOrders = useCallback(async () => {
     const seq = ++fetchSeqRef.current;
@@ -136,6 +142,8 @@ export function OrderList({
       if (statusFilter && statusFilter !== "all")
         params.append("orderStatus", statusFilter);
       if (paymentMethodFilter) params.append("paymentMethodId", paymentMethodFilter);
+      if (shippingMethodFilter)
+        params.append("shippingMethodId", shippingMethodFilter);
 
       const response = await fetchDataPagination<{
         data: Order[];
@@ -157,7 +165,7 @@ export function OrderList({
         setIsLoading(false);
       }
     }
-  }, [currentPage, limit, searchQuery, statusFilter, paymentMethodFilter]);
+  }, [currentPage, limit, searchQuery, statusFilter, paymentMethodFilter, shippingMethodFilter]);
 
   // Initial load with URL params
   useEffect(() => {
@@ -165,6 +173,7 @@ export function OrderList({
     const searchFromUrl = searchParams?.get("search");
     const statusFromUrl = searchParams?.get("orderStatus");
     const paymentMethodFromUrl = searchParams?.get("paymentMethodId");
+    const shippingMethodFromUrl = searchParams?.get("shippingMethodId");
 
     if (pageFromUrl) {
       const newPage = parseInt(pageFromUrl, 10);
@@ -182,6 +191,9 @@ export function OrderList({
     if (paymentMethodFromUrl && paymentMethodFromUrl !== paymentMethodFilter) {
       setPaymentMethodFilter(paymentMethodFromUrl);
     }
+    if (shippingMethodFromUrl && shippingMethodFromUrl !== shippingMethodFilter) {
+      setShippingMethodFilter(shippingMethodFromUrl);
+    }
   }, [searchParams]);
 
   // Fetch data when dependencies change
@@ -194,7 +206,7 @@ export function OrderList({
     updateUrl();
   }, [updateUrl]);
 
-  // Payment method options for the filter dropdown load once
+  // Payment and shipping method options for the filter dropdown load once
   useEffect(() => {
     fetchProtectedData<PaymentMethod[]>("order-payment-methods")
       .then((methods) => {
@@ -204,6 +216,16 @@ export function OrderList({
       })
       .catch((error) => {
         console.error("Error fetching payment methods:", error);
+      });
+
+    fetchProtectedData<ShippingMethod[]>("shipping-methods?isActive=true")
+      .then((methods) => {
+        if (Array.isArray(methods)) {
+          setShippingMethods(methods);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching shipping methods:", error);
       });
   }, []);
 
@@ -223,6 +245,7 @@ export function OrderList({
     setSearchQuery("");
     setStatusFilter("");
     setPaymentMethodFilter("");
+    setShippingMethodFilter("");
     setCurrentPage(1);
   };
 
@@ -249,11 +272,13 @@ export function OrderList({
     if (statusFilter && statusFilter !== "all")
       params.set("orderStatus", statusFilter);
     if (paymentMethodFilter) params.set("paymentMethodId", paymentMethodFilter);
+    if (shippingMethodFilter)
+      params.set("shippingMethodId", shippingMethodFilter);
     return `/admin/order/${id}/${tab}?${params.toString()}`;
   };
 
   const renderActiveFilters = () => {
-    const hasFilters = searchQuery || statusFilter || paymentMethodFilter;
+    const hasFilters = searchQuery || statusFilter || paymentMethodFilter || shippingMethodFilter;
 
     if (!hasFilters) return null;
 
@@ -297,6 +322,23 @@ export function OrderList({
           </Badge>
         )}
 
+        {shippingMethodFilter && (
+          <Badge
+            variant="outline"
+            className="flex items-center gap-1 px-3 py-1"
+          >
+            Shipping:{" "}
+            {shippingMethods.find((m) => m.id.toString() === shippingMethodFilter)
+              ?.name || shippingMethodFilter}
+            <button
+              onClick={() => setShippingMethodFilter("")}
+              className="ml-1"
+            >
+              <XCircle className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
+
         <Button
           variant="ghost"
           size="sm"
@@ -317,6 +359,7 @@ export function OrderList({
             <TableRow>
               <TableHead className="w-24">Order ID</TableHead>
               <TableHead>Customer</TableHead>
+              <TableHead>Mobile</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Order Status</TableHead>
               <TableHead>Payment Status</TableHead>
@@ -324,7 +367,6 @@ export function OrderList({
               <TableHead>Payment Method</TableHead>
               <TableHead>Shipping Method</TableHead>
               <TableHead className="text-right">Total</TableHead>
-              <TableHead className="text-right">Total Paid</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -337,6 +379,9 @@ export function OrderList({
                   </TableCell>
                   <TableCell>
                     <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
                   </TableCell>
                   <TableCell>
                     <div className="h-4 w-28 bg-gray-200 rounded animate-pulse" />
@@ -357,9 +402,6 @@ export function OrderList({
                     <div className="h-4 w-20 bg-gray-200 rounded animate-pulse ml-auto" />
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse ml-auto" />
-                  </TableCell>
-                  <TableCell className="text-right">
                     <div className="h-8 w-8 bg-gray-200 rounded animate-pulse ml-auto" />
                   </TableCell>
                 </TableRow>
@@ -372,12 +414,18 @@ export function OrderList({
                     <div className="space-y-1">
                       <h3 className="font-semibold">No orders found</h3>
                       <p className="text-sm text-muted-foreground">
-                        {searchQuery || statusFilter || paymentMethodFilter
+                        {searchQuery ||
+                        statusFilter ||
+                        paymentMethodFilter ||
+                        shippingMethodFilter
                           ? "No orders match your search criteria."
                           : "There are no orders in the system yet."}
                       </p>
                     </div>
-                    {(searchQuery || statusFilter || paymentMethodFilter) && (
+                    {(searchQuery ||
+                      statusFilter ||
+                      paymentMethodFilter ||
+                      shippingMethodFilter) && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -405,6 +453,18 @@ export function OrderList({
                     <div className="font-medium">
                       {order.user?.name || "N/A"}
                     </div>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {order.user?.mobileNumber ? (
+                      <a
+                        href={`tel:${order.user.mobileNumber}`}
+                        className="text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400"
+                      >
+                        {order.user.mobileNumber}
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">N/A</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm">
                     {formatDateTime(order.createdAt)}
@@ -458,10 +518,20 @@ export function OrderList({
                   </TableCell>
 
                   <TableCell className="text-right font-medium">
-                    {formatCurrencyEnglish(order.totalValue || 0)}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCurrencyEnglish(order.paidAmount || 0)}
+                    <div className="space-y-0.5">
+                      <div>{formatCurrencyEnglish(order.totalValue || 0)}</div>
+                      <div className="text-xs font-normal">
+                        {(order.totalValue || 0) - (order.paidAmount || 0) > 0 ? (
+                          <span className="text-red-600 dark:text-red-400">
+                            Due {formatCurrencyEnglish((order.totalValue || 0) - (order.paidAmount || 0))}
+                          </span>
+                        ) : (
+                          <span className="text-green-600 dark:text-green-400">
+                            Paid {formatCurrencyEnglish(order.paidAmount || 0)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -586,7 +656,8 @@ export function OrderList({
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-medium">Filters</h4>
                     {(statusFilter && statusFilter !== "all") ||
-                      paymentMethodFilter ? (
+                      paymentMethodFilter ||
+                      shippingMethodFilter ? (
                       <button
                         onClick={clearFilters}
                         className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
@@ -654,6 +725,42 @@ export function OrderList({
                             setCurrentPage(1);
                           }}
                           className={`text-xs py-1.5 px-2 rounded-md border capitalize truncate ${paymentMethodFilter === method.id.toString()
+                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
+                        >
+                          {method.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Shipping Method Filter */}
+                  <div className="space-y-2">
+                    <label className="text-xs text-muted-foreground">
+                      Shipping Method
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                      <button
+                        onClick={() => {
+                          setShippingMethodFilter("");
+                          setCurrentPage(1);
+                        }}
+                        className={`text-xs py-1.5 px-2 rounded-md border capitalize ${!shippingMethodFilter
+                          ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                          : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                          }`}
+                      >
+                        all
+                      </button>
+                      {shippingMethods.map((method) => (
+                        <button
+                          key={method.id}
+                          onClick={() => {
+                            setShippingMethodFilter(method.id.toString());
+                            setCurrentPage(1);
+                          }}
+                          className={`text-xs py-1.5 px-2 rounded-md border capitalize truncate ${shippingMethodFilter === method.id.toString()
                             ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                             : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
                             }`}

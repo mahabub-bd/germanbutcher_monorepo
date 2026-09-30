@@ -23,7 +23,10 @@ export class ActivityInterceptor implements NestInterceptor {
   private readonly LOGGED_METHODS = ['POST', 'PATCH', 'DELETE'];
 
   // Routes that should never be recorded in the activity log (e.g. high-frequency heartbeats)
-  private readonly EXCLUDED_PATHS = ['/v1/online-users/heartbeat'];
+  private readonly EXCLUDED_PATHS = [
+    '/v1/online-users/heartbeat',
+    '/v1/free-delivery-campaigns/check',
+  ];
 
   constructor(
     private readonly userActivityService: UserActivityService,

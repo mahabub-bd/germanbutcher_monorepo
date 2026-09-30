@@ -19,7 +19,14 @@ import { fetchDataPagination } from "@/utils/api-utils";
 import { type Order, type PaginatedResponse } from "@/utils/types";
 
 import { Badge } from "@/components/ui/badge";
-import { getPaymentStatusColor, getStatusIcon } from "@/utils/order-helper";
+import {
+  getPaymentMethodColor,
+  getPaymentMethodIcon,
+  getPaymentStatusColor,
+  getShippingMethodColor,
+  getShippingMethodIcon,
+  getStatusIcon,
+} from "@/utils/order-helper";
 import { Edit, Eye } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -96,6 +103,8 @@ export default function OrdersTable() {
             <TableHead>Amount</TableHead>
             <TableHead>Order Status</TableHead>
             <TableHead>Payment Status</TableHead>
+            <TableHead>Payment Method</TableHead>
+            <TableHead>Shipping Method</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -103,7 +112,7 @@ export default function OrdersTable() {
           {orders.length === 0 && !loading ? (
             <TableRow>
               <TableCell
-                colSpan={7}
+                colSpan={10}
                 className="text-center py-6 text-muted-foreground"
               >
                 No orders found
@@ -114,10 +123,34 @@ export default function OrdersTable() {
               <TableRow key={order.id}>
                 <TableCell>{order.orderNo}</TableCell>
                 <TableCell>{order.user.name}</TableCell>
-                <TableCell>{order.user.mobileNumber}</TableCell>
+                <TableCell className="text-sm">
+                  {order.user.mobileNumber ? (
+                    <a
+                      href={`tel:${order.user.mobileNumber}`}
+                      className="text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400"
+                    >
+                      {order.user.mobileNumber}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">N/A</span>
+                  )}
+                </TableCell>
                 <TableCell>{formatDateTime(order.createdAt)}</TableCell>
-                <TableCell>
-                  {formatCurrencyEnglish(order?.totalValue)}
+                <TableCell className="font-medium">
+                  <div className="space-y-0.5">
+                    <div>{formatCurrencyEnglish(order.totalValue || 0)}</div>
+                    <div className="text-xs font-normal">
+                      {(order.totalValue || 0) - (order.paidAmount || 0) > 0 ? (
+                        <span className="text-red-600 dark:text-red-400">
+                          Due {formatCurrencyEnglish((order.totalValue || 0) - (order.paidAmount || 0))}
+                        </span>
+                      ) : (
+                        <span className="text-green-600 dark:text-green-400">
+                          Paid {formatCurrencyEnglish(order.paidAmount || 0)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge
@@ -135,6 +168,30 @@ export default function OrdersTable() {
                     <span className="flex items-center gap-1.5">
                       {getStatusIcon(order.paymentStatus)}
                       {order.paymentStatus}
+                    </span>
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={`capitalize ${getPaymentMethodColor(order.paymentMethod?.name)}`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {getPaymentMethodIcon(order.paymentMethod?.name || "")}
+                      {order.paymentMethod?.name || "N/A"}
+                    </span>
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={`capitalize ${getShippingMethodColor(
+                      order.shippingMethod?.name
+                    )}`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {getShippingMethodIcon(order.shippingMethod?.name || "")}
+                      {order.shippingMethod?.name || "N/A"}
                     </span>
                   </Badge>
                 </TableCell>

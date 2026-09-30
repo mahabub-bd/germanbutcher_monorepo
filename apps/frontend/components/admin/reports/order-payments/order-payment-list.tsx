@@ -198,8 +198,8 @@ export default function OrderPaymentList({
   return (
     <div className="w-full">
       <PageHeader
-        title="Order Payments"
-        description="Filter, view, and export payment records"
+        title="Payment Transactions"
+        description="Per-transaction money received for a date range, by payment method"
       />
 
       {/* Filters + Export */}
@@ -294,7 +294,7 @@ export default function OrderPaymentList({
       {payments.length > 0 && (
         <div className="mb-4 grid grid-cols-2 2xl:grid-cols-4 gap-3">
           <StatsCard
-            title="Payments"
+            title="Payment Transactions"
             value={String(payments.length)}
             count={formatCurrencyEnglish(
               payments.reduce((sum, p) => sum + parseFloat(p.amount), 0)
