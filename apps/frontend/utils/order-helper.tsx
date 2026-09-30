@@ -8,6 +8,7 @@ import {
   Smartphone,
   Truck,
   Wallet,
+  Zap,
   XCircle,
 } from "lucide-react";
 import { OrderStatus } from "./types";
@@ -165,8 +166,52 @@ const getPaymentMethodIcon = (method: string): React.ReactNode => {
   }
 };
 
+/**
+ * Get badge color for shipping method
+ */
+const getShippingMethodColor = (method: string): string => {
+  if (!method) return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+
+  switch (method.toLowerCase()) {
+    case "express delivery":
+    case "express":
+      return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
+    case "store pickup":
+    case "pickup":
+      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+    case "standard delivery":
+    case "standard":
+      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+    default:
+      return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+  }
+};
+
+/**
+ * Get icon for shipping method
+ */
+const getShippingMethodIcon = (method: string): React.ReactNode => {
+  if (!method) return null;
+
+  switch (method.toLowerCase()) {
+    case "express delivery":
+    case "express":
+      return <Zap className="size-3" />;
+    case "store pickup":
+    case "pickup":
+      return <Package className="size-3" />;
+    case "standard delivery":
+    case "standard":
+      return <Truck className="size-3" />;
+    default:
+      return <Truck className="size-3" />;
+  }
+};
+
 export {
   getOrderStatusColor,
+  getShippingMethodColor,
+  getShippingMethodIcon,
   getPaymentMethodColor,
   getPaymentMethodIcon,
   getPaymentStatusColor,

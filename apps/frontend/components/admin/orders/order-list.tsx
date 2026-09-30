@@ -2,9 +2,9 @@
 
 import type React from "react";
 
-import { PaginationComponent } from "@/components/common/pagination";
 import { AddPaymentModal } from "@/components/admin/orders/add-payment-modal";
 import { EditOrderModal } from "@/components/admin/orders/edit-order-modal";
+import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,10 +32,12 @@ import {
   getPaymentMethodColor,
   getPaymentMethodIcon,
   getPaymentStatusColor,
+  getShippingMethodColor,
+  getShippingMethodIcon,
   getStatusIcon,
 } from "@/utils/order-helper";
-import type { Order, PaymentMethod } from "@/utils/types";
 import { listRouteToSlug } from "@/utils/order-list-routes";
+import type { Order, PaymentMethod } from "@/utils/types";
 import {
   DollarSign,
   Eye,
@@ -318,7 +320,9 @@ export function OrderList({
               <TableHead>Date</TableHead>
               <TableHead>Order Status</TableHead>
               <TableHead>Payment Status</TableHead>
+
               <TableHead>Payment Method</TableHead>
+              <TableHead>Shipping Method</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Total Paid</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -344,6 +348,9 @@ export function OrderList({
                     <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
                   <TableCell>
+                    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                  </TableCell>
+                  <TableCell>
                     <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
                   <TableCell className="text-right">
@@ -359,7 +366,7 @@ export function OrderList({
               ))
             ) : orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12">
+                <TableCell colSpan={10} className="text-center py-12">
                   <div className="flex flex-col items-center gap-3">
                     <ShoppingCart className="h-12 w-12 text-muted-foreground" />
                     <div className="space-y-1">
@@ -432,6 +439,20 @@ export function OrderList({
                       <span className="flex items-center gap-1.5">
                         {getPaymentMethodIcon(order.paymentMethod?.name || "")}
                         {order.paymentMethod?.name || "N/A"}
+                      </span>
+                    </Badge>
+                  </TableCell>
+
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={`capitalize ${getShippingMethodColor(
+                        order.shippingMethod?.name
+                      )}`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {getShippingMethodIcon(order.shippingMethod?.name || "")}
+                        {order.shippingMethod?.name || "N/A"}
                       </span>
                     </Badge>
                   </TableCell>
@@ -565,7 +586,7 @@ export function OrderList({
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-medium">Filters</h4>
                     {(statusFilter && statusFilter !== "all") ||
-                    paymentMethodFilter ? (
+                      paymentMethodFilter ? (
                       <button
                         onClick={clearFilters}
                         className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
@@ -596,9 +617,9 @@ export function OrderList({
                             setCurrentPage(1);
                           }}
                           className={`text-xs py-1.5 px-2 rounded-md border capitalize ${statusFilter === status ||
-                              (!statusFilter && status === "all")
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            (!statusFilter && status === "all")
+                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
                             }`}
                         >
                           {status}
@@ -621,7 +642,7 @@ export function OrderList({
                         className={`text-xs py-1.5 px-2 rounded-md border capitalize ${!paymentMethodFilter
                           ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                           : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                        }`}
+                          }`}
                       >
                         all
                       </button>
@@ -635,7 +656,7 @@ export function OrderList({
                           className={`text-xs py-1.5 px-2 rounded-md border capitalize truncate ${paymentMethodFilter === method.id.toString()
                             ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                             : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           {method.name}
                         </button>
