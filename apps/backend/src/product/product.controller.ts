@@ -6,6 +6,7 @@ import {
   Get,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -29,6 +30,8 @@ import { AdminGuard } from 'src/auth/guards/admin.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { SkipAnalytics } from 'src/common/decorators/skip-analytics.decorator';
 import { SkipThrottle } from 'src/common/decorators/skip-throttle.decorator';
+import { DateRangePreset } from '../common/enums/index';
+import { ApiResponseDto } from 'src/common/types';
 import { User } from 'src/user/entities/user.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
@@ -441,6 +444,66 @@ export class ProductController {
       {
         total: products.length,
       } as any,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('reports/sales')
+  @ApiOperation({
+    summary: 'Per-product sold quantity and revenue for a date range',
+    description:
+      'Aggregates order items joined with products, cancelled orders excluded. Returns the top products by revenue in the range with quantity, order count and current stock, plus range totals.',
+  })
+  @ApiQuery({
+    name: 'fromDate',
+    required: false,
+    example: '2025-11-01',
+    description: 'Start date (inclusive)',
+  })
+  @ApiQuery({
+    name: 'toDate',
+    required: false,
+    example: '2025-11-10',
+    description: 'End date (inclusive)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Max products to return (default 20)',
+  })
+  async getSalesReport(
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+    @Query('preset') preset?: DateRangePreset,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+  ): Promise<ApiResponseDto<any>> {
+    const data = await this.productService.getSalesReport(
+      fromDate,
+      toDate,
+      preset,
+      limit,
+    );
+    return this.formatResponse(
+      'Product sales report retrieved successfully',
+      HttpStatus.OK,
+      data,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('reports/stock-valuation')
+  @ApiOperation({
+    summary: 'Inventory stock valuation',
+    description:
+      'Returns total units and stock value at purchase and selling price across all products, plus the full product list with stock levels (lowest stock first).',
+  })
+  async getStockValuationReport() {
+    const data = await this.productService.getStockValuationReport();
+    return this.formatResponse(
+      'Stock valuation report retrieved successfully',
+      HttpStatus.OK,
+      data,
     );
   }
 

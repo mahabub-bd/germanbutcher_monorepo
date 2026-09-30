@@ -1,0 +1,193 @@
+"use client";
+
+import StatsCard from "@/components/admin/dashboard/stats-card";
+import { PageHeader } from "@/components/admin/page-header";
+import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
+import { formatCurrencyEnglish } from "@/lib/utils";
+import { Package, ShoppingCart, TrendingUp } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
+
+const PDFDownloadLink = dynamic(
+  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
+  { ssr: false }
+);
+
+interface Summary {
+  totalRevenue: number;
+  totalQuantity: number;
+  productCount: number;
+}
+
+interface ProductRow {
+  id: number;
+  name: string;
+  slug: string;
+  stock: number;
+  quantity: number;
+  revenue: number;
+  orderCount: number;
+}
+
+interface ProductSalesListProps {
+  preset?: string;
+  fromDate?: string;
+  toDate?: string;
+  summary: Summary | null;
+  products: ProductRow[];
+}
+
+export default function ProductSalesList({
+  preset,
+  fromDate,
+  toDate,
+  summary,
+  products,
+}: ProductSalesListProps) {
+  const router = useRouter();
+
+  const applyParams = (params: {
+    preset?: string;
+    fromDate?: string;
+    toDate?: string;
+  }) => {
+    const q = new URLSearchParams();
+    if (params.preset) q.set("preset", params.preset);
+    if (params.fromDate) q.set("fromDate", params.fromDate);
+    if (params.toDate) q.set("toDate", params.toDate);
+    router.push(`?${q.toString()}`);
+  };
+
+  const settings = useBusinessSettings();
+
+  const pdfRows = products.map((p, i) => [
+    i + 1,
+    p.name,
+    p.quantity,
+    p.orderCount,
+    formatCurrencyEnglish(p.revenue),
+    p.stock,
+  ]);
+
+  const pdfSummary = [
+    { label: "Total Revenue", value: formatCurrencyEnglish(summary?.totalRevenue ?? 0) },
+    { label: "Units Sold", value: String(summary?.totalQuantity ?? 0) },
+    { label: "Products Sold", value: String(summary?.productCount ?? 0) },
+  ];
+
+  const totalRevenue = summary?.totalRevenue ?? 0;
+  const totalQuantity = summary?.totalQuantity ?? 0;
+
+  return (
+    <div className="w-full">
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          title="Product Sales Report"
+          description="Top products by revenue for a date range (cancelled orders excluded)"
+        />
+        {products.length > 0 && (
+          <PDFDownloadLink
+            document={
+              <ReportTablePDF
+                title="Product Sales Report"
+                headers={[
+                  "#",
+                  "Product",
+                  "Qty Sold",
+                  "Orders",
+                  "Revenue",
+                  "Current Stock",
+                ]}
+                flexes={[0.5, 2, 0.9, 0.9, 1.2, 1]}
+                alignRight={[0, 2, 3, 4, 5]}
+                rows={pdfRows}
+                summary={pdfSummary}
+                settings={settings}
+              />
+            }
+            fileName={`product-sales-report-${
+              new Date().toISOString().split("T")[0]
+            }.pdf`}
+          >
+            {({ loading, error }) => (
+              <Button variant="secondary" disabled={!!error} className="shrink-0">
+                {error
+                  ? "PDF Error"
+                  : loading
+                    ? "Generating PDF..."
+                    : "Download PDF"}
+              </Button>
+            )}
+          </PDFDownloadLink>
+        )}
+      </div>
+
+      <ReportDateFilters
+        preset={preset}
+        fromDate={fromDate} toDate={toDate} onApply={applyParams} />
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <StatsCard icon={TrendingUp} title="Total Revenue" value={formatCurrencyEnglish(totalRevenue)} bgColor="green" />
+        <StatsCard icon={ShoppingCart} title="Units Sold" value={totalQuantity} bgColor="blue" />
+        <StatsCard icon={Package} title="Products Sold" value={summary?.productCount ?? 0} bgColor="purple" />
+      </div>
+
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>#</TableHead>
+              <TableHead>Product</TableHead>
+              <TableHead className="text-right">Qty Sold</TableHead>
+              <TableHead className="text-right">Orders</TableHead>
+              <TableHead className="text-right">Revenue</TableHead>
+              <TableHead className="text-right">Current Stock</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {products.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                  No sales found for this date range
+                </TableCell>
+              </TableRow>
+            ) : (
+              products.map((p, i) => (
+                <TableRow key={p.id} className="hover:bg-muted/50">
+                  <TableCell>{i + 1}</TableCell>
+                  <TableCell className="font-medium">{p.name}</TableCell>
+                  <TableCell className="text-right">{p.quantity}</TableCell>
+                  <TableCell className="text-right">{p.orderCount}</TableCell>
+                  <TableCell className="text-right font-medium">
+                    {formatCurrencyEnglish(p.revenue)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className={p.stock < 5 ? "text-red-600 dark:text-red-400" : ""}>
+                      {p.stock}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="text-sm text-muted-foreground mt-3">
+        {products.length} product{products.length === 1 ? "" : "s"} with sales
+        in this date range, sorted by revenue
+      </div>
+    </div>
+  );
+}
