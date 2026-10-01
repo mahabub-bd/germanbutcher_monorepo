@@ -1,7 +1,7 @@
 "use client";
 
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
-import { SupplierForm } from "@/components/admin/supplier/supplier-form";
+import { SupplierForm } from "@/components/admin/procurement/suppliers/supplier-form";
 import { Button } from "@/components/ui/button";
 import { CardDescription, CardTitle } from "@/components/ui/card";
 import { fetchProtectedData } from "@/utils/api-utils";
@@ -55,7 +55,7 @@ export default function EditSupplierPage() {
             <CardDescription>Update the supplier information.</CardDescription>
           </div>
           <Button asChild variant="outline">
-            <Link href="/admin/supplier/supplier-list">Back to Suppliers</Link>
+            <Link href="/admin/procurement/suppliers">Back to Suppliers</Link>
           </Button>
         </div>
       </div>

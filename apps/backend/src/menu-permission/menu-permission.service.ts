@@ -81,7 +81,9 @@ export class MenuPermissionService {
 
     return topLevelMenus.map((menu) => ({
       ...menu,
-      children: menu.children.filter((child) => menuIds.includes(child.id)),
+      children: menu.children
+        .filter((child) => menuIds.includes(child.id))
+        .sort((a, b) => a.order - b.order),
     }));
   }
   async deletePermission(permissionId: number): Promise<void> {

@@ -1,12 +1,11 @@
-import { SupplierList } from "@/components/admin/supplier/supplier-list";
+import { PurchaseList } from "@/components/admin/procurement/purchases/purchase-list";
 
-export default async function SuppliersPage({
+export default async function PurchasesPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const resolvedParams = await searchParams;
-
   const page =
     typeof resolvedParams.page === "string"
       ? Number.parseInt(resolvedParams.page)
@@ -17,8 +16,8 @@ export default async function SuppliersPage({
       : 10;
 
   return (
-    <div className=" space-y-6 border rounded-sm">
-      <SupplierList
+    <div className="p-6 space-y-6 border rounded-sm">
+      <PurchaseList
         initialPage={page}
         initialLimit={limit}
         initialSearchParams={resolvedParams}

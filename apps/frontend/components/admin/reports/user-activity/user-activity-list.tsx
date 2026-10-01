@@ -299,7 +299,7 @@ export function UserActivityList({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => router.push(`/admin/reports/activities/${activity.id}`)}>
+                      <DropdownMenuItem onClick={() => router.push(`/admin/audit-log/${activity.id}`)}>
                         <Eye className="mr-2 h-4 w-4" /> View Details
                       </DropdownMenuItem>
                     </DropdownMenuContent>

@@ -1,7 +1,7 @@
 "use client";
 
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
-import { PurchaseForm } from "@/components/admin/purchase/purchase-form";
+import { PurchaseForm } from "@/components/admin/procurement/purchases/purchase-form";
 import { Button } from "@/components/ui/button";
 import { CardDescription, CardTitle } from "@/components/ui/card";
 import { fetchProtectedData } from "@/utils/api-utils";
@@ -56,7 +56,7 @@ export default function EditPurchasePage() {
             <CardDescription>Update the purchase information.</CardDescription>
           </div>
           <Button asChild variant="outline">
-            <Link href="/admin/purchase/purchase-list">Back to Purchases</Link>
+            <Link href="/admin/procurement/purchases">Back to Purchases</Link>
           </Button>
         </div>
       </div>
