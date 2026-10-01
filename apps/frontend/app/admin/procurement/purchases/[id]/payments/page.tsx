@@ -69,7 +69,7 @@ export default function PaymentsListPage() {
 
           {remainingAmount > 0 && (
             <Button asChild>
-              <Link href={`/admin/purchase/${purchaseId}/payment`}>
+              <Link href={`/admin/procurement/purchases/${purchaseId}/payment`}>
                 <Plus className="mr-2 h-4 w-4" /> Add Payment
               </Link>
             </Button>

@@ -40,9 +40,9 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import DeleteConfirmationDialog from "../delete-confirmation-dialog";
-import { LoadingIndicator } from "../loading-indicator";
-import { PageHeader } from "../page-header";
+import DeleteConfirmationDialog from "../../delete-confirmation-dialog";
+import { LoadingIndicator } from "../../loading-indicator";
+import { PageHeader } from "../../page-header";
 
 interface SupplierListProps {
   initialPage: number;
@@ -177,7 +177,7 @@ export function SupplierList({
       </p>
       {!(searchQuery || statusFilter) && (
         <Button asChild className="mt-4">
-          <Link href="/admin/supplier/add">
+          <Link href="/admin/procurement/suppliers/add">
             <Plus className="mr-2 h-4 w-4" /> Add Supplier
           </Link>
         </Button>
@@ -295,7 +295,7 @@ export function SupplierList({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link href={`/admin/supplier/${supplier.id}/edit`}>
+                      <Link href={`/admin/procurement/suppliers/${supplier.id}/edit`}>
                         <Pencil className="mr-2 h-4 w-4" /> Edit
                       </Link>
                     </DropdownMenuItem>
@@ -322,7 +322,7 @@ export function SupplierList({
           title="Suppliers"
           description="Manage your product suppliers"
           actionLabel="Add Supplier"
-          actionHref="/admin/supplier/add"
+          actionHref="/admin/procurement/suppliers/add"
         />
 
         <div className="space-y-4">

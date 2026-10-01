@@ -37,9 +37,9 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import DeleteConfirmationDialog from "../delete-confirmation-dialog";
-import { LoadingIndicator } from "../loading-indicator";
-import { PageHeader } from "../page-header";
+import DeleteConfirmationDialog from "../../delete-confirmation-dialog";
+import { LoadingIndicator } from "../../loading-indicator";
+import { PageHeader } from "../../page-header";
 
 interface PurchaseListProps {
   initialPage: number;
@@ -173,7 +173,7 @@ export function PurchaseList({
       </p>
       {!(searchQuery || statusFilter) && (
         <Button asChild className="mt-4">
-          <Link href="/admin/purchase/add">
+          <Link href="/admin/procurement/purchases/add">
             <Plus className="mr-2 h-4 w-4" /> Add Purchase
           </Link>
         </Button>
@@ -344,19 +344,19 @@ export function PurchaseList({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild>
-                        <Link href={`/admin/purchase/${id}/edit`}>
+                        <Link href={`/admin/procurement/purchases/${id}/edit`}>
                           <Pencil className="mr-2 h-4 w-4" /> Edit
                         </Link>
                       </DropdownMenuItem>
                       {parseFloat(amountPaid) < parseFloat(totalValue) && (
                         <DropdownMenuItem asChild>
-                          <Link href={`/admin/purchase/${id}/payment`}>
+                          <Link href={`/admin/procurement/purchases/${id}/payment`}>
                             <DollarSign className="mr-2 h-4 w-4" /> Make Payment
                           </Link>
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem asChild>
-                        <Link href={`/admin/purchase/${id}/payments`}>
+                        <Link href={`/admin/procurement/purchases/${id}/payments`}>
                           <List className="mr-2 h-4 w-4" /> View Payments
                         </Link>
                       </DropdownMenuItem>
@@ -384,7 +384,7 @@ export function PurchaseList({
           title="Purchases"
           description="Manage your product purchases"
           actionLabel="Add Purchase"
-          actionHref="/admin/purchase/add"
+          actionHref="/admin/procurement/purchases/add"
         />
 
         <div className="space-y-4">

@@ -24,13 +24,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Section } from "../helper";
+import { Section } from "../../helper";
 
 import { DatePicker } from "@/components/ui/date-picker";
 import { fetchProtectedData, patchData, postData } from "@/utils/api-utils";
 import { purchaseSchema } from "@/utils/form-validation";
 import type { Product, Purchase, Supplier } from "@/utils/types";
-import { LoadingIndicator } from "../loading-indicator";
+import { LoadingIndicator } from "../../loading-indicator";
 
 type PurchaseFormValues = z.output<typeof purchaseSchema>;
 

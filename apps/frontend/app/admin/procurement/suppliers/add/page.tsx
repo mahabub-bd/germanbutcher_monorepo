@@ -1,6 +1,6 @@
 "use client";
 
-import { SupplierForm } from "@/components/admin/supplier/supplier-form";
+import { SupplierForm } from "@/components/admin/procurement/suppliers/supplier-form";
 import { Button } from "@/components/ui/button";
 import { CardDescription, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
@@ -17,7 +17,7 @@ export default function AddSupplierPage() {
             </CardDescription>
           </div>
           <Button asChild variant="outline">
-            <Link href="/admin/supplier/supplier-list">Back to Suppliers</Link>
+            <Link href="/admin/procurement/suppliers">Back to Suppliers</Link>
           </Button>
         </div>
       </div>

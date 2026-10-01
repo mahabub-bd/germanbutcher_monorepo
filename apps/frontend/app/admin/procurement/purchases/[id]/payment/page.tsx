@@ -49,7 +49,7 @@ export default function AddPaymentPage() {
             </CardDescription>
           </div>
           <Button asChild variant="outline">
-            <Link href={`/admin/purchase/${purchaseId}/payments`}>
+            <Link href={`/admin/procurement/purchases/${purchaseId}/payments`}>
               Back to Payments
             </Link>
           </Button>

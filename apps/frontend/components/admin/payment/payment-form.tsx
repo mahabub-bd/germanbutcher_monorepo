@@ -101,7 +101,7 @@ export function PaymentForm({ purchaseId, maxAmount }: PaymentFormProps) {
 
       if (response?.statusCode === 201) {
         toast.success("Payment added successfully");
-        router.push(`/admin/purchase/${purchaseId}/payments`);
+        router.push(`/admin/procurement/purchases/${purchaseId}/payments`);
       } else {
         toast.error(response?.message || "Failed to add payment");
       }

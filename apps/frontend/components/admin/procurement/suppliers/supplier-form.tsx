@@ -28,7 +28,7 @@ import { formPostData, patchData, postData } from "@/utils/api-utils";
 import { supplierSchema } from "@/utils/form-validation";
 import { Supplier } from "@/utils/types";
 import { useRouter } from "next/navigation";
-import { Section } from "../helper";
+import { Section } from "../../helper";
 
 type SupplierFormValues = z.infer<typeof supplierSchema>;
 
