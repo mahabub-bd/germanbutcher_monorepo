@@ -8,6 +8,7 @@ import {
 import { EditOrderModal } from "@/components/admin/orders/edit-order-modal";
 import { OrderStatusBadges } from "@/components/admin/orders/order-status-badges";
 import { RefundModal } from "@/components/admin/orders/refund-modal";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,7 +18,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn, formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { Order } from "@/utils/types";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -62,6 +62,16 @@ interface OrderActionsProps {
 
 // Compact on mobile (single-line header, tight buttons), relaxed from sm up.
 const btnClass = "h-9 text-xs sm:h-8";
+
+// Prev/next/back nav buttons each get their own background hue so the three
+// controls are distinguishable at a glance.
+const navButtonClasses = {
+  // hover:text-white overrides the outline variant's hover:text-accent-foreground,
+  // which would otherwise wash the label out against the solid background.
+  prev: "bg-violet-600 text-white hover:bg-violet-700 hover:text-white dark:bg-violet-600 dark:text-white dark:hover:bg-violet-700",
+  next: "bg-sky-600 text-white hover:bg-sky-700 hover:text-white dark:bg-sky-600 dark:text-white dark:hover:bg-sky-700",
+  back: "bg-orange-500 text-white hover:bg-orange-600 hover:text-white dark:bg-orange-500 dark:text-white dark:hover:bg-orange-600",
+};
 
 // Per-action color coding, aligned with the status hues in order-helper:
 // green=payment, blue=edit, orange=refund, violet=print, sky=export.
@@ -233,7 +243,7 @@ export function OrderActions({
     <div className="w-full rounded-lg border bg-card p-2 sm:p-4">
       {/* Line 1: back on the far left (mobile convention), order context,
           prev/next grouped on the right. Icon-only nav on mobile keeps it to one line. */}
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 border-b pb-2 sm:gap-3 sm:pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 border-b pb-2 sm:flex-nowrap sm:gap-3 sm:pb-3">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
 
           <h1 className="whitespace-nowrap text-base font-bold sm:text-lg">
@@ -245,47 +255,51 @@ export function OrderActions({
           />
         </div>
 
-        {(onPrevOrder || onNextOrder) && (
-          <div className="flex shrink-0 items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          {(onPrevOrder || onNextOrder) && (
+            <div className="flex shrink-0 items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onPrevOrder}
+                disabled={!onPrevOrder}
+                className={cn(btnClass, navButtonClasses.prev)}
+                aria-label="Previous order"
+                title="Previous order"
+              >
+                <ChevronLeft className="size-3.5" />
+                <span className="hidden sm:inline">Previous</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onNextOrder}
+                disabled={!onNextOrder}
+                className={cn(btnClass, navButtonClasses.next)}
+                aria-label="Next order"
+                title="Next order"
+              >
+                <span className="hidden sm:inline">Next </span>
+                <ChevronRight className="size-3.5" />
+              </Button>
+            </div>
+          )}
+          {onBack && (
             <Button
               variant="outline"
               size="sm"
-              onClick={onPrevOrder}
-              disabled={!onPrevOrder}
-              className={btnClass}
-              aria-label="Previous order"
-              title="Previous order"
+              onClick={onBack}
+              className={cn(btnClass, navButtonClasses.back)}
+              aria-label="Back to Order List"
+              title="Back to Order List"
             >
-              <ChevronLeft className="size-3.5" />
-              <span className="hidden sm:inline">Previous</span>
+              <ArrowLeft className="size-3.5" />
+              <span className="hidden sm:inline">Order List</span>
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onNextOrder}
-              disabled={!onNextOrder}
-              className={btnClass}
-              aria-label="Next order"
-              title="Next order"
-            >
-              <span className="hidden sm:inline">Next </span>
-              <ChevronRight className="size-3.5" />
-            </Button>
-          </div>
-        )}
-        {onBack && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onBack}
-            className={`${btnClass} -ml-1 shrink-0`}
-            aria-label="Back to Order List"
-            title="Back to Order List"
-          >
-            <ArrowLeft className="size-3.5" />
-            <span className="hidden sm:inline">Order List</span>
-          </Button>
-        )}
+          )}
+        </div>
+
+
       </div>
 
       {/* Line 2: order meta on the left, actions on the right. Mobile shows

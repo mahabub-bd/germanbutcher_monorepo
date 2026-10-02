@@ -1,12 +1,8 @@
+import { BreadcrumbBar } from "@/components/common/breadcrumb-bar";
 import { HeadingPrimary } from "@/components/common/heading-primary";
 import CategoryList from "@/components/recipe/category-list";
 import RecipeList from "@/components/recipe/recipe-list";
 import SearchForm from "@/components/recipe/search-form";
-import {
-  BreadcrumbItem,
-  PageBreadcrumb,
-} from "@/components/ui/page-breadcrumb";
-import { ChefHat } from "lucide-react";
 import Link from "next/link";
 
 export default async function RecipePage({
@@ -50,16 +46,21 @@ export default async function RecipePage({
     : searchQuery
       ? `Search Results for "${searchQuery}"`
       : "All Recipes";
-  const breadcrumbItems: BreadcrumbItem[] = [
+  const breadcrumbItems: { label: string; href?: string }[] = [
     {
-      label: "Recipe",
-      icon: <ChefHat className="h-2.5 w-2.5 sm:h-3 sm:w-3" />,
-      isActive: true,
+      label: "Recipes",
+      href: categorySlug || searchQuery ? "/recipes" : undefined,
     },
   ];
+  if (categorySlug) {
+    breadcrumbItems.push({ label: getCategoryDisplayName(categorySlug) });
+  }
+  if (searchQuery) {
+    breadcrumbItems.push({ label: `Search: "${searchQuery}"` });
+  }
   return (
     <div className="container mx-auto px-2">
-      <PageBreadcrumb items={breadcrumbItems} />
+      <BreadcrumbBar items={breadcrumbItems} />
       <SearchForm initialQuery={searchQuery} />
       <CategoryList
         endpoint="categories?isMainCategory=true"

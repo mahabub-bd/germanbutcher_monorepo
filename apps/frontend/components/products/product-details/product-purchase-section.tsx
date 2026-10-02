@@ -6,7 +6,7 @@ import { AddToWishlistButton } from "@/components/wishlist/add-to-wishlist-butto
 import { useCartContext } from "@/contexts/cart-context";
 import { hasActiveDiscount } from "@/utils/product-utils";
 import type { Product, User } from "@/utils/types";
-import { Loader2, Link2, Mail, MessageCircle, Minus, Plus, Share2, ShoppingCart, Zap } from "lucide-react";
+import { Link2, Loader2, Mail, MessageCircle, Minus, Plus, Share2, ShoppingCart, Zap } from "lucide-react";
 import {
   EmailShareButton,
   FacebookShareButton,
@@ -306,7 +306,7 @@ export function ProductPurchaseSection({
             onClick={() => setShowShareOptions(!showShareOptions)}
           >
             <Share2 className="w-4 h-4 mr-1.5 sm:mr-2" />
-            Share Product
+            Share 
           </Button>
 
           {showShareOptions && (

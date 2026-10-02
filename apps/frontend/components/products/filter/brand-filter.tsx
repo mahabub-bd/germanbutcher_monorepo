@@ -20,6 +20,11 @@ import { Filter, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+// Matches the category filter's checkbox treatment so the sidebar reads as
+// one system: brand-red fill when checked, softer resting border.
+const filterCheckboxClass =
+  "size-4.5 cursor-pointer rounded-md border-muted-foreground/40 shadow-none transition-colors hover:border-primaryColor/60 data-[state=checked]:border-primaryColor data-[state=checked]:bg-primaryColor data-[state=checked]:text-white focus-visible:ring-primaryColor/30";
+
 interface Category {
   id: number;
   name: string;
@@ -370,6 +375,7 @@ export function BrandFilters({
                         onCheckedChange={() =>
                           handleCategoryChange(category.id)
                         }
+                        className={filterCheckboxClass}
                       />
                       <Label
                         htmlFor={`category-${category.id}`}
@@ -398,6 +404,7 @@ export function BrandFilters({
                         id={`brand-${brand.id}`}
                         checked={brand.id.toString() === currentBrand}
                         onCheckedChange={() => handleBrandChange(brand.id)}
+                        className={filterCheckboxClass}
                       />
                       <Label
                         htmlFor={`brand-${brand.id}`}

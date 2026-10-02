@@ -31,6 +31,11 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+// Filter checkbox treatment: brand-red fill when checked, softer resting
+// border, slight grow over the default size-4 so the label pairing breathes.
+const filterCheckboxClass =
+  "size-4.5 cursor-pointer rounded-md border-muted-foreground/40 shadow-none transition-colors hover:border-primaryColor/60 data-[state=checked]:border-primaryColor data-[state=checked]:bg-primaryColor data-[state=checked]:text-white focus-visible:ring-primaryColor/30";
+
 interface Category {
   id: number;
   name: string;
@@ -348,6 +353,7 @@ export function CategoryFilters({
                           onCheckedChange={() =>
                             handleCategoryChange(category.id)
                           }
+                          className={filterCheckboxClass}
                         />
                         <Label
                           htmlFor={`category-${category.id}`}
@@ -355,8 +361,8 @@ export function CategoryFilters({
                         >
                           {category.name}
                           {typeof category.productCount === "number" && (
-                            <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                              ({category.productCount})
+                            <span className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium leading-none text-muted-foreground">
+                              {category.productCount}
                             </span>
                           )}
                         </Label>
@@ -393,6 +399,7 @@ export function CategoryFilters({
                                 onCheckedChange={() =>
                                   handleCategoryChange(subCategory.id)
                                 }
+                                className={filterCheckboxClass}
                               />
                               <Label
                                 htmlFor={`category-${subCategory.id}`}
@@ -401,8 +408,8 @@ export function CategoryFilters({
                                 {subCategory.name}
                                 {typeof subCategory.productCount ===
                                   "number" && (
-                                  <span className="ml-1.5 text-xs font-normal text-muted-foreground/80">
-                                    ({subCategory.productCount})
+                                  <span className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-muted/70 px-1.5 py-0.5 text-xs font-medium leading-none text-muted-foreground/80">
+                                    {subCategory.productCount}
                                   </span>
                                 )}
                               </Label>
@@ -607,6 +614,7 @@ export function CategoryFilters({
                       id={`brand-${brand.id}`}
                       checked={brand.id.toString() === currentBrand}
                       onCheckedChange={() => handleBrandChange(brand.id)}
+                      className={filterCheckboxClass}
                     />
                     <Label
                       htmlFor={`brand-${brand.id}`}

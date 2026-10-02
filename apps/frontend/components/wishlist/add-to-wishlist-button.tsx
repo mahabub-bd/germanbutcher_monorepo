@@ -89,14 +89,14 @@ export function AddToWishlistButton({
       className={cn(
         "transition-all duration-200 hover:shadow-md active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed group",
         variant === "outline" &&
-          "border-gray-300 hover:border-primaryColor hover:text-primaryColor hover:bg-primaryColor/5",
+        "border-gray-300 hover:border-primaryColor hover:text-primaryColor hover:bg-primaryColor/5",
         variant === "default" &&
-          "bg-primaryColor hover:bg-primaryColor/90 text-white",
+        "bg-primaryColor hover:bg-primaryColor/90 text-white",
         isInWishlist &&
-          variant === "outline" &&
-          "border-primaryColor text-primaryColor bg-primaryColor/5",
+        variant === "outline" &&
+        "border-primaryColor text-primaryColor bg-primaryColor/5",
         isInWishlist && variant === "default" && "bg-primaryColor/80",
-        size === "sm" && "px-3 py-2 text-sm",
+        size === "sm" && "px-2 py-2 text-sm",
         size === "lg" && "px-6 py-3 text-lg",
         className
       )}
@@ -124,7 +124,7 @@ export function AddToWishlistButton({
               isInWishlist ? "fill-current" : ""
             )}
           />
-          {showText && (isInWishlist ? "In Wishlist" : "Add to Wishlist")}
+          {showText && (isInWishlist ? "In Wishlist" : "Add Wishlist")}
         </>
       )}
     </Button>

@@ -1,7 +1,6 @@
 "use client";
 
 import { bangladeshData } from "@/constants";
-import { useDebounce } from "@/hooks/use-debounce";
 import { fetchDataPagination } from "@/utils/api-utils";
 import { SalesPoint } from "@/utils/types";
 import { ChevronDown, MapPin, Search, X } from "lucide-react";
@@ -39,7 +38,6 @@ function WhereToBuyClient({
 }: WhereToBuyClientProps) {
   const router = useRouter();
   const urlSearchParams = useSearchParams();
-  const isInitialMount = useRef(true);
 
   const [salesPoints, setSalesPoints] = useState<SalesPoint[]>(
     initialData.data
@@ -70,8 +68,6 @@ function WhereToBuyClient({
   const districts = division
     ? bangladeshData[division as keyof typeof bangladeshData] || []
     : [];
-
-  const debouncedShopSearch = useDebounce(shopSearch, 300);
 
   const updateURL = useCallback(
     (params: Record<string, string>) => {
@@ -146,68 +142,44 @@ function WhereToBuyClient({
   );
 
   useEffect(() => {
-   
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
+    updateURLRef.current = updateURL;
+  }, [updateURL]);
 
-
-      const hasUrlParams = debouncedShopSearch || division || district;
-      const hasInitialParams =
-        searchParams.shopSearch ||
-        searchParams.division ||
-        searchParams.district;
-
-      if (hasUrlParams && !hasInitialParams) {
-        const params = {
-          page: "1",
-          shopSearch: debouncedShopSearch,
-          division,
-          district,
-        };
-
-        updateURL(params);
-        fetchSalesPoints(params);
-      }
-      return;
-    }
-
+  // Filters apply only when the user clicks "Search Branches" (or presses
+  // Enter) — typing alone never triggers a fetch.
+  const applyFilters = (
+    overrides?: Partial<{
+      shopSearch: string;
+      division: string;
+      district: string;
+      page: string;
+    }>
+  ) => {
     const params = {
-      page: "1",
-      shopSearch: debouncedShopSearch,
-      division,
-      district,
+      page: overrides?.page ?? "1",
+      shopSearch: overrides?.shopSearch ?? shopSearch,
+      division: overrides?.division ?? division,
+      district: overrides?.district ?? district,
     };
 
     updateURLRef.current(params);
     fetchSalesPoints(params);
-  }, [debouncedShopSearch, division, district, fetchSalesPoints]);
+  };
 
   const handlePageChange = (page: number) => {
-    const params = {
-      page: page.toString(),
-      shopSearch: debouncedShopSearch,
-      division,
-      district,
-    };
-
-    updateURL(params);
-    fetchSalesPoints(params);
+    applyFilters({ page: page.toString() });
   };
 
   const clearFilters = () => {
     setShopSearch("");
     setDivision("");
     setDistrict("");
-
-    const params = {
+    applyFilters({
       page: "1",
       shopSearch: "",
       division: "",
       district: "",
-    };
-
-    router.push("?");
-    fetchSalesPoints(params);
+    });
   };
 
   const handleDivisionChange = (selectedDivision: string) => {
@@ -231,6 +203,9 @@ function WhereToBuyClient({
                 type="text"
                 value={shopSearch}
                 onChange={(e) => setShopSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") applyFilters();
+                }}
                 placeholder="Search locations, area or branch name..."
                 className="w-full px-3 sm:px-4 py-2.5 sm:py-3 pl-10 sm:pl-12 pr-10 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primaryColor/30 focus:border-primaryColor transition-all text-sm sm:text-base text-gray-800 placeholder-gray-400 bg-white"
               />
@@ -298,14 +273,7 @@ function WhereToBuyClient({
             <div className="flex items-end">
               <button
                 type="button"
-                onClick={() =>
-                  fetchSalesPoints({
-                    page: "1",
-                    shopSearch: debouncedShopSearch,
-                    division,
-                    district,
-                  })
-                }
+                onClick={() => applyFilters()}
                 className="inline-flex w-full lg:w-auto items-center justify-center gap-2 rounded-xl bg-primaryColor px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-primaryColor/90 focus:outline-none focus:ring-2 focus:ring-primaryColor/30"
               >
                 <Search className="size-4" />
@@ -331,7 +299,10 @@ function WhereToBuyClient({
                   </span>
                   <button
                     type="button"
-                    onClick={() => setShopSearch("")}
+                    onClick={() => {
+                      setShopSearch("");
+                      applyFilters({ shopSearch: "" });
+                    }}
                     className="ml-1 sm:ml-2 hover:text-primaryColor/70 transition-colors"
                   >
                     <X className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
@@ -346,7 +317,11 @@ function WhereToBuyClient({
                   </span>
                   <button
                     type="button"
-                    onClick={() => handleDivisionChange("")}
+                    onClick={() => {
+                      setDivision("");
+                      setDistrict("");
+                      applyFilters({ division: "", district: "" });
+                    }}
                     className="ml-1 sm:ml-2 hover:text-blue-700/70 transition-colors"
                   >
                     <X className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
@@ -361,7 +336,10 @@ function WhereToBuyClient({
                   </span>
                   <button
                     type="button"
-                    onClick={() => setDistrict("")}
+                    onClick={() => {
+                      setDistrict("");
+                      applyFilters({ district: "" });
+                    }}
                     className="ml-1 sm:ml-2 hover:text-green-700/70 transition-colors"
                   >
                     <X className="w-2.5 h-2.5 sm:w-3 sm:h-3" />

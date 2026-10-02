@@ -64,7 +64,7 @@ export default async function ProductsPage({
   };
 
   return (
-    <div className="container mx-auto md:px-0 px-2">
+    <div className="container mx-auto md:px-0 px-2 ">
       {/* Mobile Header */}
       <div className="md:hidden">
         <ProductsBreadcrumb
@@ -103,7 +103,7 @@ export default async function ProductsPage({
       </div>
 
       {/* Mobile Filters */}
-      <div className="flex flex-row justify-between items-center gap-4  md:hidden">
+      <div className=" py-4 flex flex-row justify-between items-center gap-4  md:hidden">
         <CategoryFilters
           categories={categories}
           brands={brands}

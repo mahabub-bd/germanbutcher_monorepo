@@ -1,4 +1,5 @@
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
+import { BreadcrumbBar } from "@/components/common/breadcrumb-bar";
 import { HeadingPrimary } from "@/components/common/heading-primary";
 import {
   ApiResponse,
@@ -102,8 +103,9 @@ export default async function WhereToBuyPage({ searchParams }: Props) {
   const data = await fetchSalesPoints(normalizedSearchParams);
 
   return (
-    <div className="min-h-screen bg-rose-50/40">
-      <div className="relative container mx-auto px-4 py-8 lg:py-12">
+    <div className="min-h-screen  container mx-auto ">
+      <BreadcrumbBar items={[{ label: "Where to Buy" }]} />
+      <div className="relative px-4 py-8 lg:py-12">
         {/* Header Section */}
         <div className="relative mb-10">
           <HeadingPrimary

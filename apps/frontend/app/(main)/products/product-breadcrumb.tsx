@@ -1,10 +1,8 @@
 'use client';
 import {
-  PageBreadcrumb,
-  type BreadcrumbItem,
-} from "@/components/ui/page-breadcrumb";
+  BreadcrumbBar,
+} from "@/components/common/breadcrumb-bar";
 import { fetchData } from "@/utils/api-utils";
-import { Package2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface ProductsBreadcrumbProps {
@@ -110,51 +108,34 @@ export function ProductsBreadcrumb({
     fetchBrandData();
   }, [brandId, initialBrandName]);
 
-  const breadcrumbItems: BreadcrumbItem[] = [
-    {
-      label: "Products",
-      icon: (
-        <Package2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primaryColor" />
-      ),
-      isActive: !categoryData && !brandData && !categoryId && !brandId,
-    },
-  ];
+  const hasFilters = Boolean(categoryId || categoryData || brandId || brandData);
 
-  // Only add category breadcrumb if we have the data or it's loading
-  if (categoryId) {
-    if (categoryData) {
-      breadcrumbItems.push({
-        label: categoryData.name,
-        href: `/categories/${categoryData.slug}`,
-        icon: <Package2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />,
-        isActive: true,
-      });
-    } else if (isLoading) {
-      breadcrumbItems.push({
-        label: "Loading...",
-        icon: <Package2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />,
-        isActive: true,
-      });
-    }
+  const items: { label: string; href?: string }[] = [];
+
+  if (hasFilters) {
+    items.push({ label: "Products", href: "/products" });
   }
 
-  // Only add brand breadcrumb if we have the data or it's loading
-  if (brandId) {
-    if (brandData) {
-      breadcrumbItems.push({
-        label: brandData.name,
-        href: `/brands/${brandData.slug}`,
-        icon: <Package2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />,
-        isActive: true,
-      });
-    } else if (isLoading) {
-      breadcrumbItems.push({
-        label: "Loading...",
-        icon: <Package2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />,
-        isActive: true,
-      });
-    }
+  if (categoryData) {
+    // Only the last crumb is the current page — when a brand follows, the
+    // category renders as a link instead.
+    items.push({
+      label: categoryData.name,
+      href: brandData ? `/categories/${categoryData.slug}` : undefined,
+    });
+  } else if (isLoading && categoryId && !initialCategoryName) {
+    items.push({ label: "Loading..." });
   }
 
-  return <PageBreadcrumb items={breadcrumbItems} />;
+  if (brandData) {
+    items.push({ label: brandData.name });
+  } else if (isLoading && brandId && !initialBrandName) {
+    items.push({ label: "Loading..." });
+  }
+
+  if (!hasFilters) {
+    items.push({ label: "Products" });
+  }
+
+  return <BreadcrumbBar items={items} />;
 }
