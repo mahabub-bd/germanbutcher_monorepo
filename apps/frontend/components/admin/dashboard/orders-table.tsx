@@ -14,6 +14,7 @@ import {
   formatCurrencyEnglish,
   formatDateTime,
   getStatusBadgeColor,
+  shortenArea,
 } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
 import { type Order, type PaginatedResponse } from "@/utils/types";
@@ -197,8 +198,12 @@ export default function OrdersTable() {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="secondary" className="max-w-40 truncate font-normal">
-                    {order.shippingAddress?.area || order.address?.area || "N/A"}
+                  <Badge
+                    variant="secondary"
+                    className="max-w-40 truncate font-normal"
+                    title={order.shippingAddress?.area || order.address?.area || undefined}
+                  >
+                    {shortenArea(order.shippingAddress?.area || order.address?.area || "N/A")}
                   </Badge>
                 </TableCell>
                 <TableCell>

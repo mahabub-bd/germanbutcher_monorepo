@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import TopCustomersReport from "@/components/admin/reports/top-customers/top-customers";
 import { PageHeader } from "@/components/admin/page-header";
 import { fetchProtectedData } from "@/utils/api-utils";

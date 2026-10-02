@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import DeliverymanPerformanceList from "@/components/admin/reports/deliveryman-performance/deliveryman-performance-list";
 import { fetchProtectedData } from "@/utils/api-utils";
 

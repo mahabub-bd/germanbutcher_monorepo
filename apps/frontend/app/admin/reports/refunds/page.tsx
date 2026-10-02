@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import RefundsList from "@/components/admin/reports/refunds/refunds-list";
 import { fetchProtectedData } from "@/utils/api-utils";
 
