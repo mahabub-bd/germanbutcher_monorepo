@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import DailySummaryList from "@/components/admin/reports/daily-summary/daily-summary-list";
 import { fetchProtectedData } from "@/utils/api-utils";
 

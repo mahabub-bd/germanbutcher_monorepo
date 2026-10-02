@@ -14,6 +14,7 @@ import {
   formatCurrencyEnglish,
   formatDateTime,
   getStatusBadgeColor,
+  shortenArea,
 } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
 import { type Order, type PaginatedResponse } from "@/utils/types";
@@ -27,7 +28,7 @@ import {
   getShippingMethodIcon,
   getStatusIcon,
 } from "@/utils/order-helper";
-import { Edit, Eye } from "lucide-react";
+import { Edit, Eye, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { LoadingIndicator } from "../loading-indicator";
@@ -123,12 +124,25 @@ export default function OrdersTable() {
             orders.map((order) => (
               <TableRow key={order.id}>
                 <TableCell>{order.orderNo}</TableCell>
-                <TableCell>{order.user.name}</TableCell>
+                <TableCell>
+                  {order.user?.id ? (
+                    <Link
+                      href={`/admin/customer/${order.user.id}/view`}
+                      className="font-medium hover:text-blue-600 hover:underline dark:hover:text-blue-400"
+                    >
+                      {order.user.name || "N/A"}
+                    </Link>
+                  ) : (
+                    <span className="font-medium">
+                      {order.user.name || "N/A"}
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell className="text-sm">
                   {order.user.mobileNumber ? (
                     <a
                       href={`tel:${order.user.mobileNumber}`}
-                      className="text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400"
+                      className="text-blue-600 hover:underline dark:text-blue-400"
                     >
                       {order.user.mobileNumber}
                     </a>
@@ -197,8 +211,15 @@ export default function OrdersTable() {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="secondary" className="max-w-40 truncate font-normal">
-                    {order.shippingAddress?.area || order.address?.area || "N/A"}
+                  <Badge
+                    variant="secondary"
+                    className="max-w-40 truncate border-transparent bg-violet-100 font-normal text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
+                    title={order.shippingAddress?.area || order.address?.area || undefined}
+                  >
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      {shortenArea(order.shippingAddress?.area || order.address?.area || "N/A")}
+                    </span>
                   </Badge>
                 </TableCell>
                 <TableCell>

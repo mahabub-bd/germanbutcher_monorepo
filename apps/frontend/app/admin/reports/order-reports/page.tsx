@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import OrderReportList from "@/components/admin/reports/order-reports/order-report-list";
 import { fetchProtectedData } from "@/utils/api-utils";
 

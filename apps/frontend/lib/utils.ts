@@ -6,6 +6,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Shorten a delivery area for compact table cells. Real-world values are
+ * messy ("44/45, Hrishikesh Das Road, Luxmibazar, Dhaka-1100"), so:
+ * 1. split on commas and drop house-number/postcode segments ("44/45", "1204")
+ * 2. take the first meaningful segment, capped at `maxWords` words
+ * e.g. → "Hrishikesh Das Road". Render the full value as a title tooltip.
+ */
+export function shortenArea(area: string, maxWords = 3): string {
+  const segment = area
+    .split(",")
+    .map((part) => part.trim())
+    // Pure numbers/slashes are house numbers or postcodes, not area names
+    .find((part) => part && !/^[\d\s\/\-]+$/.test(part));
+  if (!segment) return area.trim();
+  const words = segment.split(/\s+/);
+  if (words.length <= maxWords) return segment;
+  return `${words.slice(0, maxWords).join(" ")}…`;
+}
+
 export function formatCurrencyEnglish(amount: number): string {
   return new Intl.NumberFormat("en-BD", {
     style: "currency",
