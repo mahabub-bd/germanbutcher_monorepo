@@ -13,9 +13,9 @@ export function OrderStatusBadges({
   paymentStatus,
 }: OrderStatusBadgesProps) {
   return (
-    <div className="flex flex-wrap items-center gap-4 justify-between">
+    <div className="grid grid-cols-2 gap-4 justify-between">
       <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Order Status:</span>
+        <span className="text-sm text-muted-foreground">Order:</span>
         <Badge
           className={`${getOrderStatusColor(orderStatus)} px-2.5 py-1 text-xs font-medium`}
         >
@@ -26,7 +26,7 @@ export function OrderStatusBadges({
         </Badge>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Payment Status:</span>
+        <span className="text-sm text-muted-foreground">Payment :</span>
         <Badge
           className={`${getPaymentStatusColor(paymentStatus)} px-2.5 py-1 text-xs font-medium`}
         >
