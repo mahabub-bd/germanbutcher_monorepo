@@ -24,6 +24,7 @@ import {
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { formatDateTime } from "@/lib/utils";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { Recipe } from "@/utils/types";
 import {
   Filter,
@@ -58,6 +59,8 @@ export function RecipeList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const MENU_URL = "/admin/recipe/recipe-list";
+  const { can } = usePermissions();
 
   const getInitialParam = (key: string) => {
     const param = searchParams?.get(key);
@@ -203,13 +206,14 @@ export function RecipeList({
           ? "No recipes match your search criteria. Try different filters."
           : "Get started by adding your first recipe."}
       </p>
-      {!(searchQuery || statusFilter || categoryFilter) && (
-        <Button asChild className="mt-4">
-          <Link href="/admin/recipe/add">
-            <Plus className="mr-2 h-4 w-4" /> Add Recipe
-          </Link>
-        </Button>
-      )}
+      {!(searchQuery || statusFilter || categoryFilter) &&
+        can(MENU_URL, "canCreate") && (
+          <Button asChild className="mt-4">
+            <Link href="/admin/recipe/add">
+              <Plus className="mr-2 h-4 w-4" /> Add Recipe
+            </Link>
+          </Button>
+        )}
       {(searchQuery || statusFilter || categoryFilter) && (
         <Button variant="outline" className="mt-4" onClick={clearFilters}>
           Clear Filters
@@ -329,17 +333,21 @@ export function RecipeList({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/recipe/${recipe.id}/edit`}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(recipe)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/recipe/${recipe.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(recipe)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -356,8 +364,12 @@ export function RecipeList({
         <PageHeader
           title="Recipes"
           description="Manage your recipes"
-          actionLabel="Add Recipe"
-          actionHref="/admin/recipe/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add Recipe",
+                actionHref: "/admin/recipe/add",
+              }
+            : {})}
         />
 
         <div className="space-y-4">

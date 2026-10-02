@@ -2,6 +2,7 @@
 import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 
 import { StatusCard } from "@/components/admin/dashboard/status-card";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,8 @@ import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
 export function TestimonialList() {
+  const MENU_URL = "/admin/testimonial/testimonial-list";
+  const { can } = usePermissions();
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -108,11 +111,13 @@ export function TestimonialList() {
       <p className="text-sm text-muted-foreground mt-2">
         Get started by creating your first testimonial.
       </p>
-      <Button asChild className="mt-4">
-        <Link href="/admin/testimonial/add">
-          <Plus className="mr-2 h-4 w-4" /> Add Testimonial
-        </Link>
-      </Button>
+      {can(MENU_URL, "canCreate") && (
+        <Button asChild className="mt-4">
+          <Link href="/admin/testimonial/add">
+            <Plus className="mr-2 h-4 w-4" /> Add Testimonial
+          </Link>
+        </Button>
+      )}
     </div>
   );
 
@@ -189,17 +194,21 @@ export function TestimonialList() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/testimonial/${testimonial.id}/edit`}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => handleDeleteClick(testimonial)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/testimonial/${testimonial.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => handleDeleteClick(testimonial)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -226,8 +235,12 @@ export function TestimonialList() {
         <PageHeader
           title="Testimonials"
           description="Manage customer testimonials and reviews"
-          actionLabel="Add Testimonial"
-          actionHref="/admin/testimonial/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add Testimonial",
+                actionHref: "/admin/testimonial/add",
+              }
+            : {})}
         />
 
         {/* Summary Cards */}

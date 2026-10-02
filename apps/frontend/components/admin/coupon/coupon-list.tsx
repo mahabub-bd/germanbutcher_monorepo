@@ -1,6 +1,7 @@
 "use client";
 
 import { StatusCard } from "@/components/admin/dashboard/status-card";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +43,8 @@ import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
 export function CouponList() {
+  const MENU_URL = "/admin/marketing/coupon/coupon-list";
+  const { can } = usePermissions();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -141,11 +144,13 @@ export function CouponList() {
       <p className="text-sm text-muted-foreground mt-2">
         Get started by creating your first coupon.
       </p>
-      <Button asChild className="mt-4">
-        <Link href="/admin/marketing/coupon/add">
-          <Plus className="mr-2 h-4 w-4" /> Add Coupon
-        </Link>
-      </Button>
+      {can(MENU_URL, "canCreate") && (
+        <Button asChild className="mt-4">
+          <Link href="/admin/marketing/coupon/add">
+            <Plus className="mr-2 h-4 w-4" /> Add Coupon
+          </Link>
+        </Button>
+      )}
     </div>
   );
 
@@ -256,19 +261,23 @@ export function CouponList() {
                           <Eye className="mr-2 h-4 w-4" /> Usage Logs
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link
-                          href={`/admin/marketing/coupon/${coupon?.code}/edit`}
+                      {can(MENU_URL, "canEdit") && (
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/admin/marketing/coupon/${coupon?.code}/edit`}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      {can(MENU_URL, "canDelete") && (
+                        <DropdownMenuItem
+                          className="text-red-600"
+                          onClick={() => handleDeleteClick(coupon)}
                         >
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDeleteClick(coupon)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -290,8 +299,12 @@ export function CouponList() {
           <PageHeader
             title="Coupons"
             description="Manage discount coupons and promotions"
-            actionLabel="Add Coupon"
-            actionHref="/admin/marketing/coupon/add"
+            {...(can(MENU_URL, "canCreate")
+              ? {
+                  actionLabel: "Add Coupon",
+                  actionHref: "/admin/marketing/coupon/add",
+                }
+              : {})}
           />
           <Button
             variant="outline"

@@ -26,8 +26,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { User } from 'src/user/entities/user.entity';
 import { BrandService } from './brand.service';
@@ -41,7 +41,8 @@ import { Brand } from './entities/brand.entity';
 @ApiBearerAuth('token')
 export class BrandController {
   constructor(private readonly brandService: BrandService) {}
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/brand/brand-list')
   @Post()
   @ApiOperation({
     summary: 'Create a new brand',
@@ -252,8 +253,8 @@ export class BrandController {
       data: brand,
     };
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/brand/brand-list')
   @Patch(':id')
   @ApiOperation({
     summary: 'Update brand',
@@ -306,8 +307,8 @@ export class BrandController {
       data: brand,
     };
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/brand/brand-list')
   @Delete(':id')
   @ApiOperation({
     summary: 'Delete brand',

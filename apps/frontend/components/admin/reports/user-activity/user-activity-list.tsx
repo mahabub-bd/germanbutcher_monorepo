@@ -218,15 +218,15 @@ export function UserActivityList({
 
   const renderTableView = () => (
     <div className="md:p-6 p-2">
-      <Table>
+      <Table className="min-w-[900px]">
         <TableHeader>
           <TableRow>
             <TableHead>Date & Time</TableHead>
-            <TableHead className="hidden md:table-cell">Action</TableHead>
+            <TableHead>Action</TableHead>
             <TableHead>Entity</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
-            <TableHead className="hidden md:table-cell">Message</TableHead>
-            <TableHead className="hidden md:table-cell">IP Address</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Message</TableHead>
+            <TableHead>IP Address</TableHead>
             <TableHead>User</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -240,7 +240,7 @@ export function UserActivityList({
                   {formatDateTime(activity.createdAt)}
                 </TableCell>
 
-                <TableCell className="hidden md:table-cell">
+                <TableCell>
                   <div className="flex flex-col gap-1">
                     <Badge className={getActionColor(activity.action)}>
                       {method}
@@ -260,17 +260,17 @@ export function UserActivityList({
                   </div>
                 </TableCell>
 
-                <TableCell className="hidden md:table-cell">
+                <TableCell>
                   <Badge className={getStatusColor(activity.status)}>
                     {activity.status}
                   </Badge>
                 </TableCell>
 
-                <TableCell className="hidden md:table-cell text-sm max-w-xs truncate">
+                <TableCell className="text-sm max-w-xs truncate">
                   {activity.message}
                 </TableCell>
 
-                <TableCell className="hidden md:table-cell font-mono text-xs">
+                <TableCell className="font-mono text-xs">
                   {activity.ipAddress || "N/A"}
                 </TableCell>
 

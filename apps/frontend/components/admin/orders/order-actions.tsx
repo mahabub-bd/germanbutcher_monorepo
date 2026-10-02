@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn, formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { Order } from "@/utils/types";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -116,6 +117,8 @@ export function OrderActions({
   onEditSuccess,
   onPaymentSuccess,
 }: OrderActionsProps) {
+  const MENU_URL = "/admin/orders";
+  const { can } = usePermissions();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -156,6 +159,7 @@ export function OrderActions({
       accent: "green",
       onClick: () => setShowPaymentModal(true),
       visible:
+        can(MENU_URL, "canCreate") &&
         !isNeedRefundOnly &&
         order.paymentStatus !== "completed" &&
         order.paymentStatus !== "need_refund" &&
@@ -171,6 +175,7 @@ export function OrderActions({
       accent: "blue",
       onClick: () => setShowEditModal(true),
       visible:
+        can(MENU_URL, "canEdit") &&
         !isNeedRefundOnly &&
         order.orderStatus !== "delivered" &&
         order.orderStatus !== "cancelled",
@@ -183,7 +188,7 @@ export function OrderActions({
       variant: "outline",
       accent: "orange",
       onClick: () => setShowRefundModal(true),
-      visible: canRefund,
+      visible: can(MENU_URL, "canCreate") && canRefund,
     },
     {
       id: "print",
@@ -215,7 +220,7 @@ export function OrderActions({
       icon: X,
       variant: "destructive",
       onClick: () => setShowCancelModal(true),
-      visible: !isNeedRefundOnly && canCancel,
+      visible: can(MENU_URL, "canCreate") && !isNeedRefundOnly && canCancel,
       danger: true,
     },
   ];

@@ -27,6 +27,7 @@ import {
   formatDateTime,
 } from "@/lib/utils";
 import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import {
   getOrderStatusColor,
   getPaymentMethodColor,
@@ -69,6 +70,8 @@ export function OrderList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const MENU_URL = "/admin/orders";
+  const { can } = usePermissions();
 
   const getInitialParam = (key: string) => {
     const param = searchParams?.get(key);
@@ -550,21 +553,23 @@ export function OrderList({
                         </DropdownMenuItem>
 
                         {/* Edit - Only for pending, processing, cancelled orders */}
-                        {canEditOrder(order.orderStatus) ? (
-                          <DropdownMenuItem
-                            onSelect={() => setEditingOrderId(order.id)}
-                          >
-                            <Pencil className="mr-2 h-4 w-4" /> Edit Order
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem disabled className="opacity-50">
-                            <Lock className="mr-2 h-4 w-4" />
-                            Edit (Order {order.orderStatus})
-                          </DropdownMenuItem>
-                        )}
+                        {can(MENU_URL, "canEdit") &&
+                          (canEditOrder(order.orderStatus) ? (
+                            <DropdownMenuItem
+                              onSelect={() => setEditingOrderId(order.id)}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" /> Edit Order
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem disabled className="opacity-50">
+                              <Lock className="mr-2 h-4 w-4" />
+                              Edit (Order {order.orderStatus})
+                            </DropdownMenuItem>
+                          ))}
 
                         {/* Payment Update - Only if not fully paid and not cancelled */}
-                        {(order.paidAmount || 0) < (order.totalValue || 0) &&
+                        {can(MENU_URL, "canCreate") &&
+                          (order.paidAmount || 0) < (order.totalValue || 0) &&
                           order.orderStatus.toLowerCase() !== "cancelled" && (
                             <DropdownMenuItem
                               onSelect={() => setPayingOrderId(order.id)}

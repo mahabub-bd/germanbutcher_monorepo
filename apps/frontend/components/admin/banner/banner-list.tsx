@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { Banner } from "@/utils/types";
 import { Filter, ImageIcon, Plus, Search, XCircle } from "lucide-react";
 import Link from "next/link";
@@ -38,6 +39,8 @@ export function BannerList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const MENU_URL = "/admin/banner/banner-list";
+  const { can } = usePermissions();
 
   const getInitialParam = (key: string) => {
     const param = searchParams?.get(key);
@@ -178,13 +181,14 @@ export function BannerList({
           ? "No banners match your search criteria. Try different filters."
           : "Get started by adding your first banner."}
       </p>
-      {!(searchQuery || statusFilter || typeFilter) && (
-        <Button asChild className="mt-4">
-          <Link href="/admin/banner/add">
-            <Plus className="mr-2 h-4 w-4" /> Add Banner
-          </Link>
-        </Button>
-      )}
+      {!(searchQuery || statusFilter || typeFilter) &&
+        can(MENU_URL, "canCreate") && (
+          <Button asChild className="mt-4">
+            <Link href="/admin/banner/add">
+              <Plus className="mr-2 h-4 w-4" /> Add Banner
+            </Link>
+          </Button>
+        )}
       {(searchQuery || statusFilter || typeFilter) && (
         <Button variant="outline" className="mt-4" onClick={clearFilters}>
           Clear Filters
@@ -263,8 +267,12 @@ export function BannerList({
         <PageHeader
           title="Banners"
           description="Manage your promotional banners"
-          actionLabel="Add Banner"
-          actionHref="/admin/banner/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add Banner",
+                actionHref: "/admin/banner/add",
+              }
+            : {})}
         />
 
         <div className="space-y-4">

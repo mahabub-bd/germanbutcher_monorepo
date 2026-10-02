@@ -1,6 +1,7 @@
 "use client";
 
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,8 @@ import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
 export function PaymentMethodList() {
+  const MENU_URL = "/admin/settings/payment-method";
+  const { can } = usePermissions();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -93,11 +96,13 @@ export function PaymentMethodList() {
       <p className="text-sm text-muted-foreground mt-2">
         Get started by creating your first payment method.
       </p>
-      <Button asChild className="mt-4">
-        <Link href="/admin/settings/payment-method/add">
-          <Plus className="mr-2 h-4 w-4" /> Add Payment Method
-        </Link>
-      </Button>
+      {can(MENU_URL, "canCreate") && (
+        <Button asChild className="mt-4">
+          <Link href="/admin/settings/payment-method/add">
+            <Plus className="mr-2 h-4 w-4" /> Add Payment Method
+          </Link>
+        </Button>
+      )}
     </div>
   );
 
@@ -148,19 +153,23 @@ export function PaymentMethodList() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href={`/admin/settings/payment-method/${method.id}/edit`}
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={`/admin/settings/payment-method/${method.id}/edit`}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(method)}
                       >
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(method)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -177,8 +186,12 @@ export function PaymentMethodList() {
         <PageHeader
           title="Payment Methods"
           description="Manage payment options for your store"
-          actionLabel="Add Payment Method"
-          actionHref="/admin/settings/payment-method/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add Payment Method",
+                actionHref: "/admin/settings/payment-method/add",
+              }
+            : {})}
         />
 
         <div className="space-y-4">

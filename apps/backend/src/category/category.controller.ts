@@ -27,7 +27,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { Roles } from 'src/auth/decorators/roles.decorator';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { User } from 'src/user/entities/user.entity';
 import { CategoryService } from './category.service';
@@ -42,8 +43,8 @@ export class CategoryController {
   constructor(private readonly service: CategoryService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
-  @Roles('admin', 'superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/categories')
   @ApiOperation({ summary: 'Create new category' })
   @ApiBody({ type: CreateCategoryDto })
   @ApiCreatedResponse({
@@ -255,8 +256,8 @@ export class CategoryController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
-  @Roles('admin', 'superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/categories')
   @ApiOperation({ summary: 'Update category details' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiBody({ type: UpdateCategoryDto })
@@ -288,8 +289,8 @@ export class CategoryController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
-  @Roles('admin', 'superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/categories')
   @ApiOperation({ summary: 'Delete category' })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiOkResponse({

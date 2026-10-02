@@ -9,6 +9,7 @@ import {
   Post,
   UploadedFile,
   UploadedFiles,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
@@ -23,6 +24,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Attachment } from '../attachment/entities/attachment.entity';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 import { ApiResponseDto } from 'src/common/types';
 import { CreateGalleryDto } from './dto/create-gallery.dto';
@@ -35,6 +39,8 @@ import { GalleryService } from './gallery.service';
 export class GalleryController {
   constructor(private readonly galleryService: GalleryService) {}
 
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
   @Post()
   @UseInterceptors(FilesInterceptor('files'))
   @ApiOperation({ summary: 'Create a new gallery with images' })
@@ -114,6 +120,8 @@ export class GalleryController {
     };
   }
 
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
   @Post(':id/attachments')
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Add attachment to a gallery' })
@@ -148,6 +156,8 @@ export class GalleryController {
     };
   }
 
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
   @Delete(':id/attachments/:attachmentId')
   @ApiOperation({ summary: 'Remove attachment from gallery' })
   @ApiParam({ name: 'id', description: 'Gallery ID' })
@@ -171,6 +181,8 @@ export class GalleryController {
     };
   }
 
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a gallery' })
   @ApiParam({ name: 'id', description: 'Gallery ID' })

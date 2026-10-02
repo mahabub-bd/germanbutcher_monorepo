@@ -20,8 +20,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ApiResponseDto } from 'src/common/types';
 import { Subscriber } from './entities/subscriber.entity';
@@ -66,8 +66,8 @@ export class SubscribersController {
       data: subscriber,
     };
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin', 'admin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/settings/subscriber-list')
   @Get()
   @ApiOperation({ summary: 'Get all subscribers with pagination' })
   @ApiResponse({
@@ -129,8 +129,8 @@ export class SubscribersController {
       data: subscriber,
     };
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin', 'admin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/settings/subscriber-list')
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a subscriber by ID' })
   @ApiParam({

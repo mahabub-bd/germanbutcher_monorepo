@@ -16,9 +16,11 @@ import {
 } from "@/components/ui/table";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 
-import { deleteData, fetchData, patchData } from "@/utils/api-utils";
+import { deleteData, fetchData } from "@/utils/api-utils";
 
-import { Switch } from "@/components/ui/switch";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { ShippingMethod } from "@/utils/types";
 import { MoreHorizontal, Pencil, Plus, Trash2, Truck } from "lucide-react";
 import Link from "next/link";
@@ -29,12 +31,24 @@ import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
 export function ShippingMethodList() {
+  const MENU_URL = "/admin/settings/shipping-method";
+  const { can } = usePermissions();
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedShippingMethod, setSelectedShippingMethod] =
     useState<ShippingMethod | null>(null);
-  const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  const { togglingId, toggleActive } = useActiveStatusToggle<ShippingMethod>({
+    getId: (method) => method.id,
+    getName: (method) => method.name,
+    buildEndpoint: (id) => `shipping-methods/${id}`,
+    errorLabel: "shipping method status",
+    setStatusLocally: (id, isActive) =>
+      setShippingMethods((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, isActive } : m))
+      ),
+  });
 
   const fetchShippingMethods = async () => {
     setIsLoading(true);
@@ -74,28 +88,6 @@ export function ShippingMethodList() {
     }
   };
 
-  const handleToggleActive = async (method: ShippingMethod) => {
-    setTogglingId(method.id);
-    try {
-      await patchData(`shipping-methods/${method.id}`, {
-        isActive: !method.isActive,
-      });
-      setShippingMethods((prev) =>
-        prev.map((m) =>
-          m.id === method.id ? { ...m, isActive: !method.isActive } : m
-        )
-      );
-      toast.success(
-        `${method.name} ${method.isActive ? "deactivated" : "activated"}`
-      );
-    } catch (error) {
-      console.error("Error updating shipping method:", error);
-      toast.error("Failed to update shipping method status");
-    } finally {
-      setTogglingId(null);
-    }
-  };
-
   const renderEmptyState = () => (
     <div className="flex flex-col items-center justify-center p-8 text-center">
       <Truck className="h-10 w-10 text-muted-foreground mb-4" />
@@ -103,11 +95,13 @@ export function ShippingMethodList() {
       <p className="text-sm text-muted-foreground mt-2">
         Get started by creating your first shipping method.
       </p>
-      <Button asChild className="mt-4">
-        <Link href="/admin/settings/shipping-method/add">
-          <Plus className="mr-2 h-4 w-4" /> Add Shipping Method
-        </Link>
-      </Button>
+      {can(MENU_URL, "canCreate") && (
+        <Button asChild className="mt-4">
+          <Link href="/admin/settings/shipping-method/add">
+            <Plus className="mr-2 h-4 w-4" /> Add Shipping Method
+          </Link>
+        </Button>
+      )}
     </div>
   );
 
@@ -141,17 +135,12 @@ export function ShippingMethodList() {
                 {formatDateTime(method.createdAt)}
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={method.isActive}
-                    disabled={togglingId === method.id}
-                    onCheckedChange={() => handleToggleActive(method)}
-                    aria-label={`Toggle ${method.name}`}
-                  />
-                  <span className="text-xs text-muted-foreground">
-                    {method.isActive ? "Active" : "Inactive"}
-                  </span>
-                </div>
+                <ActiveStatusToggle
+                  isActive={method.isActive}
+                  disabled={togglingId === method.id}
+                  onToggle={() => toggleActive(method)}
+                  label={method.name}
+                />
               </TableCell>
               <TableCell>
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold">
@@ -167,19 +156,23 @@ export function ShippingMethodList() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href={`/admin/settings/shipping-method/${method.id}/edit`}
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={`/admin/settings/shipping-method/${method.id}/edit`}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(method)}
                       >
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(method)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -196,8 +189,12 @@ export function ShippingMethodList() {
         <PageHeader
           title="Shipping Methods"
           description="Manage shipping options for your store"
-          actionLabel="Add Shipping Method"
-          actionHref="/admin/settings/shipping-method/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add Shipping Method",
+                actionHref: "/admin/settings/shipping-method/add",
+              }
+            : {})}
         />
 
         <div className="space-y-4">

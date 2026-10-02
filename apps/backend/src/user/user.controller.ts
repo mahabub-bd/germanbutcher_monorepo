@@ -22,9 +22,9 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { DateRangePreset } from 'src/common/enums';
 import { CreateUserDto } from './dto/create-user.dto';
 import { TopCustomersQueryDto } from './dto/top-customers-query.dto';
@@ -36,8 +36,8 @@ import { UserService } from './user.service';
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/user')
   @Get('customers')
   @ApiOperation({
     summary: 'Retrieve all customer users with pagination and search',
@@ -77,8 +77,8 @@ export class UserController {
   ) {
     return this.userService.findCustomers(page, limit, search, sort);
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/user')
   @Get('users')
   @ApiOperation({
     summary:
@@ -126,8 +126,8 @@ export class UserController {
   ) {
     return this.userService.findOtherUsers(page, limit, role, search, sort);
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin', 'admin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/user')
   @Get('customers/top')
   @ApiOperation({
     summary: 'Get top customers by orders or spending',
@@ -191,8 +191,8 @@ export class UserController {
     return this.userService.findTopCustomers(query.limit, query.sortBy, query.timeFilter);
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin', 'admin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/user')
   @Get('reports/customer-list')
   @ApiOperation({
     summary: 'Get customer list report',
@@ -268,8 +268,8 @@ export class UserController {
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.userService.findOne(id);
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin', 'admin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/user')
   @Post()
   @ApiOperation({
     summary: 'Create new user',
@@ -302,8 +302,8 @@ export class UserController {
   async update(@Param('id') id: number, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(id, updateUserDto);
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/user')
   @Delete(':id')
   @ApiOperation({
     summary: 'Delete user',

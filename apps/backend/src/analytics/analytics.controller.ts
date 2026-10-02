@@ -12,8 +12,8 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { SkipAnalytics } from 'src/common/decorators/skip-analytics.decorator';
 import { AnalyticsService } from './analytics.service';
@@ -27,8 +27,8 @@ import {
 @ApiTags('Analytics')
 @Controller('analytics')
 @ApiBearerAuth('token')
-@UseGuards(JwtAuthGuard, AdminGuard)
-@Roles('superadmin')
+@UseGuards(JwtAuthGuard, PermissionGuard)
+@ModulePermissions('/admin/dashboard')
 @SkipAnalytics()
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}

@@ -19,6 +19,7 @@ import {
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { formatDateTime } from "@/lib/utils";
 import { deleteData, fetchData } from "@/utils/api-utils";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { SalesPartner } from "@/utils/types";
 import {
   ExternalLink,
@@ -37,6 +38,8 @@ import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
 export function SalesPartnerList() {
+  const MENU_URL = "/admin/sales-partner/sales-partner-list";
+  const { can } = usePermissions();
   const [salesPartners, setSalesPartners] = useState<SalesPartner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -102,11 +105,13 @@ export function SalesPartnerList() {
       <p className="text-sm text-muted-foreground mt-2">
         Get started by adding your first sales partner.
       </p>
-      <Button asChild className="mt-4">
-        <Link href="/admin/sales-partner/add">
-          <Plus className="mr-2 h-4 w-4" /> Add Sales Partner
-        </Link>
-      </Button>
+      {can(MENU_URL, "canCreate") && (
+        <Button asChild className="mt-4">
+          <Link href="/admin/sales-partner/add">
+            <Plus className="mr-2 h-4 w-4" /> Add Sales Partner
+          </Link>
+        </Button>
+      )}
     </div>
   );
 
@@ -185,19 +190,23 @@ export function SalesPartnerList() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href={`/admin/sales-partner/${salesPartner.Id}/edit`}
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={`/admin/sales-partner/${salesPartner.Id}/edit`}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(salesPartner)}
                       >
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(salesPartner)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -214,8 +223,12 @@ export function SalesPartnerList() {
         <PageHeader
           title="Sales Partners"
           description="Manage your sales partners"
-          actionLabel="Add Sales Partner"
-          actionHref="/admin/sales-partner/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add Sales Partner",
+                actionHref: "/admin/sales-partner/add",
+              }
+            : {})}
         />
         {isLoading ? (
           <LoadingIndicator message="Loading Sales Partners..." />

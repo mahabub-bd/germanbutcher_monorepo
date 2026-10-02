@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { Purchase } from "@/utils/types";
 import {
@@ -55,6 +56,8 @@ export function PurchaseList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const MENU_URL = "/admin/procurement/purchases";
+  const { can } = usePermissions();
 
   const getInitialParam = (key: string) => {
     const param = searchParams?.get(key);
@@ -171,7 +174,7 @@ export function PurchaseList({
           ? "No purchases match your search criteria. Try different filters."
           : "Get started by adding your first purchase."}
       </p>
-      {!(searchQuery || statusFilter) && (
+      {!(searchQuery || statusFilter) && can(MENU_URL, "canCreate") && (
         <Button asChild className="mt-4">
           <Link href="/admin/procurement/purchases/add">
             <Plus className="mr-2 h-4 w-4" /> Add Purchase
@@ -343,29 +346,34 @@ export function PurchaseList({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/procurement/purchases/${id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                      {parseFloat(amountPaid) < parseFloat(totalValue) && (
+                      {can(MENU_URL, "canEdit") && (
                         <DropdownMenuItem asChild>
-                          <Link href={`/admin/procurement/purchases/${id}/payment`}>
-                            <DollarSign className="mr-2 h-4 w-4" /> Make Payment
+                          <Link href={`/admin/procurement/purchases/${id}/edit`}>
+                            <Pencil className="mr-2 h-4 w-4" /> Edit
                           </Link>
                         </DropdownMenuItem>
                       )}
+                      {can(MENU_URL, "canCreate") &&
+                        parseFloat(amountPaid) < parseFloat(totalValue) && (
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/procurement/purchases/${id}/payment`}>
+                              <DollarSign className="mr-2 h-4 w-4" /> Make Payment
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
                       <DropdownMenuItem asChild>
                         <Link href={`/admin/procurement/purchases/${id}/payments`}>
                           <List className="mr-2 h-4 w-4" /> View Payments
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDeleteClick(purchase)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
+                      {can(MENU_URL, "canDelete") && (
+                        <DropdownMenuItem
+                          className="text-red-600"
+                          onClick={() => handleDeleteClick(purchase)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -383,8 +391,12 @@ export function PurchaseList({
         <PageHeader
           title="Purchases"
           description="Manage your product purchases"
-          actionLabel="Add Purchase"
-          actionHref="/admin/procurement/purchases/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add Purchase",
+                actionHref: "/admin/procurement/purchases/add",
+              }
+            : {})}
         />
 
         <div className="space-y-4">

@@ -21,7 +21,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { User } from 'src/user/entities/user.entity';
 import { ApiResponseDto } from '../common/types';
 import { CreateRecipeDto } from './dto/create-recipe.dto';
@@ -33,7 +35,8 @@ import { RecipeService } from './recipe.service';
 @ApiBearerAuth('token')
 export class RecipeController {
   constructor(private readonly recipeService: RecipeService) {}
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/recipe')
   @Post()
   @ApiOperation({ summary: 'Create a new recipe' })
   async create(
@@ -141,6 +144,8 @@ export class RecipeController {
     };
   }
 
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/recipe')
   @Patch(':id')
   @ApiOperation({ summary: 'Update a recipe' })
   @ApiParam({ name: 'id', description: 'Recipe ID', type: Number })
@@ -176,6 +181,8 @@ export class RecipeController {
     };
   }
 
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/recipe')
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a recipe' })
   @ApiParam({ name: 'id', description: 'Recipe ID', type: Number })

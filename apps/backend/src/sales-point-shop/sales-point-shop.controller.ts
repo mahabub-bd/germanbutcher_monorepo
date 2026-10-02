@@ -26,7 +26,8 @@ import {
 } from '@nestjs/swagger';
 import { CreateSalesPointShopDto } from './dto/create-sales-point-shop.dto';
 
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UpdateSalesPointShopDto } from './dto/update-sales-point-shop.dto';
 import { SalesPointShop } from './entities/sales-point-shop.entity';
@@ -36,7 +37,8 @@ import { SalesPointShopService } from './sales-point-shop.service';
 @Controller('sales-point-shops')
 export class SalesPointShopController {
   constructor(private readonly salesPointShopService: SalesPointShopService) {}
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/sales-point-shop/sales-point-shop-list')
   @Post()
   @ApiOperation({
     summary: 'Create a new sales point shop/branch',
@@ -129,7 +131,8 @@ export class SalesPointShopController {
   ) {
     return this.salesPointShopService.findOne(id, includeSalesPoint);
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/sales-point-shop/sales-point-shop-list')
   @Patch(':id')
   @ApiOperation({
     summary: 'Update a sales point shop',
@@ -148,7 +151,8 @@ export class SalesPointShopController {
   ) {
     return this.salesPointShopService.update(id, updateSalesPointShopDto);
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/sales-point-shop/sales-point-shop-list')
   @Patch(':id/toggle-status')
   @ApiOperation({
     summary: 'Toggle shop active status',
@@ -160,7 +164,8 @@ export class SalesPointShopController {
   toggleStatus(@Param('id', ParseIntPipe) id: number) {
     return this.salesPointShopService.toggleStatus(id);
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/sales-point-shop/sales-point-shop-list')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

@@ -19,8 +19,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { ApiResponseDto } from 'src/common/types';
 import { User } from 'src/user/entities/user.entity';
 import { CreatePaymentDto } from './dto/create-payment.dto';
@@ -30,10 +31,11 @@ import { PaymentService } from './payment.service';
 
 @ApiTags('Payments')
 @ApiBearerAuth('token')
+@UseGuards(JwtAuthGuard, PermissionGuard)
+@ModulePermissions('/admin/procurement/purchases')
 @Controller('payments')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
-  @UseGuards(JwtAuthGuard, AdminGuard)
   @Post()
   @ApiOperation({
     summary: 'Create a new payment',
@@ -67,7 +69,6 @@ export class PaymentController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
   @Get()
   @ApiOperation({
     summary: 'Get all payments',
@@ -108,7 +109,6 @@ export class PaymentController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
   @Get(':id')
   @ApiOperation({
     summary: 'Get payment by ID',
@@ -136,7 +136,6 @@ export class PaymentController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard)
   @Patch(':id')
   @ApiOperation({
     summary: 'Update a payment',
@@ -178,7 +177,6 @@ export class PaymentController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
   @Delete(':id')
   @ApiOperation({
     summary: 'Delete a payment',

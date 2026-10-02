@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import { formatDateTime, getRoleColor } from "@/lib/utils";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ApiResponseusers, User } from "@/utils/types";
 import {
   Filter,
@@ -55,6 +56,8 @@ export function UserList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const MENU_URL = "/admin/user";
+  const { can } = usePermissions();
 
   const getInitialParam = (key: string) => {
     const param = searchParams?.get(key);
@@ -170,7 +173,7 @@ export function UserList({
           ? "No users match your search criteria. Try different filters."
           : "Get started by adding your first user."}
       </p>
-      {!(searchQuery || roleFilter) && (
+      {!(searchQuery || roleFilter) && can(MENU_URL, "canCreate") && (
         <Button className="mt-4" asChild>
           <Link href="/admin/user/add" />
           <Plus className="mr-2 h-4 w-4" /> Add User
@@ -275,17 +278,21 @@ export function UserList({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/user/${user?.id}/edit`}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(user)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/user/${user?.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(user)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -302,8 +309,12 @@ export function UserList({
         <PageHeader
           title="Users"
           description=" Manage your system users"
-          actionLabel="Add User"
-          actionHref="/admin/user/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add User",
+                actionHref: "/admin/user/add",
+              }
+            : {})}
         />
 
         <div className="space-y-4">

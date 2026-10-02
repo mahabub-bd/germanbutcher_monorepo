@@ -22,7 +22,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { ApiResponseDto } from 'src/common/types';
 import { User } from 'src/user/entities/user.entity';
 import { CreateUnitDto } from './dto/create-unit.dto';
@@ -35,7 +37,8 @@ import { UnitsService } from './unit.service';
 @Controller('units')
 export class UnitsController {
   constructor(private readonly unitsService: UnitsService) {}
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products/units')
   @Post()
   @ApiOperation({
     summary: 'Create a new unit',
@@ -99,7 +102,8 @@ export class UnitsController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products/units')
   @Patch(':id')
   @ApiOperation({
     summary: 'Update unit',
@@ -136,6 +140,8 @@ export class UnitsController {
     };
   }
 
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products/units')
   @Delete(':id')
   @ApiOperation({
     summary: 'Delete unit',

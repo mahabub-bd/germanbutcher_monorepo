@@ -38,6 +38,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { LoadingIndicator } from "../loading-indicator";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -66,6 +67,8 @@ interface FormErrors {
 }
 
 export function FreeDeliveryCampaignsCard() {
+  const MENU_URL = "/admin/marketing/free-delivery";
+  const { can } = usePermissions();
   const [campaigns, setCampaigns] = useState<FreeDeliveryCampaign[]>([]);
   const [products, setProducts] = useState<Option[]>([]);
   const [categories, setCategories] = useState<Option[]>([]);
@@ -288,10 +291,12 @@ export function FreeDeliveryCampaignsCard() {
       {/* Header */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
 
-        <Button size="sm" onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Campaign
-        </Button>
+        {can(MENU_URL, "canCreate") && (
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Campaign
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -355,15 +360,17 @@ export function FreeDeliveryCampaignsCard() {
                       }
                       label={campaign.name}
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9"
-                      onClick={() => openEdit(campaign)}
-                      aria-label={`Edit ${campaign.name}`}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    {can(MENU_URL, "canEdit") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => openEdit(campaign)}
+                        aria-label={`Edit ${campaign.name}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
 

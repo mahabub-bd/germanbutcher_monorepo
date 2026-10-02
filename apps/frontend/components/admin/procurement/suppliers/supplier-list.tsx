@@ -41,6 +41,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import DeleteConfirmationDialog from "../../delete-confirmation-dialog";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { LoadingIndicator } from "../../loading-indicator";
 import { PageHeader } from "../../page-header";
 
@@ -58,6 +59,8 @@ export function SupplierList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const MENU_URL = "/admin/procurement/suppliers";
+  const { can } = usePermissions();
 
   const getInitialParam = (key: string) => {
     const param = searchParams?.get(key);
@@ -175,7 +178,7 @@ export function SupplierList({
           ? "No suppliers match your search criteria. Try different filters."
           : "Get started by adding your first supplier."}
       </p>
-      {!(searchQuery || statusFilter) && (
+      {!(searchQuery || statusFilter) && can(MENU_URL, "canCreate") && (
         <Button asChild className="mt-4">
           <Link href="/admin/procurement/suppliers/add">
             <Plus className="mr-2 h-4 w-4" /> Add Supplier
@@ -294,17 +297,21 @@ export function SupplierList({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/procurement/suppliers/${supplier.id}/edit`}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(supplier)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/procurement/suppliers/${supplier.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(supplier)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -321,8 +328,12 @@ export function SupplierList({
         <PageHeader
           title="Suppliers"
           description="Manage your product suppliers"
-          actionLabel="Add Supplier"
-          actionHref="/admin/procurement/suppliers/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add Supplier",
+                actionHref: "/admin/procurement/suppliers/add",
+              }
+            : {})}
         />
 
         <div className="space-y-4">

@@ -154,6 +154,21 @@ export class MenuService {
     return this.menuRepository.findOne({ where: { url: path } });
   }
 
+  /** Returns [menu, parent, grandparent, ...] for section-inheritance permission checks. */
+  async getMenuLineage(menu: Menu): Promise<Menu[]> {
+    const lineage: Menu[] = [menu];
+    let current = menu;
+    while (current.parentId) {
+      const parent: Menu | null = await this.menuRepository.findOne({
+        where: { id: current.parentId },
+      });
+      if (!parent) break;
+      lineage.push(parent);
+      current = parent;
+    }
+    return lineage;
+  }
+
   async update(id: number, updateMenuDto: UpdateMenuDto): Promise<Menu> {
     const menu = await this.findOne(id);
 

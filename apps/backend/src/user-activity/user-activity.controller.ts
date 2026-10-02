@@ -16,8 +16,9 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { ApiResponseDto } from 'src/common/types';
 import { UserActivity, UserType, AuditStatus } from './entities/user-activity.entity';
 import { UserActivityService } from './user-activity.service';
@@ -27,7 +28,8 @@ import { UserActivityService } from './user-activity.service';
 export class UserActivityController {
   constructor(private readonly userActivityService: UserActivityService) {}
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/audit-log')
   @Get()
   @ApiOperation({
     summary: 'Get all user activities with pagination and filters',
@@ -137,7 +139,8 @@ export class UserActivityController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/audit-log')
   @Get('audit-trail/:entityType/:entityId')
   @ApiOperation({
     summary: 'Get audit trail for a specific entity',
@@ -174,7 +177,8 @@ export class UserActivityController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/audit-log')
   @Get('details/:id')
   @ApiOperation({
     summary: 'Get a specific user activity by ID',
@@ -276,7 +280,8 @@ export class UserActivityController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/audit-log')
   @Post('retention/cleanup')
   @ApiOperation({
     summary: 'Manually trigger cleanup of old audit logs',
@@ -315,7 +320,8 @@ export class UserActivityController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/audit-log')
   @Get('retention/stats')
   @ApiOperation({
     summary: 'Get statistics about old audit log records',

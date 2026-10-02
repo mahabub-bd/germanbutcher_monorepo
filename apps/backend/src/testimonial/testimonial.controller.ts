@@ -21,6 +21,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ApiResponseDto } from 'src/common/types';
 import { CreateTestimonialDto } from './dto/create-testimonial.dto';
@@ -108,7 +110,8 @@ export class TestimonialController {
   ): Promise<ApiResponseDto<Testimonial>> {
     return this.testimonialService.findOne(id);
   }
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/testimonial/testimonial-list')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -138,7 +141,8 @@ export class TestimonialController {
   ): Promise<ApiResponseDto<Testimonial>> {
     return this.testimonialService.create(createTestimonialDto);
   }
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/testimonial/testimonial-list')
   @Patch(':id')
   @ApiOperation({
     summary: 'Update testimonial',
@@ -178,7 +182,8 @@ export class TestimonialController {
   ): Promise<ApiResponseDto<Testimonial>> {
     return this.testimonialService.update(id, updateTestimonialDto);
   }
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/testimonial/testimonial-list')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

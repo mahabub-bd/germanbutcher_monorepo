@@ -20,6 +20,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 import { PaginatedResponseDto } from 'src/common/dto/paginated-response.dto';
@@ -35,7 +37,8 @@ import { Banner, BannerPosition, BannerType } from './entities/banner.entity';
 @Controller('banners')
 export class BannerController {
   constructor(private readonly bannerService: BannerService) {}
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/content')
   @Post()
   @ApiOperation({ summary: 'Create a new banner' })
   @ApiResponse({
@@ -174,7 +177,8 @@ export class BannerController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/content')
   @Patch(':id')
   @ApiOperation({ summary: 'Update a banner' })
   @ApiResponse({
@@ -190,7 +194,6 @@ export class BannerController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input data',
   })
-  @UseGuards(JwtAuthGuard)
   async update(
     @Param('id') id: string,
     @Body() updateBannerDto: UpdateBannerDto,
@@ -207,7 +210,8 @@ export class BannerController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/content')
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a banner' })
   @ApiResponse({

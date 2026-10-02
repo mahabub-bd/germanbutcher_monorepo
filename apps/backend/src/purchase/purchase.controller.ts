@@ -21,9 +21,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { PaginatedResponseDto } from 'src/common/dto/paginated-response.dto';
 import { ApiResponseDto } from 'src/common/types';
 import { User } from '../user/entities/user.entity';
@@ -34,11 +34,12 @@ import { PurchasesService } from './purchase.service';
 
 @ApiTags('Purchases')
 @ApiBearerAuth('token')
+@UseGuards(JwtAuthGuard, PermissionGuard)
+@ModulePermissions('/admin/procurement/purchases')
 @Controller('purchases')
 export class PurchasesController {
   constructor(private readonly purchasesService: PurchasesService) {}
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
   @Post()
   @ApiOperation({
     summary: 'Create a new purchase with multiple products',
@@ -64,7 +65,6 @@ export class PurchasesController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard)
   @Get()
   @ApiOperation({
     summary: 'Get all purchases with pagination and filters',
@@ -139,7 +139,6 @@ export class PurchasesController {
       endDate,
     });
   }
-  @UseGuards(JwtAuthGuard)
   @Get(':id')
   @ApiOperation({
     summary: 'Get purchase details with items',
@@ -166,7 +165,6 @@ export class PurchasesController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
   @Patch(':id')
   @ApiOperation({
     summary: 'Update purchase details',
@@ -196,8 +194,6 @@ export class PurchasesController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Roles('superadmin')
   @Delete(':id')
   @ApiOperation({
     summary: 'Delete a purchase',
@@ -220,3 +216,4 @@ export class PurchasesController {
     };
   }
 }
+

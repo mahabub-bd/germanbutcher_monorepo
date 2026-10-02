@@ -428,6 +428,48 @@ export async function patchData<T = any>(
   }
 }
 
+export async function putData<T = any>(
+  endpoint: string,
+  values?: any,
+  options?: {
+    headers?: Record<string, string>;
+  }
+): Promise<ApiResponse<T>> {
+  const url = `${apiUrl}/${endpoint}`;
+  const token = await resolveAuthToken();
+
+  try {
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...(options?.headers || {}),
+      },
+      body: JSON.stringify(values),
+    });
+
+    if (!response.ok) {
+      let errorMessage: string;
+      try {
+        const errorData = await response.json();
+        errorMessage =
+          errorData.message ||
+          errorData.error ||
+          `HTTP error! Status: ${response.status}`;
+      } catch {
+        errorMessage = `HTTP error! Status: ${response.status}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
+  } catch (error: unknown) {
+    console.error("Error putting data:", error);
+    throw error;
+  }
+}
+
 export async function deleteData(
   endpoint: string,
   id?: string | number

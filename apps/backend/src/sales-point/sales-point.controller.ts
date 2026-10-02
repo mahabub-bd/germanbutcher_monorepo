@@ -13,7 +13,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ApiResponseDto } from 'src/common/types';
 import { CreateSalesPointDto } from './dto/create-sales-point.dto';
@@ -27,7 +28,8 @@ import { SalesPointService } from './sales-point.service';
 @ApiBearerAuth('token')
 export class SalesPointController {
   constructor(private readonly salesPointService: SalesPointService) {}
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/sales-point/sales-point-list')
   @Post()
   @ApiOperation({ summary: 'Create a new sales point company' })
   @ApiResponse({
@@ -86,7 +88,8 @@ export class SalesPointController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/sales-point/sales-point-list')
   @Patch(':id')
   @ApiOperation({ summary: 'Update a sales point' })
   @ApiResponse({
@@ -105,7 +108,8 @@ export class SalesPointController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/sales-point/sales-point-list')
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a sales point' })

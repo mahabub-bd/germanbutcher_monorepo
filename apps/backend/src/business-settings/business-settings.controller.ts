@@ -8,8 +8,8 @@ import {
 } from '@nestjs/common';
 
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ApiResponseDto } from 'src/common/types';
 import { BusinessSetting } from './entities/business-setting.entity';
@@ -35,8 +35,8 @@ export class BusinessSettingsController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/settings/business-info')
   @ApiBearerAuth('token')
   @Patch()
   async update(
