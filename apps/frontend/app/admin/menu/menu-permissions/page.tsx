@@ -469,7 +469,7 @@ export default function RoleMenuPermissions() {
           <span
             className={cn(
               "truncate text-sm",
-              isChild ? "text-foreground/90" : "font-medium"
+              isChild ? "text-primaryColor/90" : "text-primaryColor font-medium"
             )}
           >
             {label}
@@ -529,7 +529,7 @@ export default function RoleMenuPermissions() {
                 className="size-4 shrink-0 text-muted-foreground"
               />
             )}
-            <span className="truncate text-sm font-semibold">{item.name}</span>
+            <span className="truncate text-sm font-semibold text-primaryColor">{item.name}</span>
             <Badge
               variant={allGranted ? "default" : "secondary"}
               className="shrink-0 tabular-nums"
@@ -646,7 +646,7 @@ export default function RoleMenuPermissions() {
       <div className="sticky top-2 z-20 mb-4 rounded-xl border bg-card/95 p-3 shadow-sm backdrop-blur md:p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <label className="text-sm font-medium">Role</label>
+            <label className="text-sm font-medium text-primaryColor">Role</label>
             <Select
               value={selectedRoleId}
               onValueChange={setSelectedRoleId}
@@ -672,7 +672,7 @@ export default function RoleMenuPermissions() {
               <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <ShieldCheck className="size-4 text-primary" />
                 <span className="tabular-nums">
-                  <span className="font-semibold text-foreground">
+                  <span className="font-semibold text-primaryColor">
                     {grantedCount}
                   </span>
                   /{totalCount} visible
@@ -747,7 +747,7 @@ export default function RoleMenuPermissions() {
             strokeWidth={1.5}
           />
           <div>
-            <p className="font-medium">No role selected</p>
+            <p className="font-medium text-primaryColor">No role selected</p>
             <p className="text-sm text-muted-foreground">
               Select a role above to configure its module permissions
             </p>

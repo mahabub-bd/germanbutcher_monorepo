@@ -801,6 +801,11 @@ export interface PaymentStatusConfig {
   description: string;
   icon: React.ComponentType<{ className?: string }>;
   iconColor: string;
+  iconFill?: string;
+  pingClass: string;
+  badgeIcon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  badgeGradient: string;
+  badgeShadow: string;
   bgGradient: string;
   cardBg: string;
   cardBorder: string;
