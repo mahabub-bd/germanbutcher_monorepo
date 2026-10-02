@@ -105,6 +105,7 @@ export default function OrdersTable() {
             <TableHead>Payment Status</TableHead>
             <TableHead>Payment Method</TableHead>
             <TableHead>Shipping Method</TableHead>
+            <TableHead>Area</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -112,7 +113,7 @@ export default function OrdersTable() {
           {orders.length === 0 && !loading ? (
             <TableRow>
               <TableCell
-                colSpan={10}
+                colSpan={11}
                 className="text-center py-6 text-muted-foreground"
               >
                 No orders found
@@ -193,6 +194,11 @@ export default function OrdersTable() {
                       {getShippingMethodIcon(order.shippingMethod?.name || "")}
                       {order.shippingMethod?.name || "N/A"}
                     </span>
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="secondary" className="max-w-40 truncate font-normal">
+                    {order.shippingAddress?.area || order.address?.area || "N/A"}
                   </Badge>
                 </TableCell>
                 <TableCell>

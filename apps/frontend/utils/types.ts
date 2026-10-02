@@ -298,6 +298,24 @@ export type MenuTreeResponse = ApiEnvelope & {
   data: MenuItem[];
 };
 
+export interface MenuPermissionFlags {
+  menuId: number;
+  name: string;
+  url: string;
+  canView: boolean;
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+}
+
+/** Response `data` of GET menu-permissions/my-permissions */
+export interface MyPermissions {
+  roleId: number;
+  roleName: string;
+  isActive: boolean;
+  permissions: MenuPermissionFlags[];
+}
+
 export interface ApiResponse {
   data: [];
   message: string;
@@ -631,6 +649,7 @@ export interface Order {
   shippingCost?: string | number | null;
   user: User;
   address: Address;
+  shippingAddress?: Pick<Address, "address" | "area" | "city" | "division"> | null;
   shippingMethod: ShippingMethod;
   paymentMethod: PaymentMethod;
   items: OrderItem[];
