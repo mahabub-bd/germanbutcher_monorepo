@@ -46,6 +46,7 @@ import {
   Filter,
   List,
   Lock,
+  MapPin,
   MoreHorizontal,
   Pencil,
   Search,
@@ -458,15 +459,24 @@ export function OrderList({
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">
-                      {order.user?.name || "N/A"}
-                    </div>
+                    {order.user?.id ? (
+                      <Link
+                        href={`/admin/customer/${order.user.id}/view`}
+                        className="font-medium hover:text-blue-600 hover:underline dark:hover:text-blue-400"
+                      >
+                        {order.user.name || "N/A"}
+                      </Link>
+                    ) : (
+                      <div className="font-medium">
+                        {order.user?.name || "N/A"}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm">
                     {order.user?.mobileNumber ? (
                       <a
                         href={`tel:${order.user.mobileNumber}`}
-                        className="text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400"
+                        className="text-blue-600 hover:underline dark:text-blue-400"
                       >
                         {order.user.mobileNumber}
                       </a>
@@ -528,10 +538,13 @@ export function OrderList({
                   <TableCell>
                     <Badge
                       variant="secondary"
-                      className="max-w-40 truncate font-normal"
+                      className="max-w-40 truncate border-transparent bg-violet-100 font-normal text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
                       title={order.shippingAddress?.area || order.address?.area || undefined}
                     >
-                      {shortenArea(order.shippingAddress?.area || order.address?.area || "N/A")}
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        {shortenArea(order.shippingAddress?.area || order.address?.area || "N/A")}
+                      </span>
                     </Badge>
                   </TableCell>
 
