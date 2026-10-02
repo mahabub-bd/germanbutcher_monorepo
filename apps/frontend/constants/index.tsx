@@ -42,15 +42,15 @@ export const defaultFeaturesData: FeatureData[] = [
     iconAlt: "Halal Certified",
     title: "100% Halal Certified",
     description:
-      "We are certified by Islamic Foundation Bangladesh",
+      "Certified by the Islamic Foundation Bangladesh.",
     iconBgColor: "green",
   },
   {
     iconSrc: FoodSafty.src,
-    iconAlt: "Food System Management",
-    title: "Food System Management System",
+    iconAlt: "Food Safety Management",
+    title: "Food Safety Management",
     description:
-      "Advanced food management system ensuring quality control, traceability, and safety standards throughout our supply chain.",
+      "Advanced management ensuring quality control and traceability.",
     iconBgColor: "blue",
   },
   {
@@ -58,7 +58,7 @@ export const defaultFeaturesData: FeatureData[] = [
     iconAlt: "Original German Quality",
     title: "Original German Quality",
     description:
-      "Authentic German products with traditional craftsmanship and superior quality standards.",
+      "Authentic German products with superior craftsmanship.",
     iconBgColor: "orange",
   },
   {
@@ -66,7 +66,7 @@ export const defaultFeaturesData: FeatureData[] = [
     iconAlt: "HACCP Certified",
     title: "HACCP Certified",
     description:
-      "Hazard Analysis and Critical Control Points certified ensuring food safety and quality management throughout our production process.",
+      "Certified food safety and quality management throughout production.",
     iconBgColor: "purple",
   },
 ];

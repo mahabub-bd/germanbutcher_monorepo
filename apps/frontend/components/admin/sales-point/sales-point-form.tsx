@@ -53,6 +53,11 @@ export function SalesPointForm({ mode, salesPoint }: SalesPointFormProps) {
   const [imagePreview, setImagePreview] = useState(
     salesPoint?.logoAttachment?.url || ""
   );
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerFileName, setBannerFileName] = useState("");
+  const [bannerPreview, setBannerPreview] = useState(
+    salesPoint?.bannerAttachment?.url || ""
+  );
   const router = useRouter();
 
   const form = useForm<SalesPointFormValues>({
@@ -78,6 +83,15 @@ export function SalesPointForm({ mode, salesPoint }: SalesPointFormProps) {
     setImagePreview(fileUrl);
   };
 
+  const handleBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    setBannerFile(selectedFile);
+    setBannerFileName(selectedFile.name);
+    setBannerPreview(URL.createObjectURL(selectedFile));
+  };
+
   const handleSubmit = async (data: SalesPointFormValues) => {
     setIsSubmitting(true);
     try {
@@ -90,9 +104,19 @@ export function SalesPointForm({ mode, salesPoint }: SalesPointFormProps) {
         logoAttachmentId = result.data.id;
       }
 
+      let bannerAttachmentId = salesPoint?.bannerAttachmentId;
+
+      if (bannerFile) {
+        const formData = new FormData();
+        formData.append("file", bannerFile);
+        const result = await formPostData("attachment", formData);
+        bannerAttachmentId = result.data.id;
+      }
+
       const salesPointData = {
         ...data,
         logoAttachmentId,
+        bannerAttachmentId,
       };
 
       const endpoint =
@@ -279,6 +303,49 @@ export function SalesPointForm({ mode, salesPoint }: SalesPointFormProps) {
                   accept="image/*"
                   className="hidden"
                   onChange={handleFileChange}
+                />
+              </div>
+            </Section>
+
+            <Section title="Banner Image (shown on Where to Buy cards)">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  {bannerPreview ? (
+                    <div className="relative w-full max-w-xs h-32 border rounded-md overflow-hidden bg-gray-50">
+                      <Image
+                        src={bannerPreview || "/placeholder.svg"}
+                        alt="Banner preview"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center w-full max-w-xs h-32 border rounded-md bg-muted/20">
+                      <Upload className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        document.getElementById("banner-upload")?.click()
+                      }
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Choose File
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      {bannerFileName || "No file chosen"}
+                    </span>
+                  </div>
+                </div>
+                <Input
+                  id="banner-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleBannerFileChange}
                 />
               </div>
             </Section>

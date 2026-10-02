@@ -753,6 +753,7 @@ export interface SalesPoint {
   name: string;
   order: number;
   logoAttachmentId: number;
+  bannerAttachmentId?: number;
   description: string;
   website: string;
   contactNumber: string;
@@ -761,6 +762,7 @@ export interface SalesPoint {
   createdAt: string;
   updatedAt: string;
   logoAttachment: Attachment;
+  bannerAttachment?: Attachment;
   shops: Shop[];
 }
 

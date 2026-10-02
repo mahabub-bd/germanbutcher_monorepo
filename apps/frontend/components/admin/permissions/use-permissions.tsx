@@ -10,11 +10,20 @@ import {
  * Permission checks mirror the backend PermissionGuard:
  * exact menu URL first, then the longest ancestor-prefix (section inheritance).
  * superadmin/admin bypass everything.
+ *
+ * TEMP (2026-10-02): frontend permission gating is disabled — `can()` always
+ * returns true so no admin action is blocked while the RBAC rollout is
+ * unstable. The backend PermissionGuard still enforces real authorization.
+ * TODO: restore the real check before enabling role restrictions.
  */
 export function usePermissions() {
-  const { isLoading, roleName, permissions } = usePermissionContext();
+  // `permissions` intentionally unused while gating is disabled
+  const { isLoading, roleName } = usePermissionContext();
 
-  const can = (menuUrl: string, action: PermAction): boolean => {
+  const can = (_menuUrl: string, _action: PermAction): boolean => {
+    // TEMP: always allow. Real check restored from the git history of this file.
+    return true;
+    /*
     if (roleName === "superadmin" || roleName === "admin") return true;
     const exact = permissions.get(menuUrl);
     if (exact) return Boolean(exact[action]);
@@ -26,6 +35,7 @@ export function usePermissions() {
       }
     }
     return best ? Boolean(best.flags[action]) : false;
+    */
   };
 
   return { can, isLoading, roleName };

@@ -102,13 +102,14 @@ export default async function WhereToBuyPage({ searchParams }: Props) {
   const data = await fetchSalesPoints(normalizedSearchParams);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-primaryColor/10">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-rose-50/40">
+      <div className="relative container mx-auto px-4 py-8 lg:py-12">
         {/* Header Section */}
-        <div className="text-center mb-12">
+        <div className="relative mb-10">
           <HeadingPrimary
             title="Where to Buy"
             subtitle="Find our authentic German products at these locations across Bangladesh"
+            align="left"
           />
         </div>
 

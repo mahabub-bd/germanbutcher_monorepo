@@ -12,6 +12,18 @@ export type RegisterFormData = z.infer<typeof registerSchema>;
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 
+/** roles may arrive as a plain string or the full Role object — normalize to rolename */
+function roleNameOf(roles: unknown): string {
+  if (typeof roles === "string") return roles;
+  return (roles as { rolename?: string } | null)?.rolename ?? "";
+}
+
+const ADMIN_ROLE_NAMES = ["admin", "superadmin", "modaretor"];
+
+function isAdminRole(roles: unknown): boolean {
+  return ADMIN_ROLE_NAMES.includes(roleNameOf(roles));
+}
+
 export async function setUserCookies(userData: any) {
   const cookieStore = await cookies();
 
@@ -51,9 +63,7 @@ export async function setUserCookies(userData: any) {
         email: user.email || "",
         mobileNumber: user.mobileNumber || "",
         roles: user.roles || "",
-        isAdmin: Boolean(
-          user.roles === "admin" || user.roles === "superadmin" || user.roles === "modaretor"
-        ),
+        isAdmin: isAdminRole(user.roles),
         createdAt: user.createdAt || "",
       };
     }
@@ -65,9 +75,7 @@ export async function setUserCookies(userData: any) {
         email: userData.email || "",
         mobileNumber: userData.mobileNumber || "",
         roles: userData.roles || "",
-        isAdmin: Boolean(
-          userData.roles === "admin" || userData.roles === "superadmin" || userData.roles === "modaretor"
-        ),
+        isAdmin: isAdminRole(userData.roles),
         createdAt: userData.createdAt || "",
       };
     }
@@ -78,8 +86,8 @@ export async function setUserCookies(userData: any) {
         name: userData.name || "Customer",
         email: userData.email || `${userData.mobileNo}@example.com`,
         mobileNumber: userData.mobileNo,
-        roles: userData.roles?.rolename || "",
-        isAdmin: false,
+        roles: roleNameOf(userData.roles),
+        isAdmin: isAdminRole(userData.roles),
         createdAt: userData?.createdAt,
       };
     }

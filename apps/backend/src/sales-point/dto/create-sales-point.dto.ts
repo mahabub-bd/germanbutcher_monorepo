@@ -29,6 +29,15 @@ export class CreateSalesPointDto {
   @IsNumber()
   logoAttachmentId?: number;
 
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Attachment ID for company banner image',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  bannerAttachmentId?: number;
+
   @ApiPropertyOptional({ example: 'Leading retail chain in Bangladesh' })
   @IsOptional()
   @IsString()

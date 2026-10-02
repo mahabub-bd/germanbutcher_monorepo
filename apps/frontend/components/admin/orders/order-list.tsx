@@ -4,6 +4,7 @@ import type React from "react";
 
 import { AddPaymentModal } from "@/components/admin/orders/add-payment-modal";
 import { EditOrderModal } from "@/components/admin/orders/edit-order-modal";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,6 @@ import {
   formatDateTime,
 } from "@/lib/utils";
 import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import {
   getOrderStatusColor,
   getPaymentMethodColor,
@@ -418,9 +418,9 @@ export function OrderList({
                       <h3 className="font-semibold">No orders found</h3>
                       <p className="text-sm text-muted-foreground">
                         {searchQuery ||
-                        statusFilter ||
-                        paymentMethodFilter ||
-                        shippingMethodFilter
+                          statusFilter ||
+                          paymentMethodFilter ||
+                          shippingMethodFilter
                           ? "No orders match your search criteria."
                           : "There are no orders in the system yet."}
                       </p>
@@ -429,14 +429,14 @@ export function OrderList({
                       statusFilter ||
                       paymentMethodFilter ||
                       shippingMethodFilter) && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={clearFilters}
-                      >
-                        Clear Filters
-                      </Button>
-                    )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={clearFilters}
+                        >
+                          Clear Filters
+                        </Button>
+                      )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -553,31 +553,36 @@ export function OrderList({
                         </DropdownMenuItem>
 
                         {/* Edit - Only for pending, processing, cancelled orders */}
-                        {can(MENU_URL, "canEdit") &&
-                          (canEditOrder(order.orderStatus) ? (
-                            <DropdownMenuItem
-                              onSelect={() => setEditingOrderId(order.id)}
-                            >
-                              <Pencil className="mr-2 h-4 w-4" /> Edit Order
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem disabled className="opacity-50">
+                        <DropdownMenuItem
+                          disabled={
+                            !can(MENU_URL, "canEdit") ||
+                            !canEditOrder(order.orderStatus)
+                          }
+                          onSelect={() => setEditingOrderId(order.id)}
+                        >
+                          {!canEditOrder(order.orderStatus) ? (
+                            <>
                               <Lock className="mr-2 h-4 w-4" />
                               Edit (Order {order.orderStatus})
-                            </DropdownMenuItem>
-                          ))}
+                            </>
+                          ) : (
+                            <>
+                              <Pencil className="mr-2 h-4 w-4" /> Edit Order
+                            </>
+                          )}
+                        </DropdownMenuItem>
 
                         {/* Payment Update - Only if not fully paid and not cancelled */}
-                        {can(MENU_URL, "canCreate") &&
-                          (order.paidAmount || 0) < (order.totalValue || 0) &&
-                          order.orderStatus.toLowerCase() !== "cancelled" && (
-                            <DropdownMenuItem
-                              onSelect={() => setPayingOrderId(order.id)}
-                            >
-                              <DollarSign className="mr-2 h-4 w-4" /> Update
-                              Payment
-                            </DropdownMenuItem>
-                          )}
+                        <DropdownMenuItem
+                          disabled={
+                            !can(MENU_URL, "canCreate") ||
+                            (order.paidAmount || 0) >= (order.totalValue || 0) ||
+                            order.orderStatus.toLowerCase() === "cancelled"
+                          }
+                          onSelect={() => setPayingOrderId(order.id)}
+                        >
+                          <DollarSign className="mr-2 h-4 w-4" /> Update Payment
+                        </DropdownMenuItem>
 
                         {/* View Payments - Always available */}
                         <DropdownMenuItem asChild>
