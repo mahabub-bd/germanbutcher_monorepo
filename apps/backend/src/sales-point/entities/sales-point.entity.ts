@@ -42,6 +42,14 @@ export class SalesPoint {
   logoAttachmentId?: number;
 
   @ApiPropertyOptional({
+    description: 'ID of the banner attachment',
+    example: 1,
+    nullable: true,
+  })
+  @Column({ nullable: true })
+  bannerAttachmentId?: number;
+
+  @ApiPropertyOptional({
     description: 'Description of the sales point/company',
     example: 'Leading retail chain in Bangladesh',
     nullable: true,
@@ -91,6 +99,14 @@ export class SalesPoint {
     description: 'Logo attachment details',
   })
   logoAttachment?: Attachment;
+
+  @ManyToOne(() => Attachment, { eager: true })
+  @JoinColumn({ name: 'bannerAttachmentId' })
+  @ApiPropertyOptional({
+    type: () => Attachment,
+    description: 'Banner image attachment details',
+  })
+  bannerAttachment?: Attachment;
 
   @OneToMany(() => SalesPointShop, (shop) => shop.salesPoint, {
     cascade: false,

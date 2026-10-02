@@ -35,8 +35,19 @@ const defaultContext: PermissionContextValue = {
 
 const PermissionContext = createContext<PermissionContextValue>(defaultContext);
 
-export function PermissionProvider({ children }: { children: ReactNode }) {
-  const [value, setValue] = useState<PermissionContextValue>(defaultContext);
+export function PermissionProvider({
+  children,
+  userIsAdmin = false,
+}: {
+  children: ReactNode;
+  /** Session-level admin flag from the layout — bypasses permission checks
+   * even before/without the my-permissions fetch. */
+  userIsAdmin?: boolean;
+}) {
+  const [value, setValue] = useState<PermissionContextValue>({
+    ...defaultContext,
+    roleName: userIsAdmin ? "superadmin" : "",
+  });
 
   useEffect(() => {
     let active = true;
@@ -53,7 +64,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
         }
         setValue({
           isLoading: false,
-          roleName: res.roleName ?? "",
+          roleName: res.roleName ?? (userIsAdmin ? "superadmin" : ""),
           permissions: map,
         });
       } catch (error) {
@@ -61,7 +72,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
         console.error("Failed to load permissions:", error);
         setValue({
           isLoading: false,
-          roleName: "",
+          roleName: userIsAdmin ? "superadmin" : "",
           permissions: new Map(),
         });
       }
@@ -69,7 +80,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [userIsAdmin]);
 
   return (
     <PermissionContext.Provider value={value}>

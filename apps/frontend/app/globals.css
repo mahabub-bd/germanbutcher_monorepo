@@ -340,3 +340,24 @@
 #closeIcon .mobile {
   color: #fff !important;
 }
+
+/* Gentle floating motion for decorative backdrop icons */
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.animate-float-soft {
+  animation: float-soft 7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-soft {
+    animation: none !important;
+  }
+}

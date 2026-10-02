@@ -220,9 +220,9 @@ function WhereToBuyClient({
   return (
     <>
       {/* Modern Search and Filter Form */}
-      <div className="bg-white/95 backdrop-blur-md rounded-md shadow-xl p-4 sm:p-6 mb-6 sm:mb-8 border border-white/30">
+      <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-10 border border-gray-100">
         <div className="flex flex-col gap-5">
-          <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+          <div className="space-y-2">
             <label className="block text-xs sm:text-sm font-semibold text-gray-700">
               Search
             </label>
@@ -231,8 +231,8 @@ function WhereToBuyClient({
                 type="text"
                 value={shopSearch}
                 onChange={(e) => setShopSearch(e.target.value)}
-                placeholder="Search locations..."
-                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 pl-10 sm:pl-12 pr-10 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primaryColor/30 focus:border-primaryColor transition-all text-sm sm:text-base text-gray-800 placeholder-gray-400 bg-white/80 backdrop-blur-sm hover:bg-white/90"
+                placeholder="Search locations, area or branch name..."
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 pl-10 sm:pl-12 pr-10 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primaryColor/30 focus:border-primaryColor transition-all text-sm sm:text-base text-gray-800 placeholder-gray-400 bg-white"
               />
               <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
               {shopSearch && (
@@ -246,7 +246,7 @@ function WhereToBuyClient({
               )}
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] gap-4 sm:gap-6">
             {/* Division Field */}
             <div className="space-y-2">
               <label className="block text-xs sm:text-sm font-semibold text-gray-700">
@@ -292,6 +292,25 @@ function WhereToBuyClient({
                 <MapPin className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                 <ChevronDown className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none" />
               </div>
+            </div>
+
+            {/* Search Button */}
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={() =>
+                  fetchSalesPoints({
+                    page: "1",
+                    shopSearch: debouncedShopSearch,
+                    division,
+                    district,
+                  })
+                }
+                className="inline-flex w-full lg:w-auto items-center justify-center gap-2 rounded-xl bg-primaryColor px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-primaryColor/90 focus:outline-none focus:ring-2 focus:ring-primaryColor/30"
+              >
+                <Search className="size-4" />
+                Search Branches
+              </button>
             </div>
           </div>
         </div>

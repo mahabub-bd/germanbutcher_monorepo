@@ -56,7 +56,7 @@ export default function CustomerLoveSection({
               <div
                 key={index}
                 className={cn(
-                  "bg-primaryColor/80  rounded-lg md:p-4 p-3 text-center shadow-lg hover:shadow-md transition-shadow duration-300",
+                  "flex flex-col items-center bg-primaryColor/80  rounded-lg md:p-4 p-3 text-center shadow-lg hover:shadow-md transition-shadow duration-300",
                   cardClassName
                 )}
               >
@@ -85,7 +85,7 @@ export default function CustomerLoveSection({
                 </h3>
 
                 {/* Description */}
-                <p className="text-gray-100 md:text-sm text-xs leading-relaxed text-justify">
+                <p className="text-gray-100 md:text-sm text-xs leading-relaxed">
                   {feature.description}
                 </p>
               </div>

@@ -253,6 +253,7 @@ export function SalesPointList({
         <TableHeader>
           <TableRow>
             <TableHead>Logo</TableHead>
+            <TableHead>Banner</TableHead>
             <TableHead>Name</TableHead>
             <TableHead className="hidden md:table-cell">Contact</TableHead>
             <TableHead className="hidden lg:table-cell">Website</TableHead>
@@ -275,6 +276,19 @@ export function SalesPointList({
                     alt={salesPoint.name}
                     width={80}
                     height={64}
+                    className="object-cover"
+                  />
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="w-24 h-14 overflow-hidden">
+                  <Image
+                    src={
+                      salesPoint?.bannerAttachment?.url || "/placeholder.svg"
+                    }
+                    alt={`${salesPoint.name} banner`}
+                    width={120}
+                    height={70}
                     className="object-cover"
                   />
                 </div>

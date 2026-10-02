@@ -14,7 +14,7 @@ export default async function AuthLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <Header settings={businessSettings} />
-      <main className="flex-1 py-5">{children}</main>
+      <main className="flex-1">{children}</main>
       <Footer settings={businessSettings} />
       <Copyright />
     </div>

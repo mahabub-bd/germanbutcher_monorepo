@@ -25,6 +25,11 @@ export class SalesPointService {
       if (createSalesPointDto.logoAttachmentId) {
         await this.validateLogoAttachment(createSalesPointDto.logoAttachmentId);
       }
+      if (createSalesPointDto.bannerAttachmentId) {
+        await this.validateLogoAttachment(
+          createSalesPointDto.bannerAttachmentId
+        );
+      }
 
       const salesPoint = this.salesPointRepository.create(createSalesPointDto);
       const savedSalesPoint = await this.salesPointRepository.save(salesPoint);
@@ -53,6 +58,7 @@ export class SalesPointService {
     const queryBuilder = this.salesPointRepository
       .createQueryBuilder('sales_point')
       .leftJoinAndSelect('sales_point.logoAttachment', 'logoAttachment')
+      .leftJoinAndSelect('sales_point.bannerAttachment', 'bannerAttachment')
       .leftJoinAndSelect('sales_point.shops', 'shops');
 
     // Apply filters
@@ -117,7 +123,7 @@ export class SalesPointService {
   async findOne(id: number): Promise<SalesPoint> {
     const salesPoint = await this.salesPointRepository.findOne({
       where: { id },
-      relations: ['logoAttachment', 'shops'],
+      relations: ['logoAttachment', 'bannerAttachment', 'shops'],
     });
 
     if (!salesPoint) {
@@ -131,14 +137,22 @@ export class SalesPointService {
     id: number,
     updateSalesPointDto: UpdateSalesPointDto,
   ): Promise<SalesPoint> {
-    const salesPoint = await this.findOne(id);
+    await this.findOne(id); // 404 if the sales point doesn't exist
 
     if (updateSalesPointDto.logoAttachmentId) {
       await this.validateLogoAttachment(updateSalesPointDto.logoAttachmentId);
     }
+    if (updateSalesPointDto.bannerAttachmentId) {
+      await this.validateLogoAttachment(
+        updateSalesPointDto.bannerAttachmentId
+      );
+    }
 
-    Object.assign(salesPoint, updateSalesPointDto);
-    await this.salesPointRepository.save(salesPoint);
+    // Plain UPDATE instead of entity save(): findOne() eager-loads the
+    // logo/banner relations, and save() recomputes the join columns from the
+    // loaded relation objects — overwriting a changed logoAttachmentId /
+    // bannerAttachmentId scalar with the OLD attachment id.
+    await this.salesPointRepository.update(id, updateSalesPointDto);
 
     return await this.findOne(id);
   }
