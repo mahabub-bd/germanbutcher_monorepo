@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fetchProtectedData, patchData } from "@/utils/api-utils";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { DeliveryMan } from "@/utils/types";
 import {
   CheckCircle2,
@@ -44,6 +45,8 @@ export function AssignDeliveryMan({
   onAssignmentChange,
   orderStatus,
 }: AssignDeliveryManProps) {
+  const MENU_URL = "/admin/orders";
+  const { can } = usePermissions();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
@@ -101,28 +104,30 @@ export function AssignDeliveryMan({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isDelivered}
-          className={
-            deliveryMan
-              ? "border-green-500/30 text-green-700 hover:bg-green-50 hover:text-green-800 dark:border-green-500/20 dark:text-green-400 dark:hover:bg-green-950"
-              : ""
-          }
-        >
-          {deliveryMan ? (
-            <>
-              <UserCheck className="h-4 w-4 mr-2" />
-               {isDelivered ? "Cannot Reassign" : "Reassign Delivery Man"}
-            </>
-          ) : (
-            <>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Assign Delivery Man
-            </>
-          )}
-        </Button>
+        {can(MENU_URL, "canCreate") && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isDelivered}
+            className={
+              deliveryMan
+                ? "border-green-500/30 text-green-700 hover:bg-green-50 hover:text-green-800 dark:border-green-500/20 dark:text-green-400 dark:hover:bg-green-950"
+                : ""
+            }
+          >
+            {deliveryMan ? (
+              <>
+                <UserCheck className="h-4 w-4 mr-2" />
+                 {isDelivered ? "Cannot Reassign" : "Reassign Delivery Man"}
+              </>
+            ) : (
+              <>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Assign Delivery Man
+              </>
+            )}
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[500px]">

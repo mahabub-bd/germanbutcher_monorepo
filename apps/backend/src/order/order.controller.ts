@@ -23,7 +23,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { ApiResponseDto } from 'src/common/types';
 import { User } from 'src/user/entities/user.entity';
 import { DateRangePreset, OrderStatus, PaymentStatus } from '../common/enums/index';
@@ -174,7 +176,8 @@ export class OrderController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/orders')
   @Patch(':id/order-status')
   @ApiOperation({ summary: 'Update order status' })
   @ApiParam({ name: 'id', type: Number })
@@ -206,7 +209,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/orders')
   @Patch(':id/payment-status')
   @ApiOperation({ summary: 'Update payment status' })
   @ApiParam({ name: 'id', type: Number })
@@ -224,7 +228,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/dashboard')
   @Get('reports/dashboard')
   @ApiOperation({
     summary: 'Get all admin dashboard report data in one request',
@@ -245,7 +250,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/order-reports')
   @Get('reports/date-range')
   @ApiOperation({
     summary: 'Get full order report within a specific date range',
@@ -295,7 +301,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/daily-summary')
   @Get('reports/daily-summary')
   @ApiOperation({
     summary: 'Day-by-day order summary for a date range',
@@ -337,7 +344,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/refunds')
   @Get('reports/refunds')
   @ApiOperation({
     summary: 'Cancelled/refunded orders for a date range',
@@ -379,7 +387,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/deliveryman-performance')
   @Get('reports/deliveryman-performance')
   @ApiOperation({
     summary: 'Per-deliveryman delivered counts and value for a date range',
@@ -421,7 +430,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/order-reports')
   @Get('reports/statistics')
   @ApiOperation({
     summary: 'Get order statistics by status',
@@ -461,7 +471,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/monthly-orders')
   @Get('reports/monthly')
   @ApiOperation({
     summary: 'Get monthly order statistics',
@@ -535,7 +546,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/monthly-orders')
   @Get('reports/monthly/years')
   @ApiOperation({
     summary: 'Get years that have monthly order report data',
@@ -563,7 +575,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/order-reports')
   @Get('reports/last-30-days-delivered')
   @ApiOperation({
     summary: 'Get last 30 days delivered orders statistics',
@@ -597,7 +610,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/daily-summary')
   @Get('reports/today')
   @ApiOperation({
     summary: 'Orders and revenue today vs yesterday',
@@ -620,7 +634,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/order-payments')
   @Get('reports/payment-due')
   @ApiOperation({
     summary: 'Delivered orders not fully paid',
@@ -638,7 +653,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/customer-list')
   @Get('reports/customer-type')
   @ApiOperation({
     summary: 'New vs returning customers this month',
@@ -657,7 +673,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/order-payments')
   @Get('reports/payment-methods')
   @ApiOperation({
     summary: 'Get revenue share per payment method',
@@ -676,7 +693,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/product-sales')
   @Get('reports/category-sales')
   @ApiOperation({
     summary: 'Get revenue share per product category',
@@ -695,7 +713,8 @@ export class OrderController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/orders')
   @Patch(':id/assign-delivery-man')
   @ApiBearerAuth()
   @ApiOperation({

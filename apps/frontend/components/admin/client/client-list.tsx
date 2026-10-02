@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatDateTime } from "@/lib/utils"
 import { deleteData, fetchDataPagination } from "@/utils/api-utils"
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle"
+import { usePermissions } from "@/components/admin/permissions/use-permissions"
 import type { Client, PaginatedResponse } from "@/utils/types"
 import { MoreHorizontal, Pencil, Plus, Trash2, Users } from "lucide-react"
 import Image from "next/image"
@@ -19,6 +20,8 @@ import { LoadingIndicator } from "../loading-indicator"
 import { PageHeader } from "../page-header"
 
 export function ClientList() {
+  const MENU_URL = "/admin/client/client-list"
+  const { can } = usePermissions()
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -87,11 +90,13 @@ export function ClientList() {
       <Users className="h-10 w-10 text-muted-foreground mb-4" />
       <h3 className="text-lg font-semibold">No clients found</h3>
       <p className="text-sm text-muted-foreground mt-2">Get started by adding your first client.</p>
-      <Button asChild className="mt-4">
-        <Link href="/admin/client/add">
-          <Plus className="mr-2 h-4 w-4" /> Add Client
-        </Link>
-      </Button>
+      {can(MENU_URL, "canCreate") && (
+        <Button asChild className="mt-4">
+          <Link href="/admin/client/add">
+            <Plus className="mr-2 h-4 w-4" /> Add Client
+          </Link>
+        </Button>
+      )}
     </div>
   )
 
@@ -148,14 +153,18 @@ export function ClientList() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/client/${client.Id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteClick(client)}>
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
+                      {can(MENU_URL, "canEdit") && (
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/client/${client.Id}/edit`}>
+                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      {can(MENU_URL, "canDelete") && (
+                        <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteClick(client)}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -172,8 +181,12 @@ export function ClientList() {
         <PageHeader
           title="Clients"
           description="Manage your clients"
-          actionLabel="Add Client"
-          actionHref="/admin/client/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add Client",
+                actionHref: "/admin/client/add",
+              }
+            : {})}
         />
 
         {isLoading ? (

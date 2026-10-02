@@ -47,6 +47,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import DeleteConfirmationDialog from "../delete-confirmation-dialog";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
@@ -273,6 +274,8 @@ export function ContactMessageList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const MENU_URL = "/admin/inbox";
+  const { can } = usePermissions();
 
   const getInitialParam = (key: string) => {
     const param = searchParams?.get(key);
@@ -776,17 +779,21 @@ export function ContactMessageList({
                     <DropdownMenuItem onClick={() => handleViewDetails(message)}>
                       <Eye className="mr-2 h-4 w-4" /> View Details
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleStatusUpdateClick(message)}
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4" /> Update Status
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(message)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem
+                        onClick={() => handleStatusUpdateClick(message)}
+                      >
+                        <CheckCircle className="mr-2 h-4 w-4" /> Update Status
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(message)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -1099,29 +1106,33 @@ export function ContactMessageList({
 
               {/* Quick Actions */}
               <div className="flex flex-wrap gap-3 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setIsDetailModalOpen(false);
-                    handleStatusUpdateClick(selectedMessageForDetail);
-                  }}
-                >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Update Status
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setIsDetailModalOpen(false);
-                    handleDeleteClick(selectedMessageForDetail);
-                  }}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Message
-                </Button>
+                {can(MENU_URL, "canEdit") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsDetailModalOpen(false);
+                      handleStatusUpdateClick(selectedMessageForDetail);
+                    }}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Update Status
+                  </Button>
+                )}
+                {can(MENU_URL, "canDelete") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsDetailModalOpen(false);
+                      handleDeleteClick(selectedMessageForDetail);
+                    }}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Message
+                  </Button>
+                )}
               </div>
             </div>
           </div>

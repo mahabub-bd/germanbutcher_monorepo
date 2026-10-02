@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { MenuItem } from "@/utils/types";
 import {
   Filter,
@@ -54,6 +55,8 @@ export function MenuList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const MENU_URL = "/admin/menu/menu-list";
+  const { can } = usePermissions();
 
   const getInitialParam = (key: string) => {
     const param = searchParams?.get(key);
@@ -212,13 +215,14 @@ export function MenuList({
           ? "No menu items match your search criteria. Try different filters."
           : "Get started by adding your first menu item."}
       </p>
-      {!(searchQuery || statusFilter || isMainMenuFilter) && (
-        <Button asChild className="mt-4">
-          <Link href="/admin/menu/add">
-            <Plus className="mr-2 h-4 w-4" /> Add Menu Item
-          </Link>
-        </Button>
-      )}
+      {!(searchQuery || statusFilter || isMainMenuFilter) &&
+        can(MENU_URL, "canCreate") && (
+          <Button asChild className="mt-4">
+            <Link href="/admin/menu/add">
+              <Plus className="mr-2 h-4 w-4" /> Add Menu Item
+            </Link>
+          </Button>
+        )}
       {(searchQuery || statusFilter || isMainMenuFilter) && (
         <Button variant="outline" className="mt-4" onClick={clearFilters}>
           Clear Filters
@@ -326,17 +330,21 @@ export function MenuList({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/menu/${menuItem.id}/edit`}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(menuItem)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/menu/${menuItem.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(menuItem)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -353,8 +361,12 @@ export function MenuList({
         <PageHeader
           title="Menus"
           description="Manage your website menu items"
-          actionLabel="Add Menu"
-          actionHref="/admin/menu/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add Menu",
+                actionHref: "/admin/menu/add",
+              }
+            : {})}
         />
 
         <div className="space-y-4">

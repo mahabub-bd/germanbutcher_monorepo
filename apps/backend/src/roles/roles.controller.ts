@@ -71,6 +71,7 @@ export class RolesController {
     };
   }
 
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Get a role by ID' })
   @ApiParam({ name: 'id', type: Number, description: 'Role ID' })
@@ -89,7 +90,7 @@ export class RolesController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Patch(':id')
   @ApiOperation({ summary: 'Update a role' })
   @ApiParam({ name: 'id', type: Number, description: 'Role ID' })
@@ -115,6 +116,7 @@ export class RolesController {
     };
   }
 
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a role' })
   @ApiParam({ name: 'id', type: Number, description: 'Role ID' })

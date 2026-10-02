@@ -25,8 +25,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { SkipAnalytics } from 'src/common/decorators/skip-analytics.decorator';
 import { SkipThrottle } from 'src/common/decorators/skip-throttle.decorator';
@@ -45,8 +45,8 @@ import { ProductService } from './product.service';
 export class ProductController {
   constructor(private readonly productService: ProductService) { }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
   @Post()
   @ApiOperation({
     summary: 'Create a new product with discount',
@@ -377,7 +377,8 @@ export class ProductController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/inventory')
   @Get('reports/low-stock')
   @ApiOperation({
     summary: 'Get low stock products report',
@@ -429,7 +430,8 @@ export class ProductController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/inventory')
   @Get('reports/out-of-stock')
   @ApiOperation({
     summary: 'Get out of stock products report',
@@ -447,7 +449,8 @@ export class ProductController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/product-sales')
   @Get('reports/sales')
   @ApiOperation({
     summary: 'Per-product sold quantity and revenue for a date range',
@@ -491,7 +494,8 @@ export class ProductController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/inventory')
   @Get('reports/stock-valuation')
   @ApiOperation({
     summary: 'Inventory stock valuation',
@@ -507,7 +511,8 @@ export class ProductController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/inventory')
   @Get('reports/stock-summary')
   @ApiOperation({
     summary: 'Get product stock counts for dashboard KPI cards',
@@ -622,8 +627,8 @@ export class ProductController {
       },
     };
   }
-  @UseGuards(JwtAuthGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
   @Patch(':id')
   @ApiOperation({
     summary: 'Update product details',
@@ -648,8 +653,8 @@ export class ProductController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
   @Delete(':id')
   @ApiOperation({
     summary: 'Delete product',

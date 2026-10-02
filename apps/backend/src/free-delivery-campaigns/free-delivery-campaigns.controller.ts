@@ -15,8 +15,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 
 import { OptionalJwtAuthGuard } from 'src/auth/guards/optional-jwt-auth.guard';
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ApiResponseDto } from 'src/common/types';
 import { CheckFreeDeliveryDto } from './dto/check-free-delivery.dto';
@@ -68,8 +68,8 @@ export class FreeDeliveryCampaignsController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/marketing/free-delivery')
   @ApiBearerAuth('token')
   @Get()
   async findAll(): Promise<ApiResponseDto<FreeDeliveryCampaign[]>> {
@@ -81,8 +81,8 @@ export class FreeDeliveryCampaignsController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/marketing/free-delivery')
   @ApiBearerAuth('token')
   @Get(':id')
   async findOne(
@@ -96,8 +96,8 @@ export class FreeDeliveryCampaignsController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/marketing/free-delivery')
   @ApiBearerAuth('token')
   @Post()
   async create(
@@ -111,8 +111,8 @@ export class FreeDeliveryCampaignsController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/marketing/free-delivery')
   @ApiBearerAuth('token')
   @Patch(':id')
   async update(
@@ -127,8 +127,8 @@ export class FreeDeliveryCampaignsController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/marketing/free-delivery')
   @ApiBearerAuth('token')
   @Delete(':id')
   async remove(

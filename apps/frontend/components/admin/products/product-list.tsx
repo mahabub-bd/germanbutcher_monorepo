@@ -32,6 +32,7 @@ import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 
 import { revalidateProducts } from "@/actions/revalidate";
 import { PaginationComponent } from "@/components/common/pagination";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
 import type { Brand, Category, Product } from "@/utils/types";
@@ -69,6 +70,8 @@ export function ProductList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const MENU_URL = "/admin/products";
+  const { can } = usePermissions();
 
   const getInitialParam = (key: string) => {
     const param = searchParams?.get(key);
@@ -299,7 +302,8 @@ export function ProductList({
         brandFilter ||
         statusFilter ||
         featuredFilter
-      ) && (
+      ) &&
+        can(MENU_URL, "canCreate") && (
           <Button asChild className="mt-4">
             <Link href="/products/add">
               <Plus className="mr-2 h-4 w-4" /> Add Product
@@ -490,17 +494,21 @@ export function ProductList({
                         <Eye className="mr-2 h-4 w-4" /> View
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/products/${product.id}/edit`}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(product)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/products/${product.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(product)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -517,8 +525,12 @@ export function ProductList({
         <PageHeader
           title="Products"
           description="Manage your product inventory"
-          actionLabel="Add Product"
-          actionHref="/admin/products/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add Product",
+                actionHref: "/admin/products/add",
+              }
+            : {})}
         />
 
         <div className="space-y-4">

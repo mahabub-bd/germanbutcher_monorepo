@@ -20,6 +20,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 import { ApiResponseDto } from 'src/common/types';
@@ -34,7 +36,8 @@ import { PaymentMethodService } from './payment-method.service';
 @Controller('payment-methods')
 export class PaymentMethodController {
   constructor(private readonly paymentMethodService: PaymentMethodService) {}
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/settings/payment-method')
   @Post()
   @ApiOperation({
     summary: 'Create a new payment method',
@@ -179,7 +182,8 @@ export class PaymentMethodController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/settings/payment-method')
   @Patch(':id')
   @ApiOperation({
     summary: 'Update payment method',
@@ -242,7 +246,8 @@ export class PaymentMethodController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/settings/payment-method')
   @Delete(':id')
   @ApiOperation({
     summary: 'Delete payment method',

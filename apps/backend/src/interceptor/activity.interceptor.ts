@@ -110,10 +110,9 @@ export class ActivityInterceptor implements NestInterceptor {
       const metadata = this.dataSource.getMetadata(entityClass);
       const tableName = metadata.tableName;
 
-      // Get column names (excluding foreign keys)
-      const columns = metadata.columns
-        .filter(col => !col.relationMetadata) // Exclude relation columns
-        .map(col => col.databaseName);
+      // Get all column names, including foreign key columns (unitId, brandId, ...)
+      // so the old record mirrors the shape of the incoming PATCH body
+      const columns = metadata.columns.map(col => col.databaseName);
 
       // Build query with only direct columns
       const columnsList = columns.map(col => `"${col}"`).join(', ');
@@ -158,6 +157,10 @@ export class ActivityInterceptor implements NestInterceptor {
       // Keep primitives (strings, numbers, booleans, null)
       if (type === 'string' || type === 'number' || type === 'boolean' || value === null) {
         sanitized[key] = value;
+      }
+      // Serialize dates so timestamp columns (discountStartDate, ...) survive
+      else if (value instanceof Date && !isNaN(value.getTime())) {
+        sanitized[key] = value.toISOString();
       }
       // Keep empty arrays (like tags: [])
       else if (Array.isArray(value) && value.length === 0) {
@@ -209,7 +212,7 @@ export class ActivityInterceptor implements NestInterceptor {
     let newValue = null;
 
     if (action === 'PATCH' && req.body) {
-      oldValue = req.oldRecord || null; // Now automatically populated for PATCH
+      oldValue = this.buildMatchingOldValue(req.oldRecord, req.body); // Same keys as the new value
       newValue = req.body;
     } else if (action === 'POST' && req.body) {
       newValue = req.body;
@@ -260,6 +263,50 @@ export class ActivityInterceptor implements NestInterceptor {
     }
 
     return { entityType, entityId };
+  }
+
+  /**
+   * Build the old value with the same keys as the incoming PATCH body so
+   * oldValue and newValue are directly comparable in the activity log.
+   */
+  private buildMatchingOldValue(oldRecord: any, body: any): any {
+    if (!oldRecord || typeof oldRecord !== 'object') return null;
+    if (!body || typeof body !== 'object') return null;
+
+    const aligned: any = {};
+
+    for (const key of Object.keys(body)) {
+      // The body may send a relation as `attachment` while the DB column is `attachmentId`
+      const oldKey =
+        key in oldRecord ? key :
+        `${key}Id` in oldRecord ? `${key}Id` :
+        null;
+
+      if (oldKey === null) continue; // Computed fields (hasDiscount, imageUrl, ...) have no column
+
+      aligned[key] = this.coerceOldValue(oldRecord[oldKey], body[key]);
+    }
+
+    return Object.keys(aligned).length > 0 ? aligned : null;
+  }
+
+  /**
+   * Match the old value's type to the new value's type so unchanged fields
+   * compare equal (Postgres decimal columns come back as "270.00").
+   */
+  private coerceOldValue(oldValue: any, newValue: any): any {
+    if (oldValue === null || oldValue === undefined) return null;
+
+    if (
+      typeof newValue === 'number' &&
+      typeof oldValue === 'string' &&
+      oldValue.trim() !== '' &&
+      !isNaN(Number(oldValue))
+    ) {
+      return Number(oldValue);
+    }
+
+    return oldValue;
   }
 
   private generateRequestId(): string {

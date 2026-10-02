@@ -18,7 +18,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { ApiResponseDto } from 'src/common/types';
 import { DeliveryManService } from './delivery-man.service';
 import { CreateDeliveryManDto } from './dto/create-delivery-man.dto';
@@ -27,12 +29,13 @@ import { UpdateDeliveryManDto } from './dto/update-delivery-man.dto';
 import { DeliveryMan } from './entities/delivery-man.entity';
 
 @ApiTags('Delivery Man')
+@UseGuards(JwtAuthGuard, PermissionGuard)
+@ModulePermissions('/admin/delivery-man')
 @Controller('delivery-man')
 export class DeliveryManController {
   constructor(private readonly deliveryManService: DeliveryManService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create a new delivery man',
@@ -85,7 +88,6 @@ export class DeliveryManController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get all delivery men',
@@ -134,7 +136,6 @@ export class DeliveryManController {
   }
 
   @Get('active')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get all active delivery men',
@@ -157,7 +158,6 @@ export class DeliveryManController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get delivery man by ID',
@@ -182,7 +182,6 @@ export class DeliveryManController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update delivery man',
@@ -214,7 +213,6 @@ export class DeliveryManController {
   }
 
   @Patch(':id/statistics')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update delivery man statistics',
@@ -241,7 +239,6 @@ export class DeliveryManController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({

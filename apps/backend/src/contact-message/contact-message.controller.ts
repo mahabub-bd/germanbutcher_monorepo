@@ -19,7 +19,9 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { ContactMessageService } from './contact-message.service';
 import { ContactMessageQueryDto } from './dto/contact-message-query.dto';
 import { CreateContactMessageDto } from './dto/create-contact-message.dto';
@@ -58,7 +60,8 @@ export class ContactMessageController {
     status: 200,
     description: 'Contact messages retrieved successfully',
   })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/inbox')
   @ApiBearerAuth('token')
   async findAll(@Query() query: ContactMessageQueryDto) {
     return await this.contactMessageService.findAll(query);
@@ -70,7 +73,8 @@ export class ContactMessageController {
     status: 200,
     description: 'Statistics retrieved successfully',
   })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/inbox')
   @ApiBearerAuth('token')
   async getStatistics() {
     const stats = await this.contactMessageService.getStatistics();
@@ -88,7 +92,8 @@ export class ContactMessageController {
     description: 'Contact message retrieved successfully',
   })
   @ApiResponse({ status: 404, description: 'Contact message not found' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/inbox')
   @ApiBearerAuth('token')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const contactMessage = await this.contactMessageService.findOne(id);
@@ -106,7 +111,8 @@ export class ContactMessageController {
     description: 'Contact message updated successfully',
   })
   @ApiResponse({ status: 404, description: 'Contact message not found' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/inbox')
   @ApiBearerAuth('token')
   async update(
     @Param('id', ParseIntPipe) id: number,
@@ -131,7 +137,8 @@ export class ContactMessageController {
     description: 'Contact message deleted successfully',
   })
   @ApiResponse({ status: 404, description: 'Contact message not found' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/inbox')
   @ApiBearerAuth('token')
   async remove(@Param('id', ParseIntPipe) id: number) {
     await this.contactMessageService.remove(id);

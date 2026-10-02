@@ -22,6 +22,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 import { ApiResponseDto } from 'src/common/types';
@@ -36,7 +38,8 @@ import { SalesPartnerService } from './sales-partner.service';
 export class SalesPartnerController {
   constructor(private readonly salesPartnerService: SalesPartnerService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/sales-partner/sales-partner-list')
   @Post()
   @ApiOperation({ summary: 'Create a new sales partner' })
   @ApiResponse({
@@ -146,7 +149,8 @@ export class SalesPartnerController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/sales-partner/sales-partner-list')
   @Patch(':id')
   @ApiOperation({ summary: 'Update sales partner' })
   @ApiResponse({
@@ -183,7 +187,8 @@ export class SalesPartnerController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/sales-partner/sales-partner-list')
   @Patch(':id/toggle-status')
   @ApiOperation({ summary: 'Toggle sales partner active status' })
   @ApiResponse({
@@ -211,7 +216,8 @@ export class SalesPartnerController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/sales-partner/sales-partner-list')
   @Delete(':id')
   @ApiOperation({ summary: 'Delete sales partner' })
   @ApiResponse({

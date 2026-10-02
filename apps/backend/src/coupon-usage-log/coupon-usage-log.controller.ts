@@ -16,21 +16,21 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { ApiResponseDto } from 'src/common/types';
 import { CouponUsageLogService } from './coupon-usage-log.service';
 import { CouponUsageLog } from './entities/coupon-usage-log.entity';
 import { CouponUsageLogResponseDto } from './dto/coupon-usage-log-response.dto';
 
 @ApiTags('Coupon Usage Logs')
+@UseGuards(JwtAuthGuard, PermissionGuard)
+@ModulePermissions('/admin/marketing/coupon/usage-logs')
 @Controller('coupon-usage-logs')
 @ApiBearerAuth('token')
 export class CouponUsageLogController {
   constructor(private readonly couponUsageLogService: CouponUsageLogService) {}
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin', 'admin')
   @Get()
   @ApiOperation({ summary: 'Get all coupon usage logs' })
   @ApiOkResponse({
@@ -70,8 +70,6 @@ export class CouponUsageLogController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin', 'admin')
   @Get('coupon/:couponCode')
   @ApiOperation({ summary: 'Get coupon usage logs by coupon code' })
   @ApiOkResponse({
@@ -113,8 +111,6 @@ export class CouponUsageLogController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin', 'admin')
   @Get('stats/:couponCode')
   @ApiOperation({ summary: 'Get coupon usage statistics by coupon code' })
   @ApiOkResponse({
@@ -132,8 +128,6 @@ export class CouponUsageLogController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin', 'admin')
   @Get(':id')
   @ApiOperation({ summary: 'Get coupon usage log by ID' })
   @ApiOkResponse({

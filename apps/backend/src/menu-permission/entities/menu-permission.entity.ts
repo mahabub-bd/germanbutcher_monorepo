@@ -37,6 +37,18 @@ export class MenuPermission {
   @ApiProperty({ example: false, description: 'Can view this menu' })
   canView: boolean;
 
+  @Column({ default: false })
+  @ApiProperty({ example: false, description: 'Can create in this menu' })
+  canCreate: boolean;
+
+  @Column({ default: false })
+  @ApiProperty({ example: false, description: 'Can edit in this menu' })
+  canEdit: boolean;
+
+  @Column({ default: false })
+  @ApiProperty({ example: false, description: 'Can delete in this menu' })
+  canDelete: boolean;
+
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   @ApiProperty({
     example: '2023-05-15T10:00:00Z',

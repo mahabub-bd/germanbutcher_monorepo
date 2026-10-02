@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PermissionProvider } from "./permissions/permission-provider";
 import { AdminHeader } from "./admin-header";
 import { SidebarMenu } from "./sidebar-menu";
 
@@ -31,7 +32,7 @@ export function AdminLayoutClient({ user }: AdminLayoutClientProps) {
   };
 
   return (
-    <>
+    <PermissionProvider>
       <SidebarMenu
         user={safeUser}
         mobileOpen={mobileMenuOpen}
@@ -41,6 +42,6 @@ export function AdminLayoutClient({ user }: AdminLayoutClientProps) {
         user={safeUser}
         onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)}
       />
-    </>
+    </PermissionProvider>
   );
 }

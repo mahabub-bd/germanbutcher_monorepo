@@ -18,8 +18,8 @@ import { CreateShippingMethodDto } from './dto/create-shipping-method.dto';
 import { UpdateShippingMethodDto } from './dto/update-shipping-method.dto';
 
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ApiResponseDto } from 'src/common/types';
 import { ShippingMethod } from './entities/shipping-method.entity';
@@ -32,8 +32,8 @@ export class ShippingMethodsController {
   constructor(
     private readonly shippingMethodsService: ShippingMethodsService,
   ) {}
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/settings/shipping-method')
   @Post()
   async create(
     @Req() request: Request & { user?: { userId?: number } },
@@ -80,8 +80,8 @@ export class ShippingMethodsController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/settings/shipping-method')
   @Patch(':id')
   async update(
     @Req() request: Request & { user?: { userId?: number } },
@@ -99,8 +99,8 @@ export class ShippingMethodsController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/settings/shipping-method')
   @Delete(':id')
   async remove(@Param('id') id: string): Promise<ApiResponseDto<void>> {
     const data = await this.shippingMethodsService.remove(+id);

@@ -19,9 +19,9 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionGuard } from '../auth/guards/permission.guard';
 import { ApiResponseDto } from '../common/types';
 import { User } from '../user/entities/user.entity';
 import { DateRangePreset, OrderStatus } from '../common/enums';
@@ -51,8 +51,8 @@ export class OrderPaymentController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/order-payments')
   @Get()
   @ApiOperation({ summary: 'Get all payments for order' })
   @ApiParam({ name: 'orderId', type: Number })
@@ -134,7 +134,8 @@ export class OrderPaymentController {
   }
 
   @Patch(':paymentId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/order-payments')
   @ApiOperation({ summary: 'Update payment' })
   @ApiParam({ name: 'orderId', type: Number })
   @ApiParam({ name: 'paymentId', type: Number })
@@ -156,8 +157,8 @@ export class OrderPaymentController {
   }
 
   @Delete(':paymentId')
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/order-payments')
   @ApiOperation({ summary: 'Delete payment' })
   @ApiParam({ name: 'orderId', type: Number })
   @ApiParam({ name: 'paymentId', type: Number })

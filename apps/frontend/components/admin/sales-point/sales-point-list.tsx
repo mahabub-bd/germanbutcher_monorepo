@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { SalesPoint } from "@/utils/types";
 import {
   Filter,
@@ -61,6 +62,8 @@ export function SalesPointList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const MENU_URL = "/admin/sales-point/sales-point-list";
+  const { can } = usePermissions();
 
   const getInitialParam = (key: string) => {
     const param = searchParams?.get(key);
@@ -185,7 +188,7 @@ export function SalesPointList({
           ? "No sales points match your search criteria. Try different filters."
           : "Get started by adding your first sales point."}
       </p>
-      {!(searchQuery || statusFilter) && (
+      {!(searchQuery || statusFilter) && can(MENU_URL, "canCreate") && (
         <Button asChild className="mt-4">
           <Link href="/admin/sales-point/add">
             <Plus className="mr-2 h-4 w-4" /> Add Sales Point
@@ -338,17 +341,21 @@ export function SalesPointList({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/sales-point/${salesPoint.id}/edit`}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(salesPoint)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/sales-point/${salesPoint.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(salesPoint)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -365,8 +372,12 @@ export function SalesPointList({
         <PageHeader
           title="Sales Points"
           description="Manage your sales points and their shops"
-          actionLabel="Add Sales Point"
-          actionHref="/admin/sales-point/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add Sales Point",
+                actionHref: "/admin/sales-point/add",
+              }
+            : {})}
         />
 
         <div className="space-y-4">

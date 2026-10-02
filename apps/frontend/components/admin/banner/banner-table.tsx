@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { Banner } from "@/utils/types";
 import { ImageIcon, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -35,6 +36,9 @@ export function BannerTable({
   onToggleActive,
   togglingId,
 }: BannerTableProps) {
+  const MENU_URL = "/admin/banner/banner-list";
+  const { can } = usePermissions();
+
   return (
     <div className="md:p-6 p-2">
       <Table>
@@ -105,17 +109,21 @@ export function BannerTable({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/banner/${banner.id}/edit`}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => onDeleteClick(banner)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/banner/${banner.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => onDeleteClick(banner)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>

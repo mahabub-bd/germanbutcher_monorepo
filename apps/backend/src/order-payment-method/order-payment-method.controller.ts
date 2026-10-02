@@ -19,8 +19,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 import { ApiResponseDto } from 'src/common/types';
@@ -41,8 +41,8 @@ export class OrderPaymentMethodController {
   // ----------------------------------------
   // Create Payment Method
   // ----------------------------------------
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/settings/payment-method')
   @Post()
   @ApiOperation({ summary: 'Create a new payment method' })
   @ApiBody({ type: CreateOrderPaymentMethodDto })
@@ -107,8 +107,8 @@ export class OrderPaymentMethodController {
   // ----------------------------------------
   // Toggle Active Status
   // ----------------------------------------
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/settings/payment-method')
   @Patch(':id/toggle-status')
   @ApiOperation({ summary: 'Toggle payment method active status' })
   @ApiParam({ name: 'id', type: Number })
@@ -133,8 +133,8 @@ export class OrderPaymentMethodController {
   // ----------------------------------------
   // Update Payment Method
   // ----------------------------------------
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/settings/payment-method')
   @Patch(':id')
   @ApiOperation({ summary: 'Update an existing payment method' })
   @ApiParam({ name: 'id', type: Number })

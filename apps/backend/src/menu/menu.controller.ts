@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -23,6 +24,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Response } from 'express';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
 import { Menu } from './entities/menu.entity';
@@ -34,6 +38,8 @@ import { MenuService } from './menu.service';
 export class MenuController {
   constructor(private readonly menuService: MenuService) {}
 
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/menu')
   @Post()
   @ApiOperation({ summary: 'Create a new menu item' })
   @ApiCreatedResponse({
@@ -352,6 +358,8 @@ export class MenuController {
     }
   }
 
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/menu')
   @Patch(':id')
   @ApiOperation({ summary: 'Update a menu item' })
   @ApiParam({ name: 'id', description: 'Menu ID to update', type: Number })
@@ -392,6 +400,8 @@ export class MenuController {
     }
   }
 
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/menu')
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a menu item' })
   @ApiParam({ name: 'id', description: 'Menu ID to delete', type: Number })

@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/utils';
 import { deleteData, fetchDataPagination } from '@/utils/api-utils';
+import { usePermissions } from '@/components/admin/permissions/use-permissions';
 import type { Subscriber } from '@/utils/types';
 import { Mail, MoreHorizontal, Trash2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -37,6 +38,8 @@ export function SubscriberList({
 }: SubscriberListProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const MENU_URL = '/admin/settings/subscriber-list';
+  const { can } = usePermissions();
 
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -155,12 +158,14 @@ export function SubscriberList({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(subscriber)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                    {can(MENU_URL, 'canDelete') && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(subscriber)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>

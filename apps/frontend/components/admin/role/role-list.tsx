@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { deleteData, fetchProtectedData } from "@/utils/api-utils";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { Role } from "@/utils/types";
 import { MoreHorizontal, Pencil, Plus, Shield, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -28,6 +29,8 @@ import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
 export function RoleList() {
+  const MENU_URL = "/admin/user/role/role-list";
+  const { can } = usePermissions();
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -78,11 +81,13 @@ export function RoleList() {
       <p className="text-sm text-muted-foreground mt-2">
         Get started by adding your first role.
       </p>
-      <Button asChild className="mt-4">
-        <Link href="/admin/roles/add">
-          <Plus className="mr-2 h-4 w-4" /> Add Role
-        </Link>
-      </Button>
+      {can(MENU_URL, "canCreate") && (
+        <Button asChild className="mt-4">
+          <Link href="/admin/roles/add">
+            <Plus className="mr-2 h-4 w-4" /> Add Role
+          </Link>
+        </Button>
+      )}
     </div>
   );
 
@@ -122,17 +127,21 @@ export function RoleList() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/user/role/${role.id}/edit`}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(role)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/user/role/${role.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(role)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -149,8 +158,12 @@ export function RoleList() {
         <PageHeader
           title="Roles"
           description="Manage system roles and permissions"
-          actionLabel="Add Role"
-          actionHref="/admin/user/role/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add Role",
+                actionHref: "/admin/user/role/add",
+              }
+            : {})}
         />
 
         <div className="space-y-4">

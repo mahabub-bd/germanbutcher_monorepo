@@ -19,6 +19,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 import { ApiResponseDto } from 'src/common/types';
@@ -33,7 +35,8 @@ import { Client } from './entities/client.entity';
 export class ClientController {
   constructor(private readonly clientService: ClientService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/client/client-list')
   @Post()
   @ApiOperation({ summary: 'Create a new client' })
   @ApiResponse({
@@ -116,7 +119,8 @@ export class ClientController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/client/client-list')
   @Patch(':id')
   @ApiOperation({ summary: 'Update client' })
   @ApiResponse({
@@ -145,7 +149,8 @@ export class ClientController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/client/client-list')
   @Delete(':id')
   @ApiOperation({ summary: 'Delete client' })
   @ApiResponse({

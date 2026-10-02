@@ -25,8 +25,8 @@ import {
 import { ApiResponseDto } from 'src/common/types';
 import { CouponService } from './coupon.service';
 
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CouponResponseDto } from './dto/coupon-response.dto';
 import { CreateCouponDto } from './dto/create-coupon.dto';
@@ -40,8 +40,8 @@ import { Coupon } from './entities/coupon.entity';
 export class CouponController {
   constructor(private readonly couponService: CouponService) {}
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/marketing/coupon/coupon-list')
   @Post()
   @ApiOperation({ summary: 'Create new coupon' })
   @ApiOkResponse({
@@ -61,8 +61,8 @@ export class CouponController {
     return this.couponService.createCoupon(createCouponDto);
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/marketing/coupon/coupon-list')
   @Get()
   @ApiOperation({ summary: 'Get all coupons' })
   @ApiOkResponse({
@@ -90,8 +90,8 @@ export class CouponController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/marketing/coupon/coupon-list')
   @Get(':code')
   @ApiOperation({ summary: 'Get coupon by code' })
   @ApiOkResponse({
@@ -119,8 +119,8 @@ export class CouponController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/marketing/coupon/coupon-list')
   @Patch(':id')
   @ApiOperation({ summary: 'Update coupon' })
   @ApiOkResponse({
@@ -148,8 +148,8 @@ export class CouponController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Roles('superadmin')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/marketing/coupon/coupon-list')
   @Delete(':id')
   @ApiOperation({ summary: 'Delete coupon' })
   @ApiOkResponse({

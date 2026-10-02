@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { DeliveryMan, DeliveryManResponse } from "@/utils/types";
 import {
   CheckCircle2,
@@ -65,6 +66,8 @@ export function DeliveryManList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const MENU_URL = "/admin/delivery-man";
+  const { can } = usePermissions();
 
   const getInitialParam = (key: string) => {
     const param = searchParams?.get(key);
@@ -295,12 +298,14 @@ export function DeliveryManList({
                         View
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/delivery-man/${deliveryMan.id}/edit`}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </Link>
-                    </DropdownMenuItem>
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/delivery-man/${deliveryMan.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -343,12 +348,14 @@ export function DeliveryManList({
             />
           </div>
           <div className="flex items-center gap-3">
-            <Button asChild size="sm">
-              <Link href="/admin/delivery-man/create">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Delivery Man
-              </Link>
-            </Button>
+            {can(MENU_URL, "canCreate") && (
+              <Button asChild size="sm">
+                <Link href="/admin/delivery-man/create">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Delivery Man
+                </Link>
+              </Button>
+            )}
             <Select
               value={isActiveFilter}
               onValueChange={(value) => {

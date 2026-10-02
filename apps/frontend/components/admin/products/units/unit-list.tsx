@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/utils";
 import { deleteData, fetchData } from "@/utils/api-utils";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { Unit } from "@/utils/types";
 import { MoreHorizontal, Pencil, Plus, Scale, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -28,6 +29,8 @@ import { LoadingIndicator } from "../../loading-indicator";
 import { PageHeader } from "../../page-header";
 
 export function UnitList() {
+  const MENU_URL = "/admin/products/units";
+  const { can } = usePermissions();
   const [units, setUnits] = useState<Unit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -78,11 +81,13 @@ export function UnitList() {
       <p className="text-sm text-muted-foreground mt-2">
         Get started by adding your first unit.
       </p>
-      <Button asChild className="mt-4">
-        <Link href="/admin/products/units/add">
-          <Plus className="mr-2 h-4 w-4" /> Add Unit
-        </Link>
-      </Button>
+      {can(MENU_URL, "canCreate") && (
+        <Button asChild className="mt-4">
+          <Link href="/admin/products/units/add">
+            <Plus className="mr-2 h-4 w-4" /> Add Unit
+          </Link>
+        </Button>
+      )}
     </div>
   );
 
@@ -120,17 +125,21 @@ export function UnitList() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/products/units/${unit.id}/edit`}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(unit)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/products/units/${unit.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(unit)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -147,8 +156,12 @@ export function UnitList() {
         <PageHeader
           title="Units"
           description="Manage measurement units for products"
-          actionLabel="Add Unit"
-          actionHref="/admin/products/units/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Add Unit",
+                actionHref: "/admin/products/units/add",
+              }
+            : {})}
         />
 
         <div className="space-y-4">

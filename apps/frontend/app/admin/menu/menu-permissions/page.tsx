@@ -4,8 +4,15 @@ import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { PageHeader } from "@/components/admin/page-header";
 import { IconRenderer } from "@/components/common/IconRenderer";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -13,10 +20,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { capitalizeFirstLetter, cn } from "@/lib/utils";
-import { fetchProtectedData, patchData } from "@/utils/api-utils";
+import { fetchProtectedData, putData } from "@/utils/api-utils";
 import { MenuItem, Role } from "@/utils/types";
-import { Loader2, Search, SearchX, ShieldCheck } from "lucide-react";
+import {
+  ChevronDown,
+  Eye,
+  FilePlus2,
+  Loader2,
+  Pencil,
+  RotateCcw,
+  Save,
+  Search,
+  SearchX,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -25,17 +52,70 @@ interface MenuPermission {
   roleId: number;
   menuId: number;
   canView: boolean;
-  menu: {
-    id: number;
-    name: string;
-    isAdminMenu: boolean;
-    icon?: string;
-  };
-  role: {
-    id: number;
-    rolename: string;
-  };
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
 }
+
+interface PermFlags {
+  canView: boolean;
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+}
+
+type DraftFlags = PermFlags & { dirty?: boolean };
+
+const NO_FLAGS: PermFlags = {
+  canView: false,
+  canCreate: false,
+  canEdit: false,
+  canDelete: false,
+};
+
+const ALL_FLAGS: PermFlags = {
+  canView: true,
+  canCreate: true,
+  canEdit: true,
+  canDelete: true,
+};
+
+const VIEW_ONLY: PermFlags = { ...ALL_FLAGS, canCreate: false, canEdit: false, canDelete: false };
+
+const ACTIONS: {
+  key: keyof PermFlags;
+  label: string;
+  icon: typeof Eye;
+  hint: string;
+}[] = [
+  {
+    key: "canView",
+    label: "View",
+    icon: Eye,
+    hint: "Menu is visible in the sidebar and the page can be opened",
+  },
+  {
+    key: "canCreate",
+    label: "Create",
+    icon: FilePlus2,
+    hint: "Can add new records in this module (also covers payments and similar create actions)",
+  },
+  {
+    key: "canEdit",
+    label: "Edit",
+    icon: Pencil,
+    hint: "Can update existing records in this module",
+  },
+  {
+    key: "canDelete",
+    label: "Delete",
+    icon: Trash2,
+    hint: "Can permanently remove records in this module",
+  },
+];
+
+/** Shared grid template so header and rows line up perfectly. */
+const GRID_COLS = "grid grid-cols-[minmax(0,1fr)_repeat(4,72px)] items-center";
 
 export default function RoleMenuPermissions() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -43,46 +123,35 @@ export default function RoleMenuPermissions() {
   const [selectedRoleId, setSelectedRoleId] = useState<string>("");
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [menuPermissions, setMenuPermissions] = useState<
-    Record<number, boolean>
+    Record<number, DraftFlags>
   >({});
   const [loading, setLoading] = useState(false);
-  // Id of the menu whose checkbox(es) are being saved; a parent id while a
-  // whole section batch is in flight.
-  const [savingMenuId, setSavingMenuId] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [panel, setPanel] = useState<"admin" | "user">("admin");
+  const [expandedSections, setExpandedSections] = useState<Set<number>>(
+    new Set()
+  );
+  // Last saved state per menu — used by Discard to drop draft edits.
+  const [savedSnapshot, setSavedSnapshot] = useState<Record<number, PermFlags>>(
+    {}
+  );
 
   const { adminMenus, userMenus } = useMemo(() => {
     const adminMenus: MenuItem[] = [];
     const userMenus: MenuItem[] = [];
-
-    const categorizeMenus = (items: MenuItem[]) => {
-      items.forEach((item) => {
-        if (item.isAdminMenu) {
-          adminMenus.push(item);
-        } else {
-          userMenus.push(item);
-        }
-      });
-    };
-
-    if (menuTree.length > 0) {
-      categorizeMenus(menuTree);
-    }
-
+    menuTree.forEach((item) =>
+      item.isAdminMenu ? adminMenus.push(item) : userMenus.push(item)
+    );
     return { adminMenus, userMenus };
   }, [menuTree]);
 
-  // Memoized filtered menu tree for both panels
-  const { filteredAdminMenus, filteredUserMenus } = useMemo(() => {
-    if (!searchTerm) {
-      return {
-        filteredAdminMenus: adminMenus,
-        filteredUserMenus: userMenus,
-      };
-    }
+  const filteredMenus = useMemo(() => {
+    const menus = panel === "admin" ? adminMenus : userMenus;
+    if (!searchTerm) return menus;
 
-    const filterItems = (items: MenuItem[]): MenuItem[] => {
-      return items
+    const filterItems = (items: MenuItem[]): MenuItem[] =>
+      items
         .map((item) => {
           const matches = item.name
             .toLowerCase()
@@ -90,33 +159,34 @@ export default function RoleMenuPermissions() {
           const filteredChildren = item.children?.length
             ? filterItems(item.children)
             : [];
-
           if (matches || filteredChildren.length > 0) {
             return { ...item, children: filteredChildren };
           }
           return null;
         })
         .filter(Boolean) as MenuItem[];
-    };
 
-    return {
-      filteredAdminMenus: filterItems([...adminMenus]),
-      filteredUserMenus: filterItems([...userMenus]),
-    };
-  }, [adminMenus, userMenus, searchTerm]);
+    return filterItems(menus);
+  }, [adminMenus, userMenus, panel, searchTerm]);
 
-  const isCustomerRole = useMemo(() => {
-    return selectedRole?.rolename.toLowerCase().includes("customer");
-  }, [selectedRole]);
+  const isCustomerRole = useMemo(
+    () => selectedRole?.rolename.toLowerCase().includes("customer"),
+    [selectedRole]
+  );
 
-  // Overall progress across every menu in the tree.
-  const { grantedCount, totalCount } = useMemo(() => {
-    const values = Object.values(menuPermissions);
-    return {
-      grantedCount: values.filter(Boolean).length,
-      totalCount: values.length,
-    };
-  }, [menuPermissions]);
+  // Menus the selected role can already see (saved state, before draft edits).
+  const grantedCount = useMemo(
+    () => Object.values(menuPermissions).filter((f) => f.canView).length,
+    [menuPermissions]
+  );
+  const totalCount = Object.keys(menuPermissions).length;
+  const dirtyIds = useMemo(
+    () =>
+      Object.entries(menuPermissions)
+        .filter(([, f]) => f.dirty)
+        .map(([id]) => Number(id)),
+    [menuPermissions]
+  );
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -125,7 +195,6 @@ export default function RoleMenuPermissions() {
           fetchProtectedData("roles") as Promise<Role[]>,
           fetchProtectedData("menu/tree") as Promise<MenuItem[]>,
         ]);
-
         if (rolesData) setRoles(rolesData);
         if (menuData) setMenuTree(menuData);
       } catch (error) {
@@ -133,11 +202,9 @@ export default function RoleMenuPermissions() {
         toast.error("Failed to load initial data. Please try again.");
       }
     };
-
     fetchInitialData();
   }, []);
 
-  // Set selected role when role ID changes
   useEffect(() => {
     if (selectedRoleId && roles.length > 0) {
       const role = roles.find((r) => r.id.toString() === selectedRoleId);
@@ -147,7 +214,6 @@ export default function RoleMenuPermissions() {
     }
   }, [selectedRoleId, roles]);
 
-  // Fetch menu permissions when role is selected
   useEffect(() => {
     if (!selectedRoleId || menuTree.length === 0) return;
 
@@ -156,25 +222,40 @@ export default function RoleMenuPermissions() {
       try {
         const response = (await fetchProtectedData(
           `menu-permissions/role/${selectedRoleId}`
-        )) as MenuPermission[];
+        )) as unknown as MenuPermission[];
 
-        const newPermissions: Record<number, boolean> = {};
-
-        // Initialize all permissions as false first
-        const initializePermissions = (items: MenuItem[]) => {
+        const newPermissions: Record<number, DraftFlags> = {};
+        const initialize = (items: MenuItem[]) => {
           items.forEach((item) => {
-            newPermissions[item.id] = false;
-            if (item.children?.length) initializePermissions(item.children);
+            newPermissions[item.id] = { ...NO_FLAGS };
+            initialize(item.children ?? []);
           });
         };
-        initializePermissions(menuTree);
+        initialize(menuTree);
 
-        // Update with actual permissions from API
         response?.forEach((permission) => {
-          newPermissions[permission.menuId] = permission.canView;
+          newPermissions[permission.menuId] = {
+            canView: permission.canView,
+            canCreate: permission.canCreate ?? false,
+            canEdit: permission.canEdit ?? false,
+            canDelete: permission.canDelete ?? false,
+          };
         });
 
         setMenuPermissions(newPermissions);
+        setSavedSnapshot(
+          Object.fromEntries(
+            Object.entries(newPermissions).map(([id, f]) => [id, { ...f }])
+          )
+        );
+        // Expand sections that have at least one granted child.
+        const open = new Set<number>();
+        menuTree.forEach((item) => {
+          if (item.children?.some((c) => newPermissions[c.id]?.canView)) {
+            open.add(item.id);
+          }
+        });
+        setExpandedSections(open);
       } catch (error) {
         console.error("Error fetching menu permissions:", error);
         toast.error("Failed to load menu permissions. Please try again.");
@@ -186,346 +267,513 @@ export default function RoleMenuPermissions() {
     fetchMenuPermissions();
   }, [selectedRoleId, menuTree]);
 
-  const handlePermissionChange = async (menuId: number, canView: boolean) => {
-    if (!selectedRoleId) {
-      toast.error("Please select a role first");
-      return;
-    }
-
-    setSavingMenuId(menuId);
-    try {
-      const response = await patchData(
-        `menu-permissions/${selectedRoleId}/${menuId}`,
-        { canView }
-      );
-
-      if (response?.statusCode === 200) {
-        setMenuPermissions((prev) => ({ ...prev, [menuId]: canView }));
-        toast.success(
-          `Permission ${canView ? "granted" : "revoked"} successfully`
-        );
-      } else {
-        throw new Error(response?.message || "Failed to update permission");
+  // Draft update. Any action implies View; clearing View clears the rest.
+  const applyFlags = (ids: number[], next: PermFlags) => {
+    const normalized: PermFlags =
+      !next.canView && (next.canCreate || next.canEdit || next.canDelete)
+        ? { ...next, canView: true }
+        : next;
+    setMenuPermissions((prev) => {
+      const copy = { ...prev };
+      for (const id of ids) {
+        copy[id] = { ...normalized, dirty: true };
       }
-    } catch (error) {
-      console.error("Error updating permission:", error);
-      toast.error("Failed to update permission. Please try again.");
-    } finally {
-      setSavingMenuId(null);
-    }
+      return copy;
+    });
   };
 
-  // Check/uncheck a whole section (parent + all children) in one batch.
-  const handleSectionChange = async (item: MenuItem, canView: boolean) => {
-    if (!selectedRoleId) {
-      toast.error("Please select a role first");
-      return;
+  const handleFlagChange = (
+    ids: number[],
+    key: keyof PermFlags,
+    value: boolean
+  ) => {
+    const current = menuPermissions[ids[0]] ?? NO_FLAGS;
+    const next: PermFlags = { ...current, [key]: value };
+    if (key !== "canView" && value) next.canView = true;
+    if (key === "canView" && !value) {
+      next.canCreate = false;
+      next.canEdit = false;
+      next.canDelete = false;
     }
+    applyFlags(ids, next);
+  };
 
+  const handleSectionPreset = (item: MenuItem, preset: PermFlags) => {
     const ids = [item.id, ...(item.children?.map((c) => c.id) ?? [])];
-    // Snapshot so the sequential loop doesn't depend on re-renders.
-    const current = { ...menuPermissions };
-    const toChange = ids.filter((id) => current[id] !== canView);
+    applyFlags(ids, preset);
+  };
 
-    setSavingMenuId(item.id);
+  const toggleSection = (id: number) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    if (!selectedRoleId || dirtyIds.length === 0) return;
+    setSaving(true);
     try {
-      for (const id of toChange) {
-        const response = await patchData(
-          `menu-permissions/${selectedRoleId}/${id}`,
-          { canView }
-        );
-        if (response?.statusCode !== 200) {
-          throw new Error(response?.message || "Failed to update permission");
+      const permissions = dirtyIds.map((id) => {
+        const { dirty: _d, ...flags } = menuPermissions[id];
+        void _d;
+        return { menuId: id, ...flags };
+      });
+      const response = await putData(
+        `menu-permissions/role/${selectedRoleId}`,
+        { permissions }
+      );
+      if (response?.statusCode !== 200) {
+        throw new Error(response?.message || "Failed to save permissions");
+      }
+      setMenuPermissions((prev) => {
+        const next = { ...prev };
+        for (const id of dirtyIds) {
+          const { dirty: _d, ...clean } = next[id];
+          void _d;
+          next[id] = clean;
         }
-        setMenuPermissions((prev) => ({ ...prev, [id]: canView }));
-      }
-      if (toChange.length > 0) {
-        toast.success(
-          `Permission ${canView ? "granted" : "revoked"} for ${item.name}`
-        );
-      }
+        return next;
+      });
+      setSavedSnapshot((prev) => {
+        const next = { ...prev };
+        for (const id of dirtyIds) {
+          const { dirty: _d, ...clean } = menuPermissions[id];
+          void _d;
+          next[id] = clean;
+        }
+        return next;
+      });
+      toast.success(
+        `Saved ${permissions.length} permission row${permissions.length > 1 ? "s" : ""}`
+      );
     } catch (error) {
-      console.error("Error updating permissions:", error);
-      toast.error("Failed to update some permissions. Please try again.");
+      console.error("Error saving permissions:", error);
+      toast.error("Failed to save permissions. Please try again.");
     } finally {
-      setSavingMenuId(null);
+      setSaving(false);
     }
   };
 
-  const renderMenuCard = (item: MenuItem) => {
-    const children = item.children ?? [];
-    const isSectionSaving = savingMenuId === item.id;
-    const disabled = !selectedRoleId || loading || isSectionSaving;
+  const handleReset = () => {
+    if (dirtyIds.length === 0) return;
+    setMenuPermissions((prev) => {
+      const next: Record<number, DraftFlags> = {};
+      for (const [id, flags] of Object.entries(prev)) {
+        const saved = savedSnapshot[Number(id)];
+        next[Number(id)] = saved ? { ...saved } : { ...NO_FLAGS };
+      }
+      return next;
+    });
+  };
 
-    // Standalone menu without children: single checkbox card.
-    if (children.length === 0) {
+  const renderFlagControl = (
+    ids: number[],
+    key: keyof PermFlags,
+    flags: DraftFlags,
+    disabled: boolean
+  ) => {
+    const action = ACTIONS.find((a) => a.key === key)!;
+    const anyAction = flags.canCreate || flags.canEdit || flags.canDelete;
+    const dimmed = key !== "canView" && !flags.canView;
+    const value = Boolean(flags[key]);
+
+    if (key === "canView") {
       return (
-        <label
-          key={item.id}
-          className={cn(
-            "flex cursor-pointer items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-muted/50",
-            menuPermissions[item.id] && "border-primary/40 bg-primary/[0.06]"
-          )}
-        >
-          {isSectionSaving ? (
-            <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
-          ) : (
-            <Checkbox
-              checked={menuPermissions[item.id] ?? false}
-              onCheckedChange={(checked) =>
-                handlePermissionChange(item.id, checked === true)
-              }
-              disabled={disabled}
-            />
-          )}
-          {item.icon && (
-            <IconRenderer
-              name={item.icon}
-              className="size-4 shrink-0 text-muted-foreground"
-            />
-          )}
-          <span className="truncate text-sm font-medium">{item.name}</span>
-        </label>
+        <div className="flex justify-center">
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Switch
+                    checked={value}
+                    onCheckedChange={(checked) =>
+                      handleFlagChange(ids, key, checked)
+                    }
+                    disabled={disabled}
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-56 text-xs">
+                {action.hint}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       );
     }
 
-    // Menu with a single child: one line, checkbox controls parent + child.
-    if (children.length === 1) {
-      const child = children[0];
-      const checked =
-        (menuPermissions[item.id] ?? false) &&
-        (menuPermissions[child.id] ?? false);
+    return (
+      <div className="flex justify-center">
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className={cn(dimmed && !anyAction && "opacity-35")}>
+                <Checkbox
+                  checked={value}
+                  onCheckedChange={(checked) =>
+                    handleFlagChange(ids, key, checked === true)
+                  }
+                  disabled={disabled}
+                  aria-label={`${action.label} permission`}
+                  className="size-4.5"
+                />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-56 text-xs">
+              {action.hint}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    );
+  };
 
-      return (
-        <label
-          key={item.id}
-          className={cn(
-            "flex cursor-pointer items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-muted/50",
-            checked && "border-primary/40 bg-primary/[0.06]"
-          )}
-        >
-          {isSectionSaving ? (
-            <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
-          ) : (
-            <Checkbox
-              checked={checked}
-              onCheckedChange={(checked) =>
-                handleSectionChange(item, checked === true)
-              }
-              disabled={disabled}
-            />
-          )}
-          {item.icon && (
-            <IconRenderer
-              name={item.icon}
-              className="size-4 shrink-0 text-muted-foreground"
-            />
-          )}
-          <span className="truncate text-sm font-medium">{item.name}</span>
-        </label>
-      );
-    }
-
-    // Section with children: parent checkbox + grid of child checkboxes.
-    const checkedCount = children.filter((c) => menuPermissions[c.id]).length;
-    const allChecked = checkedCount === children.length;
-    const someChecked = checkedCount > 0 && !allChecked;
+  const renderRow = (
+    ids: number[],
+    label: string,
+    icon?: string | null,
+    isChild = false
+  ) => {
+    const flags = menuPermissions[ids[0]] ?? NO_FLAGS;
+    const disabled = !selectedRoleId || loading || saving;
+    const granted = flags.canView;
 
     return (
       <div
-        key={item.id}
+        key={ids.join("-")}
         className={cn(
-          "overflow-hidden rounded-lg border bg-card transition-colors",
-          allChecked && "border-primary/40"
+          GRID_COLS,
+          "h-11 border-b px-3 transition-colors last:border-b-0",
+          isChild && "pl-3",
+          granted ? "bg-primary/[0.04]" : "bg-transparent",
+          flags.dirty && "bg-amber-50/70 dark:bg-amber-950/20",
+          "hover:bg-muted/50"
         )}
       >
-        <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2.5">
-          <label className="flex min-w-0 cursor-pointer items-center gap-2.5">
-            {isSectionSaving ? (
-              <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
-            ) : (
-              <Checkbox
-                checked={
-                  someChecked ? "indeterminate" : allChecked ? true : false
-                }
-                onCheckedChange={(checked) =>
-                  handleSectionChange(item, checked === true)
-                }
-                disabled={disabled}
-              />
+        <div className="flex min-w-0 items-center gap-2.5">
+          {flags.dirty && (
+            <span
+              className="size-1.5 shrink-0 rounded-full bg-amber-500"
+              title="Unsaved change"
+            />
+          )}
+          {icon && (
+            <IconRenderer
+              name={icon}
+              className="size-4 shrink-0 text-muted-foreground"
+            />
+          )}
+          <span
+            className={cn(
+              "truncate text-sm",
+              isChild ? "text-primaryColor/90" : "text-primaryColor font-medium"
             )}
+          >
+            {label}
+          </span>
+        </div>
+        {ACTIONS.map(({ key }) => (
+          <span key={key} className="contents">
+            {renderFlagControl(ids, key, flags, disabled)}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
+  const renderSection = (item: MenuItem) => {
+    const children = item.children ?? [];
+    const disabled = !selectedRoleId || loading || saving;
+
+    // No children: plain row.
+    if (children.length === 0) {
+      return renderRow([item.id], item.name, item.icon);
+    }
+
+    // One child: single row that controls parent + child together.
+    if (children.length === 1) {
+      return renderRow([item.id, children[0].id], item.name, item.icon);
+    }
+
+    const grantedCount = children.filter(
+      (c) => menuPermissions[c.id]?.canView
+    ).length;
+    const allGranted = grantedCount === children.length;
+    const expanded = expandedSections.has(item.id);
+
+    return (
+      <div key={item.id} className="overflow-hidden">
+        <div
+          className={cn(
+            "flex h-11 items-center gap-2 border-b bg-muted/50 px-3",
+            allGranted && "bg-primary/[0.07]"
+          )}
+        >
+          <button
+            onClick={() => toggleSection(item.id)}
+            className="flex min-w-0 flex-1 items-center gap-2 text-left"
+            disabled={disabled}
+          >
+            <ChevronDown
+              className={cn(
+                "size-4 shrink-0 text-muted-foreground transition-transform",
+                !expanded && "-rotate-90"
+              )}
+            />
             {item.icon && (
               <IconRenderer
                 name={item.icon}
                 className="size-4 shrink-0 text-muted-foreground"
               />
             )}
-            <span className="truncate text-sm font-semibold">{item.name}</span>
-          </label>
-          <Badge
-            variant={allChecked ? "default" : "secondary"}
-            className="shrink-0 tabular-nums"
-          >
-            {checkedCount}/{children.length}
-          </Badge>
+            <span className="truncate text-sm font-semibold text-primaryColor">{item.name}</span>
+            <Badge
+              variant={allGranted ? "default" : "secondary"}
+              className="shrink-0 tabular-nums"
+            >
+              {grantedCount}/{children.length}
+            </Badge>
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 shrink-0 px-2 text-xs"
+                disabled={disabled}
+              >
+                Bulk
+                <ChevronDown className="ml-1 size-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => handleSectionPreset(item, ALL_FLAGS)}
+              >
+                Grant all actions
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleSectionPreset(item, VIEW_ONLY)}
+              >
+                View only
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600"
+                onClick={() => handleSectionPreset(item, NO_FLAGS)}
+              >
+                Revoke all
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-3 xl:grid-cols-5">
-          {children.map((child) => (
-            <label
-              key={child.id}
-              className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-2 text-sm transition-colors hover:bg-muted/50",
-                menuPermissions[child.id]
-                  ? "border-primary/40 bg-primary/[0.06]"
-                  : "bg-background"
-              )}
-            >
-              <Checkbox
-                checked={menuPermissions[child.id] ?? false}
-                onCheckedChange={(checked) =>
-                  handlePermissionChange(child.id, checked === true)
-                }
-                disabled={disabled}
-              />
-              <span className="truncate">{child.name}</span>
-            </label>
+        {expanded && (
+          <div>
+            {children.map((child) =>
+              renderRow([child.id], child.name, child.icon, true)
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderMatrix = () => {
+    const sections = filteredMenus;
+    const disabled = !selectedRoleId || loading || saving;
+
+    if (sections.length === 0) {
+      return (
+        <div className="flex flex-col items-center gap-2 py-14 text-muted-foreground">
+          <SearchX className="size-8" strokeWidth={1.5} />
+          <p className="text-sm">
+            {searchTerm
+              ? `No menus match "${searchTerm}"`
+              : `No ${panel} menus available`}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="overflow-hidden rounded-xl border bg-card">
+        {/* Sticky column headers */}
+        <div
+          className={cn(
+            GRID_COLS,
+            "sticky top-0 z-10 border-b bg-muted/70 px-3 backdrop-blur py-2"
+          )}
+        >
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Module
+          </span>
+          {ACTIONS.map(({ key, label, icon: Icon, hint }) => (
+            <TooltipProvider key={key} delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex cursor-default items-center justify-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <Icon className="size-3.5" />
+                    <span className="hidden sm:inline">{label}</span>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-60 text-xs">
+                  {hint}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           ))}
+        </div>
+        <div className="max-h-[calc(100vh-320px)] overflow-y-auto">
+          {sections.map((item) => renderSection(item))}
         </div>
       </div>
     );
   };
 
-  const renderPanel = (isAdminPanel: boolean) => {
-    const menus = isAdminPanel ? filteredAdminMenus : filteredUserMenus;
-    const panelName = isAdminPanel ? "Admin Panel" : "User Panel";
-    const searchPlaceholder = isAdminPanel
-      ? "Search admin menus..."
-      : "Search user menus...";
-    const noResultsMessage = searchTerm
-      ? `No ${panelName.toLowerCase()} menus match "${searchTerm}"`
-      : `No ${panelName.toLowerCase()} menus available`;
-
-    // Single-line cards flow into a grid; multi-child sections span the
-    // full width so their child grids get room.
-    const singles = menus.filter((m) => (m.children?.length ?? 0) <= 1);
-    const sections = menus.filter((m) => (m.children?.length ?? 0) > 1);
-
-    return (
-      <section className="overflow-hidden rounded-xl border bg-background">
-        <div className="flex flex-col gap-3 border-b bg-muted/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="text-sm font-semibold">{panelName} Menus</span>
-            <Badge variant="outline" className="shrink-0 tabular-nums">
-              {menus.length} {menus.length === 1 ? "menu" : "menus"}
-            </Badge>
-          </div>
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder={searchPlaceholder}
-              className="h-8 pl-8 text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {menus.length > 0 ? (
-          <div className="space-y-4 p-3 sm:p-4">
-            {singles.length > 0 && (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                {singles.map((item) => renderMenuCard(item))}
-              </div>
-            )}
-            {sections.map((item) => renderMenuCard(item))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
-            <SearchX className="size-8" strokeWidth={1.5} />
-            <p className="text-sm">{noResultsMessage}</p>
-          </div>
-        )}
-      </section>
-    );
-  };
+  const canManage = Boolean(selectedRoleId) && !loading;
 
   return (
     <div className="w-full p-2 md:p-6">
       <PageHeader
-        title="Menu Permissions"
-        description="Assign menu permissions to different roles. Select a role and check menu visibility."
+        title="Role Permissions"
+        description="Pick a role, then set what it can do in each module. View controls sidebar visibility; Create, Edit and Delete are enforced on the API."
       />
 
-      <div className="mb-6 flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <label className="text-sm font-medium">Select Role</label>
-          <Select
-            value={selectedRoleId}
-            onValueChange={setSelectedRoleId}
-            disabled={roles.length === 0}
-          >
-            <SelectTrigger className="w-full sm:w-56">
-              <SelectValue placeholder="Select a role" />
-            </SelectTrigger>
-            <SelectContent>
-              {roles?.map((role) => (
-                <SelectItem key={role.id} value={role.id.toString()}>
-                  {capitalizeFirstLetter(role.rolename)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {selectedRole && (
-            <Badge variant="secondary" className="w-fit capitalize">
-              {selectedRole.rolename}
-            </Badge>
-          )}
+      {/* Sticky toolbar */}
+      <div className="sticky top-2 z-20 mb-4 rounded-xl border bg-card/95 p-3 shadow-sm backdrop-blur md:p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="text-sm font-medium text-primaryColor">Role</label>
+            <Select
+              value={selectedRoleId}
+              onValueChange={setSelectedRoleId}
+              disabled={roles.length === 0}
+            >
+              <SelectTrigger className="w-full sm:w-56">
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                {roles?.map((role) => (
+                  <SelectItem key={role.id} value={role.id.toString()}>
+                    {capitalizeFirstLetter(role.rolename)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedRole && (
+              <Badge variant="secondary" className="capitalize">
+                {selectedRole.rolename}
+              </Badge>
+            )}
+            {canManage && (
+              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <ShieldCheck className="size-4 text-primary" />
+                <span className="tabular-nums">
+                  <span className="font-semibold text-primaryColor">
+                    {grantedCount}
+                  </span>
+                  /{totalCount} visible
+                </span>
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative w-full sm:w-56">
+              <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search modules..."
+                className="h-9 pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            {dirtyIds.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleReset}
+                disabled={saving}
+              >
+                <RotateCcw className="size-4" />
+                Discard
+              </Button>
+            )}
+            <Button
+              onClick={handleSave}
+              disabled={saving || dirtyIds.length === 0}
+              size="sm"
+              className="min-w-32"
+            >
+              {saving ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Save className="size-4" />
+              )}
+              {dirtyIds.length > 0
+                ? `Save ${dirtyIds.length} change${dirtyIds.length > 1 ? "s" : ""}`
+                : "All saved"}
+            </Button>
+          </div>
         </div>
 
-        {selectedRoleId && !loading && totalCount > 0 && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <ShieldCheck className="size-4 text-primary" />
-            <span className="tabular-nums">
-              <span className="font-semibold text-foreground">
-                {grantedCount}
-              </span>
-              /{totalCount} menus granted
-            </span>
-          </div>
-        )}
+        {/* Legend */}
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-2.5 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <Switch checked disabled className="h-4 w-7 [&>span]:size-3" />
+            View = visible in sidebar
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Checkbox checked disabled className="size-3.5" />
+            Create / Edit / Delete enforced on the API
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-amber-500" />
+            unsaved change
+          </span>
+        </div>
       </div>
 
       {loading ? (
-        <LoadingIndicator message="Loading Menu Permissions..." />
-      ) : (
-        <div className="space-y-6">
-          {selectedRoleId && (
-            <>
-              {/* Render Admin Panel for non-customer roles */}
-              {!isCustomerRole && renderPanel(true)}
-
-              {/* Render User Panel only for customer roles */}
-              {isCustomerRole && renderPanel(false)}
-            </>
-          )}
-
-          {!selectedRoleId && (
-            <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
-              <ShieldCheck
-                className="size-10 text-muted-foreground/50"
-                strokeWidth={1.5}
-              />
-              <div>
-                <p className="font-medium">No role selected</p>
-                <p className="text-sm text-muted-foreground">
-                  Select a role above to view and manage its menu permissions
-                </p>
-              </div>
-            </div>
-          )}
+        <LoadingIndicator message="Loading Role Permissions..." />
+      ) : !selectedRoleId ? (
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-20 text-center">
+          <ShieldCheck
+            className="size-10 text-muted-foreground/50"
+            strokeWidth={1.5}
+          />
+          <div>
+            <p className="font-medium text-primaryColor">No role selected</p>
+            <p className="text-sm text-muted-foreground">
+              Select a role above to configure its module permissions
+            </p>
+          </div>
         </div>
+      ) : (
+        <Tabs
+          value={panel}
+          onValueChange={(v) => setPanel(v as "admin" | "user")}
+        >
+          <TabsList className="mb-3">
+            <TabsTrigger value="admin" disabled={isCustomerRole}>
+              Admin modules
+              <Badge variant="outline" className="ml-2 tabular-nums">
+                {adminMenus.length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="user" disabled={!isCustomerRole}>
+              Customer modules
+              <Badge variant="outline" className="ml-2 tabular-nums">
+                {userMenus.length}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+          {renderMatrix()}
+        </Tabs>
       )}
     </div>
   );

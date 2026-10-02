@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchData, formPostData, patchData } from "@/utils/api-utils";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { BusinessSettings } from "@/utils/types";
 import {
   Building2,
@@ -131,6 +132,8 @@ function LogoTile({
 }
 
 export function BusinessSettingsCard() {
+  const MENU_URL = "/admin/settings/business-info";
+  const { can } = usePermissions();
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [draft, setDraft] = useState<BusinessSettingsForm>(EMPTY_FORM);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -263,15 +266,17 @@ export function BusinessSettingsCard() {
                   Used across the storefront, chat, invoices and reports.
                 </p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleEdit}
-                className="w-full sm:w-auto sm:shrink-0"
-              >
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
+              {can(MENU_URL, "canEdit") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEdit}
+                  className="w-full sm:w-auto sm:shrink-0"
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              )}
             </div>
 
             <div className="mt-6 grid gap-6 lg:grid-cols-[auto,1fr] lg:gap-8">

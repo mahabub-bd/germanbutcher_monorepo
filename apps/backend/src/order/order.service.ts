@@ -1341,7 +1341,7 @@ export class OrderService {
       conditions.push(`o."createdAt" <= $${params.length}`);
     }
 
-    const rows: Record<string, string>[] = await this.orderRepository.query(
+    const rows: Record<string, any>[] = await this.orderRepository.query(
       `SELECT dm.id, dm.name, dm."mobileNumber", dm."isActive",
               COUNT(o.id) AS deliveries,
               COALESCE(SUM(o."totalValue"), 0) AS delivered_value
@@ -1356,7 +1356,10 @@ export class OrderService {
       id: parseInt(row.id, 10),
       name: row.name,
       mobileNumber: row.mobileNumber,
-      isActive: row.isActive === 'true' || row.isActive === 't',
+      isActive:
+        row.isActive === true ||
+        row.isActive === 'true' ||
+        row.isActive === 't',
       deliveries: parseInt(row.deliveries, 10) || 0,
       deliveredValue: parseFloat(row.delivered_value) || 0,
     }));

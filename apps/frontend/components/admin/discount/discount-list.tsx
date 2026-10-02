@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/table";
 
 import { PaginationComponent } from "@/components/common/pagination";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { fetchDataPagination, patchData } from "@/utils/api-utils";
 import {
@@ -72,6 +73,8 @@ export function DiscountList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const MENU_URL = "/admin/marketing/discounts/discount-list";
+  const { can } = usePermissions();
 
   const getInitialParam = (key: string) => {
     const param = searchParams?.get(key);
@@ -327,13 +330,14 @@ export function DiscountList({
         brandFilter ||
         statusFilter ||
         discountTypeFilter
-      ) && (
-        <Button asChild className="mt-4">
-          <Link href="/admin/marketing/discounts/add">
-            <Plus className="mr-2 h-4 w-4" /> Create Discount
-          </Link>
-        </Button>
-      )}
+      ) &&
+        can(MENU_URL, "canCreate") && (
+          <Button asChild className="mt-4">
+            <Link href="/admin/marketing/discounts/add">
+              <Plus className="mr-2 h-4 w-4" /> Create Discount
+            </Link>
+          </Button>
+        )}
       {(searchQuery ||
         categoryFilter ||
         brandFilter ||
@@ -535,17 +539,21 @@ export function DiscountList({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/products/${product.id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDeleteClick(product)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Remove Discount
-                      </DropdownMenuItem>
+                      {can(MENU_URL, "canEdit") && (
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/products/${product.id}/edit`}>
+                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      {can(MENU_URL, "canDelete") && (
+                        <DropdownMenuItem
+                          className="text-red-600"
+                          onClick={() => handleDeleteClick(product)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Remove Discount
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -563,8 +571,12 @@ export function DiscountList({
         <PageHeader
           title="Product Discounts"
           description="Manage your product discounts and promotions"
-          actionLabel="Create Discount"
-          actionHref="/admin/marketing/discounts/add"
+          {...(can(MENU_URL, "canCreate")
+            ? {
+                actionLabel: "Create Discount",
+                actionHref: "/admin/marketing/discounts/add",
+              }
+            : {})}
         />
 
         <div className="space-y-4">

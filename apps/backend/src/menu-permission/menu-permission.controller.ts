@@ -8,6 +8,8 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -21,10 +23,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Request } from 'express';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Menu } from 'src/menu/entities/menu.entity';
+import { BulkSavePermissionsDto } from './dto/bulk-save-permissions.dto';
 import { CreateMenuPermissionDto } from './dto/create-menu-permission.dto';
 import { UpdateMenuPermissionDto } from './dto/update-menu-permission.dto';
 import { MenuPermission } from './entities/menu-permission.entity';
@@ -112,6 +116,53 @@ export class MenuPermissionController {
     );
     return {
       message: 'Menu permission updated successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @Put('role/:roleId')
+  @Roles('superadmin')
+  @ApiOperation({
+    summary: 'Bulk save role permissions',
+    description:
+      'Upsert a batch of menu permissions (view/create/edit/delete) for a role. Rows not included are left unchanged.',
+  })
+  @ApiParam({ name: 'roleId', type: Number, description: 'Role ID' })
+  @ApiBody({ type: BulkSavePermissionsDto })
+  @ApiOkResponse({ description: 'Menu permissions saved successfully' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid input data' })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden - Requires superadmin role' })
+  async bulkSave(
+    @Param('roleId', ParseIntPipe) roleId: number,
+    @Body() dto: BulkSavePermissionsDto,
+  ) {
+    const data = await this.menuPermissionService.savePermissionsForRole(
+      roleId,
+      dto.permissions,
+    );
+    return {
+      message: 'Menu permissions saved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @Get('my-permissions')
+  @ApiOperation({
+    summary: 'Get my permissions',
+    description:
+      'Fresh DB-truth view/create/edit/delete permissions of the logged-in user for every admin menu.',
+  })
+  @ApiOkResponse({ description: 'My permissions retrieved successfully' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
+  async myPermissions(@Req() req: Request) {
+    // JWT validate() puts the id on `userId`, not `id`
+    const data = await this.menuPermissionService.getMyPermissions(
+      (req.user as { userId: number }).userId,
+    );
+    return {
+      message: 'My permissions retrieved successfully',
       statusCode: HttpStatus.OK,
       data,
     };

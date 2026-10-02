@@ -25,8 +25,9 @@ import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
 import { Supplier } from './entities/supplier.entity';
 
-import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { PaginatedResponseDto } from 'src/common/dto/paginated-response.dto';
 import { ApiResponseDto } from 'src/common/types';
 import { User } from 'src/user/entities/user.entity';
@@ -34,10 +35,11 @@ import { SuppliersService } from './supplier.service';
 
 @ApiTags('Suppliers')
 @ApiBearerAuth('token')
+@UseGuards(JwtAuthGuard, PermissionGuard)
+@ModulePermissions('/admin/procurement/suppliers')
 @Controller('suppliers')
 export class SuppliersController {
   constructor(private readonly suppliersService: SuppliersService) {}
-  @UseGuards(AdminGuard, JwtAuthGuard)
   @Post()
   @ApiOperation({ summary: 'Create a new supplier' })
   @ApiResponse({
@@ -59,7 +61,6 @@ export class SuppliersController {
       data,
     };
   }
-  @UseGuards(JwtAuthGuard)
   @Get()
   @ApiOperation({ summary: 'Get all suppliers with pagination and filtering' })
   @ApiQuery({
@@ -126,7 +127,6 @@ export class SuppliersController {
       totalPages: Math.ceil(total / limit),
     };
   }
-  @UseGuards(JwtAuthGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Get a supplier by ID' })
   @ApiParam({ name: 'id', type: Number, description: 'Supplier ID' })
@@ -149,7 +149,6 @@ export class SuppliersController {
       data,
     };
   }
-  @UseGuards(AdminGuard, JwtAuthGuard)
   @Patch(':id')
   @ApiOperation({ summary: 'Update a supplier' })
   @ApiParam({ name: 'id', type: Number, description: 'Supplier ID' })
@@ -178,7 +177,6 @@ export class SuppliersController {
       data,
     };
   }
-  @UseGuards(AdminGuard, JwtAuthGuard)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a supplier' })
   @ApiParam({ name: 'id', type: Number, description: 'Supplier ID' })
