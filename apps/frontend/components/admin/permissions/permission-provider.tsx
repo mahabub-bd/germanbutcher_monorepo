@@ -8,28 +8,24 @@ import {
   type ReactNode,
 } from "react";
 import { fetchProtectedData } from "@/utils/api-utils";
+import type { MenuPermissionFlags, MyPermissions } from "@/utils/types";
 
+export type { MenuPermissionFlags } from "@/utils/types";
 export type PermAction = "canView" | "canCreate" | "canEdit" | "canDelete";
-
-export interface MenuPermissionFlags {
-  menuId: number;
-  name: string;
-  url: string;
-  canView: boolean;
-  canCreate: boolean;
-  canEdit: boolean;
-  canDelete: boolean;
-}
 
 interface PermissionContextValue {
   isLoading: boolean;
+  roleId: number;
   roleName: string;
+  isActive: boolean;
   permissions: Map<string, MenuPermissionFlags>;
 }
 
 const defaultContext: PermissionContextValue = {
   isLoading: true,
+  roleId: 0,
   roleName: "",
+  isActive: true,
   permissions: new Map(),
 };
 
@@ -53,10 +49,9 @@ export function PermissionProvider({
     let active = true;
     (async () => {
       try {
-        const res = await fetchProtectedData<{
-          roleName: string;
-          permissions: MenuPermissionFlags[];
-        }>("menu-permissions/my-permissions");
+        const res = await fetchProtectedData<MyPermissions>(
+          "menu-permissions/my-permissions"
+        );
         if (!active) return;
         const map = new Map<string, MenuPermissionFlags>();
         for (const p of res.permissions ?? []) {
@@ -64,7 +59,9 @@ export function PermissionProvider({
         }
         setValue({
           isLoading: false,
+          roleId: res.roleId ?? 0,
           roleName: res.roleName ?? (userIsAdmin ? "superadmin" : ""),
+          isActive: res.isActive ?? true,
           permissions: map,
         });
       } catch (error) {
@@ -72,7 +69,9 @@ export function PermissionProvider({
         console.error("Failed to load permissions:", error);
         setValue({
           isLoading: false,
+          roleId: 0,
           roleName: userIsAdmin ? "superadmin" : "",
+          isActive: true,
           permissions: new Map(),
         });
       }

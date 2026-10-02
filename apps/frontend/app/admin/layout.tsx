@@ -64,11 +64,8 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen bg-background">
       <Suspense fallback={<AdminLayoutSkeleton />}>
-        <AdminLayoutClient user={user} />
+        <AdminLayoutClient user={user}>{children}</AdminLayoutClient>
       </Suspense>
-      <div className="transition-all duration-300 ease-in-out pt-1 md:pt-0 md:pl-[250px] lg:pl-[260px]">
-        <main className="md:p-4 p-2">{children}</main>
-      </div>
     </div>
   );
 }

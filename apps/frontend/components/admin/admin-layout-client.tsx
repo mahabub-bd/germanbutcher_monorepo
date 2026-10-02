@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
+import { RequirePermission } from "./permissions/require-permission";
 import { PermissionProvider } from "./permissions/permission-provider";
 import { AdminHeader } from "./admin-header";
 import { SidebarMenu } from "./sidebar-menu";
@@ -19,9 +20,13 @@ interface UserData {
 
 interface AdminLayoutClientProps {
   user: UserData | null;
+  children: ReactNode;
 }
 
-export function AdminLayoutClient({ user }: AdminLayoutClientProps) {
+export function AdminLayoutClient({
+  user,
+  children,
+}: AdminLayoutClientProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Older session cookies may carry isAdmin:false with roles as an object —
@@ -57,6 +62,11 @@ export function AdminLayoutClient({ user }: AdminLayoutClientProps) {
         user={safeUser}
         onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)}
       />
+      <div className="transition-all duration-300 ease-in-out pt-1 md:pt-0 md:pl-[250px] lg:pl-[260px]">
+        <main className="md:p-4 p-2">
+          <RequirePermission>{children}</RequirePermission>
+        </main>
+      </div>
     </PermissionProvider>
   );
 }

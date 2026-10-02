@@ -357,7 +357,7 @@ export function OrderList({
   const renderTableView = () => (
     <div className="">
       <div className="overflow-x-auto">
-        <Table className="min-w-[960px]">
+        <Table className="min-w-[1040px]">
           <TableHeader>
             <TableRow>
               <TableHead className="w-24">Order ID</TableHead>
@@ -369,6 +369,7 @@ export function OrderList({
 
               <TableHead>Payment Method</TableHead>
               <TableHead>Shipping Method</TableHead>
+              <TableHead>Area</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -401,6 +402,9 @@ export function OrderList({
                   <TableCell>
                     <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
+                  <TableCell>
+                    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="h-4 w-20 bg-gray-200 rounded animate-pulse ml-auto" />
                   </TableCell>
@@ -411,7 +415,7 @@ export function OrderList({
               ))
             ) : orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-12">
+                <TableCell colSpan={11} className="text-center py-12">
                   <div className="flex flex-col items-center gap-3">
                     <ShoppingCart className="h-12 w-12 text-muted-foreground" />
                     <div className="space-y-1">
@@ -517,6 +521,12 @@ export function OrderList({
                         {getShippingMethodIcon(order.shippingMethod?.name || "")}
                         {order.shippingMethod?.name || "N/A"}
                       </span>
+                    </Badge>
+                  </TableCell>
+
+                  <TableCell>
+                    <Badge variant="secondary" className="max-w-40 truncate font-normal">
+                      {order.shippingAddress?.area || order.address?.area || "N/A"}
                     </Badge>
                   </TableCell>
 
