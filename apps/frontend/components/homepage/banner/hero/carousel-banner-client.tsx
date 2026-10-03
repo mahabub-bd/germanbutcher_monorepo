@@ -148,26 +148,6 @@ export function CarouselBannerClient({
       onTouchEnd={handleTouchEnd}
       data-carousel
     >
-      <style jsx>{`
-        .carousel-slide {
-          transition: opacity 700ms ease-in-out;
-          will-change: opacity;
-        }
-        .dots {
-          display: flex;
-          gap: 0.5rem;
-        }
-        .dot {
-          width: 32px;
-          height: 12px;
-          border-radius: 9999px;
-          background: rgba(255, 255, 255, 0.4);
-        }
-        .dot.active {
-          background: var(--primary-color, rgb(0, 0, 0));
-        }
-      `}</style>
-
       {/* Preload next image */}
       {banners[(current + 1) % banners.length]?.image?.url && (
         <link
@@ -184,7 +164,7 @@ export function CarouselBannerClient({
           return (
             <div
               key={slide.id}
-              className={`carousel-slide absolute inset-0 w-full h-full ${isActive ? "opacity-100 z-10" : "opacity-0 z-0"}`}
+              className={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out will-change-[opacity] ${isActive ? "opacity-100 z-10" : "opacity-0 z-0"}`}
               aria-hidden={!isActive}
             >
               <Image
@@ -255,18 +235,15 @@ export function CarouselBannerClient({
 
       {/* Dots */}
       <div className="absolute bottom-4 left-0 right-0 flex justify-center z-20 pointer-events-none">
-        <div className="dots pointer-events-auto">
+        <div className="flex gap-2 pointer-events-auto">
           {banners.map((_, i) => (
             <button
               key={i}
               aria-label={`Go to slide ${i + 1}`}
               onClick={() => setCurrent(i)}
-              className={`dot ${i === current ? "active" : ""}`}
-              style={{
-                border: "none",
-                cursor: "pointer",
-                opacity: i === current ? 1 : 0.6,
-              }}
+              className={`w-8 h-3 rounded-full border-none cursor-pointer transition-colors ${
+                i === current ? "bg-primaryColor opacity-100" : "bg-white/40 opacity-60"
+              }`}
             />
           ))}
         </div>

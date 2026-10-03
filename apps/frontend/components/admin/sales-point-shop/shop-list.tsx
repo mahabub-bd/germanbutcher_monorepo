@@ -2,9 +2,9 @@
 
 import type React from "react";
 
-import { PaginationComponent } from "@/components/common/pagination";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
-import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
+import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,8 +29,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 
 import { divisions } from "@/constants";
 import type { SalesPoint, Shop } from "@/utils/types";
