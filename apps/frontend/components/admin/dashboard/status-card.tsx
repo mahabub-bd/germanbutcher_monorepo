@@ -42,6 +42,12 @@ interface StatusCardProps {
     text: string;
     color?: "success" | "warning" | "danger" | "info" | "default";
   };
+  /** Renders a thin percentage progress bar along the card's bottom edge. */
+  progress?: {
+    percent: number;
+    /** Tailwind class for the filled portion, e.g. "bg-green-500". */
+    barClass: string;
+  };
 }
 
 export function StatusCard({
@@ -52,6 +58,7 @@ export function StatusCard({
   color = "text-gray-700 dark:text-gray-300",
   gradient,
   badge,
+  progress,
 }: StatusCardProps) {
   return (
     <Link
@@ -87,6 +94,18 @@ export function StatusCard({
           </Badge>
         )}
       </div>
+
+      {/* Percentage progress bar along the bottom edge */}
+      {progress && (
+        <div className="absolute inset-x-0 bottom-0 h-1 bg-gray-200/70 dark:bg-gray-700/70">
+          <div
+            className={cn("h-full transition-[width] duration-500", progress.barClass)}
+            style={{
+              width: `${Math.min(100, Math.max(0, progress.percent))}%`,
+            }}
+          />
+        </div>
+      )}
     </Link>
   );
 }

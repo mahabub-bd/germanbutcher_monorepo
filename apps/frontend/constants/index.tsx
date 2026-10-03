@@ -441,6 +441,9 @@ export const contactInfo = [
   },
 ];
 
+export const footerTagline =
+  "Premium quality meats, sausages, steaks and gourmet products, delivered fresh to your doorstep.";
+
 export const footerMenuData = {
   company: {
     title: "Company",

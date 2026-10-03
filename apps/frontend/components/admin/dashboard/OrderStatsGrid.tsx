@@ -32,6 +32,10 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
     return `/admin/orders/${status}?page=1&limit=10&orderStatus=${status}`;
   };
 
+  // Percentage of total orders, safe against a zero-order day.
+  const percentOf = (count: number) =>
+    data.totalOrders > 0 ? (count / data.totalOrders) * 100 : 0;
+
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-6">
       {/* All Orders */}
@@ -42,6 +46,7 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
         color="text-sky-600 dark:text-sky-400"
         gradient="from-sky-50 to-sky-100 dark:from-sky-950/20 dark:to-sky-900/10"
         href={getOrderUrl()}
+        progress={{ percent: 100, barClass: "bg-sky-500" }}
       />
 
       {/* Delivered */}
@@ -52,8 +57,12 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
         color="text-green-600 dark:text-green-400"
         gradient="from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/10"
         href={getOrderUrl("delivered")}
+        progress={{
+          percent: percentOf(data.delivered),
+          barClass: "bg-green-500",
+        }}
         badge={{
-          text: `${((data.delivered / data.totalOrders) * 100).toFixed(0)}%`,
+          text: `${percentOf(data.delivered).toFixed(0)}%`,
           color: "success",
         }}
       />
@@ -66,8 +75,12 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
         color="text-yellow-600 dark:text-yellow-400"
         gradient="from-yellow-50 to-yellow-100 dark:from-yellow-950/20 dark:to-yellow-900/10"
         href={getOrderUrl("pending")}
+        progress={{
+          percent: percentOf(data.pending),
+          barClass: "bg-yellow-400",
+        }}
         badge={{
-          text: `${((data.pending / data.totalOrders) * 100).toFixed(0)}%`,
+          text: `${percentOf(data.pending).toFixed(0)}%`,
           color: "warning",
         }}
       />
@@ -80,8 +93,12 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
         color="text-blue-600 dark:text-blue-400"
         gradient="from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/10"
         href={getOrderUrl("processing")}
+        progress={{
+          percent: percentOf(data.processing),
+          barClass: "bg-blue-500",
+        }}
         badge={{
-          text: `${((data.processing / data.totalOrders) * 100).toFixed(0)}%`,
+          text: `${percentOf(data.processing).toFixed(0)}%`,
           color: "info",
         }}
       />
@@ -94,8 +111,12 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
         color="text-purple-600 dark:text-purple-400"
         gradient="from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/10"
         href={getOrderUrl("shipped")}
+        progress={{
+          percent: percentOf(data.shipped),
+          barClass: "bg-purple-500",
+        }}
         badge={{
-          text: `${((data.shipped / data.totalOrders) * 100).toFixed(0)}%`,
+          text: `${percentOf(data.shipped).toFixed(0)}%`,
           color: "info",
         }}
       />
@@ -108,8 +129,12 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
         color="text-red-600 dark:text-red-400"
         gradient="from-red-50 to-red-100 dark:from-red-950/20 dark:to-red-900/10"
         href={getOrderUrl("cancelled")}
+        progress={{
+          percent: percentOf(data.cancelled),
+          barClass: "bg-red-500",
+        }}
         badge={{
-          text: `${((data.cancelled / data.totalOrders) * 100).toFixed(0)}%`,
+          text: `${percentOf(data.cancelled).toFixed(0)}%`,
           color: "danger",
         }}
       />

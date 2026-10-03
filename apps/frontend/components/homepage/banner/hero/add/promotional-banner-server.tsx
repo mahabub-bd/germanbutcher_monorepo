@@ -1,13 +1,5 @@
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/ui/carousel";
 import { fetchPublicData } from "@/utils/api-utils";
 import type { Banner } from "@/utils/types";
-import Autoplay from "embla-carousel-autoplay";
-import Image from "next/image";
-import Link from "next/link";
 import { PromotionalCarouselClient } from "./promotional-banner-client";
 
 interface PromotionalCarouselProps {

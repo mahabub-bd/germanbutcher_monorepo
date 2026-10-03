@@ -183,6 +183,26 @@
         /* Even lighter primaryColor */
     );
   }
+
+  /* Full-bleed backdrop for the homepage promotional banner strip. A translucent
+     white veil tones the image down so banners stay the focus; the gradient
+     stays underneath as a fallback while the image loads. */
+  .promotional-banner-bg {
+    background-image: linear-gradient(
+        rgba(255, 255, 255, 0.55),
+        rgba(255, 255, 255, 0.55)
+      ),
+      url("/images/Add%20Banner%20BG.webp"),
+      linear-gradient(
+        135deg,
+        rgba(138, 0, 0, 0.05) 0%,
+        rgba(199, 9, 9, 0.08) 50%,
+        rgba(138, 0, 0, 0.03) 100%
+      );
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
   .animate-marquee-reverse {
     animation: marquee-reverse var(--duration) linear infinite;
   }

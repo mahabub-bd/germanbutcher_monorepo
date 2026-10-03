@@ -1,5 +1,6 @@
 import GermanbutcherLogo from "@/public/images/logo.webp";
 
+import AddBannerBG from "@/public/images/Add Banner BG.webp";
 import AvatarImageIcon from "@/public/images/avatar/avatar-1.png";
 
 import BgFooter from "@/public/images/bg_footer.png";
@@ -15,18 +16,21 @@ import GBEXPRESS from "@/public/images/logo/Asset 7.png";
 import FoodSafty from "@/public/images/logo/foodsafety.png";
 import HalalImage from "@/public/images/logo/footer1.png";
 import FooterImageThree from "@/public/images/logo/footer3.png";
+import FooterBg from "@/public/images/footerbg.webp";
 import GermanQuality from "@/public/images/logo/germanquality.png";
 import HACCP from "@/public/images/logo/haccp.png";
 import OnlinePayment from "@/public/images/sslcommerz-banner.webp";
 import SSLcomarz from "@/public/images/ssllogo.png";
 
 export {
+  AddBannerBG,
   AvatarImageIcon,
   BgFooter,
   cashOnDelivery,
   Chairman,
   fastDelivery,
   FoodSafty,
+  FooterBg,
   FooterImageThree,
   GBEXPRESS,
   GermanbutcherLogo,
