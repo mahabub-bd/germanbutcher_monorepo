@@ -64,10 +64,6 @@ export const MultiSelect = forwardRef<HTMLButtonElement, MultiSelectProps>(
       option.label.toLowerCase().includes(searchValue.toLowerCase())
     );
 
-    const selectedLabels = options
-      .filter((option) => selected.includes(option.value))
-      .map((option) => option.label);
-
     useEffect(() => {
       if (selected.length === 0) {
         setSearchValue("");
@@ -90,23 +86,33 @@ export const MultiSelect = forwardRef<HTMLButtonElement, MultiSelectProps>(
           >
             <div className="flex flex-wrap gap-1">
               {selected.length > 0 ? (
-                selectedLabels.map((label, index) => (
-                  <Badge
-                    key={selected[index]}
-                    variant="secondary"
-                    className="mr-1 mb-1"
-                  >
-                    {label}
-                    <X
-                      className="ml-1 h-3 w-3 cursor-pointer"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleUnselect(selected[index]);
-                      }}
-                    />
-                  </Badge>
-                ))
+                selected.map((value) => {
+                  const label =
+                    options.find((option) => option.value === value)?.label ??
+                    String(value);
+                  return (
+                    <Badge
+                      key={value}
+                      variant="secondary"
+                      className="mr-1 mb-1"
+                    >
+                      {label}
+                      <X
+                        className="ml-1 h-3 w-3 cursor-pointer"
+                        onPointerDown={(e) => {
+                          // Keep the trigger's popover from toggling —
+                          // Radix acts on pointerdown, before click.
+                          e.stopPropagation();
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleUnselect(value);
+                        }}
+                      />
+                    </Badge>
+                  );
+                })
               ) : (
                 <span className="text-muted-foreground">{placeholder}</span>
               )}

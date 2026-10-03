@@ -5,6 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatDateTime } from "@/lib/utils";
+import {
+  getOrderStatusColor,
+  getPaymentStatusColor,
+  getStatusIcon,
+} from "@/utils/order-helper";
 import { CouponUsageLog } from "@/utils/types";
 import { getCouponUsageLogById } from "@/lib/coupon-usage-log-service";
 import {
@@ -46,35 +51,6 @@ export function CouponUsageLogDetail({ logId }: { logId: string | number }) {
 
     fetchLog();
   }, [logId]);
-
-  const getOrderStatusVariant = (status: string) => {
-    switch (status) {
-      case "delivered":
-        return "default";
-      case "shipped":
-        return "secondary";
-      case "processing":
-        return "outline";
-      case "cancelled":
-        return "destructive";
-      default:
-        return "secondary";
-    }
-  };
-
-  const getPaymentStatusVariant = (status: string) => {
-    switch (status) {
-      case "completed":
-      case "paid":
-        return "default";
-      case "pending":
-        return "secondary";
-      case "failed":
-        return "destructive";
-      default:
-        return "outline";
-    }
-  };
 
   // Helper function to format values (handles both string and number)
   const formatValue = (value: number | string): string => {
@@ -211,7 +187,7 @@ export function CouponUsageLogDetail({ logId }: { logId: string | number }) {
                   <label className="text-sm text-muted-foreground">Order Number</label>
                   <div className="font-medium mt-1">
                     <Link
-                      href={`/admin/order-management/orders/${log.order.id}`}
+                      href={`/admin/order/${log.order.id}/view`}
                       className="text-blue-600 hover:underline font-mono"
                     >
                       {log.order.orderNo}
@@ -221,16 +197,28 @@ export function CouponUsageLogDetail({ logId }: { logId: string | number }) {
                 <div>
                   <label className="text-sm text-muted-foreground">Order Status</label>
                   <div className="mt-1">
-                    <Badge variant={getOrderStatusVariant(log.order.orderStatus)}>
-                      {log.order.orderStatus}
+                    <Badge
+                      variant="secondary"
+                      className={`capitalize ${getOrderStatusColor(log.order.orderStatus)}`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {getStatusIcon(log.order.orderStatus)}
+                        {log.order.orderStatus}
+                      </span>
                     </Badge>
                   </div>
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground">Payment Status</label>
                   <div className="mt-1">
-                    <Badge variant={getPaymentStatusVariant(log.order.paymentStatus)}>
-                      {log.order.paymentStatus}
+                    <Badge
+                      variant="secondary"
+                      className={`capitalize ${getPaymentStatusColor(log.order.paymentStatus)}`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {getStatusIcon(log.order.paymentStatus)}
+                        {log.order.paymentStatus}
+                      </span>
                     </Badge>
                   </div>
                 </div>
@@ -354,7 +342,7 @@ export function CouponUsageLogDetail({ logId }: { logId: string | number }) {
                 className="w-full justify-start"
                 asChild
               >
-                <Link href={`/admin/order-management/orders/${log.order.id}`}>
+                <Link href={`/admin/order/${log.order.id}/view`}>
                   <Package className="h-4 w-4 mr-2" />
                   View Order
                 </Link>

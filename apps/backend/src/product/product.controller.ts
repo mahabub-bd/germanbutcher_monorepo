@@ -377,6 +377,73 @@ export class ProductController {
     );
   }
 
+  @Get('all')
+  @ApiOperation({
+    summary: 'Get all products (minimal fields)',
+    description:
+      'Returns every product as id/name plus its category id/name — no pagination. Optionally filter by category (child categories included) and active status.',
+  })
+  @ApiQuery({
+    name: 'category',
+    required: false,
+    description: 'Filter by category ID (includes child categories)',
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    description: 'Filter by active status',
+    type: Boolean,
+  })
+  @ApiOkResponse({
+    description: 'Products retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        statusCode: { type: 'number' },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'number' },
+              name: { type: 'string' },
+              sellingPrice: { type: 'number' },
+              discountType: {
+                type: 'string',
+                enum: ['percentage', 'fixed'],
+                nullable: true,
+              },
+              discountValue: { type: 'number', nullable: true },
+              weight: { type: 'number', nullable: true },
+              unitName: { type: 'string', nullable: true },
+              attachmentUrl: { type: 'string', nullable: true },
+              categoryId: { type: 'number' },
+              categoryName: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  })
+  @CacheKey('products_all_minimal')
+  @CacheTTL(60000)
+  async getAllProductsMinimal(
+    @Query('category') categoryId: number,
+    @Query('isActive') isActive: boolean,
+  ) {
+    const products = await this.productService.findAllMinimal({
+      categoryId,
+      isActive,
+    });
+    return this.formatResponse(
+      'Products retrieved successfully',
+      HttpStatus.OK,
+      products,
+    );
+  }
+
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @ModulePermissions('/admin/reports/inventory')
   @Get('reports/low-stock')

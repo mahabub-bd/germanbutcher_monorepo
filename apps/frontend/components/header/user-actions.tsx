@@ -21,11 +21,17 @@ export default async function UserActions({
     <div
       className={cn(
         'flex items-center text-white',
-        compact ? 'gap-3' : 'gap-5',
+        compact ? 'gap-3' : 'gap-4',
         className
       )}
     >
       <AuthBtn user={user} compact={compact} />
+      {!compact && (
+        <span
+          className='hidden lg:block h-8 w-px bg-white/25'
+          aria-hidden='true'
+        />
+      )}
       <CartModalWrapper compact={compact} />
     </div>
   );

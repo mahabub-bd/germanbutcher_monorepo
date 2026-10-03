@@ -77,17 +77,17 @@ const LoginButton: React.FC<{
 }> = ({ compact, className, onSignIn }) => (
   <Button
     className={cn(
-      "flex items-center justify-center cursor-pointer rounded-full transition-all duration-200",
+      "flex items-center gap-2 cursor-pointer rounded-full transition-all duration-200",
       compact
         ? "h-8 w-8 p-0"
-        : "gap-2 border border-amber-50 bg-primaryColor hover:bg-primaryColor hover:opacity-90",
+        : "h-11 border border-white/40 bg-white/10 px-4 text-white hover:bg-white/20 hover:text-white",
       className
     )}
     onClick={onSignIn}
     aria-label="Sign in to your account"
   >
-    <User className={cn("lg:h-6 w-5 h-5 lg:w-6")} />
-    {!compact && <span className="hidden sm:inline text-lg">Login</span>}
+    <User className="size-5" />
+    {!compact && <span className="hidden sm:inline">Login</span>}
   </Button>
 );
 
@@ -274,10 +274,10 @@ const AuthBtn: React.FC<AuthBtnProps> = ({
           variant="ghost"
           size="sm"
           className={cn(
-            "relative rounded-full border border-primaryColor/20 p-0 hover:bg-primaryColor/5 transition-all duration-200",
-            "focus-visible:ring-2 focus-visible:ring-primaryColor focus-visible:ring-offset-2",
-            "text-primaryColor disabled:opacity-50",
-            buttonSize,
+            "relative rounded-full bg-white/10 text-white hover:bg-white/20 hover:text-white transition-all duration-200",
+            "focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primaryColor",
+            "disabled:opacity-50",
+            compact ? buttonSize : "h-11 px-1",
             className
           )}
           disabled={isLoggingOut}

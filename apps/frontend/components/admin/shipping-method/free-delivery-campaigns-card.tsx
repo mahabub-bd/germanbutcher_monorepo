@@ -1,5 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
@@ -11,16 +12,24 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MultiSelect, type Option } from "@/components/ui/multi-select";
+import type { Option } from "@/components/ui/multi-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { formatCurrencyEnglish } from "@/lib/utils";
+import { ProductSelector } from "@/components/admin/discount/product-selector";
+import { cn, formatCurrencyEnglish } from "@/lib/utils";
 import {
   fetchData,
   fetchProtectedData,
   patchData,
   postData,
 } from "@/utils/api-utils";
-import type { FreeDeliveryCampaign } from "@/utils/types";
+import type { FreeDeliveryCampaign, MinimalProduct } from "@/utils/types";
 import {
   Banknote,
   Calendar,
@@ -29,6 +38,7 @@ import {
   Package,
   Pencil,
   Plus,
+  Search,
   ShoppingCart,
   Tags,
   Truck,
@@ -70,7 +80,6 @@ export function FreeDeliveryCampaignsCard() {
   const MENU_URL = "/admin/marketing/free-delivery";
   const { can } = usePermissions();
   const [campaigns, setCampaigns] = useState<FreeDeliveryCampaign[]>([]);
-  const [products, setProducts] = useState<Option[]>([]);
   const [categories, setCategories] = useState<Option[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -79,25 +88,21 @@ export function FreeDeliveryCampaignsCard() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<CampaignForm>(emptyForm);
   const [errors, setErrors] = useState<FormErrors>({});
+  // Category-first product picker (products/all endpoint)
+  const [pickerProducts, setPickerProducts] = useState<MinimalProduct[]>([]);
+  const [pickerCategoryId, setPickerCategoryId] = useState("");
+  const [isLoadingPickerProducts, setIsLoadingPickerProducts] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
 
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
       try {
-        const [campaignsData, productsData, categoriesData] = await Promise.all(
-          [
-            fetchProtectedData<FreeDeliveryCampaign[]>("free-delivery-campaigns"),
-            fetchProtectedData("products"),
-            fetchData<{ id: number; name: string }[]>("categories"),
-          ]
-        );
+        const [campaignsData, categoriesData] = await Promise.all([
+          fetchProtectedData<FreeDeliveryCampaign[]>("free-delivery-campaigns"),
+          fetchData<{ id: number; name: string }[]>("categories"),
+        ]);
         setCampaigns(campaignsData ?? []);
-        setProducts(
-          (productsData as { id: number; name: string }[]).map((p) => ({
-            value: p.id,
-            label: p.name,
-          }))
-        );
         setCategories(
           (categoriesData ?? []).map((c) => ({ value: c.id, label: c.name }))
         );
@@ -111,10 +116,42 @@ export function FreeDeliveryCampaignsCard() {
     load();
   }, []);
 
+  // Load the chosen category's products via the minimal products/all endpoint
+  useEffect(() => {
+    if (!pickerCategoryId) return;
+
+    const fetchProducts = async () => {
+      setIsLoadingPickerProducts(true);
+      try {
+        const fetched = await fetchData<MinimalProduct[]>(
+          `products/all?category=${pickerCategoryId}&isActive=true`
+        );
+        if (Array.isArray(fetched)) {
+          // Merge by id so selections survive switching between categories
+          setPickerProducts((prev) => {
+            const byId = new Map(prev.map((p) => [p.id, p]));
+            fetched.forEach((p) => byId.set(p.id, p));
+            return [...byId.values()].sort((a, b) =>
+              a.name.localeCompare(b.name)
+            );
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        toast.error("Failed to load products");
+      } finally {
+        setIsLoadingPickerProducts(false);
+      }
+    };
+    fetchProducts();
+  }, [pickerCategoryId]);
+
   const resetForm = () => {
     setForm(emptyForm);
     setEditingId(null);
     setErrors({});
+    setPickerCategoryId("");
+    setProductSearch("");
   };
 
   const openCreate = () => {
@@ -143,6 +180,24 @@ export function FreeDeliveryCampaignsCard() {
     });
     setEditingId(campaign.id);
     setErrors({});
+    setProductSearch("");
+    // Seed already-selected products so their selections render in the grid
+    if (campaign.products?.length) {
+      setPickerProducts((prev) => {
+        const byId = new Map(prev.map((p) => [p.id, p]));
+        campaign.products?.forEach((p) =>
+          byId.set(p.id, {
+            id: p.id,
+            name: p.name,
+            sellingPrice: p.sellingPrice ?? 0,
+            discountType: p.discountType ?? null,
+            categoryId: p.category?.id ?? 0,
+            categoryName: p.category?.name ?? "",
+          })
+        );
+        return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+      });
+    }
     setIsEditOpen(true);
   };
 
@@ -152,6 +207,15 @@ export function FreeDeliveryCampaignsCard() {
       daysOfWeek: prev.daysOfWeek.includes(day)
         ? prev.daysOfWeek.filter((d) => d !== day)
         : [...prev.daysOfWeek, day].sort(),
+    }));
+  }
+
+  const toggleCategory = (id: number) => {
+    setForm((prev) => ({
+      ...prev,
+      categoryIds: prev.categoryIds.includes(id)
+        ? prev.categoryIds.filter((c) => c !== id)
+        : [...prev.categoryIds, id],
     }));
   }
 
@@ -394,7 +458,7 @@ export function FreeDeliveryCampaignsCard() {
 
       {/* Create / edit dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
           <DialogHeader>
             <DialogTitle>
               {editingId ? "Edit Campaign" : "New Free Delivery Campaign"}
@@ -411,7 +475,7 @@ export function FreeDeliveryCampaignsCard() {
               <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 General
               </h4>
-              <div className="grid gap-4 sm:grid-cols-[1fr,auto]">
+              <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
                 <div className="space-y-2">
                   <Label htmlFor="campaign-name">Campaign Name *</Label>
                   <Input
@@ -449,28 +513,6 @@ export function FreeDeliveryCampaignsCard() {
               <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Schedule
               </h4>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Start Date</Label>
-                  <DatePicker
-                    value={form.validFrom ?? undefined}
-                    onChange={(date) =>
-                      setForm((prev) => ({ ...prev, validFrom: date }))
-                    }
-                    placeholder="Always active"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>End Date</Label>
-                  <DatePicker
-                    value={form.validUntil ?? undefined}
-                    onChange={(date) =>
-                      setForm((prev) => ({ ...prev, validUntil: date }))
-                    }
-                    placeholder="No end date"
-                  />
-                </div>
-              </div>
               <div className="space-y-2">
                 <Label>Days of Week</Label>
                 <div className="flex flex-wrap gap-1.5">
@@ -492,7 +534,27 @@ export function FreeDeliveryCampaignsCard() {
                   Leave all unchecked for every day.
                 </p>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <DatePicker
+                    value={form.validFrom ?? undefined}
+                    onChange={(date) =>
+                      setForm((prev) => ({ ...prev, validFrom: date }))
+                    }
+                    placeholder="Always active"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>End Date</Label>
+                  <DatePicker
+                    value={form.validUntil ?? undefined}
+                    onChange={(date) =>
+                      setForm((prev) => ({ ...prev, validUntil: date }))
+                    }
+                    placeholder="No end date"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="campaign-start-time">Start Time</Label>
                   <Input
@@ -569,27 +631,89 @@ export function FreeDeliveryCampaignsCard() {
                     placeholder="No minimum"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Included Categories</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((category) => {
+                      const checked = form.categoryIds.includes(
+                        category.value
+                      );
+                      return (
+                        <label
+                          key={category.value}
+                          className={cn(
+                            "flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
+                            checked
+                              ? "border-primaryColor bg-primaryColor/10 font-medium text-primaryColor"
+                              : "border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400"
+                          )}
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() =>
+                              toggleCategory(category.value)
+                            }
+                          />
+                          {category.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Orders containing items from these categories qualify for
+                    the campaign. Leave empty for any category.
+                  </p>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
                   <Label>Products</Label>
-                  <MultiSelect
-                    options={products}
-                    selected={form.productIds}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Select
+                        value={pickerCategoryId}
+                        onValueChange={setPickerCategoryId}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Product category..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem
+                              key={category.value}
+                              value={String(category.value)}
+                            >
+                              {category.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Only filters the product list — selecting here does
+                        not include the category in the campaign
+                      </p>
+                    </div>
+                    <div className="relative self-start">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        placeholder="Search products..."
+                        className="pl-9"
+                      />
+                    </div>
+                  </div>
+                  <ProductSelector
+                    products={pickerProducts}
+                    selectedProductIds={form.productIds}
                     onChange={(selected) =>
                       setForm((prev) => ({ ...prev, productIds: selected }))
                     }
-                    placeholder="Any product"
+                    searchQuery={productSearch}
+                    isLoading={isLoadingPickerProducts}
+                    disabled={!pickerCategoryId}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label>Categories</Label>
-                  <MultiSelect
-                    options={categories}
-                    selected={form.categoryIds}
-                    onChange={(selected) =>
-                      setForm((prev) => ({ ...prev, categoryIds: selected }))
-                    }
-                    placeholder="Any category"
-                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave empty to allow any product
+                  </p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">

@@ -12,6 +12,21 @@ interface CategoryLinksProps {
   onCategoryClick?: () => void;
 }
 
+/** Module-level cache so the drawer opens instantly on every visit after
+ * the first; prefetchCategories() warms it while the page loads. */
+let categoriesCache: Category[] | null = null;
+
+export function prefetchCategories() {
+  if (categoriesCache) return;
+  fetchData<Category[]>("categories?isMainCategory=true")
+    .then((data) => {
+      categoriesCache = data;
+    })
+    .catch(() => {
+      /* prefetch is best-effort; CategoryLinks retries on open */
+    });
+}
+
 function CategorySkeleton() {
   return (
     <div className="grid grid-cols-3 gap-1.5">
@@ -87,7 +102,7 @@ function CategoryItem({
       className="group flex flex-col items-center p-1 focus:outline-none focus:ring-2 focus:ring-primaryColor/20 rounded-lg"
       onClick={onClick}
     >
-      <div className="w-24 h-24 relative rounded-lg overflow-hidden">
+      <div className="w-20 h-20 relative rounded-lg overflow-hidden">
         {category.attachment?.url ? (
           <Image
             src={category.attachment.url || "/placeholder.svg"}
@@ -104,7 +119,7 @@ function CategoryItem({
         )}
       </div>
 
-      <h3 className="text-gray-900 mt-1 h-9 font-medium text-sm text-center leading-tight group-hover:text-primaryColor transition-colors duration-200">
+      <h3 className="text-gray-900 mt-0.5 h-8 font-medium text-sm text-center leading-tight group-hover:text-primaryColor transition-colors duration-200">
         {category.name}
       </h3>
     </Link>
@@ -112,17 +127,25 @@ function CategoryItem({
 }
 
 export function CategoryLinks({ onCategoryClick }: CategoryLinksProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<Category[]>(
+    categoriesCache ?? []
+  );
+  const [loading, setLoading] = useState(!categoriesCache);
   const [error, setError] = useState(false);
 
   const loadCategories = async () => {
+    if (categoriesCache) {
+      setCategories(categoriesCache);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(false);
       const data: Category[] = await fetchData(
         "categories?isMainCategory=true"
       );
+      categoriesCache = data;
       setCategories(data);
     } catch (error) {
       console.error("Failed to load categories:", error);
@@ -134,6 +157,7 @@ export function CategoryLinks({ onCategoryClick }: CategoryLinksProps) {
 
   useEffect(() => {
     loadCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
@@ -157,7 +181,7 @@ export function CategoryLinks({ onCategoryClick }: CategoryLinksProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h2 className="text-primaryColor  text-2xl font-castor">Categories</h2>
         <div className="flex items-center gap-2">
@@ -168,14 +192,14 @@ export function CategoryLinks({ onCategoryClick }: CategoryLinksProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-3 gap-1">
         {categories.map((category, index) => (
           <div
             key={category.id}
-            className="animate-in fade-in slide-in-from-bottom-4"
+            className="animate-in fade-in slide-in-from-bottom-2"
             style={{
-              animationDelay: `${index * 20}ms`,
-              animationDuration: "200ms",
+              animationDelay: `${Math.min(index * 10, 150)}ms`,
+              animationDuration: "150ms",
               animationFillMode: "both",
             }}
           >

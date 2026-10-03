@@ -82,23 +82,38 @@ export default function SearchForm({
   );
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-0 max-w-2xl mx-auto mb-8">
-      <div className="relative">
+    <div className="w-full px-4 sm:px-6 md:px-0 max-w-xl mx-auto mb-8 pt-4 md:pt-10">
+      <div className="relative flex items-center">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-gray-400 pointer-events-none" />
+
         <Input
           type="text"
           value={localQuery}
           onChange={handleInputChange}
           onKeyPress={handleKeyPress}
-          className="md:py-6 sm:py-4 px-5 sm:px-6 rounded-2xl border-3 border-primaryColor/70 w-full text-primaryColor/70 font-medium text-sm sm:text-base lg:text-lg placeholder:text-sm sm:placeholder:text-base focus:outline-none focus:ring-2 focus:ring-primary  placeholder-red-300 focus:border-transparent"
+          className="h-11 rounded-full pl-11 bg-white border border-gray-200 shadow-sm w-full text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primaryColor/20 focus:border-primaryColor transition-all duration-200 hover:border-gray-300"
           placeholder="Search your favorite recipe"
         />
-        <Button
-          type="button"
+
+        {localQuery && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+            aria-label='Clear search'
+          >
+            <X className='w-4 h-4' />
+          </button>
+        )}
+
+        <button
+          type='button'
           onClick={handleSearchClick}
-          className="absolute top-0 right-0 bg-primaryColor text-primary-foreground px-10 sm:px-10 h-full rounded-r-2xl flex items-center justify-center hover:bg-primaryColor/90 transition-colors rounded-l-none"
+          className='absolute right-1.5 top-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full bg-primaryColor text-white transition-colors hover:bg-secondaryColor'
+          aria-label='Search'
         >
-          <Search className="w-4 h-4 sm:w-5 sm:h-5" />
-        </Button>
+          <Search className='size-4' />
+        </button>
       </div>
 
       {/* Active Search Filter */}

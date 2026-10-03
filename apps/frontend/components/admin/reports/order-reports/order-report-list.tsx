@@ -206,18 +206,31 @@ export default function OrderReportList({
 
   return (
     <div className="w-full">
-      <PageHeader
-        title="Sales Report"
-        description="Per-order sales for a date range: order value, discount and amount paid"
-      />
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <PageHeader
+          title="Sales Report"
+          description="Per-order sales for a date range: order value, discount and amount paid"
+        />
+        {orders.length > 0 && mounted && (
+          <PDFDownloadLink
+            document={<OrderReportPDF orders={orders} settings={settings} />}
+            fileName={`order-report-${new Date().toISOString().split("T")[0]}.pdf`}
+          >
+            {({ loading, error }) => (
+              <Button variant="secondary" disabled={!!error} className="w-full sm:w-auto shrink-0">
+                {error ? "PDF Error" : loading ? "Generating PDF..." : "Download PDF"}
+              </Button>
+            )}
+          </PDFDownloadLink>
+        )}
+      </div>
 
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={quickRange} onValueChange={handleQuickRange}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Quick Range" />
-            </SelectTrigger>
+      {/* Filters — 2 columns on mobile, inline row from md up */}
+      <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center md:gap-2 mb-6">
+        <Select value={quickRange} onValueChange={handleQuickRange}>
+          <SelectTrigger className="w-full md:w-[200px]">
+            <SelectValue placeholder="Quick Range" />
+          </SelectTrigger>
             <SelectContent>
               <SelectItem value={DateRangePreset.TODAY}>Today</SelectItem>
               <SelectItem value={DateRangePreset.THIS_WEEK}>This Week</SelectItem>
@@ -235,13 +248,13 @@ export default function OrderReportList({
             </SelectContent>
           </Select>
 
-          <Select
-            value={selectedOrderStatus || "all"}
-            onValueChange={handleOrderStatusChange}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Order Status" />
-            </SelectTrigger>
+        <Select
+          value={selectedOrderStatus || "all"}
+          onValueChange={handleOrderStatusChange}
+        >
+          <SelectTrigger className="w-full md:w-[200px]">
+            <SelectValue placeholder="Order Status" />
+          </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value={OrderStatus.PENDING}>Pending</SelectItem>
@@ -259,38 +272,26 @@ export default function OrderReportList({
             </SelectContent>
           </Select>
 
-          <DatePicker
-            value={startDate}
-            onChange={(date) => setStartDate(date)}
-            placeholder="From Date"
-            className="w-[200px]"
-          />
-          <DatePicker
-            value={endDate}
-            onChange={(date) => setEndDate(date)}
-            placeholder="To Date"
-            className="w-[200px]"
-          />
+        <DatePicker
+          value={startDate}
+          onChange={(date) => setStartDate(date)}
+          placeholder="From Date"
+          className="w-full md:w-[200px]"
+        />
+        <DatePicker
+          value={endDate}
+          onChange={(date) => setEndDate(date)}
+          placeholder="To Date"
+          className="w-full md:w-[200px]"
+        />
 
-          <Button onClick={handleFilter}>Filter</Button>
-          {(startDate || endDate || selectedOrderStatus !== "all") && (
-            <Button onClick={handleClear} variant="outline">
-              Clear
-            </Button>
-          )}
-        </div>
-
-        {orders.length > 0 && mounted && (
-          <PDFDownloadLink
-            document={<OrderReportPDF orders={orders} settings={settings} />}
-            fileName={`order-report-${new Date().toISOString().split("T")[0]}.pdf`}
-          >
-            {({ loading, error }) => (
-              <Button variant="secondary" disabled={!!error}>
-                {error ? "PDF Error" : loading ? "Generating PDF..." : "Download PDF"}
-              </Button>
-            )}
-          </PDFDownloadLink>
+        <Button onClick={handleFilter} className="w-full md:w-auto">
+          Filter
+        </Button>
+        {(startDate || endDate || selectedOrderStatus !== "all") && (
+          <Button onClick={handleClear} variant="outline" className="w-full md:w-auto">
+            Clear
+          </Button>
         )}
       </div>
 

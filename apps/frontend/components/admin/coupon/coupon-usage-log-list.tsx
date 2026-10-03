@@ -24,6 +24,11 @@ import {
   getCouponUsageStats,
 } from "@/lib/coupon-usage-log-service";
 import { formatDateTime } from "@/lib/utils";
+import {
+  getOrderStatusColor,
+  getPaymentStatusColor,
+  getStatusIcon,
+} from "@/utils/order-helper";
 import { CouponUsageLog } from "@/utils/types";
 import { ArrowLeft, Calendar, DollarSign, Eye, MoreHorizontal, Package, User } from "lucide-react";
 import Link from "next/link";
@@ -78,35 +83,6 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
     fetchLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couponCode, currentPage]);
-
-  const getOrderStatusVariant = (status: string) => {
-    switch (status) {
-      case "delivered":
-        return "default";
-      case "shipped":
-        return "secondary";
-      case "processing":
-        return "outline";
-      case "cancelled":
-        return "destructive";
-      default:
-        return "secondary";
-    }
-  };
-
-  const getPaymentStatusVariant = (status: string) => {
-    switch (status) {
-      case "completed":
-      case "paid":
-        return "default";
-      case "pending":
-        return "secondary";
-      case "failed":
-        return "destructive";
-      default:
-        return "outline";
-    }
-  };
 
   // Helper function to format values (handles both string and number)
   const formatValue = (value: number | string): string => {
@@ -220,7 +196,7 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
                   </TableCell>
                   <TableCell>
                     <Link
-                      href={`/admin/order-management/orders/${log.order.id}`}
+                      href={`/admin/order/${log.order.id}/view`}
                       className="text-blue-600 hover:underline font-mono text-sm"
                     >
                       {log.order.orderNo}
@@ -238,13 +214,25 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getOrderStatusVariant(log.order.orderStatus)}>
-                      {log.order.orderStatus}
+                    <Badge
+                      variant="secondary"
+                      className={`capitalize ${getOrderStatusColor(log.order.orderStatus)}`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {getStatusIcon(log.order.orderStatus)}
+                        {log.order.orderStatus}
+                      </span>
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getPaymentStatusVariant(log.order.paymentStatus)}>
-                      {log.order.paymentStatus}
+                    <Badge
+                      variant="secondary"
+                      className={`capitalize ${getPaymentStatusColor(log.order.paymentStatus)}`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {getStatusIcon(log.order.paymentStatus)}
+                        {log.order.paymentStatus}
+                      </span>
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
@@ -268,7 +256,7 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link
-                            href={`/admin/order-management/orders/${log.order.id}`}
+                            href={`/admin/order/${log.order.id}/view`}
                           >
                             <Package className="mr-2 h-4 w-4" /> View Order
                           </Link>

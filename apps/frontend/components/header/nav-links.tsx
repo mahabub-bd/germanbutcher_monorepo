@@ -6,8 +6,8 @@ import {
   ArrowRight,
   CookingPot,
   Home,
+  LayoutGrid,
   MapPin,
-  Package,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -19,9 +19,9 @@ interface NavLinksProps {
   onClick?: () => void;
 }
 
-const mobileNavIcons: Record<string, LucideIcon> = {
+const navIcons: Record<string, LucideIcon> = {
   home: Home,
-  products: Package,
+  products: LayoutGrid,
   recipes: CookingPot,
   "where-to-buy": MapPin,
 };
@@ -59,7 +59,7 @@ export function NavLinks({ isMobile, onClick }: NavLinksProps) {
     <>
       {links.map((link) => {
         const isActive = pathname === link.href;
-        const MobileIcon = mobileNavIcons[link.id] ?? ArrowRight;
+        const NavIcon = navIcons[link.id] ?? ArrowRight;
 
         return (
           <Link
@@ -68,43 +68,32 @@ export function NavLinks({ isMobile, onClick }: NavLinksProps) {
             onClick={handleClick(link.href)}
             onMouseEnter={handleMouseEnter(link.href)}
             className={cn(
-              "block rounded-sm text-lg font-medium transition-colors duration-150",
+              "flex items-center gap-2 rounded-full text-base font-medium transition-colors duration-150",
               isMobile
                 ? cn(
-                    "group flex items-center gap-3 rounded-xl border px-3 py-3 text-base font-semibold",
+                    "group gap-3 rounded-xl border px-3 py-3 text-base font-semibold",
                     "border-transparent text-gray-700 transition-all duration-200 hover:border-primaryColor/15 hover:bg-primaryColor/5 hover:text-primaryColor",
                     isActive &&
                       "border-primaryColor/15 bg-primaryColor/10 text-primaryColor shadow-sm",
                     isPending && "opacity-70"
                   )
                 : cn(
-                    "text-white  underline-active",
-                    isActive && "active",
-                    isPending && "opacity-100"
+                    "px-4 py-2.5 text-white hover:bg-white/10",
+                    isActive && "bg-white/20 font-semibold",
+                    isPending && "opacity-70"
                   )
             )}
             prefetch={true}
           >
-            {isMobile ? (
-              <>
-                <span
-                  className={cn(
-                    "flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 transition-colors",
-                    isActive && "bg-primaryColor text-white"
-                  )}
-                >
-                  <MobileIcon className="size-5" />
-                </span>
-                <span className="flex-1">{link.label}</span>
-                <ArrowRight
-                  className={cn(
-                    "size-4 text-gray-400 transition-transform duration-200 group-hover:translate-x-0.5",
-                    isActive && "text-primaryColor"
-                  )}
-                />
-              </>
-            ) : (
-              link.label
+            <NavIcon className="size-5 shrink-0" strokeWidth={1.8} />
+            <span>{link.label}</span>
+            {isMobile && (
+              <ArrowRight
+                className={cn(
+                  "size-4 text-gray-400 transition-transform duration-200 group-hover:translate-x-0.5",
+                  isActive && "text-primaryColor"
+                )}
+              />
             )}
           </Link>
         );

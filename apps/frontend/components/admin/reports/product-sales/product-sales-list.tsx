@@ -1,8 +1,9 @@
 "use client";
 
-import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
 import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
+import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -11,8 +12,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { Package, ShoppingCart, TrendingUp } from "lucide-react";
@@ -91,7 +90,7 @@ export default function ProductSalesList({
 
   return (
     <div className="w-full">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <PageHeader
           title="Product Sales Report"
           description="Top products by revenue for a date range (cancelled orders excluded)"
@@ -121,7 +120,7 @@ export default function ProductSalesList({
             }.pdf`}
           >
             {({ loading, error }) => (
-              <Button variant="secondary" disabled={!!error} className="shrink-0">
+              <Button variant="secondary" disabled={!!error} className="shrink-0 w-full sm:w-auto">
                 {error
                   ? "PDF Error"
                   : loading
@@ -137,13 +136,98 @@ export default function ProductSalesList({
         preset={preset}
         fromDate={fromDate} toDate={toDate} onApply={applyParams} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatsCard icon={TrendingUp} title="Total Revenue" value={formatCurrencyEnglish(totalRevenue)} bgColor="green" />
-        <StatsCard icon={ShoppingCart} title="Units Sold" value={totalQuantity} bgColor="blue" />
-        <StatsCard icon={Package} title="Products Sold" value={summary?.productCount ?? 0} bgColor="purple" />
+      {/* Summary tiles — compact on mobile, 3 across from sm up */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+        {[
+          {
+            icon: TrendingUp,
+            label: "Total Revenue",
+            value: formatCurrencyEnglish(totalRevenue),
+            tile: "bg-green-100 text-green-600",
+          },
+          {
+            icon: ShoppingCart,
+            label: "Units Sold",
+            value: String(totalQuantity),
+            tile: "bg-blue-100 text-blue-600",
+          },
+          {
+            icon: Package,
+            label: "Products Sold",
+            value: String(summary?.productCount ?? 0),
+            tile: "bg-purple-100 text-purple-600",
+          },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-3 sm:p-4"
+          >
+            <span
+              className={`flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg ${stat.tile}`}
+            >
+              <stat.icon className="h-4 w-4 sm:h-5 sm:w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm sm:text-2xl font-bold leading-none truncate">
+                {stat.value}
+              </p>
+              <p className="text-[11px] sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 truncate">
+                {stat.label}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Mobile card list */}
+      <div className="space-y-3 md:hidden">
+        {products.length === 0 ? (
+          <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-10 text-center">
+            <Package className="h-8 w-8 text-muted-foreground/50 mb-3" />
+            <p className="text-sm text-muted-foreground">
+              No sales found for this date range
+            </p>
+          </div>
+        ) : (
+          products.map((p, i) => (
+            <div key={p.id} className="rounded-xl border bg-card p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-2.5">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium leading-tight line-clamp-2">
+                      {p.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {p.quantity} unit{p.quantity !== 1 ? "s" : ""} ·{" "}
+                      {p.orderCount} order{p.orderCount !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-bold text-primaryColor">
+                    {formatCurrencyEnglish(p.revenue)}
+                  </p>
+                  <p
+                    className={`text-xs mt-0.5 ${
+                      p.stock < 5
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    Stock {p.stock}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
