@@ -279,7 +279,7 @@ export function BusinessSettingsCard() {
               )}
             </div>
 
-            <div className="mt-6 grid gap-6 lg:grid-cols-[auto,1fr] lg:gap-8">
+            <div className="mt-6 grid gap-6 lg:grid-cols-[auto_1fr] lg:gap-8">
               {/* Logos */}
               <div className="flex justify-center gap-5 sm:justify-start">
                 <LogoTile

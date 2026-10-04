@@ -278,6 +278,80 @@ export class ProductService {
     }
   }
 
+  /** Minimal product list (id/name, category id/name, selling price and
+   * discount type) for pickers and lightweight lookups — no pagination,
+   * optionally scoped to a category (children included, matching findAll's
+   * behaviour). */
+  async findAllMinimal(options: {
+    categoryId?: number;
+    isActive?: boolean;
+  }): Promise<
+    {
+      id: number;
+      name: string;
+      sellingPrice: number;
+      discountType: string | null;
+      discountValue: number | null;
+      weight: number | null;
+      unitName: string | null;
+      attachmentUrl: string | null;
+      categoryId: number;
+      categoryName: string;
+    }[]
+  > {
+    const { categoryId, isActive } = options;
+
+    const query = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoin('product.category', 'category')
+      .leftJoin('product.unit', 'unit')
+      .leftJoin('product.attachment', 'attachment')
+      .select([
+        'product.id AS id',
+        'product.name AS name',
+        'product."sellingPrice" AS "sellingPrice"',
+        'product."discountType" AS "discountType"',
+        'product."discountValue" AS "discountValue"',
+        'product."weight" AS "weight"',
+        'unit.name AS "unitName"',
+        'attachment.url AS "attachmentUrl"',
+        'category.id AS "categoryId"',
+        'category.name AS "categoryName"',
+      ])
+      .orderBy('product.name', 'ASC');
+
+    if (categoryId) {
+      query.andWhere(
+        '(category.id = :categoryId OR category.parentId = :categoryId)',
+        { categoryId },
+      );
+    }
+    if (isActive !== undefined) {
+      query.andWhere('product.isActive = :isActive', { isActive });
+    }
+
+    const rows: Record<string, string | null>[] = await query
+      .cache(
+        `products_minimal_${categoryId ?? 'all'}_${isActive ?? 'all'}`,
+        30000,
+      )
+      .getRawMany();
+
+    return rows.map((row) => ({
+      id: parseInt(row.id, 10),
+      name: row.name,
+      sellingPrice: parseFloat(row.sellingPrice) || 0,
+      discountType: row.discountType,
+      discountValue:
+        row.discountValue === null ? null : parseFloat(row.discountValue),
+      weight: row.weight === null ? null : parseFloat(row.weight),
+      unitName: row.unitName,
+      attachmentUrl: row.attachmentUrl,
+      categoryId: parseInt(row.categoryId, 10),
+      categoryName: row.categoryName,
+    }));
+  }
+
   async getBestsellingProducts(
     limit: number = 10,
     isActive?: boolean,

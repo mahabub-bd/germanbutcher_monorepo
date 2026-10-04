@@ -109,7 +109,7 @@ export default function InventoryList({
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
         <StatsCard icon={Boxes} title="Total Products" value={summary?.totalProducts ?? 0} count={`${summary?.totalUnits ?? 0} units`} bgColor="blue" />
         <StatsCard icon={Warehouse} title="Stock Value (Cost)" value={formatCurrencyEnglish(summary?.stockValueCost ?? 0)} bgColor="purple" />
         <StatsCard icon={TrendingUp} title="Stock Value (Retail)" value={formatCurrencyEnglish(summary?.stockValueRetail ?? 0)} bgColor="green" />

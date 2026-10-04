@@ -115,7 +115,7 @@ export function ReportDateFilters({
   if (!mounted) return null;
 
   return (
-    <div className="flex flex-wrap items-end gap-3 mb-6">
+    <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-5 items-end gap-3 mb-6">
       <div className="space-y-1.5">
         <label className="text-xs text-muted-foreground">Quick Range</label>
         <Select value={quickRange} onValueChange={handleQuickRange}>

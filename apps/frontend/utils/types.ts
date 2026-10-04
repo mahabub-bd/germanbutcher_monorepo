@@ -174,6 +174,21 @@ export enum DiscountType {
   FIXED = "fixed",
 }
 
+/** Lightweight product shape from the `products/all` endpoint — enough for
+ * pickers and discount previews without the full product payload. */
+export interface MinimalProduct {
+  id: number;
+  name: string;
+  sellingPrice: number;
+  discountType?: DiscountType | null;
+  discountValue?: number | null;
+  weight?: number | null;
+  unitName?: string | null;
+  attachmentUrl?: string | null;
+  categoryId: number;
+  categoryName: string;
+}
+
 export interface Gallery {
   id: number;
   name: string;
@@ -589,7 +604,14 @@ export interface FreeDeliveryCampaign {
   minQuantity: number | null;
   newCustomersOnly: boolean;
   usageCount: number;
-  products: { id: number; name: string }[];
+  products: {
+    id: number;
+    name: string;
+    slug?: string;
+    sellingPrice?: number;
+    discountType?: DiscountType | null;
+    category?: { id: number; name: string };
+  }[];
   categories: { id: number; name: string }[];
   createdAt: string;
   updatedAt: string;

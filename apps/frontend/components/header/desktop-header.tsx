@@ -14,21 +14,20 @@ export function DesktopHeader({
   const businessName = settings?.businessName || "";
 
   return (
-    <div className="hidden bg-gradient-to-br from-primaryColor via-[#6d0000] to-primaryColor  lg:block">
-      <div className="container mx-auto flex justify-between items-center  2xl:px-0 px-4 ">
-        <div className="flex items-center">
-          <Link href="/" className="flex items-center mr-6">
+    <div className="hidden bg-gradient-to-r from-[#7a0d0d] via-primaryColor to-[#7a0d0d] lg:block shadow-lg">
+      <div className="container mx-auto flex items-center justify-between gap-4 px-4 py-2.5 2xl:px-0">
+        <div className="flex items-center gap-2">
+          <Link href="/" className="flex shrink-0 items-center" aria-label="Go to homepage">
             {logoUrl ? (
-              <div className="p-2">
-                <Image
-                  src={logoUrl}
-                  alt={`${businessName} Logo`}
-                  title={`${businessName} Logo`}
-                  width={80}
-                  height={80}
-                  className="w-10 h-10 lg:w-20 lg:h-20"
-                />
-              </div>
+              <Image
+                src={logoUrl}
+                alt={`${businessName} Logo`}
+                title={`${businessName} Logo`}
+                width={80}
+                height={80}
+                priority
+                className="w-12 h-12 xl:w-14 xl:h-14 drop-shadow-md"
+              />
             ) : (
               businessName && (
                 <span className="text-lg font-bold text-white px-2">
@@ -38,14 +37,12 @@ export function DesktopHeader({
             )}
           </Link>
 
-          <nav className="flex items-center space-x-8 ml-20">
+          <nav className="hidden xl:flex items-center gap-1">
             <NavLinks />
           </nav>
         </div>
         <SearchBar />
-        <div className="flex items-center space-x-6">
-          <UserActions compact={false} />
-        </div>
+        <UserActions compact={false} />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { ProductSelector } from "@/components/admin/discount/product-selector";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
@@ -11,7 +12,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { MultiSelect } from "@/components/ui/multi-select";
 import {
   Select,
   SelectContent,
@@ -19,13 +19,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { patchData, postData, fetchProtectedData } from "@/utils/api-utils";
+import {
+  fetchData,
+  fetchDataPagination,
+  patchData,
+  postData,
+} from "@/utils/api-utils";
 import { couponSchema } from "@/utils/form-validation";
-import type { Coupon, Product } from "@/utils/types";
+import type { Category, Coupon, MinimalProduct } from "@/utils/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Box, Calendar, DollarSign, Settings, Tag } from "lucide-react";
+import {
+  ArrowLeft,
+  Box,
+  Calendar,
+  DollarSign,
+  Loader2,
+  Search,
+  Settings,
+  Tag,
+} from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { type Resolver, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -37,10 +51,31 @@ interface CouponFormProps {
   onSuccess: () => void;
 }
 
+/** Section header with a red icon tile */
+function SectionTitle({
+  icon: Icon,
+  title,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
+        <Icon className="h-4 w-4" />
+      </span>
+      <h3 className="font-semibold">{title}</h3>
+    </div>
+  );
+}
+
 export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [products, setProducts] = useState<{ value: number; label: string }[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [products, setProducts] = useState<MinimalProduct[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   type CouponFormValues = z.output<typeof couponSchema>;
 
   const form = useForm<CouponFormValues>({
@@ -66,17 +101,57 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
     },
   });
 
-  // Fetch products for the multi-select
+  // Fetch categories for the category-first product picker; seed any already
+  // excluded items (edit mode) so their selections survive category switches
   useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetchDataPagination<{
+          data: Category[];
+        }>("categories");
+        if (Array.isArray(response.data)) {
+          setCategories(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+    fetchCategories();
+
+    if (coupon?.excludedItems?.length) {
+      setProducts(
+        coupon.excludedItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          sellingPrice: item.sellingPrice ?? 0,
+          discountType: item.discountType ?? null,
+          categoryId: item.category?.id ?? 0,
+          categoryName: item.category?.name ?? "",
+        }))
+      );
+    }
+  }, []);
+
+  // Load the chosen category's products via the minimal products/all endpoint
+  useEffect(() => {
+    if (!selectedCategoryId) return;
+
     const fetchProducts = async () => {
       setIsLoadingProducts(true);
       try {
-        const response = await fetchProtectedData("products");
-        const productList = (response as Product[]).map((product) => ({
-          value: product.id,
-          label: product.name,
-        }));
-        setProducts(productList);
+        const fetched = await fetchData<MinimalProduct[]>(
+          `products/all?category=${selectedCategoryId}&isActive=true`
+        );
+        if (Array.isArray(fetched)) {
+          // Merge by id so selections survive switching between categories
+          setProducts((prev) => {
+            const byId = new Map(prev.map((p) => [p.id, p]));
+            fetched.forEach((p) => byId.set(p.id, p));
+            return [...byId.values()].sort((a, b) =>
+              a.name.localeCompare(b.name)
+            );
+          });
+        }
       } catch (error) {
         console.error("Error fetching products:", error);
         toast.error("Failed to load products");
@@ -84,9 +159,8 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
         setIsLoadingProducts(false);
       }
     };
-
     fetchProducts();
-  }, []);
+  }, [selectedCategoryId]);
 
   const onSubmit = async (values: CouponFormValues) => {
     setIsSubmitting(true);
@@ -119,98 +193,50 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
   };
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-4 bg-white rounded-md shadow-sm"
-      >
-        <div className="grid gap-5 p-4 md:p-6">
-          {/* Basic Information */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Tag className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-sm uppercase tracking-wide">
-                Basic Info
-              </h3>
-            </div>
-            <FormField
-              control={form.control}
-              name="code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Coupon Code</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g. SUMMER20"
-                      {...field}
-                      className="uppercase"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </section>
+    <div className="space-y-6">
+      {/* Page header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100 text-red-600">
+            <Tag className="h-6 w-6" />
+          </span>
+          <div>
+            <h2 className="text-2xl font-bold">
+              {mode === "create" ? "Create Coupon" : "Edit Coupon"}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {mode === "create"
+                ? "Define a new discount coupon"
+                : "Update the coupon details"}
+            </p>
+          </div>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href="/admin/marketing/coupon/coupon-list">
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to Coupons
+          </Link>
+        </Button>
+      </div>
 
-          <Separator />
-
-          {/* Discount Configuration */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-sm uppercase tracking-wide">
-                Discount Config
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-              <FormField
-                control={form.control}
-                name="discountType"
-                render={({ field }) => (
-                  <FormItem className="w-full">
-                    <FormLabel>Type</FormLabel>
-                    <FormControl>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="percentage">
-                            Percentage (%)
-                          </SelectItem>
-                          <SelectItem value="fixed">Fixed (৳)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            {/* Basic Info */}
+            <section className="rounded-xl border bg-card p-5 space-y-4">
+              <SectionTitle icon={Tag} title="Basic Info" />
 
               <FormField
                 control={form.control}
-                name="value"
+                name="code"
                 render={({ field }) => (
-                  <FormItem className="w-full">
-                    <FormLabel>
-                      {form.watch("discountType") === "percentage"
-                        ? "Discount (%)"
-                        : "Discount (৳)"}
-                    </FormLabel>
+                  <FormItem>
+                    <FormLabel>Coupon Code</FormLabel>
                     <FormControl>
                       <Input
-                        className="w-full"
-                        type="number"
-                        step={
-                          form.watch("discountType") === "percentage"
-                            ? "1"
-                            : "0.01"
-                        }
+                        placeholder="e.g. SUMMER20"
                         {...field}
+                        className="uppercase"
                       />
                     </FormControl>
                     <FormMessage />
@@ -220,45 +246,103 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
 
               <FormField
                 control={form.control}
-                name="minOrderAmount"
+                name="isActive"
                 render={({ field }) => (
-                  <FormItem className="w-full">
-                    <FormLabel>Min Order (৳)</FormLabel>
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                    <div>
+                      <FormLabel className="text-sm font-medium">
+                        Active Status
+                      </FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Coupon can be used while active
+                      </p>
+                    </div>
                     <FormControl>
-                      <Input
-                        className="w-full"
-                        type="number"
-                        step="0.01"
-                        {...field}
-                        value={field.value ?? ""}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value ? parseFloat(e.target.value) : null
-                          )
-                        }
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
                       />
                     </FormControl>
                   </FormItem>
                 )}
               />
+            </section>
 
-              {form.watch("discountType") === "percentage" ? (
+            {/* Discount Config */}
+            <section className="rounded-xl border bg-card p-5 space-y-4">
+              <SectionTitle icon={DollarSign} title="Discount Config" />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="maxDiscountAmount"
+                  name="discountType"
                   render={({ field }) => (
-                    <FormItem className="w-full">
-                      <FormLabel>Max Discount (৳)</FormLabel>
+                    <FormItem>
+                      <FormLabel>Type</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="percentage">
+                              Percentage (%)
+                            </SelectItem>
+                            <SelectItem value="fixed">Fixed (৳)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="value"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {form.watch("discountType") === "percentage"
+                          ? "Discount (%)"
+                          : "Discount (৳)"}
+                      </FormLabel>
                       <FormControl>
                         <Input
-                          className="w-full"
+                          type="number"
+                          step={
+                            form.watch("discountType") === "percentage"
+                              ? "1"
+                              : "0.01"
+                          }
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="minOrderAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Min Order (৳)</FormLabel>
+                      <FormControl>
+                        <Input
                           type="number"
                           step="0.01"
                           {...field}
                           value={field.value ?? ""}
                           onChange={(e) =>
                             field.onChange(
-                              e.target.value ? parseFloat(e.target.value) : null
+                              e.target.value
+                                ? parseFloat(e.target.value)
+                                : null
                             )
                           }
                         />
@@ -266,76 +350,87 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
                     </FormItem>
                   )}
                 />
-              ) : (
-                <div className="FormItem w-full">
-                  <FormLabel>Max Discount (৳)</FormLabel>
-                  <div className="text-sm text-muted-foreground italic">
-                    N/A for fixed
+
+                {form.watch("discountType") === "percentage" ? (
+                  <FormField
+                    control={form.control}
+                    name="maxDiscountAmount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Max Discount (৳)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            value={field.value ?? ""}
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value
+                                  ? parseFloat(e.target.value)
+                                  : null
+                              )
+                            }
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    <FormLabel>Max Discount (৳)</FormLabel>
+                    <div className="text-sm text-muted-foreground italic">
+                      N/A for fixed
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          </section>
-
-          <Separator />
-
-          {/* Validity */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-sm uppercase tracking-wide">
-                Validity
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="validFrom"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Date</FormLabel>
-                    <FormControl>
-                      <DatePicker
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
                 )}
-              />
+              </div>
+            </section>
 
-              <FormField
-                control={form.control}
-                name="validUntil"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Date</FormLabel>
-                    <FormControl>
-                      <DatePicker
-                        value={field.value}
-                        onChange={field.onChange}
-                        minDate={form.watch("validFrom")}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-          </section>
+            {/* Validity */}
+            <section className="rounded-xl border bg-card p-5 space-y-4">
+              <SectionTitle icon={Calendar} title="Validity" />
 
-          <Separator />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="validFrom"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <DatePicker
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-          {/* Usage Settings */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Settings className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-sm uppercase tracking-wide">
-                Usage Settings
-              </h3>
-            </div>
+                <FormField
+                  control={form.control}
+                  name="validUntil"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Date</FormLabel>
+                      <FormControl>
+                        <DatePicker
+                          value={field.value}
+                          onChange={field.onChange}
+                          minDate={form.watch("validFrom")}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </section>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Usage Settings */}
+            <section className="rounded-xl border bg-card p-5 space-y-4">
+              <SectionTitle icon={Settings} title="Usage Settings" />
+
               <FormField
                 control={form.control}
                 name="maxUsage"
@@ -351,41 +446,50 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
                         }
                       />
                     </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      Total number of times this coupon can be used
+                    </p>
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control}
-                name="isActive"
-                render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-md border p-3">
-                    <div>
-                      <FormLabel className="text-sm font-medium">
-                        Active Status
-                      </FormLabel>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-          </section>
-
-          <Separator />
+            </section>
+          </div>
 
           {/* Excluded Products */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Box className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-sm uppercase tracking-wide">
-                Excluded Products
-              </h3>
+          <section className="rounded-xl border bg-card p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <SectionTitle icon={Box} title="Excluded Products" />
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search products..."
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <FormLabel>Category</FormLabel>
+              <Select
+                value={selectedCategoryId}
+                onValueChange={setSelectedCategoryId}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a category first..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={String(category.id)}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Choose a category, then pick the products to exclude
+              </p>
             </div>
 
             <FormField
@@ -393,42 +497,57 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
               name="excludedItemIds"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Products to Exclude from Discount</FormLabel>
                   <FormControl>
-                    <MultiSelect
-                      options={products}
-                      selected={field.value || []}
+                    <ProductSelector
+                      products={products}
+                      selectedProductIds={field.value || []}
                       onChange={field.onChange}
-                      placeholder="Select products to exclude..."
-                      disabled={isLoadingProducts}
+                      searchQuery={searchQuery}
+                      isLoading={isLoadingProducts}
+                      disabled={!selectedCategoryId}
                     />
                   </FormControl>
+                  <FormMessage />
                   <p className="text-xs text-muted-foreground">
-                    Select products that should not receive this discount
+                    Selected products will not receive this coupon's discount
                   </p>
                 </FormItem>
               )}
             />
           </section>
-        </div>
 
-        <div className="flex justify-end gap-2 p-4 border-t bg-muted/40">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onSuccess}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && (
-              <span className="mr-2 h-4 w-4 animate-spin">⏳</span>
-            )}
-            {mode === "create" ? "Create" : "Update"}
-          </Button>
-        </div>
-      </form>
-    </Form>
+          {/* Footer action bar */}
+          <div className="rounded-xl border bg-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground">
+              {(form.watch("excludedItemIds") || []).length} product
+              {(form.watch("excludedItemIds") || []).length !== 1
+                ? "s"
+                : ""}{" "}
+              excluded
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onSuccess}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-primaryColor hover:bg-primaryColor/90 text-white"
+              >
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {mode === "create" ? "Create Coupon" : "Update Coupon"}
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Form>
+    </div>
   );
 }

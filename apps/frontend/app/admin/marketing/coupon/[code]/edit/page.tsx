@@ -3,7 +3,6 @@
 import { CouponForm } from "@/components/admin/coupon/coupon-form";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
 import { fetchProtectedData } from "@/utils/api-utils";
 import { Coupon } from "@/utils/types";
 import Link from "next/link";
@@ -62,20 +61,6 @@ export default function EditCouponPage() {
   }
 
   return (
-    <div className="md:p-6 p-2 space-y-6 border rounded-sm">
-      <div className="md:p-6 p-2">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <CardTitle>Coupon Information</CardTitle>
-            <CardDescription>Update the coupon details.</CardDescription>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/admin/marketing/coupon-list">Back to Coupon List</Link>
-          </Button>
-        </div>
-      </div>
-
-      <CouponForm mode="edit" coupon={coupon} onSuccess={handleSuccess} />
-    </div>
+    <CouponForm mode="edit" coupon={coupon} onSuccess={handleSuccess} />
   );
 }

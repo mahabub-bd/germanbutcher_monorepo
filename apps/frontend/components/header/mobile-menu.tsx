@@ -14,8 +14,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { BusinessSettings, User } from "@/utils/types";
+import { useEffect } from "react";
 import MobileAuth from "../auth/mobile-auth";
-import { CategoryLinks } from "./category-links";
+import { CategoryLinks, prefetchCategories } from "./category-links";
 import { NavLinks } from "./nav-links";
 
 type TabType = "navigation" | "categories";
@@ -29,6 +30,12 @@ export function MobileMenu({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("categories");
+
+  // Warm the category cache while the user is still browsing so the
+  // drawer opens with categories already rendered
+  useEffect(() => {
+    prefetchCategories();
+  }, []);
 
   const handleClose = () => setIsOpen(false);
   const currentYear = new Date().getFullYear();
@@ -56,13 +63,24 @@ export function MobileMenu({
         </Button>
       </SheetTrigger>
 
-      <SheetContent side="left" showClose={false} className="w-[375px] p-0">
+      <SheetContent side="left" showClose={false} className="w-[375px] p-0 bg-white">
         {/* Hidden title for accessibility */}
         <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
 
-        <div className="flex flex-col h-full">
+        {/* Sketch-style meat board backdrop */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <Image
+            src="/images/mobile-menu-bg.webp"
+            alt=""
+            fill
+            sizes="375px"
+            className="object-cover"
+          />
+        </div>
+
+        <div className="relative flex flex-col h-full">
           {/* Header Section */}
-          <div className="border-b border-primaryColor/20 bg-gradient-to-br from-primaryColor/15 via-white to-secondaryColor/10 px-4 py-3">
+          <div className="relative border-b border-primaryColor/20 bg-gradient-to-br from-primaryColor/15 via-white/80 to-secondaryColor/10 px-4 py-3">
             <div className="flex items-center justify-between">
               <Link
                 href="/"
@@ -101,7 +119,7 @@ export function MobileMenu({
           </div>
 
           {/* Tab Navigation */}
-          <div className="border-b border-gray-100 bg-white px-4 py-3">
+          <div className="relative border-b border-gray-100 bg-white/85 px-4 py-3">
             <div className="grid grid-cols-2 rounded-xl bg-gray-100 p-1">
               {tabs.map((tab) => (
                 <button
@@ -132,7 +150,7 @@ export function MobileMenu({
           </div>
 
           {/* Tab Content */}
-          <div className="flex-1 overflow-auto">
+          <div className="relative flex-1 overflow-auto">
             <div className="p-4">
               {activeTab === "categories" && (
                 <CategoryLinks onCategoryClick={handleClose} />
@@ -147,15 +165,15 @@ export function MobileMenu({
           </div>
 
           {/* Auth Section in Footer */}
-          <div className=" p-4">
+          <div className="relative p-4">
             <MobileAuth user={user} onClose={handleClose} />
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-3 border-t-2 border-[#deb149] bg-gradient-to-r from-black/95 via-gray-900/95 to-black/95">
+          <div className="relative px-6 py-3 border-t-2 border-[#deb149] bg-gradient-to-r from-black/95 via-gray-900/95 to-black/95">
             <div className="text-center">
               <p className="text-xs text-gray-100 ">
-                © {currentYear} German Butcher. All rights reserved.
+                © {currentYear} {settings?.businessName}. All rights reserved.
               </p>
             </div>
           </div>

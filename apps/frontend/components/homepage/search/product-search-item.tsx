@@ -37,6 +37,7 @@ export function ProductSearchItem({
           src={product.attachment?.url || FALLBACK_IMAGE}
           alt={product.name}
           fill
+          sizes="80px"
           className="object-cover group-hover:scale-105 transition-transform duration-300"
         />
 

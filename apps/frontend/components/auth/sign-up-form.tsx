@@ -1,15 +1,22 @@
 "use client";
 
-import { register } from "@/actions/auth";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckIcon, EyeIcon, EyeOffIcon, XIcon } from "lucide-react";
+import { register } from "@/actions/auth";
+import { CheckIcon, EyeIcon, EyeOffIcon, Loader2, XIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export default function SignUpForm() {
+interface SignUpFormProps {
+  logoUrl?: string;
+  businessName?: string;
+}
+
+export default function SignUpForm({ logoUrl, businessName }: SignUpFormProps) {
   const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
@@ -101,159 +108,181 @@ export default function SignUpForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Full Name</Label>
-        <Input
-          id="name"
-          name="name"
-          type="text"
-          placeholder="Your full name"
-          value={formData.name}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          placeholder="name@example.com"
-          value={formData.email}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="phoneNumber">Mobile Number</Label>
-        <div className="flex">
-          <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-md">
-            +880
-          </div>
-          <Input
-            id="phoneNumber"
-            name="mobileNumber"
-            type="tel"
-            placeholder="1XXXXXXXXX"
-            className="rounded-l-none"
-            value={formData.mobileNumber}
-            onChange={handleChange}
-            maxLength={10}
-            required
-          />
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Enter your 10-digit mobile number without the country code
+    <AuthShell
+      logoUrl={logoUrl}
+      businessName={businessName}
+      subtitle="Create your account"
+      footer={
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+          Already have an account?{" "}
+          <Link
+            href="/auth/sign-in"
+            className="text-primaryColor font-medium hover:underline dark:text-red-400"
+          >
+            Sign in
+          </Link>
         </p>
-      </div>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Full Name</Label>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              placeholder="Your full name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <div className="relative">
-          <Input
-            id="password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            placeholder="••••••••"
-            value={formData.password}
-            onChange={handleChange}
-            className="pr-10"
-            required
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute right-0 top-0 h-full px-3"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? (
-              <EyeOffIcon className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <EyeIcon className="h-4 w-4 text-muted-foreground" />
-            )}
-            <span className="sr-only">
-              {showPassword ? "Hide password" : "Show password"}
-            </span>
-          </Button>
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="name@example.com"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
-        {/* Password strength indicators */}
-        <div className="space-y-1 mt-2">
-          <p className="text-xs font-medium">Password must contain:</p>
-          <ul className="space-y-1">
-            {passwordRequirements.map((req, index) => (
-              <li key={index} className="text-xs flex items-center gap-1.5">
-                {req.test(formData.password) ? (
-                  <CheckIcon className="h-3 w-3 text-green-500" />
-                ) : (
-                  <XIcon className="h-3 w-3 text-red-500" />
-                )}
-                <span
-                  className={
-                    req.test(formData.password)
-                      ? "text-green-500"
-                      : "text-muted-foreground"
-                  }
-                >
-                  {req.label}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
-        <div className="relative">
-          <Input
-            id="confirmPassword"
-            name="confirmPassword"
-            type={showConfirmPassword ? "text" : "password"}
-            placeholder="••••••••"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            className="pr-10"
-            required
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute right-0 top-0 h-full px-3"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-          >
-            {showConfirmPassword ? (
-              <EyeOffIcon className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <EyeIcon className="h-4 w-4 text-muted-foreground" />
-            )}
-            <span className="sr-only">
-              {showConfirmPassword ? "Hide password" : "Show password"}
-            </span>
-          </Button>
-        </div>
-        {formData.password &&
-          formData.confirmPassword &&
-          formData.password !== formData.confirmPassword && (
-            <p className="text-xs text-red-500 mt-1">
-              Passwords don&apos;t match
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="phoneNumber">Mobile Number</Label>
+            <div className="flex">
+              <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-md">
+                +880
+              </div>
+              <Input
+                id="phoneNumber"
+                name="mobileNumber"
+                type="tel"
+                placeholder="1XXXXXXXXX"
+                className="rounded-l-none"
+                value={formData.mobileNumber}
+                onChange={handleChange}
+                maxLength={10}
+                required
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Enter your 10-digit mobile number without the country code
             </p>
-          )}
-      </div>
+          </div>
 
-      <Button
-        type="submit"
-        className="w-full mt-6 bg-primaryColor text-white"
-        disabled={isLoading}
-      >
-        {isLoading ? "Creating Account..." : "Create Account"}
-      </Button>
-    </form>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                className="pr-10"
+                required
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full px-3"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOffIcon className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <EyeIcon className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="sr-only">
+                  {showPassword ? "Hide password" : "Show password"}
+                </span>
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="pr-10"
+                required
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full px-3"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? (
+                  <EyeOffIcon className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <EyeIcon className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="sr-only">
+                  {showConfirmPassword ? "Hide password" : "Show password"}
+                </span>
+              </Button>
+            </div>
+            {formData.password &&
+              formData.confirmPassword &&
+              formData.password !== formData.confirmPassword && (
+                <p className="text-xs text-red-500 mt-1">
+                  Passwords don&apos;t match
+                </p>
+              )}
+          </div>
+
+          {/* Password strength indicators */}
+          <div className="sm:col-span-2">
+            <p className="text-xs font-medium mb-1.5">
+              Password must contain:
+            </p>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+              {passwordRequirements.map((req, index) => (
+                <li key={index} className="text-xs flex items-center gap-1.5">
+                  {req.test(formData.password) ? (
+                    <CheckIcon className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <XIcon className="h-3 w-3 text-red-500" />
+                  )}
+                  <span
+                    className={
+                      req.test(formData.password)
+                        ? "text-green-500"
+                        : "text-muted-foreground"
+                    }
+                  >
+                    {req.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full bg-primaryColor text-white hover:bg-primaryColor/90"
+          disabled={isLoading}
+        >
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading ? "Creating Account..." : "Create Account"}
+        </Button>
+      </form>
+    </AuthShell>
   );
 }

@@ -8,11 +8,10 @@ import {
   Headphones,
   Info,
   ShieldCheck,
-  ShoppingCart,
   Ticket,
   Trash2,
   Truck,
-  X,
+  X
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -109,18 +108,13 @@ export function CartPage({ cart }: { cart?: Cart }) {
       <div className="lg:col-span-2">
         {/* Cart Header */}
         <div className="mb-6 flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-sm bg-red-50 text-primaryColor dark:bg-red-950/40">
-              <ShoppingCart className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl dark:text-gray-50">
-                Your Cart
-              </h1>
-              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-                {itemCount} {itemCount === 1 ? "item" : "items"} in your cart
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl dark:text-gray-50">
+              Your Cart
+            </h1>
+            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+              {itemCount} {itemCount === 1 ? "item" : "items"} in your cart
+            </p>
           </div>
 
           {itemCount > 0 && (

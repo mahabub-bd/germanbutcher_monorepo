@@ -64,6 +64,7 @@ export default async function RecipeDetails({
               src={recipeData.attachment?.url || "/placeholder.svg"}
               alt={recipeData.title}
               fill
+              sizes="(max-width: 768px) 100vw, 768px"
               className="object-cover"
               priority
             />
@@ -141,6 +142,7 @@ export default async function RecipeDetails({
                     }
                     alt={recipeData.category?.name}
                     fill
+                  sizes="120px"
                     className="object-cover"
                   />
                 </div>

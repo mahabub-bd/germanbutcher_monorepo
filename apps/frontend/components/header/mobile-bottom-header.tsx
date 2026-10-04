@@ -7,11 +7,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type React from "react";
 import { memo, useMemo } from "react";
+import { cn } from "@/lib/utils";
 
 interface NavigationItem {
   name: string;
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{
+    className?: string;
+    strokeWidth?: number;
+  }>;
   activePattern: string | RegExp;
   badge?: boolean;
 }
@@ -35,52 +39,56 @@ const NavItem = memo(
     const showBadge = item.badge && productCount > 0;
     const badgeText = productCount > 99 ? "99+" : productCount.toString();
 
+    const badge = showBadge ? (
+      <span
+        className="absolute -top-1.5 -right-2 bg-primaryColor text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 ring-2 ring-white will-change-transform"
+        style={{ transform: "translateZ(0)" }} // Force GPU acceleration
+      >
+        {badgeText}
+      </span>
+    ) : null;
+
+    if (isActive) {
+      // Active item: raised red circle popping above the floating bar
+      return (
+        <Link
+          href={item.href}
+          className="relative flex flex-col items-center flex-1 min-w-0"
+          aria-label={`Navigate to ${item.name}${showBadge ? ` (${productCount} items)` : ""}`}
+          prefetch={true}
+        >
+          <span className="relative -mt-6 flex size-11 items-center justify-center rounded-full bg-gradient-to-b from-secondaryColor to-primaryColor ring-[3px] ring-white shadow-md shadow-primaryColor/40">
+            <Icon className="size-5 text-white" strokeWidth={2} />
+            {badge}
+          </span>
+          <span className="mt-0.5 text-xs font-semibold text-primaryColor">
+            {item.name}
+          </span>
+          <span
+            className="mt-0.5 h-1 w-7 rounded-full bg-primaryColor"
+            aria-hidden
+          />
+        </Link>
+      );
+    }
+
     return (
       <Link
         href={item.href}
-        className="flex flex-col items-center justify-center px-2 min-w-0 flex-1 group"
+        className="flex flex-col items-center justify-center gap-1 px-2 min-w-0 flex-1 py-2 group"
         aria-label={`Navigate to ${item.name}${showBadge ? ` (${productCount} items)` : ""}`}
         prefetch={true}
       >
-        {/* Icon container */}
-        <div className="relative mb-1">
+        <span className="relative">
           <Icon
-            className={`w-6 h-6 transition-colors duration-200 ${
-              isActive
-                ? "text-primaryColor"
-                : "text-gray-400 group-hover:text-gray-600"
-            }`}
+            className="size-6 text-gray-500 transition-colors duration-200 group-hover:text-primaryColor"
+            strokeWidth={1.8}
           />
-
-          {/* Optimized badge with transform for performance */}
-          {showBadge && (
-            <div
-              className="absolute -top-2 -right-2.5 bg-primaryColor text-white text-xs font-medium rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 will-change-transform"
-              style={{ transform: "translateZ(0)" }} // Force GPU acceleration
-            >
-              {badgeText}
-            </div>
-          )}
-        </div>
-
-        {/* Label */}
-        <span
-          className={`text-xs transition-colors duration-200 ${
-            isActive
-              ? "text-primaryColor font-medium"
-              : "text-gray-400 group-hover:text-gray-600"
-          }`}
-        >
+          {badge}
+        </span>
+        <span className="text-xs text-gray-500 transition-colors duration-200 group-hover:text-primaryColor">
           {item.name}
         </span>
-
-        {/* Active indicator with GPU acceleration */}
-        {isActive && (
-          <div
-            className="absolute bottom-0 w-12 h-1 bg-primaryColor rounded-full will-change-transform"
-            style={{ transform: "translateZ(0)" }}
-          />
-        )}
       </Link>
     );
   }
@@ -148,8 +156,20 @@ export const MobileBottomHeader = memo(({ user }: MobileBottomHeaderProps) => {
   }, [navigationItems, pathname]);
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 will-change-transform">
-      <div className="flex items-center justify-around py-3 px-3 pb-safe">
+    <nav
+      className={cn(
+        "lg:hidden fixed bottom-0 left-0 right-0 z-50 px-3 pb-safe",
+        "pointer-events-none"
+      )}
+    >
+      <div
+        className={cn(
+          "mx-auto max-w-md flex items-end justify-around",
+          "rounded-3xl bg-white ring-1 ring-gray-100 px-2 pt-2 pb-1.5",
+          "shadow-[0_-6px_24px_rgba(0,0,0,0.10)]",
+          "pointer-events-auto"
+        )}
+      >
         {navigationItems.map((item) => (
           <NavItem
             key={item.name}
