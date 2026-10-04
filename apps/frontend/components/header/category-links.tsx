@@ -108,6 +108,7 @@ function CategoryItem({
             src={category.attachment.url || "/placeholder.svg"}
             alt={`${category.name} category`}
             fill
+            sizes="120px"
             className="object-cover"
           />
         ) : (

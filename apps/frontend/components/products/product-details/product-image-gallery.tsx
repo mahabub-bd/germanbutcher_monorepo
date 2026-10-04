@@ -93,6 +93,7 @@ export function ProductImageGallery({ product }: ProductImageGalleryProps) {
           alt={product.name}
           title={product.name}
           fill
+          sizes="(max-width: 1024px) 100vw, 50vw"
           className="object-cover transition-transform duration-300"
           onLoad={handleMainImageLoad}
         />
@@ -157,6 +158,7 @@ export function ProductImageGallery({ product }: ProductImageGalleryProps) {
               alt={product?.name}
               title={product?.name}
               fill
+              sizes="96px"
               className="object-cover"
               onLoad={() => handleThumbnailLoad(product?.attachment?.url)}
             />
@@ -179,6 +181,7 @@ export function ProductImageGallery({ product }: ProductImageGalleryProps) {
                 alt={image.fileName}
                 title={image.fileName}
                 fill
+                sizes="96px"
                 className="object-cover"
                 onLoad={() => handleThumbnailLoad(image.url)}
               />

@@ -57,15 +57,15 @@ const NavItem = memo(
           aria-label={`Navigate to ${item.name}${showBadge ? ` (${productCount} items)` : ""}`}
           prefetch={true}
         >
-          <span className="relative -mt-9 flex size-14 items-center justify-center rounded-full bg-gradient-to-b from-secondaryColor to-primaryColor ring-4 ring-white shadow-lg shadow-primaryColor/40">
-            <Icon className="size-6 text-white" strokeWidth={2} />
+          <span className="relative -mt-6 flex size-11 items-center justify-center rounded-full bg-gradient-to-b from-secondaryColor to-primaryColor ring-[3px] ring-white shadow-md shadow-primaryColor/40">
+            <Icon className="size-5 text-white" strokeWidth={2} />
             {badge}
           </span>
-          <span className="mt-1 text-xs font-semibold text-primaryColor">
+          <span className="mt-0.5 text-xs font-semibold text-primaryColor">
             {item.name}
           </span>
           <span
-            className="mt-1 h-1 w-8 rounded-full bg-primaryColor"
+            className="mt-0.5 h-1 w-7 rounded-full bg-primaryColor"
             aria-hidden
           />
         </Link>

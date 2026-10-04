@@ -19,12 +19,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useCartContext } from "@/contexts/cart-context";
+import { useFreeDelivery } from "@/hooks/use-free-delivery";
 import { cn, formatCurrencyEnglish } from "@/lib/utils";
 import type { Cart, CartItem } from "@/utils/types";
 import { CartItemProduct } from "./cart-item";
 import { EmptyCart } from "./empty-cart";
 import { FreeDeliveryBanner } from "./free-delivery-banner";
-import { useFreeDelivery } from "@/hooks/use-free-delivery";
 
 export function CartModal({
   cart,
@@ -138,7 +138,7 @@ export function CartModal({
           <div className="flex flex-col gap-2">
             <div className="flex items-center">
               <SheetTitle className="flex items-center gap-2 text-lg font-semibold">
-                <ShoppingCart className="size-5" />
+
                 <span>Your Cart</span>
                 {itemCount > 0 && (
                   <Badge variant="secondary" className="ml-2">
