@@ -49,13 +49,15 @@ export default async function RecipeDetails({
 }) {
   return (
     <div className="min-h-screen ">
-      <div className="container mx-auto px-4 md:py-5">
+      <div className="container mx-auto px-4">
         {/* Breadcrumbs */}
         <RecipeBreadcrumb
           categoryName={recipeData.category?.name}
           categorySlug={recipeData.category?.slug}
           recipeName={recipeData.title}
         />
+      </div>
+      <div className="container mx-auto px-4 md:py-5">
 
         {/* Recipe Header */}
         <div className="bg-white rounded-md shadow-sm overflow-hidden mb-8">

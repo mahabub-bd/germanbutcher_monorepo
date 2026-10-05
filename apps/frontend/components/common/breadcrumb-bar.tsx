@@ -35,14 +35,14 @@ function CrumbSeparator() {
 
 /**
  * Storefront breadcrumb bar — same design as the product details page:
- * sticky frosted-white bar, Home icon, "/" separators, gray links with an
+ * frosted-white bar, Home icon, "/" separators, gray links with an
  * animated underline on hover, current page in primaryColor. The last item
  * without an `href` renders as the current page; give every item an `href`
  * to render a plain link trail.
  */
 export function BreadcrumbBar({ items }: { items: BreadcrumbBarItem[] }) {
   return (
-    <div className="sticky top-20 z-10 w-full min-w-0 border-b border-gray-200/70 bg-white/90 backdrop-blur lg:top-24">
+    <div className="w-full min-w-0 border-b border-gray-200/70 bg-white/90 backdrop-blur">
       <nav
         aria-label="Breadcrumb"
         className="flex items-center gap-2 overflow-x-auto py-2.5 text-xs sm:text-sm"

@@ -1,3 +1,4 @@
+import { BreadcrumbBar } from "@/components/common/breadcrumb-bar";
 import { HeadingPrimary } from "@/components/common/heading-primary";
 import ProductList from "@/components/products/product-list";
 
@@ -10,6 +11,14 @@ export default async function RecipeDetilsPage({
 
   return (
     <div>
+      <div className="container mx-auto px-4">
+        <BreadcrumbBar
+          items={[
+            { label: "Products", href: "/products" },
+            { label: `Search: "${search}"` },
+          ]}
+        />
+      </div>
       <section className="md:py-10 py-5">
         <div className="container mx-auto px-4">
           <ProductList endpoint={`products?search=${search}&isActive=true`}>
