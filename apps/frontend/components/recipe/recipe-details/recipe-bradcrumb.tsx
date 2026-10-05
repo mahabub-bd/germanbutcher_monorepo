@@ -1,8 +1,7 @@
 import {
-  BreadcrumbItem,
-  PageBreadcrumb,
-} from "@/components/ui/page-breadcrumb";
-import { ChefHat, Tag } from "lucide-react";
+  BreadcrumbBarItem,
+  BreadcrumbBar,
+} from "@/components/common/breadcrumb-bar";
 
 // Recipe Breadcrumb Component
 interface RecipeBreadcrumbProps {
@@ -16,29 +15,20 @@ export function RecipeBreadcrumb({
   categorySlug,
   recipeName,
 }: RecipeBreadcrumbProps) {
-  const breadcrumbItems: BreadcrumbItem[] = [
-    {
-      label: "Recipes",
-      href: "/recipes",
-      icon: <ChefHat className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primaryColor" />,
-      isActive: !categoryName && !recipeName,
-    },
+  const items: BreadcrumbBarItem[] = [
+    { label: "Recipes", href: "/recipes" },
   ];
 
   if (categoryName && categorySlug) {
-    breadcrumbItems.push({
+    items.push({
       label: categoryName,
       href: `/recipes/category/${categorySlug}`,
-      icon: <Tag className="h-2.5 w-2.5 sm:h-3 sm:w-3" />,
     });
   }
 
   if (recipeName) {
-    breadcrumbItems.push({
-      label: recipeName,
-      isActive: true,
-    });
+    items.push({ label: recipeName });
   }
 
-  return <PageBreadcrumb items={breadcrumbItems} />;
+  return <BreadcrumbBar items={items} />;
 }

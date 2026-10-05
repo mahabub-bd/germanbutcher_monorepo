@@ -82,7 +82,7 @@ export function SearchBar({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           disabled={disabled}
-          className="h-11 rounded-full pl-10 pr-20 bg-white border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-primaryColor/20 focus:border-primaryColor text-gray-900 placeholder-gray-500 transition-all duration-200 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed w-60 md:w-64 xl:w-80"
+          className="h-9 rounded-full pl-9 pr-10 bg-white border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-primaryColor/20 focus:border-primaryColor text-gray-900 placeholder-gray-500 transition-all duration-200 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed w-60 md:w-64 xl:w-80"
           autoComplete="off"
           spellCheck="false"
           aria-label="Search input"
@@ -109,7 +109,7 @@ export function SearchBar({
             if (searchQuery?.trim()) handleSearch(searchQuery);
           }}
           disabled={disabled}
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full bg-primaryColor text-white transition-colors hover:bg-secondaryColor focus:outline-none focus:ring-2 focus:ring-primaryColor/40 disabled:opacity-50"
+          className="absolute right-1 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-full bg-primaryColor text-white transition-colors hover:bg-secondaryColor focus:outline-none focus:ring-2 focus:ring-primaryColor/40 disabled:opacity-50"
           aria-label="Search"
         >
           <Search className="size-4" aria-hidden="true" />

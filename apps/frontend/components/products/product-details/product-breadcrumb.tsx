@@ -27,7 +27,7 @@ export function ProductBreadcrumb({ product }: ProductBreadcrumbProps) {
   const brand = product.brand;
 
   return (
-    <div className="sticky top-20 z-10 border-b border-gray-200/70 bg-white/90 backdrop-blur lg:top-24">
+    <div className="border-b border-gray-200/70 bg-white/90 backdrop-blur">
       <div className="container mx-auto px-4">
         <nav
           aria-label="Breadcrumb"
