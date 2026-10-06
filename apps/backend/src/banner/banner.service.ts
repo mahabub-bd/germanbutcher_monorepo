@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Attachment } from 'src/attachment/entities/attachment.entity';
 
 import { User } from 'src/user/entities/user.entity';
-import { Repository } from 'typeorm';
+import { Cache } from 'cache-manager';
+import { Inject } from '@nestjs/common';
+import { DataSource, In, Repository } from 'typeorm';
 import { CreateBannerDto } from './dto/create-banner.dto';
+import { ReorderBannersDto } from './dto/reorder-banner.dto';
 import { UpdateBannerDto } from './dto/update-banner.dto';
 import { Banner, BannerPosition, BannerType } from './entities/banner.entity';
 // Update the FindAllOptions interface (add this if you don't have it)
@@ -23,7 +27,15 @@ export class BannerService {
     private bannerRepository: Repository<Banner>,
     @InjectRepository(Attachment)
     private attachmentRepository: Repository<Attachment>,
+    @Inject(CACHE_MANAGER)
+    private cacheManager: Cache,
+    private dataSource: DataSource,
   ) {}
+
+  /** Invalidates the banner list caches after any write. */
+  private async invalidateCaches(): Promise<void> {
+    await this.cacheManager.del('banners_active');
+  }
 
   async create(createBannerDto: CreateBannerDto, user: User): Promise<Banner> {
     const image = await this.attachmentRepository.findOne({
@@ -34,6 +46,20 @@ export class BannerService {
       throw new NotFoundException('Attachment not found');
     }
 
+    // Append to the end of its type+position group unless an explicit order
+    // is given — new banners would otherwise all tie at the default of 0.
+    if (createBannerDto.displayOrder == null) {
+      const { max } = await this.bannerRepository
+        .createQueryBuilder('banner')
+        .select('COALESCE(MAX(banner.displayOrder), -1)', 'max')
+        .where('banner.type = :type', { type: createBannerDto.type })
+        .andWhere('banner.position = :position', {
+          position: createBannerDto.position,
+        })
+        .getRawOne();
+      createBannerDto.displayOrder = Number(max) + 1;
+    }
+
     const banner = this.bannerRepository.create({
       ...createBannerDto,
       image,
@@ -41,7 +67,35 @@ export class BannerService {
       updatedBy: user?.userId,
     });
 
-    return this.bannerRepository.save(banner);
+    const saved = await this.bannerRepository.save(banner);
+    await this.invalidateCaches();
+    return saved;
+  }
+
+  /**
+   * Sets displayOrder of the given banners to their index in `ids`
+   * inside a single transaction.
+   */
+  async reorder(reorderBannersDto: ReorderBannersDto): Promise<void> {
+    const { ids } = reorderBannersDto;
+
+    const banners = await this.bannerRepository.find({ where: { id: In(ids) } });
+    if (banners.length !== ids.length) {
+      const foundIds = new Set(banners.map((b) => b.id));
+      const missing = ids.filter((id) => !foundIds.has(id));
+      throw new NotFoundException(`Banners not found: ${missing.join(', ')}`);
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(Banner);
+      await Promise.all(
+        ids.map((id, index) =>
+          repository.update({ id }, { displayOrder: index }),
+        ),
+      );
+    });
+
+    await this.invalidateCaches();
   }
 
   async findAll(
@@ -161,11 +215,14 @@ export class BannerService {
     Object.assign(banner, updateBannerDto);
     banner.updatedBy = user?.userId;
 
-    return this.bannerRepository.save(banner);
+    const saved = await this.bannerRepository.save(banner);
+    await this.invalidateCaches();
+    return saved;
   }
 
   async remove(id: number): Promise<void> {
     const banner = await this.findOne(id);
     await this.bannerRepository.remove(banner);
+    await this.invalidateCaches();
   }
 }

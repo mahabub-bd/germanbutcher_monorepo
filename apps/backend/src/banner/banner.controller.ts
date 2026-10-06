@@ -29,6 +29,7 @@ import { ApiResponseDto } from 'src/common/types';
 import { User } from 'src/user/entities/user.entity';
 import { BannerService } from './banner.service';
 import { CreateBannerDto } from './dto/create-banner.dto';
+import { ReorderBannersDto } from './dto/reorder-banner.dto';
 import { UpdateBannerDto } from './dto/update-banner.dto';
 import { Banner, BannerPosition, BannerType } from './entities/banner.entity';
 
@@ -177,6 +178,32 @@ export class BannerController {
       data,
     };
   }
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/content')
+  @Patch('reorder')
+  @ApiOperation({
+    summary: 'Reorder banners — sets displayOrder to the index of each id',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Banners reordered successfully',
+    type: ApiResponseDto<null>,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'One or more banners not found',
+  })
+  async reorder(
+    @Body() reorderBannersDto: ReorderBannersDto,
+  ): Promise<ApiResponseDto<null>> {
+    await this.bannerService.reorder(reorderBannersDto);
+    return {
+      message: 'Banners reordered successfully',
+      statusCode: HttpStatus.OK,
+      data: null,
+    };
+  }
+
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @ModulePermissions('/admin/content')
   @Patch(':id')
