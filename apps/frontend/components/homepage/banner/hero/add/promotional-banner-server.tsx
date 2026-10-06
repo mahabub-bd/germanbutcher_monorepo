@@ -14,8 +14,10 @@ async function getBanners(activeOnly = true): Promise<Banner[]> {
     );
 
     return activeOnly
-      ? banners.filter((banner) => banner.isActive)
-      : banners;
+      ? banners
+          .filter((banner) => banner.isActive)
+          .sort((a, b) => a.displayOrder - b.displayOrder)
+      : banners.sort((a, b) => a.displayOrder - b.displayOrder);
   } catch (error) {
     console.error("Failed to fetch promotional banners:", error);
     return [];
