@@ -38,7 +38,7 @@ const PromotionalCarousel = ({
       try {
         setIsLoading(true);
         const response = (await fetchDataPagination(
-          "banners?type=promotional&position=middle"
+          "banners?type=promotional&position=middle&isActive=true&limit=100"
         )) as { data: Banner[] };
 
         if (!isMounted) return;

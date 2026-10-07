@@ -1,4 +1,5 @@
 "use client";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchData, formPostData, patchData } from "@/utils/api-utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { BusinessSettings } from "@/utils/types";
 import {
   Building2,
@@ -250,7 +250,7 @@ export function BusinessSettingsCard() {
   ];
 
   return (
-    <div className="md:p-6 p-2">
+    <div>
       <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5 dark:border-gray-800 dark:bg-gray-900">
         {isLoading ? (
           <LoadingIndicator message="Loading business settings..." />
@@ -294,7 +294,7 @@ export function BusinessSettingsCard() {
               </div>
 
               {/* Details */}
-              <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
+              <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
                 <InfoField
                   icon={Building2}
                   label="Business Name"
@@ -349,7 +349,7 @@ export function BusinessSettingsCard() {
                       : undefined
                   }
                   external
-                  className="sm:col-span-2 xl:col-span-3"
+                  className="sm:col-span-2 lg:col-span-3"
                 />
               </dl>
             </div>

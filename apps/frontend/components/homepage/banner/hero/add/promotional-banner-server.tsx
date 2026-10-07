@@ -10,7 +10,7 @@ interface PromotionalCarouselProps {
 async function getBanners(activeOnly = true): Promise<Banner[]> {
   try {
     const banners = await fetchPublicData<Banner[]>(
-      "banners?type=promotional&position=middle"
+      "banners?type=promotional&position=middle&isActive=true&limit=100"
     );
 
     return activeOnly

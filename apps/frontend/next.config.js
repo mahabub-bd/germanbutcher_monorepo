@@ -18,6 +18,9 @@ const nextConfig = {
 
   images: {
     dangerouslyAllowSVG: true,
+    // Allow image fetches through VPN/DNS64 resolvers that return NAT64
+    // (64:ff9b::) addresses, which the SSRF check misclassifies as private IPs
+    dangerouslyAllowLocalIP: true,
     contentDispositionType: "attachment",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [

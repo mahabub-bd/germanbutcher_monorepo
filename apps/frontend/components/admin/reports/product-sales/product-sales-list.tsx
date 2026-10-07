@@ -1,6 +1,7 @@
 "use client";
 
 import { PageHeader } from "@/components/admin/page-header";
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import { Button } from "@/components/ui/button";
@@ -136,47 +137,26 @@ export default function ProductSalesList({
         preset={preset}
         fromDate={fromDate} toDate={toDate} onApply={applyParams} />
 
-      {/* Summary tiles — compact on mobile, 3 across from sm up */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
-        {[
-          {
-            icon: TrendingUp,
-            label: "Total Revenue",
-            value: formatCurrencyEnglish(totalRevenue),
-            tile: "bg-green-100 text-green-600",
-          },
-          {
-            icon: ShoppingCart,
-            label: "Units Sold",
-            value: String(totalQuantity),
-            tile: "bg-blue-100 text-blue-600",
-          },
-          {
-            icon: Package,
-            label: "Products Sold",
-            value: String(summary?.productCount ?? 0),
-            tile: "bg-purple-100 text-purple-600",
-          },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-3 sm:p-4"
-          >
-            <span
-              className={`flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg ${stat.tile}`}
-            >
-              <stat.icon className="h-4 w-4 sm:h-5 sm:w-5" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm sm:text-2xl font-bold leading-none truncate">
-                {stat.value}
-              </p>
-              <p className="text-[11px] sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 truncate">
-                {stat.label}
-              </p>
-            </div>
-          </div>
-        ))}
+      {/* Summary tiles */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <StatsCard
+          icon={TrendingUp}
+          title="Total Revenue"
+          value={formatCurrencyEnglish(totalRevenue)}
+          bgColor="green"
+        />
+        <StatsCard
+          icon={ShoppingCart}
+          title="Units Sold"
+          value={totalQuantity}
+          bgColor="blue"
+        />
+        <StatsCard
+          icon={Package}
+          title="Products Sold"
+          value={summary?.productCount ?? 0}
+          bgColor="purple"
+        />
       </div>
 
       {/* Mobile card list */}

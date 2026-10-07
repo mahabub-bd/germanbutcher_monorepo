@@ -3,6 +3,7 @@
 import type React from "react";
 
 import { PaginationComponent } from "@/components/common/pagination";
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -597,62 +598,45 @@ export function ContactMessageList({
         title: "Total Messages",
         value: statistics.total,
         icon: MessageSquare,
-        color: "text-blue-600",
-        bgColor: "bg-blue-50 dark:bg-blue-900/20",
+        bgColor: "blue" as const,
       },
       {
         title: "Pending",
         value: statistics.byStatus.pending,
         icon: Clock,
-        color: "text-yellow-600",
-        bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
+        bgColor: "amber" as const,
       },
       {
         title: "In Progress",
         value: statistics.byStatus.in_progress,
         icon: AlertCircle,
-        color: "text-blue-600",
-        bgColor: "bg-blue-50 dark:bg-blue-900/20",
+        bgColor: "indigo" as const,
       },
       {
         title: "Resolved",
         value: statistics.byStatus.resolved,
         icon: CheckCircle,
-        color: "text-green-600",
-        bgColor: "bg-green-50 dark:bg-green-900/20",
+        bgColor: "green" as const,
       },
       {
         title: "Closed",
         value: statistics.byStatus.closed,
         icon: XCircle,
-        color: "text-red-600",
-        bgColor: "bg-red-50 dark:bg-red-900/20",
+        bgColor: "red" as const,
       },
     ];
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.title}
-              className="bg-white dark:bg-neutral-900 rounded-lg p-6 border border-gray-200 dark:border-neutral-800 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    {stat.title}
-                  </p>
-                  <p className="text-3xl font-bold">{stat.value}</p>
-                </div>
-                <div className={`p-3 rounded-lg ${stat.bgColor}`}>
-                  <Icon className={`h-6 w-6 ${stat.color}`} />
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {stats.map((stat) => (
+          <StatsCard
+            key={stat.title}
+            icon={stat.icon}
+            title={stat.title}
+            value={stat.value}
+            bgColor={stat.bgColor}
+          />
+        ))}
       </div>
     );
   };

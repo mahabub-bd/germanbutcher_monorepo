@@ -465,7 +465,7 @@ export function DiscountList({
               <TableRow key={product.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md border bg-muted">
+                    <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md border">
                       <Image
                         src={product?.attachment?.url || "/placeholder.svg"}
                         alt={product.name}

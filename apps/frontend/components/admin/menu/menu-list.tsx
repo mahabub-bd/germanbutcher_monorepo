@@ -24,6 +24,7 @@ import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { MenuItem } from "@/utils/types";
 import {
+  Copy,
   Filter,
   LayoutList,
   MoreHorizontal,
@@ -196,6 +197,15 @@ export function MenuList({
     setCurrentPage(1);
   };
 
+  const handleCopyUrl = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("URL copied to clipboard");
+    } catch {
+      toast.error("Failed to copy URL");
+    }
+  };
+
   const getParentMenuName = (parentId: number | null) => {
     if (!parentId) return "None";
 
@@ -306,15 +316,47 @@ export function MenuList({
           {menuItems.map((menuItem) => (
             <TableRow key={menuItem.id}>
               <TableCell className="font-medium">{menuItem.name}</TableCell>
-              <TableCell>{menuItem.url}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  <span
+                    className="text-sm max-w-[320px] truncate text-muted-foreground"
+                    title={menuItem.url}
+                  >
+                    {menuItem.url}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => handleCopyUrl(menuItem.url)}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    <span className="sr-only">Copy URL</span>
+                  </Button>
+                </div>
+              </TableCell>
               <TableCell>{getParentMenuName(menuItem.parentId)}</TableCell>
               <TableCell className="hidden md:table-cell">
-                <Badge variant={menuItem.isMainMenu ? "default" : "secondary"}>
+                <Badge
+                  variant="outline"
+                  className={
+                    menuItem.isMainMenu
+                      ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800"
+                      : "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800"
+                  }
+                >
                   {menuItem.isMainMenu ? "Main Menu" : "Sub Menu"}
                 </Badge>
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                <Badge variant={menuItem.isActive ? "default" : "destructive"}>
+                <Badge
+                  variant="outline"
+                  className={
+                    menuItem.isActive
+                      ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
+                      : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
+                  }
+                >
                   {menuItem.isActive ? "Active" : "Inactive"}
                 </Badge>
               </TableCell>

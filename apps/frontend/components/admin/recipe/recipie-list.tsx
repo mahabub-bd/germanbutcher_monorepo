@@ -2,6 +2,7 @@
 
 import type React from "react";
 
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +25,6 @@ import {
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { formatDateTime } from "@/lib/utils";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { Recipe } from "@/utils/types";
 import {
   Filter,
@@ -129,11 +129,14 @@ export function RecipeList({
       params.append("page", currentPage.toString());
       params.append("limit", limit.toString());
 
-      if (searchQuery) params.append("search", searchQuery);
+      if (searchQuery) params.append("recipesearch", searchQuery);
       if (statusFilter && statusFilter !== "all")
-        params.append("status", statusFilter);
+        params.append(
+          "isPublished",
+          statusFilter === "published" ? "true" : "false"
+        );
       if (categoryFilter && categoryFilter !== "all")
-        params.append("category", categoryFilter);
+        params.append("categorySlug", categoryFilter);
 
       const response = await fetchDataPagination<{
         data: Recipe[];
@@ -278,84 +281,84 @@ export function RecipeList({
   };
 
   const renderTableView = () => (
-    <div className="md:p-6 p-2">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Image</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead>Category</TableHead>
 
-            <TableHead className="hidden md:table-cell">Created By</TableHead>
-            <TableHead className="hidden md:table-cell">Created At</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {recipes?.map((recipe) => (
-            <TableRow key={recipe.id}>
-              <TableCell>
-                <div className=" overflow-hidden">
-                  <Image
-                    src={recipe?.attachment?.url || "/placeholder.svg"}
-                    alt={recipe.title}
-                    width={64}
-                    height={64}
-                    className="object-cover"
-                  />
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{recipe.title}</TableCell>
-              <TableCell>{recipe.category?.name || "Uncategorized"}</TableCell>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Image</TableHead>
+          <TableHead>Title</TableHead>
+          <TableHead>Category</TableHead>
 
-              <TableCell className="hidden md:table-cell">
-                {recipe.createdBy?.name || "Unknown"}
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                {formatDateTime(recipe.createdAt)}
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <ActiveStatusToggle
-                  isActive={recipe.isPublished}
-                  disabled={togglingId === recipe.id}
-                  onToggle={() => toggleActive(recipe)}
-                  label={recipe.title}
-                  labels={{ on: "Published", off: "Draft" }}
+          <TableHead className="hidden md:table-cell">Created By</TableHead>
+          <TableHead className="hidden md:table-cell">Created At</TableHead>
+          <TableHead className="hidden md:table-cell">Status</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {recipes?.map((recipe) => (
+          <TableRow key={recipe.id}>
+            <TableCell>
+              <div className=" overflow-hidden">
+                <Image
+                  src={recipe?.attachment?.url || "/placeholder.svg"}
+                  alt={recipe.title}
+                  width={64}
+                  height={64}
+                  className="object-cover"
                 />
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {can(MENU_URL, "canEdit") && (
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/recipe/${recipe.id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    {can(MENU_URL, "canDelete") && (
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDeleteClick(recipe)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+              </div>
+            </TableCell>
+            <TableCell className="font-medium">{recipe.title}</TableCell>
+            <TableCell>{recipe.category?.name || "Uncategorized"}</TableCell>
+
+            <TableCell className="hidden md:table-cell">
+              {recipe.createdBy?.name || "Unknown"}
+            </TableCell>
+            <TableCell className="hidden md:table-cell">
+              {formatDateTime(recipe.createdAt)}
+            </TableCell>
+            <TableCell className="hidden md:table-cell">
+              <ActiveStatusToggle
+                isActive={recipe.isPublished}
+                disabled={togglingId === recipe.id}
+                onToggle={() => toggleActive(recipe)}
+                label={recipe.title}
+                labels={{ on: "Published", off: "Draft" }}
+              />
+            </TableCell>
+            <TableCell className="text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {can(MENU_URL, "canEdit") && (
+                    <DropdownMenuItem asChild>
+                      <Link href={`/admin/recipe/${recipe.id}/edit`}>
+                        <Pencil className="mr-2 h-4 w-4" /> Edit
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {can(MENU_URL, "canDelete") && (
+                    <DropdownMenuItem
+                      className="text-red-600"
+                      onClick={() => handleDeleteClick(recipe)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+
   );
 
   return (
@@ -366,9 +369,9 @@ export function RecipeList({
           description="Manage your recipes"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add Recipe",
-                actionHref: "/admin/recipe/add",
-              }
+              actionLabel: "Add Recipe",
+              actionHref: "/admin/recipe/add",
+            }
             : {})}
         />
 

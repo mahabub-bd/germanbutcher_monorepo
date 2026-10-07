@@ -96,7 +96,7 @@ export function BannerList({
 
       if (searchQuery) params.append("search", searchQuery);
       if (statusFilter && statusFilter !== "all")
-        params.append("status", statusFilter);
+        params.append("isActive", statusFilter === "active" ? "true" : "false");
       if (typeFilter && typeFilter !== "all") params.append("type", typeFilter);
 
       const response = await fetchDataPagination<{
@@ -302,7 +302,7 @@ export function BannerList({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-64 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
+                  className="w-72 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
                   sideOffset={8}
                 >
                   <div className="space-y-3">
@@ -374,58 +374,45 @@ export function BannerList({
                       <label className="text-xs text-muted-foreground">
                         Type
                       </label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-3 gap-2">
                         <button
                           onClick={() => {
-                            setTypeFilter("hero");
+                            setTypeFilter("main");
                             setCurrentPage(1);
                           }}
                           className={`text-xs py-1.5 px-2 rounded-md border ${
-                            typeFilter === "hero"
+                            typeFilter === "main"
                               ? "bg-purple-50 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800 text-purple-600 dark:text-purple-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
                           }`}
                         >
-                          Hero
+                          Main
                         </button>
                         <button
                           onClick={() => {
-                            setTypeFilter("promo");
+                            setTypeFilter("promotional");
                             setCurrentPage(1);
                           }}
                           className={`text-xs py-1.5 px-2 rounded-md border ${
-                            typeFilter === "promo"
+                            typeFilter === "promotional"
                               ? "bg-amber-50 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 text-amber-600 dark:text-amber-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
                           }`}
                         >
-                          Promo
+                          Promotional
                         </button>
                         <button
                           onClick={() => {
-                            setTypeFilter("sidebar");
+                            setTypeFilter("featured");
                             setCurrentPage(1);
                           }}
                           className={`text-xs py-1.5 px-2 rounded-md border ${
-                            typeFilter === "sidebar"
+                            typeFilter === "featured"
                               ? "bg-cyan-50 border-cyan-200 dark:bg-cyan-900/30 dark:border-cyan-800 text-cyan-600 dark:text-cyan-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
                           }`}
                         >
-                          Sidebar
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTypeFilter("popup");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            typeFilter === "popup"
-                              ? "bg-pink-50 border-pink-200 dark:bg-pink-900/30 dark:border-pink-800 text-pink-600 dark:text-pink-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
-                        >
-                          Popup
+                          Featured
                         </button>
                       </div>
                     </div>
