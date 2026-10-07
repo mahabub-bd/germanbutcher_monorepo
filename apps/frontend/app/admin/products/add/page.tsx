@@ -51,7 +51,7 @@ export default function AddProductPage() {
     return <LoadingIndicator message="Loading Products" />;
   }
   return (
-    <div className="space-y-6 p-2 md:p-6">
+    <div className="space-y-6 p-2 md:p-4">
       <div className="flex justify-end">
         <Button asChild variant="outline">
           <Link href="/admin/products/products-list">

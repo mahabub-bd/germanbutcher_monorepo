@@ -350,11 +350,11 @@ export function ProductForm({
         slug: data.slug?.trim() || undefined,
         ...(data.hasDiscount === false
           ? {
-              discountType: null,
-              discountValue: null,
-              discountStartDate: null,
-              discountEndDate: null,
-            }
+            discountType: null,
+            discountValue: null,
+            discountStartDate: null,
+            discountEndDate: null,
+          }
           : {}),
       };
 
@@ -396,7 +396,7 @@ export function ProductForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} >
         {/* Shared hidden input: triggered by the gallery section's "Add Image" tile */}
         <input
           id="gallery-upload"
@@ -407,49 +407,49 @@ export function ProductForm({
           onChange={handleGalleryFilesChange}
         />
 
-        <div className="space-y-6">
-            <BasicInformationSection
+        <div>
+          <BasicInformationSection
+            control={form.control}
+            initialTags={product?.tags || []}
+            initialSlug={product?.slug}
+            mode={mode}
+          />
+
+          <IdentificationSection
+            control={form.control}
+            units={units}
+            suppliers={suppliers}
+            brands={brands}
+            categories={categories}
+            selectedMainCategory={selectedMainCategory}
+            subCategories={subCategories}
+            isLoadingSubCategories={isLoadingSubCategories}
+            onMainCategoryChange={handleMainCategoryChange}
+          />
+
+          <PricingInventorySection control={form.control} />
+
+          <DiscountSection control={form.control} />
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <ProductImageSection
               control={form.control}
-              initialTags={product?.tags || []}
-              initialSlug={product?.slug}
-              mode={mode}
+              imagePreview={imagePreview}
+              fileName={fileName}
+              onFileChange={handleFileChange}
             />
 
-            <IdentificationSection
-              control={form.control}
-              units={units}
-              suppliers={suppliers}
-              brands={brands}
-              categories={categories}
-              selectedMainCategory={selectedMainCategory}
-              subCategories={subCategories}
-              isLoadingSubCategories={isLoadingSubCategories}
-              onMainCategoryChange={handleMainCategoryChange}
+            <ProductGallerySection
+              existingPreviews={existingPreviews}
+              existingAttachmentIds={existingAttachmentIds}
+              newPreviews={newGalleryPreviews}
+              onDeleteExisting={deleteGalleryImage}
+              onRemoveNew={removeNewGalleryImage}
+              onAddClick={openGalleryUpload}
             />
+          </div>
 
-            <PricingInventorySection control={form.control} />
-
-            <DiscountSection control={form.control} />
-
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <ProductImageSection
-                control={form.control}
-                imagePreview={imagePreview}
-                fileName={fileName}
-                onFileChange={handleFileChange}
-              />
-
-              <ProductGallerySection
-                existingPreviews={existingPreviews}
-                existingAttachmentIds={existingAttachmentIds}
-                newPreviews={newGalleryPreviews}
-                onDeleteExisting={deleteGalleryImage}
-                onRemoveNew={removeNewGalleryImage}
-                onAddClick={openGalleryUpload}
-              />
-            </div>
-
-            <StatusVisibilitySection control={form.control} />
+          <StatusVisibilitySection control={form.control} />
         </div>
 
         <ProductFormFooter
