@@ -2,11 +2,8 @@
 
 import { BannerForm } from "@/components/admin/banner/banner-form";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
-import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
 import { fetchData } from "@/utils/api-utils";
 import type { Banner } from "@/utils/types";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -44,19 +41,5 @@ export default function EditBannerPage() {
     );
   }
 
-  return (
-    <div className="md:p-4 p:2 space-y-6 border rouunded-sm">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <CardTitle>Edit Banner</CardTitle>
-          <CardDescription>Update the banner information.</CardDescription>
-        </div>
-        <Button asChild variant="outline">
-          <Link href="/admin/banner/banner-list">Back to Banners</Link>
-        </Button>
-      </div>
-
-      <BannerForm mode="edit" banner={banner} />
-    </div>
-  );
+  return <BannerForm mode="edit" banner={banner} />;
 }

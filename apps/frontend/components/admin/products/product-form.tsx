@@ -407,7 +407,7 @@ export function ProductForm({
           onChange={handleGalleryFilesChange}
         />
 
-        <div>
+        <div className="space-y-6">
           <BasicInformationSection
             control={form.control}
             initialTags={product?.tags || []}

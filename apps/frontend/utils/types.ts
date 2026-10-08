@@ -179,6 +179,7 @@ export enum DiscountType {
 export interface MinimalProduct {
   id: number;
   name: string;
+  slug?: string | null;
   sellingPrice: number;
   discountType?: DiscountType | null;
   discountValue?: number | null;

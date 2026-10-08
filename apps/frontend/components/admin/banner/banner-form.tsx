@@ -1,14 +1,25 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Upload } from "lucide-react";
+import {
+  ArrowLeft,
+  Image as ImageIcon,
+  Layers,
+  Loader2,
+  Search,
+  Settings,
+  Upload,
+} from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { CategorySelector } from "@/components/admin/banner/category-selector";
+import { ProductSelector } from "@/components/admin/discount/product-selector";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -28,12 +39,33 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { formPostData, patchData, postData } from "@/utils/api-utils";
+import {
+  fetchData,
+  formPostData,
+  patchData,
+  postData,
+} from "@/utils/api-utils";
 import { bannerSchema } from "@/utils/form-validation";
-import { Banner, BannerPosition, BannerType } from "@/utils/types";
-import { Section } from "../helper";
+import {
+  Banner,
+  BannerPosition,
+  BannerType,
+  Category,
+  MinimalProduct,
+  Product,
+} from "@/utils/types";
 
 type BannerFormValues = z.infer<typeof bannerSchema>;
+
+type LinkType = "none" | "product" | "category" | "custom";
+
+// Derive the link picker state from a stored targetUrl.
+const parseLinkType = (url: string): LinkType => {
+  if (!url) return "none";
+  if (url.startsWith("/product/")) return "product";
+  if (url.startsWith("/categories/")) return "category";
+  return "custom";
+};
 
 interface BannerFormProps {
   mode: "create" | "edit";
@@ -46,6 +78,26 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
   const [fileName, setFileName] = useState("");
   const [imagePreview, setImagePreview] = useState(banner?.image?.url || "");
   const router = useRouter();
+
+  // Link picker state
+  const [linkType, setLinkType] = useState<LinkType>(() =>
+    parseLinkType(banner?.targetUrl || "")
+  );
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null
+  );
+  // Product picker: category first, then that category's products (products/all)
+  const [pickerCategoryId, setPickerCategoryId] = useState("");
+  const [pickerProducts, setPickerProducts] = useState<MinimalProduct[]>([]);
+  const [isLoadingPickerProducts, setIsLoadingPickerProducts] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<{
+    id?: number;
+    name: string;
+    slug?: string | null;
+  } | null>(null);
 
   const form = useForm<BannerFormValues>({
     resolver: zodResolver(bannerSchema),
@@ -60,6 +112,95 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
       imageUrl: banner?.image?.url || "",
     },
   });
+
+  // Restore the previously picked product/category on edit.
+  useEffect(() => {
+    const url = banner?.targetUrl || "";
+    if (url.startsWith("/product/")) {
+      const slug = url.replace("/product/", "");
+      fetchData<Product>(`products/slug/${slug}`)
+        .then((product) =>
+          setSelectedProduct(
+            product
+              ? { id: product.id, name: product.name, slug: product.slug }
+              : null
+          )
+        )
+        .catch(() => { });
+    } else if (url.startsWith("/categories/")) {
+      const slug = url.replace("/categories/", "");
+      fetchData<Category[]>("categories")
+        .then((all) => {
+          setCategories(all || []);
+          setSelectedCategory(
+            (all || []).find((c) => c.slug === slug) || null
+          );
+        })
+        .catch(() => { });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load categories for both the category and product pickers.
+  useEffect(() => {
+    if (
+      (linkType !== "category" && linkType !== "product") ||
+      categories.length > 0
+    ) {
+      return;
+    }
+    setIsLoadingCategories(true);
+    fetchData<Category[]>("categories")
+      .then((all) => setCategories(all || []))
+      .catch(() => toast.error("Failed to load categories"))
+      .finally(() => setIsLoadingCategories(false));
+  }, [linkType, categories.length]);
+
+  // Debounced product search via products/all — works with a category
+  // chosen (search within it) or without one (search across all products).
+  useEffect(() => {
+    if (linkType !== "product") return;
+
+    const trimmed = pickerSearch.trim();
+    if (!trimmed && !pickerCategoryId) {
+      setPickerProducts([]);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsLoadingPickerProducts(true);
+      try {
+        const params = new URLSearchParams();
+        if (pickerCategoryId) params.set("category", pickerCategoryId);
+        if (trimmed) params.set("search", trimmed);
+        params.set("isActive", "true");
+
+        const fetched = await fetchData<MinimalProduct[]>(
+          `products/all?${params.toString()}`
+        );
+        setPickerProducts(
+          Array.isArray(fetched)
+            ? [...fetched].sort((a, b) => a.name.localeCompare(b.name))
+            : []
+        );
+      } catch {
+        toast.error("Failed to load products");
+        setPickerProducts([]);
+      } finally {
+        setIsLoadingPickerProducts(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [pickerCategoryId, pickerSearch, linkType]);
+
+  const handleLinkTypeChange = (type: string) => {
+    const next = type as LinkType;
+    setLinkType(next);
+    if (next === "none") {
+      form.setValue("targetUrl", "", { shouldDirty: true });
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -126,9 +267,31 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="p-6 space-y-6">
-          {/* Basic Information Section */}
-          <Section title="Basic Information">
+        {/* Page header */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">
+              {mode === "create" ? "Add Banner" : "Edit Banner"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {mode === "create"
+                ? "Create a promotional banner for the storefront"
+                : "Update this banner content and settings"}
+            </p>
+          </div>
+          <Button asChild variant="outline">
+            <Link href="/admin/banner/banner-list">
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              Back to Banners
+            </Link>
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Basic Information */}
+          <section className="h-full rounded-xl border bg-card p-5 space-y-4">
+            <SectionTitle icon={ImageIcon} title="Basic Information" />
+
             <FormField
               control={form.control}
               name="title"
@@ -152,7 +315,7 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
                   <FormControl>
                     <Textarea
                       placeholder="Enter banner description"
-                      className="min-h-[100px]"
+                      className="min-h-[80px] resize-none"
                       {...field}
                     />
                   </FormControl>
@@ -161,34 +324,23 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="targetUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Target URL</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://example.com/promo" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </Section>
+          </section>
 
-          {/* Banner Settings Section */}
-          <Section title="Banner Settings">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+          {/* Banner Settings */}
+          <section className="h-full rounded-xl border bg-card p-5 space-y-4">
+            <SectionTitle icon={Settings} title="Banner Settings" />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="type"
                 render={({ field }) => (
-                  <FormItem className="w-full">
+                  <FormItem>
                     <FormLabel>Banner Type</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select banner type" />
+                          <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -209,12 +361,12 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
                 control={form.control}
                 name="position"
                 render={({ field }) => (
-                  <FormItem className="w-full">
+                  <FormItem>
                     <FormLabel>Position</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select banner position" />
+                          <SelectValue placeholder="Select position" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -230,12 +382,15 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
                   </FormItem>
                 )}
               />
+            </div>
 
+            {/* Display order + active status share one row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="displayOrder"
                 render={({ field }) => (
-                  <FormItem className="w-full">
+                  <FormItem>
                     <FormLabel>Display Order</FormLabel>
                     <FormControl>
                       <Input
@@ -245,120 +400,314 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
                         {...field}
                       />
                     </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      Lower numbers appear first
+                    </p>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3 sm:mt-6">
+                    <div>
+                      <FormLabel className="text-sm font-medium">
+                        Active Status
+                      </FormLabel>
+
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />
             </div>
-          </Section>
+          </section>
 
-          {/* Media & Status Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Section title="Media">
-              <FormField
-                control={form.control}
-                name="imageUrl"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Banner Image</FormLabel>
-                    <div className="flex flex-col gap-4">
-                      <div className="flex items-center gap-4">
-                        {imagePreview ? (
-                          <div className="relative w-64 h-32 border rounded-md overflow-hidden bg-gray-50">
-                            <Image
-                              src={imagePreview || "/placeholder.svg"}
-                              alt="Banner preview"
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center w-64 h-32 border rounded-md bg-muted/20">
-                            <Upload className="h-8 w-8 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() =>
-                              document.getElementById("banner-upload")?.click()
-                            }
-                          >
-                            <Upload className="mr-2 h-4 w-4" />
-                            Choose File
-                          </Button>
-                          <span className="text-sm text-muted-foreground">
-                            {fileName || "No file chosen"}
-                          </span>
+          {/* Link To — full width so the product grid has room */}
+          <section className="rounded-xl border bg-card p-5 space-y-4 lg:col-span-2">
+            <SectionTitle icon={Layers} title="Link To" />
+
+            <FormField
+              control={form.control}
+              name="targetUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex flex-col md:flex-row md:items-start gap-3">
+                    {/* Link type */}
+                    <Select value={linkType} onValueChange={handleLinkTypeChange}>
+                      <FormControl>
+                        <SelectTrigger className="w-full md:flex-1">
+                          <SelectValue placeholder="Choose link target" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="product">Product</SelectItem>
+                        <SelectItem value="category">Category</SelectItem>
+                        <SelectItem value="custom">Custom URL</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {linkType === "product" && (
+                      <>
+                        {/* Product filter */}
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            value={pickerSearch}
+                            onChange={(e) => setPickerSearch(e.target.value)}
+                            placeholder="Filter products..."
+                            className="pl-9"
+                          />
                         </div>
-                      </div>
-                      <Input
-                        id="banner-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleFileChange}
-                      />
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </Section>
 
-            <Section title="Status">
-              <div className="grid grid-cols-1 gap-4">
-                <FormField
-                  control={form.control}
-                  name="isActive"
-                  render={({ field }) => (
-                    <SwitchCard
-                      label="Active Status"
-                      description="Banner will be visible to customers"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
+                        {/* Category */}
+                        <Select
+                          value={pickerCategoryId}
+                          onValueChange={(value) => {
+                            setPickerCategoryId(value);
+                            setSelectedProduct(null);
+                            field.onChange("");
+                          }}
+                        >
+                          <SelectTrigger className="w-full md:flex-1">
+                            <span className="flex min-w-0 items-center gap-2">
+                              <Layers className="h-4 w-4 shrink-0 text-muted-foreground" />
+                              <SelectValue placeholder="1. Select a category" />
+                            </span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories.map((category) => (
+                              <SelectItem
+                                key={category.id}
+                                value={String(category.id)}
+                              >
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </>
+                    )}
+
+                    {linkType === "category" && (
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={pickerSearch}
+                          onChange={(e) => setPickerSearch(e.target.value)}
+                          placeholder="Filter categories..."
+                          className="pl-9"
+                        />
+                      </div>
+                    )}
+
+                    {linkType === "custom" && (
+                      <FormControl>
+                        <Input
+                          placeholder="https://example.com/promo or /recipes"
+                          className="flex-1"
+                          {...field}
+                        />
+                      </FormControl>
+                    )}
+                  </div>
+
+                  {linkType === "category" && (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        Pick a category to link — single selection only
+                      </p>
+
+                      <CategorySelector
+                        categories={categories}
+                        selectedCategoryId={selectedCategory?.id ?? null}
+                        onSelect={(category) => {
+                          setSelectedCategory(category);
+                          field.onChange(
+                            category?.slug
+                              ? `/categories/${category.slug}`
+                              : ""
+                          );
+                        }}
+                        searchQuery={pickerSearch}
+                        isLoading={isLoadingCategories}
+                        gridClassName="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-4"
+                      />
+                    </>
                   )}
-                />
-              </div>
-            </Section>
-          </div>
+
+                  {linkType === "category" && (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        Search products or pick a category, then select one —
+                        single selection only
+                      </p>
+
+                      {/* Step 2: pick a product card (image + checkbox) */}
+                      <ProductSelector
+                        products={pickerProducts}
+                        selectedProductIds={
+                          selectedProduct?.id ? [selectedProduct.id] : []
+                        }
+                        onChange={(value) => {
+                          // Single-select: keep at most one product picked
+                          const id = value[value.length - 1];
+                          const product = pickerProducts.find(
+                            (p) => p.id === id
+                          );
+                          if (!product) {
+                            setSelectedProduct(null);
+                            field.onChange("");
+                            return;
+                          }
+                          setSelectedProduct({
+                            id: product.id,
+                            name: product.name,
+                            slug: product.slug,
+                          });
+                          field.onChange(`/product/${product.slug}`);
+                        }}
+                        searchQuery={pickerSearch}
+                        isLoading={isLoadingPickerProducts}
+                        disabled={!pickerCategoryId && !pickerSearch.trim()}
+                        gridClassName="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4"
+                      />
+                    </>
+                  )}
+
+                  {linkType !== "none" &&
+                    linkType !== "custom" &&
+                    field.value && (
+                      <p className="text-xs text-muted-foreground">
+                        Banner links to:{" "}
+                        <span className="font-mono">{field.value}</span>
+                      </p>
+                    )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </section>
+
+          {/* Media */}
+          <section className="rounded-xl border bg-card p-5 space-y-4 lg:col-span-2">
+            <SectionTitle icon={Upload} title="Media" />
+
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={() => (
+                <FormItem>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    {imagePreview ? (
+                      <div className="relative w-full sm:w-64 h-32 border rounded-lg overflow-hidden bg-muted/20 shrink-0">
+                        <Image
+                          src={imagePreview || "/placeholder.svg"}
+                          alt="Banner preview"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center w-full sm:w-64 h-32 border border-dashed rounded-lg bg-muted/20 shrink-0">
+                        <Upload className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          document.getElementById("banner-upload")?.click()
+                        }
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Choose File
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        {fileName || "No file chosen"}
+                      </span>
+                      <p className="text-xs text-muted-foreground">
+                        Recommended: wide image, around 1200×600px
+                      </p>
+                    </div>
+                    <Input
+                      id="banner-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </section>
         </div>
 
-        <div className="flex justify-end p-6">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {mode === "create" ? "Creating..." : "Updating..."}
-              </>
-            ) : (
-              <>{mode === "create" ? "Create Banner" : "Update Banner"}</>
-            )}
-          </Button>
+        {/* Footer action bar */}
+        <div className="rounded-xl border bg-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            {form.watch("isActive")
+              ? "This banner will be live immediately after saving"
+              : "This banner will be saved as inactive"}
+          </p>
+          <div className="flex gap-2 justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-primaryColor hover:bg-primaryColor/90 text-white"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {mode === "create" ? "Creating..." : "Updating..."}
+                </>
+              ) : mode === "create" ? (
+                "Create Banner"
+              ) : (
+                "Update Banner"
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </Form>
   );
 }
 
-const SwitchCard = ({
-  label,
-  description,
-  checked,
-  onCheckedChange,
+/** Section header with a red icon tile — same style as the coupon form. */
+function SectionTitle({
+  icon: Icon,
+  title,
 }: {
-  label: string;
-  description: string;
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-}) => (
-  <div className="flex items-center justify-between rounded-lg border p-4">
-    <div className="space-y-0.5">
-      <p className="text-base font-medium">{label}</p>
-      <p className="text-sm text-muted-foreground">{description}</p>
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
+        <Icon className="h-4 w-4" />
+      </span>
+      <h3 className="font-semibold">{title}</h3>
     </div>
-    <Switch checked={checked} onCheckedChange={onCheckedChange} />
-  </div>
-);
+  );
+}

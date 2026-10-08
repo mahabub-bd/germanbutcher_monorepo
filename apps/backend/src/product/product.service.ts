@@ -177,9 +177,9 @@ export class ProductService {
     if (brandId) countQuery.leftJoin('product.brand', 'brand');
     if (supplierId) countQuery.leftJoin('product.supplier', 'supplier');
 
-    // The supplier filter references the supplier alias; its relation is no
-    // longer part of the payload, so join it only when actually filtering.
-    if (supplierId) query.leftJoin('product.supplier', 'supplier');
+    // NOTE: no extra join needed for the supplier filter — `supplier` is
+    // already joined via leftJoinAndSelect above; joining it again with the
+    // same alias made the SQL invalid ("Not unique table/alias").
 
     this.applyListFilters(query, options);
     this.applyListFilters(countQuery, options);
@@ -285,10 +285,12 @@ export class ProductService {
   async findAllMinimal(options: {
     categoryId?: number;
     isActive?: boolean;
+    search?: string;
   }): Promise<
     {
       id: number;
       name: string;
+      slug: string | null;
       sellingPrice: number;
       discountType: string | null;
       discountValue: number | null;
@@ -299,7 +301,7 @@ export class ProductService {
       categoryName: string;
     }[]
   > {
-    const { categoryId, isActive } = options;
+    const { categoryId, isActive, search } = options;
 
     const query = this.productRepository
       .createQueryBuilder('product')
@@ -309,6 +311,7 @@ export class ProductService {
       .select([
         'product.id AS id',
         'product.name AS name',
+        'product.slug AS slug',
         'product."sellingPrice" AS "sellingPrice"',
         'product."discountType" AS "discountType"',
         'product."discountValue" AS "discountValue"',
@@ -329,10 +332,17 @@ export class ProductService {
     if (isActive !== undefined) {
       query.andWhere('product.isActive = :isActive', { isActive });
     }
+    if (search) {
+      query.andWhere('LOWER(product.name) LIKE LOWER(:search)', {
+        search: `%${search}%`,
+      });
+    }
 
     const rows: Record<string, string | null>[] = await query
       .cache(
-        `products_minimal_${categoryId ?? 'all'}_${isActive ?? 'all'}`,
+        `products_minimal_${categoryId ?? 'all'}_${isActive ?? 'all'}_${
+          search ?? ''
+        }`,
         30000,
       )
       .getRawMany();
@@ -340,6 +350,7 @@ export class ProductService {
     return rows.map((row) => ({
       id: parseInt(row.id, 10),
       name: row.name,
+      slug: row.slug,
       sellingPrice: parseFloat(row.sellingPrice) || 0,
       discountType: row.discountType,
       discountValue:

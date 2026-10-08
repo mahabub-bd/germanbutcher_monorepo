@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,7 +18,20 @@ import {
 import { deleteData, fetchProtectedData } from "@/utils/api-utils";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { Role } from "@/utils/types";
-import { MoreHorizontal, Pencil, Plus, Shield, Trash2 } from "lucide-react";
+import {
+  Briefcase,
+  CheckCircle2,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Shield,
+  ShieldCheck,
+  Store,
+  Trash2,
+  User,
+  Users,
+  XCircle,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -27,6 +39,22 @@ import { formatDateTime } from "../../../lib/utils";
 import DeleteConfirmationDialog from "../delete-confirmation-dialog";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
+
+// Role icon mapping — same keys as the user list's role badges.
+const roleIcons: Record<string, React.ReactNode> = {
+  admin: <ShieldCheck className="h-5 w-5 text-muted-foreground" />,
+  superadmin: <Shield className="h-5 w-5 text-muted-foreground" />,
+  modaretor: <Shield className="h-5 w-5 text-muted-foreground" />,
+  manager: <Briefcase className="h-5 w-5 text-muted-foreground" />,
+  storemanager: <Store className="h-5 w-5 text-muted-foreground" />,
+  staff: <Users className="h-5 w-5 text-muted-foreground" />,
+  customer: <User className="h-5 w-5 text-muted-foreground" />,
+};
+
+const getRoleIcon = (roleName: string | undefined) =>
+  (roleName && roleIcons[roleName.trim().toLowerCase()]) || (
+    <Shield className="h-5 w-5 text-muted-foreground" />
+  );
 
 export function RoleList() {
   const MENU_URL = "/admin/user/role/role-list";
@@ -92,8 +120,8 @@ export function RoleList() {
   );
 
   const renderTableView = () => (
-    <div className="md:p-6 p-2">
-      <Table>
+    <div>
+      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Role Name</TableHead>
@@ -105,17 +133,40 @@ export function RoleList() {
         </TableHeader>
         <TableBody>
           {roles.map((role) => (
-            <TableRow key={role.id}>
-              <TableCell className="font-medium capitalize">
-                {role.rolename}
+            <TableRow key={role.id} className="hover:bg-muted/50">
+              <TableCell>
+                <Link
+                  href={`/admin/user/role/${role.id}/edit`}
+                  className="flex items-center gap-3 font-medium leading-tight capitalize hover:underline"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted">
+                    {getRoleIcon(role.rolename)}
+                  </span>
+                  {role.rolename}
+                </Link>
               </TableCell>
-              <TableCell>{role.description || "No description"}</TableCell>
+              <TableCell>
+                <p className="line-clamp-1 max-w-64 text-sm text-muted-foreground">
+                  {role.description || "No description"}
+                </p>
+              </TableCell>
               <TableCell className="hidden md:table-cell">
-                <Badge variant={role.isActive ? "default" : "secondary"}>
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                    role.isActive
+                      ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
+                      : "bg-gray-100 text-gray-600 dark:bg-gray-900/40 dark:text-gray-400"
+                  }`}
+                >
+                  {role.isActive ? (
+                    <CheckCircle2 className="h-3 w-3" />
+                  ) : (
+                    <XCircle className="h-3 w-3" />
+                  )}
                   {role.isActive ? "Active" : "Inactive"}
-                </Badge>
+                </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell className="hidden md:table-cell text-muted-foreground">
                 {formatDateTime(role.createdAt)}
               </TableCell>
               <TableCell className="text-right">

@@ -281,8 +281,7 @@ export function RecipeList({
   };
 
   const renderTableView = () => (
-
-    <Table>
+    <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
       <TableHeader>
         <TableRow>
           <TableHead>Image</TableHead>
@@ -297,20 +296,32 @@ export function RecipeList({
       </TableHeader>
       <TableBody>
         {recipes?.map((recipe) => (
-          <TableRow key={recipe.id}>
+          <TableRow key={recipe.id} className="hover:bg-muted/50">
             <TableCell>
-              <div className=" overflow-hidden">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
                 <Image
                   src={recipe?.attachment?.url || "/placeholder.svg"}
                   alt={recipe.title}
-                  width={64}
-                  height={64}
-                  className="object-cover"
+                  width={40}
+                  height={40}
+                  className="h-full w-full object-cover"
                 />
-              </div>
+              </span>
             </TableCell>
-            <TableCell className="font-medium">{recipe.title}</TableCell>
-            <TableCell>{recipe.category?.name || "Uncategorized"}</TableCell>
+            <TableCell>
+              <Link
+                href={`/admin/recipe/${recipe.id}/edit`}
+                className="font-medium leading-tight hover:underline"
+              >
+                {recipe.title}
+              </Link>
+              <p className="mt-0.5 line-clamp-1 max-w-64 text-xs text-muted-foreground">
+                {recipe.details?.replace(/<[^>]*>/g, "") || ""}
+              </p>
+            </TableCell>
+            <TableCell className="capitalize">
+              {recipe.category?.name || "Uncategorized"}
+            </TableCell>
 
             <TableCell className="hidden md:table-cell">
               {recipe.createdBy?.name || "Unknown"}
@@ -358,7 +369,6 @@ export function RecipeList({
         ))}
       </TableBody>
     </Table>
-
   );
 
   return (

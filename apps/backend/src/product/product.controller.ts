@@ -432,10 +432,12 @@ export class ProductController {
   async getAllProductsMinimal(
     @Query('category') categoryId: number,
     @Query('isActive') isActive: boolean,
+    @Query('search') search: string,
   ) {
     const products = await this.productService.findAllMinimal({
       categoryId,
       isActive,
+      search,
     });
     return this.formatResponse(
       'Products retrieved successfully',

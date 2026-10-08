@@ -234,7 +234,7 @@ export function PurchaseList({
 
   const renderTableView = () => (
     <div>
-      <Table>
+      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Purchase #</TableHead>
@@ -270,13 +270,6 @@ export function PurchaseList({
               ? status.charAt(0).toUpperCase() + status.slice(1)
               : "";
 
-            const badgeVariant =
-              status === "delivered"
-                ? "default"
-                : status === "pending"
-                ? "outline"
-                : "destructive";
-
             const totalQuantity =
               items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
@@ -311,18 +304,17 @@ export function PurchaseList({
                   {formatCurrencyEnglish(Number(amountPaid))}
                 </TableCell>
 
-                <TableCell className="capitalize text-center">
-                  <Badge
-                    variant={
-                      paymentStatus === "paid"
-                        ? "default"
-                        : paymentStatus === "partial"
-                        ? "secondary"
-                        : "destructive"
-                    }
+                <TableCell className="text-center">
+                  <span
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${paymentStatus === "paid"
+                      ? "bg-emerald-600 text-white"
+                      : paymentStatus === "partial"
+                        ? "bg-amber-500 text-white"
+                        : "bg-red-600 text-white"
+                      }`}
                   >
                     {paymentStatus}
-                  </Badge>
+                  </span>
                 </TableCell>
 
                 <TableCell className="hidden md:table-cell">
@@ -334,7 +326,18 @@ export function PurchaseList({
                 </TableCell>
 
                 <TableCell className="hidden md:table-cell">
-                  <Badge variant={badgeVariant}>{formattedStatus}</Badge>
+                  <span
+                    className={`inline-flex items-center rounded-md px-3 py-1 text-xs font-semibold capitalize ${status === "delivered"
+                      ? "bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900"
+                      : status === "pending"
+                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300"
+                        : status === "shipped"
+                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                          : "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"
+                      }`}
+                  >
+                    {formattedStatus}
+                  </span>
                 </TableCell>
 
                 <TableCell className="text-right">

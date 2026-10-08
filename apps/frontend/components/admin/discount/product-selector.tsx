@@ -20,6 +20,8 @@ interface ProductSelectorProps {
   /** Discount applied to the currently selected products (live preview) */
   discountType?: DiscountTypeValue;
   discountValue?: number;
+  /** Grid classes for the card layout (default: 1/2/4 columns). */
+  gridClassName?: string;
 }
 
 /** Price pair shown on a card: the effective price after the discount that
@@ -52,6 +54,7 @@ export function ProductSelector({
   disabled = false,
   discountType,
   discountValue,
+  gridClassName = "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4",
 }: ProductSelectorProps) {
 
   const filteredProducts = products.filter((product) =>
@@ -76,7 +79,7 @@ export function ProductSelector({
           </p>
         </div>
       ) : isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className={gridClassName}>
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-28 rounded-lg" />
           ))}
@@ -89,7 +92,7 @@ export function ProductSelector({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className={gridClassName}>
           {filteredProducts.map((product) => {
             const isSelected = selectedProductIds.includes(product.id);
             const { price, original } = getPrice(

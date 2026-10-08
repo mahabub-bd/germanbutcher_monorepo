@@ -31,7 +31,15 @@ const brandSchema = z.object({
 const bannerSchema = z.object({
   title: z.string().min(1, "Banner title is required"),
   description: z.string().optional(),
-  targetUrl: z.string().url("Please enter a valid URL"),
+  targetUrl: z
+    .string()
+    .refine(
+      (url) =>
+        !url.trim() ||
+        url.trim().startsWith("/") ||
+        /^https?:\/\/.+/i.test(url.trim()),
+      "Enter a valid URL — an internal path starting with / or a full https:// link"
+    ),
   position: z.nativeEnum(BannerPosition, {
     message: "Position is required"
   }),

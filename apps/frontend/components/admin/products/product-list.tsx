@@ -31,13 +31,15 @@ import {
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 
 import { revalidateProducts } from "@/actions/revalidate";
-import { PaginationComponent } from "@/components/common/pagination";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
-import { formatCurrencyEnglish } from "@/lib/utils";
+import { PaginationComponent } from "@/components/common/pagination";
+import { formatCurrencyEnglish, getUnitBadgeColor } from "@/lib/utils";
 import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
 import type { Brand, Category, Product } from "@/utils/types";
 import {
+  BadgeDollarSign,
   Ban,
+  Boxes,
   CheckCircle,
   Eye,
   Filter,
@@ -45,7 +47,9 @@ import {
   Package,
   Pencil,
   Plus,
+  Scale,
   Search,
+  ShoppingCart,
   Trash2,
   XCircle
 } from "lucide-react";
@@ -569,13 +573,28 @@ export function ProductList({
                 </div>
               </TableCell>
               <TableCell className="text-right text-muted-foreground">
-                {formatCurrencyEnglish(product?.purchasePrice)}
+                <span className="inline-flex items-center justify-end gap-1.5">
+                  <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground/70" />
+                  {formatCurrencyEnglish(product?.purchasePrice)}
+                </span>
               </TableCell>
               <TableCell className="text-right font-medium">
-                {formatCurrencyEnglish(product?.sellingPrice)}
+                <span className="inline-flex items-center justify-end gap-1.5">
+                  <BadgeDollarSign className="h-3.5 w-3.5 text-green-600/70 dark:text-green-400/70" />
+                  {formatCurrencyEnglish(product?.sellingPrice)}
+                </span>
               </TableCell>
-              <TableCell className="capitalize">
-                {product?.unit?.name || "-"}
+              <TableCell>
+                {product?.unit?.name ? (
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getUnitBadgeColor(product.unit.name)}`}
+                  >
+                    <Scale className="h-3 w-3" />
+                    {product.unit.name}
+                  </span>
+                ) : (
+                  "-"
+                )}
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 {product.brand?.name || "-"}
@@ -585,12 +604,13 @@ export function ProductList({
               </TableCell>
               <TableCell className="hidden md:table-cell text-center">
                 <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
                     product.stock === 0
                       ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                       : "bg-muted"
                   }`}
                 >
+                  <Boxes className="h-3 w-3" />
                   {product.stock}
                 </span>
               </TableCell>

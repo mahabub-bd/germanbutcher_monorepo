@@ -20,11 +20,16 @@ export function ProductFormFooter({
 }: ProductFormFooterProps) {
   return (
     <div className="sticky bottom-0 z-10 mt-6 border-t bg-background/95 px-2 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="flex items-center justify-between gap-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          className="w-full sm:w-auto"
+        >
           Cancel
         </Button>
-        <div className="flex items-center gap-3">
+        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
           {previewHref ? (
             <Button asChild variant="outline" type="button">
               <Link href={previewHref} target="_blank">

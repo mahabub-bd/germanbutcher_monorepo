@@ -29,7 +29,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime } from "@/lib/utils";
+import StatsCard from "@/components/admin/dashboard/stats-card";
+import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { DeliveryMan, DeliveryManResponse } from "@/utils/types";
@@ -237,8 +238,8 @@ export function DeliveryManList({
   };
 
   const renderTableView = () => (
-    <div className="rounded-sm border p-2 md:p-4 mt-4 overflow-x-auto">
-      <Table>
+    <div className="overflow-x-auto">
+      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
@@ -253,15 +254,20 @@ export function DeliveryManList({
         </TableHeader>
         <TableBody>
           {deliveryMen.map((deliveryMan) => (
-            <TableRow key={deliveryMan.id}>
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
+            <TableRow key={deliveryMan.id} className="hover:bg-muted/50">
+              <TableCell>
+                <Link
+                  href={`/admin/delivery-man/${deliveryMan.id}/view`}
+                  className="flex items-center gap-3 font-medium leading-tight hover:underline"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                  </span>
                   <span className="truncate">{deliveryMan.name}</span>
-                </div>
+                </Link>
               </TableCell>
               <TableCell>
-                <span className="truncate max-w-[200px] block">
+                <span className="truncate max-w-[200px] block text-muted-foreground">
                   {deliveryMan.mobileNumber}
                 </span>
               </TableCell>
@@ -401,58 +407,39 @@ export function DeliveryManList({
         ) : (
           <>
             {/* Summary Stats */}
-            <div className="mb-4 grid grid-cols-2 md:grid-cols-5 gap-3">
-              <div className="rounded-sm border bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total</p>
-                    <p className="text-2xl font-bold">{totalItems}</p>
-                  </div>
-                  <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-              <div className="rounded-sm border bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Active</p>
-                    <p className="text-2xl font-bold">{activeCount}</p>
-                  </div>
-                  <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-              <div className="rounded-sm border bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Inactive</p>
-                    <p className="text-2xl font-bold">{inactiveCount}</p>
-                  </div>
-                  <XCircle className="h-8 w-8 text-orange-600 dark:text-orange-400" />
-                </div>
-              </div>
-              <div className="rounded-sm border bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Deliveries</p>
-                    <p className="text-2xl font-bold">
-                      {totalDeliveries}
-                    </p>
-                    <p className="text-xs text-muted-foreground">This page</p>
-                  </div>
-                  <Truck className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
-                </div>
-              </div>
-              <div className="rounded-sm border bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Earnings</p>
-                    <p className="text-2xl font-bold">
-                      ৳{Number(totalEarnings).toFixed(0)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">This page</p>
-                  </div>
-                  <UserCircle className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                </div>
-              </div>
+            <div className="mb-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+              <StatsCard
+                icon={Users}
+                title="Total"
+                value={totalItems}
+                bgColor="blue"
+              />
+              <StatsCard
+                icon={CheckCircle2}
+                title="Active"
+                value={activeCount}
+                bgColor="green"
+              />
+              <StatsCard
+                icon={XCircle}
+                title="Inactive"
+                value={inactiveCount}
+                bgColor="orange"
+              />
+              <StatsCard
+                icon={Truck}
+                title="Deliveries"
+                value={totalDeliveries}
+                description="This page"
+                bgColor="indigo"
+              />
+              <StatsCard
+                icon={UserCircle}
+                title="Earnings"
+                value={formatCurrencyEnglish(totalEarnings)}
+                description="This page"
+                bgColor="purple"
+              />
             </div>
 
             {/* Count */}

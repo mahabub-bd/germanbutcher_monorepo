@@ -106,8 +106,8 @@ export function ShippingMethodList() {
   );
 
   const renderTableView = () => (
-    <div className="md:p-6 p-2">
-      <Table>
+    <div>
+      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
@@ -122,14 +122,25 @@ export function ShippingMethodList() {
         </TableHeader>
         <TableBody>
           {shippingMethods.map((method) => (
-            <TableRow key={method.id}>
-              <TableCell className="font-medium">{method.name}</TableCell>
+            <TableRow key={method.id} className="hover:bg-muted/50">
+              <TableCell>
+                <Link
+                  href={`/admin/settings/shipping-method/${method.id}/edit`}
+                  className="font-medium leading-tight hover:underline"
+                >
+                  {method.name}
+                </Link>
+              </TableCell>
               <TableCell>
                 {formatCurrencyEnglish(Number(method?.cost))}
               </TableCell>
-              <TableCell>{method.deliveryTime}</TableCell>
-              <TableCell className="hidden md:table-cell max-w-[200px] truncate">
-                {method.description}
+              <TableCell className="text-muted-foreground">
+                {method.deliveryTime}
+              </TableCell>
+              <TableCell className="hidden md:table-cell max-w-[200px]">
+                <p className="line-clamp-1 text-sm text-muted-foreground">
+                  {method.description || "-"}
+                </p>
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 {formatDateTime(method.createdAt)}

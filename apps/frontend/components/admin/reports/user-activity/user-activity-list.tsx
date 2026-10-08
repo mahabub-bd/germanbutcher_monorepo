@@ -22,9 +22,16 @@ import { fetchDataPagination } from "@/utils/api-utils";
 import type { UserActivity } from "@/utils/types";
 import {
   Activity,
+  CheckCircle2,
+  Clock,
   Eye,
   Filter,
+  LogIn,
   MoreHorizontal,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Trash2,
   User,
   XCircle,
 } from "lucide-react";
@@ -33,6 +40,16 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoadingIndicator } from "../../loading-indicator";
 import { PageHeader } from "../../page-header";
+
+// Icons for HTTP-method action badges.
+const actionIcons: Record<string, React.ReactNode> = {
+  GET: <Eye className="h-3 w-3" />,
+  POST: <Plus className="h-3 w-3" />,
+  PATCH: <Pencil className="h-3 w-3" />,
+  PUT: <RefreshCw className="h-3 w-3" />,
+  DELETE: <Trash2 className="h-3 w-3" />,
+  LOGIN: <LogIn className="h-3 w-3" />,
+};
 
 interface UserActivityListProps {
   initialPage: number;
@@ -217,8 +234,8 @@ export function UserActivityList({
   };
 
   const renderTableView = () => (
-    <div className="md:p-6 p-2">
-      <Table className="min-w-[900px]">
+    <div className="overflow-x-auto">
+      <Table className="min-w-[900px] [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Date & Time</TableHead>
@@ -235,17 +252,20 @@ export function UserActivityList({
           {activities.map((activity: UserActivity) => {
             const { method, path } = formatAction(activity.action);
             return (
-              <TableRow key={activity.id}>
-                <TableCell className="text-sm">
+              <TableRow key={activity.id} className="hover:bg-muted/50">
+                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                   {formatDateTime(activity.createdAt)}
                 </TableCell>
 
                 <TableCell>
                   <div className="flex flex-col gap-1">
-                    <Badge className={getActionColor(activity.action)}>
+                    <span
+                      className={`inline-flex w-fit items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${getActionColor(activity.action)}`}
+                    >
+                      {actionIcons[method] ?? <Activity className="h-3 w-3" />}
                       {method}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground font-mono">
+                    </span>
+                    <span className="max-w-44 truncate text-xs text-muted-foreground font-mono">
                       {path}
                     </span>
                   </div>
@@ -261,23 +281,34 @@ export function UserActivityList({
                 </TableCell>
 
                 <TableCell>
-                  <Badge className={getStatusColor(activity.status)}>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium lowercase ${getStatusColor(activity.status)}`}
+                  >
+                    {activity.status.toLowerCase() === "success" ? (
+                      <CheckCircle2 className="h-3 w-3" />
+                    ) : activity.status.toLowerCase() === "pending" ? (
+                      <Clock className="h-3 w-3" />
+                    ) : (
+                      <XCircle className="h-3 w-3" />
+                    )}
                     {activity.status}
-                  </Badge>
+                  </span>
                 </TableCell>
 
-                <TableCell className="text-sm max-w-xs truncate">
-                  {activity.message}
+                <TableCell className="max-w-xs">
+                  <span className="block truncate text-sm">
+                    {activity.message}
+                  </span>
                 </TableCell>
 
-                <TableCell className="font-mono text-xs">
-                  {activity.ipAddress || "N/A"}
+                <TableCell className="font-mono text-xs text-muted-foreground">
+                  {activity.ipAddress || "unknown"}
                 </TableCell>
 
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                      <User className="h-4 w-4" />
+                    <div className="h-8 w-8 shrink-0 rounded-full border bg-muted flex items-center justify-center">
+                      <User className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="flex flex-col">
                       <span className="font-medium text-sm">
