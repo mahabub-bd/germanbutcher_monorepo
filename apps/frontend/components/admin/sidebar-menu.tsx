@@ -46,6 +46,9 @@ interface SidebarProps {
   user: UserTypes;
   mobileOpen?: boolean;
   setMobileOpen?: (open: boolean) => void;
+  /** Controlled collapse state (owned by AdminLayoutClient so the header hamburger can drive it). */
+  collapsed?: boolean;
+  setCollapsed?: (collapsed: boolean) => void;
 }
 
 export function SidebarMenu({
@@ -53,11 +56,15 @@ export function SidebarMenu({
   user,
   mobileOpen = false,
   setMobileOpen,
+  collapsed: collapsedProp,
+  setCollapsed: setCollapsedProp,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const [collapsed, setCollapsed] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const collapsed = collapsedProp ?? internalCollapsed;
+  const setCollapsed = setCollapsedProp ?? setInternalCollapsed;
   const [menuData, setMenuData] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -181,15 +188,15 @@ export function SidebarMenu({
           className
         )}
       >
-        <div className="flex items-center justify-between px-4">
+        <div className="flex min-h-[44px] items-center justify-between gap-2 overflow-hidden px-4">
           <div
             className={cn(
-              "flex items-center gap-2",
+              "flex min-w-0 items-center gap-2",
               collapsed && "justify-center w-full"
             )}
           >
             {collapsed ? (
-              <div className="flex items-center justify-center rounded-md bg-primaryColor/10">
+              <div className="flex items-center justify-center rounded-md bg-primaryColor/10 py-2">
                 {user?.isAdmin ? (
                   <Package className="h-5 w-5 text-primaryColor" />
                 ) : (
@@ -197,8 +204,8 @@ export function SidebarMenu({
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2 py-2">
-                <span className="font-semibold text-primaryColor text-lg">
+              <div className="flex items-center gap-2 overflow-hidden py-2">
+                <span className="whitespace-nowrap font-semibold text-primaryColor text-lg">
                   {sidebarTitle}
                 </span>
               </div>
@@ -220,7 +227,12 @@ export function SidebarMenu({
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/50">
-          <nav className="grid gap-1 px-2 py-2">
+          <nav
+            className={cn(
+              "grid gap-1 px-2 py-2",
+              collapsed && "pt-3"
+            )}
+          >
                   {isLoading
                     ? renderSkeletonMenu()
                     : menuData?.map((item: MenuItem) => {

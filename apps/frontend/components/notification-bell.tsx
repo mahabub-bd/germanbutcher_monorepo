@@ -12,7 +12,12 @@ import { cn } from "@/lib/utils";
 import { Bell } from "lucide-react";
 import { useState } from "react";
 
-export function NotificationBell() {
+export function NotificationBell({
+  buttonClassName,
+}: {
+  /** Extra classes for the trigger button (tailwind-merge resolves conflicts). */
+  buttonClassName?: string;
+}) {
   const { notifications } = useNotification();
   const [open, setOpen] = useState(false);
 
@@ -23,7 +28,10 @@ export function NotificationBell() {
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-md bg-primaryColor py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-primaryColor focus:opacity-90 focus:shadow-none active:bg-primaryColor active:opacity-90 hover:bg-primaryColor hover:opacity-90 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none"
+            className={cn(
+              "rounded-md bg-primaryColor py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-primaryColor focus:opacity-90 focus:shadow-none active:bg-primaryColor active:opacity-90 hover:bg-primaryColor hover:opacity-90 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none",
+              buttonClassName
+            )}
           >
             <Bell className="h-5 w-5" />
           </Button>
