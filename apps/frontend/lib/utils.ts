@@ -164,3 +164,29 @@ export const getStatusBadgeColor = (status: string) => {
         return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300 capitalize";
     }
   };
+const unitColors: Record<string, string> = {
+  kg: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+  gram: "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300",
+  g: "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300",
+  litre: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300",
+  liter: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300",
+  l: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300",
+  ml: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300",
+  pcs: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+  piece: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+  pieces: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+  pack: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300",
+  packet: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300",
+  box: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+  dozen: "bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-300",
+  pound: "bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300",
+  lb: "bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300",
+  default:
+    "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300",
+};
+
+// Colorful badge classes per unit name; unknown units get the fallback color.
+export const getUnitBadgeColor = (unitName: string | undefined) => {
+  if (!unitName) return unitColors.default;
+  return unitColors[unitName.trim().toLowerCase()] || unitColors.default;
+};

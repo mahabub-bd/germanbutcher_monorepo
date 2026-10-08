@@ -5,7 +5,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUrl,
+  Matches,
 } from 'class-validator';
 import { BannerPosition, BannerType } from '../entities/banner.entity';
 
@@ -27,9 +27,13 @@ export class CreateBannerDto {
 
   @ApiPropertyOptional({
     example: '/summer-sale',
-    description: 'URL to redirect when banner is clicked',
+    description:
+      'Internal path starting with / or a full http(s) URL — empty for no link',
   })
-  @IsUrl()
+  @Matches(/^(\/[^\s]*|https?:\/\/[^\s]+)$/, {
+    message:
+      'targetUrl must be an internal path starting with / or a full http(s) URL',
+  })
   @IsOptional()
   targetUrl?: string;
 

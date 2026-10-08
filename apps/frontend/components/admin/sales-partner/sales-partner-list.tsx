@@ -117,7 +117,7 @@ export function SalesPartnerList() {
 
   const renderTableView = () => (
     <div>
-      <Table>
+      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Logo</TableHead>
@@ -135,21 +135,30 @@ export function SalesPartnerList() {
         </TableHeader>
         <TableBody>
           {salesPartners.map((salesPartner: SalesPartner) => (
-            <TableRow key={salesPartner.Id}>
+            <TableRow key={salesPartner.Id} className="hover:bg-muted/50">
               <TableCell>
-                <div className="overflow-hidden">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
                   <Image
                     src={salesPartner?.Image?.url || "/placeholder.svg"}
                     alt={salesPartner.name}
-                    width={64}
-                    height={64}
-                    className="object-cover"
+                    width={40}
+                    height={40}
+                    className="h-full w-full object-cover"
                   />
-                </div>
+                </span>
               </TableCell>
-              <TableCell className="font-medium">{salesPartner.name}</TableCell>
+              <TableCell>
+                <Link
+                  href={`/admin/sales-partner/${salesPartner.Id}/edit`}
+                  className="font-medium leading-tight hover:underline"
+                >
+                  {salesPartner.name}
+                </Link>
+              </TableCell>
               <TableCell className="hidden md:table-cell max-w-xs">
-                <p className="truncate">{salesPartner.description}</p>
+                <p className="line-clamp-1 text-sm text-muted-foreground">
+                  {salesPartner.description || "-"}
+                </p>
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 {salesPartner.website ? (

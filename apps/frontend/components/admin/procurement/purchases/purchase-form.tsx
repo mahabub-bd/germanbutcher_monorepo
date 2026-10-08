@@ -1,7 +1,21 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import {
+  Banknote,
+  Building2,
+  ClipboardList,
+  Clock,
+  FileText,
+  Hash,
+  Loader2,
+  Package,
+  Plus,
+  ShoppingCart,
+  StickyNote,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { type Resolver, useFieldArray, useForm } from "react-hook-form";
@@ -24,7 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Section } from "../../helper";
+import { SectionCard } from "@/components/admin/products/form/section-card";
 
 import { DatePicker } from "@/components/ui/date-picker";
 import { fetchProtectedData, patchData, postData } from "@/utils/api-utils";
@@ -158,14 +172,19 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="p-6 space-y-6">
-          <Section title="Supplier Information">
+        <div className="space-y-6">
+          <SectionCard
+            title="Supplier Information"
+            icon={Users}
+          >
             <FormField
               control={form.control}
               name="supplierId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Supplier</FormLabel>
+                  <FormLabel>
+                    Supplier <span className="text-destructive">*</span>
+                  </FormLabel>
                   <Select
                     onValueChange={(value) => {
                       const supplierId = Number(value);
@@ -175,6 +194,7 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
                     value={field.value?.toString()}
                   >
                     <SelectTrigger className="w-full">
+                      <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                       <SelectValue placeholder="Select a supplier" />
                     </SelectTrigger>
                     <SelectContent>
@@ -192,18 +212,43 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
                 </FormItem>
               )}
             />
-          </Section>
+          </SectionCard>
 
-          <Section title="Purchase Items">
+          <SectionCard
+            title="Purchase Items"
+            icon={ShoppingCart}
+            action={
+              <Button
+                type="button"
+                size="sm"
+                onClick={() =>
+                  append({ productId: 1, quantity: 1, unitPrice: 0 })
+                }
+                disabled={!selectedSupplierId || isProductsLoading}
+              >
+                {isProductsLoading ? (
+                  <LoadingIndicator message="Loading Purchase..." />
+                ) : (
+                  <Plus className="mr-1 h-4 w-4" />
+                )}
+                Add Product
+              </Button>
+            }
+          >
             <div className="space-y-4">
               {fields.map((field, index) => (
-                <div key={field.id} className="flex gap-4 items-end">
+                <div
+                  key={field.id}
+                  className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
+                >
                   <FormField
                     control={form.control}
                     name={`items.${index}.productId`}
                     render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel>Product</FormLabel>
+                      <FormItem>
+                        <FormLabel>
+                          Product <span className="text-destructive">*</span>
+                        </FormLabel>
                         <Select
                           onValueChange={(value) => {
                             const productId = Number(value);
@@ -222,6 +267,7 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
                           disabled={!selectedSupplierId || isProductsLoading}
                         >
                           <SelectTrigger className="w-full">
+                            <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
                             <SelectValue
                               placeholder={
                                 isProductsLoading
@@ -254,25 +300,33 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
                     control={form.control}
                     name={`items.${index}.quantity`}
                     render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel>Quantity</FormLabel>
-                        <Input
-                          type="number"
-                          min="1"
-                          className="w-full"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                        />
+                      <FormItem>
+                        <FormLabel>
+                          Quantity <span className="text-destructive">*</span>
+                        </FormLabel>
+                        <div className="relative">
+                          <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            type="number"
+                            min="1"
+                            className="w-full pl-9"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(Number(e.target.value))
+                            }
+                          />
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <FormItem className="flex-1">
-                    <FormLabel>Unit Price</FormLabel>
-                    <div className="w-full p-2 rounded-md border border-input bg-background text-sm">
+                  <FormItem>
+                    <FormLabel>
+                      Unit Price <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <div className="flex h-9 w-full items-center gap-2 rounded-md border border-input bg-muted/40 px-3 text-sm">
+                      <Banknote className="h-4 w-4 shrink-0 text-muted-foreground" />
                       {form.watch(`items.${index}.unitPrice`).toFixed(2)}
                     </div>
                   </FormItem>
@@ -280,40 +334,31 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
                   <Button
                     type="button"
                     variant="destructive"
-                    className="h-10"
+                    size="icon"
+                    className="h-9 w-9 sm:mb-0.5"
+                    title="Remove item"
                     onClick={() => remove(index)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
-
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() =>
-                  append({ productId: 1, quantity: 1, unitPrice: 0 })
-                }
-                disabled={!selectedSupplierId || isProductsLoading}
-              >
-                {isProductsLoading ? (
-                  <LoadingIndicator message="Loading Purchase..." />
-                ) : (
-                  <Plus className="mr-2 h-4 w-4" />
-                )}
-                Add Product
-              </Button>
             </div>
-          </Section>
+          </SectionCard>
 
-          <Section title="Purchase Details">
-            <div className="space-y-4 grid md:grid-cols-3 grid-cols-1 gap-4 items-center">
+          <SectionCard
+            title="Purchase Details"
+            icon={FileText}
+          >
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <FormField
                 control={form.control}
                 name="purchaseDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Purchase Date</FormLabel>
+                    <FormLabel>
+                      Purchase Date <span className="text-destructive">*</span>
+                    </FormLabel>
 
                     <DatePicker
                       value={field.value}
@@ -331,9 +376,12 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Status</FormLabel>
+                    <FormLabel>
+                      Status <span className="text-destructive">*</span>
+                    </FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger className="w-full">
+                        <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -354,46 +402,81 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Notes</FormLabel>
-                    <Input {...field} className="w-full" />
+                    <div className="relative">
+                      <StickyNote className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        {...field}
+                        placeholder="Add any notes (optional)..."
+                        className="w-full pl-9"
+                      />
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-          </Section>
-          <Section title="Order Summary">
-            <div className="flex justify-between p-4 bg-muted rounded-lg">
-              <div className="font-medium">
-                Total Quantity:{" "}
-                {form
-                  .watch("items")
-                  .reduce((acc, item) => acc + item.quantity, 0)}
+          </SectionCard>
+
+          <SectionCard title="Order Summary" icon={ClipboardList}>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="flex items-center gap-4 rounded-lg bg-blue-50/80 px-5 py-4 dark:bg-blue-950/30">
+                <Package className="h-6 w-6 shrink-0 text-blue-600 dark:text-blue-400" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Quantity</p>
+                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                    {form
+                      .watch("items")
+                      .reduce((acc, item) => acc + item.quantity, 0)}
+                  </p>
+                </div>
               </div>
-              <div className="font-medium">
-                Total Price:{" "}
-                {form
-                  .watch("items")
-                  .reduce(
-                    (acc, item) => acc + item.quantity * item.unitPrice,
-                    0
-                  )
-                  .toFixed(2)}
+              <div className="flex items-center gap-4 rounded-lg bg-emerald-50/80 px-5 py-4 dark:bg-emerald-950/30">
+                <Banknote className="h-6 w-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Price</p>
+                  <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+                    {form
+                      .watch("items")
+                      .reduce(
+                        (acc, item) => acc + item.quantity * item.unitPrice,
+                        0
+                      )
+                      .toFixed(2)}
+                  </p>
+                </div>
               </div>
             </div>
-          </Section>
+          </SectionCard>
         </div>
 
-        <div className="flex justify-end p-6">
-          <Button type="submit" disabled={isSubmitting || isProductsLoading}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {mode === "create" ? "Creating..." : "Updating..."}
-              </>
-            ) : (
-              <>{mode === "create" ? "Create Purchase" : "Update Purchase"}</>
-            )}
-          </Button>
+        <div className="sticky bottom-0 z-10 mt-6 border-t bg-background/95 px-2 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting || isProductsLoading}
+              className="w-full sm:w-auto"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {mode === "create" ? "Creating..." : "Updating..."}
+                </>
+              ) : (
+                <>
+                  <FileText className="mr-2 h-4 w-4" />
+                  {mode === "create" ? "Create Purchase" : "Update Purchase"}
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </Form>

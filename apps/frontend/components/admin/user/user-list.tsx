@@ -2,6 +2,7 @@
 
 import type React from "react";
 
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,16 +23,23 @@ import {
 } from "@/components/ui/table";
 import { formatDateTime, getRoleColor } from "@/lib/utils";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ApiResponseusers, User } from "@/utils/types";
 import {
+  BadgeCheck,
+  BadgeX,
+  Briefcase,
   Filter,
   MoreHorizontal,
   Pencil,
   Plus,
   Search,
+  Shield,
+  ShieldCheck,
+  Store,
   Trash2,
   UserCircle,
+  User as UserIcon,
+  Users,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -41,6 +49,22 @@ import { toast } from "sonner";
 import DeleteConfirmationDialog from "../delete-confirmation-dialog";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
+
+// Role badge icons — keyed by rolename with a generic fallback.
+const roleIcons: Record<string, React.ReactNode> = {
+  admin: <ShieldCheck className="h-3 w-3" />,
+  superadmin: <Shield className="h-3 w-3" />,
+  modaretor: <Shield className="h-3 w-3" />,
+  manager: <Briefcase className="h-3 w-3" />,
+  storemanager: <Store className="h-3 w-3" />,
+  staff: <Users className="h-3 w-3" />,
+  customer: <UserIcon className="h-3 w-3" />,
+};
+
+const getRoleIcon = (roleName: string | undefined) =>
+  (roleName && roleIcons[roleName.trim().toLowerCase()]) || (
+    <UserCircle className="h-3 w-3" />
+  );
 
 interface UserListProps {
   initialPage?: number;
@@ -166,7 +190,7 @@ export function UserList({
 
   const renderEmptyState = () => (
     <div className="flex flex-col items-center justify-center p-8 text-center">
-      <UserCircle className="h-10 w-10 text-muted-foreground mb-4" />
+      <UserCircle className="h-8 w-8 text-muted-foreground mb-4" />
       <h3 className="text-lg font-semibold">No users found</h3>
       <p className="text-sm text-muted-foreground mt-2">
         {searchQuery || roleFilter
@@ -175,8 +199,9 @@ export function UserList({
       </p>
       {!(searchQuery || roleFilter) && can(MENU_URL, "canCreate") && (
         <Button className="mt-4" asChild>
-          <Link href="/admin/user/add" />
-          <Plus className="mr-2 h-4 w-4" /> Add User
+          <Link href="/admin/user/add">
+            <Plus className="mr-2 h-4 w-4" /> Add User
+          </Link>
         </Button>
       )}
       {(searchQuery || roleFilter) && (
@@ -231,8 +256,8 @@ export function UserList({
   };
 
   const renderTableView = () => (
-    <div className=" md:p-6 p-2">
-      <Table>
+    <div>
+      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
@@ -246,23 +271,48 @@ export function UserList({
         </TableHeader>
         <TableBody>
           {users.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell className="font-medium">{user.name}</TableCell>
-              <TableCell>{user.email}</TableCell>
+            <TableRow key={user.id} className="hover:bg-muted/50">
+              <TableCell>
+                <Link
+                  href={`/admin/user/${user?.id}/edit`}
+                  className="flex items-center gap-3 font-medium leading-tight hover:underline"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-muted text-sm font-semibold text-muted-foreground uppercase">
+                    {user.name?.charAt(0) || <UserIcon className="h-5 w-5" />}
+                  </span>
+                  <span className="truncate">{user.name}</span>
+                </Link>
+              </TableCell>
+              <TableCell>
+                <span className="block max-w-[220px] truncate text-muted-foreground">
+                  {user.email}
+                </span>
+              </TableCell>
               <TableCell className="hidden md:table-cell">
                 {user.mobileNumber || "N/A"}
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                <Badge variant={user.isVerified ? "default" : "secondary"}>
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${user.isVerified
+                    ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
+                    : "bg-gray-100 text-gray-600 dark:bg-gray-900/40 dark:text-gray-400"
+                    }`}
+                >
+                  {user.isVerified ? (
+                    <BadgeCheck className="h-3 w-3" />
+                  ) : (
+                    <BadgeX className="h-3 w-3" />
+                  )}
                   {user.isVerified ? "Verified" : "Unverified"}
-                </Badge>
+                </span>
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                <Badge
-                  className={`capitalize ${getRoleColor(user?.role?.rolename)}`}
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${getRoleColor(user?.role?.rolename)}`}
                 >
+                  {getRoleIcon(user?.role?.rolename)}
                   {user?.role?.rolename}
-                </Badge>
+                </span>
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 {user.lastLoginAt
@@ -311,9 +361,9 @@ export function UserList({
           description=" Manage your system users"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add User",
-                actionHref: "/admin/user/add",
-              }
+              actionLabel: "Add User",
+              actionHref: "/admin/user/add",
+            }
             : {})}
         />
 
@@ -372,11 +422,10 @@ export function UserList({
                             setRoleFilter("all");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            roleFilter === "all"
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                          className={`text-xs py-1.5 px-2 rounded-md border ${roleFilter === "all"
+                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
                         >
                           All
                         </button>
@@ -385,11 +434,10 @@ export function UserList({
                             setRoleFilter("customer");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            roleFilter === "customer"
-                              ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                          className={`text-xs py-1.5 px-2 rounded-md border ${roleFilter === "customer"
+                            ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
                         >
                           Customer
                         </button>
@@ -398,11 +446,10 @@ export function UserList({
                             setRoleFilter("admin");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            roleFilter === "admin"
-                              ? "bg-purple-50 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800 text-purple-600 dark:text-purple-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                          className={`text-xs py-1.5 px-2 rounded-md border ${roleFilter === "admin"
+                            ? "bg-purple-50 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800 text-purple-600 dark:text-purple-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
                         >
                           Admin
                         </button>

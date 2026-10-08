@@ -2,8 +2,9 @@
 
 import type React from "react";
 
-import { PaginationComponent } from "@/components/common/pagination";
 import { StatusCard } from "@/components/admin/dashboard/status-card";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,17 +24,18 @@ import {
 } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { ApiResponseusers, User } from "@/utils/types";
 import {
+  BadgeCheck,
+  BadgeX,
   CheckCircle,
   MoreHorizontal,
   Pencil,
   Search,
   UserCircle,
+  User as UserIcon,
   Users,
-  XCircle,
-  XCircle as XCircleIcon,
+  XCircle
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -186,8 +188,8 @@ export function CustomerList({
   };
 
   const renderTableView = () => (
-    <div className="rounded-sm border p-2 md:p-4 mt-4 overflow-x-auto">
-      <Table>
+    <div className="overflow-x-auto">
+      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
@@ -201,14 +203,20 @@ export function CustomerList({
         </TableHeader>
         <TableBody>
           {customers.map((customer) => (
-            <TableRow key={customer.id}>
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-2">
+            <TableRow key={customer.id} className="hover:bg-muted/50">
+              <TableCell>
+                <Link
+                  href={`/admin/customer/${customer.id}/view`}
+                  className="flex items-center gap-3 font-medium leading-tight hover:underline"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-muted text-sm font-semibold text-muted-foreground uppercase">
+                    {customer.name?.charAt(0) || <UserIcon className="h-5 w-5" />}
+                  </span>
                   <span className="truncate">{customer.name}</span>
-                </div>
+                </Link>
               </TableCell>
               <TableCell>
-                <span className="truncate max-w-[200px] block">
+                <span className="truncate max-w-[220px] block text-muted-foreground">
                   {customer.email}
                 </span>
               </TableCell>
@@ -216,12 +224,19 @@ export function CustomerList({
                 {customer.mobileNumber || "—"}
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                <Badge
-                  variant={customer.isVerified ? "default" : "secondary"}
-                  className="capitalize"
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${customer.isVerified
+                      ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
+                      : "bg-gray-100 text-gray-600 dark:bg-gray-900/40 dark:text-gray-400"
+                    }`}
                 >
+                  {customer.isVerified ? (
+                    <BadgeCheck className="h-3 w-3" />
+                  ) : (
+                    <BadgeX className="h-3 w-3" />
+                  )}
                   {customer.isVerified ? "Verified" : "Unverified"}
-                </Badge>
+                </span>
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 {formatDateTime(customer.createdAt)}

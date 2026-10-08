@@ -125,8 +125,8 @@ export function SubscriberList({
   );
 
   const renderTableView = () => (
-    <div className="md:p-6 p-2">
-      <Table>
+    <div>
+      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Email</TableHead>
@@ -140,10 +140,17 @@ export function SubscriberList({
         </TableHeader>
         <TableBody>
           {subscribers?.map((subscriber: Subscriber) => (
-            <TableRow key={subscriber.id}>
-              <TableCell className="font-medium">{subscriber.email}</TableCell>
+            <TableRow key={subscriber.id} className="hover:bg-muted/50">
+              <TableCell>
+                <span className="flex items-center gap-3 font-medium">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted">
+                    <Mail className="h-5 w-5 text-muted-foreground" />
+                  </span>
+                  <span className="truncate">{subscriber.email}</span>
+                </span>
+              </TableCell>
 
-              <TableCell className="hidden md:table-cell">
+              <TableCell className="hidden md:table-cell text-muted-foreground">
                 {subscriber.createdAt
                   ? formatDateTime(subscriber.createdAt)
                   : 'N/A'}

@@ -101,14 +101,13 @@ export function ClientList() {
   )
 
   const renderTableView = () => (
-    <div className="md:p-6 p-2">
-      <Table>
+    <div>
+      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Logo</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Order</TableHead>
-
 
             <TableHead>CreateAt</TableHead>
             <TableHead className="hidden md:table-cell">Status</TableHead>
@@ -118,19 +117,26 @@ export function ClientList() {
         <TableBody>
           {clients
             .map((client: Client) => (
-              <TableRow key={client.Id}>
+              <TableRow key={client.Id} className="hover:bg-muted/50">
                 <TableCell>
-                  <div className="overflow-hidden">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
                     <Image
                       src={client?.Image?.url || "/placeholder.svg"}
                       alt={client.name}
-                      width={64}
-                      height={64}
-                      className="object-cover"
+                      width={40}
+                      height={40}
+                      className="h-full w-full object-cover"
                     />
-                  </div>
+                  </span>
                 </TableCell>
-                <TableCell className="font-medium">{client.name}</TableCell>
+                <TableCell>
+                  <Link
+                    href={`/admin/client/${client.Id}/edit`}
+                    className="font-medium leading-tight hover:underline"
+                  >
+                    {client.name}
+                  </Link>
+                </TableCell>
                 <TableCell>{client.order}</TableCell>
 
                 <TableCell className="hidden md:table-cell">

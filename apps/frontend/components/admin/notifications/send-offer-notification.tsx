@@ -1,16 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SectionCard } from "@/components/admin/products/form/section-card";
 import { useNotification } from "@/hooks/use-notification";
 import { Loader2, Megaphone, Send } from "lucide-react";
 import { useState } from "react";
@@ -118,145 +112,119 @@ export function SendOfferNotification() {
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <Megaphone className="h-5 w-5 text-primary" />
-          <div>
-            <CardTitle className="text-lg">Send Offer Notification</CardTitle>
-            <CardDescription className="text-xs">
-              Broadcast to all connected customers
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {/* Connection Status */}
-        <div className="flex items-center gap-2 text-xs">
-          <div
-            className={`h-1.5 w-1.5 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`}
+    <SectionCard
+      icon={Megaphone}
+      title="Send Offer Notification"
+      subtitle="Broadcast to all connected customers"
+    >
+      {/* Connection Status */}
+      <div className="flex items-center gap-2 text-xs">
+        <div
+          className={`h-2 w-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`}
+        />
+        <span className={isConnected ? "text-green-600" : "text-red-600"}>
+          {isConnected ? "Connected" : "Disconnected"}
+        </span>
+      </div>
+
+      {/* Form Fields */}
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="title">
+            Title <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="title"
+            placeholder="Weekend Sale, Flash Offer"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={100}
           />
-          <span className={isConnected ? "text-green-600" : "text-red-600"}>
-            {isConnected ? "Connected" : "Disconnected"}
-          </span>
         </div>
 
-        {/* Form Fields */}
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="title" className="text-xs">
-              Title <span className="text-red-500">*</span>
-            </Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="message">
+            Message <span className="text-destructive">*</span>
+          </Label>
+          <Textarea
+            id="message"
+            placeholder="Get 50% off this weekend only!"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={3}
+            maxLength={300}
+            className="resize-none"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="discount">Discount</Label>
             <Input
-              id="title"
-              placeholder="Weekend Sale, Flash Offer"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={100}
-              className="h-8 text-sm"
+              id="discount"
+              placeholder="50%"
+              value={discount}
+              onChange={(e) => setDiscount(e.target.value)}
+              maxLength={50}
             />
           </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="message" className="text-xs">
-              Message <span className="text-red-500">*</span>
-            </Label>
-            <Textarea
-              id="message"
-              placeholder="Get 50% off this weekend only!"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              rows={3}
-              maxLength={300}
-              className="text-sm resize-none"
+          <div className="space-y-1.5">
+            <Label htmlFor="offerId">Code</Label>
+            <Input
+              id="offerId"
+              placeholder="WEEKEND2026"
+              value={offerId}
+              onChange={(e) => setOfferId(e.target.value.toUpperCase())}
+              maxLength={20}
             />
           </div>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <Label htmlFor="discount" className="text-xs">
-                Discount
-              </Label>
-              <Input
-                id="discount"
-                placeholder="50%"
-                value={discount}
-                onChange={(e) => setDiscount(e.target.value)}
-                maxLength={50}
-                className="h-8 text-sm"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="offerId" className="text-xs">
-                Code
-              </Label>
-              <Input
-                id="offerId"
-                placeholder="WEEKEND2026"
-                value={offerId}
-                onChange={(e) => setOfferId(e.target.value.toUpperCase())}
-                maxLength={20}
-                className="h-8 text-sm"
-              />
-            </div>
+      {/* Preview */}
+      {(title || message) && (
+        <div className="rounded-lg border bg-muted/50 p-3 space-y-1">
+          <p className="text-[10px] font-semibold uppercase text-muted-foreground">
+            Preview
+          </p>
+          {title && <p className="text-sm font-semibold">{title}</p>}
+          {message && <p className="text-xs text-muted-foreground">{message}</p>}
+          <div className="flex gap-2 text-xs">
+            {discount && (
+              <span className="font-medium text-primary">{discount}</span>
+            )}
+            {offerId && (
+              <span className="text-muted-foreground">Code: {offerId}</span>
+            )}
           </div>
         </div>
+      )}
 
-        {/* Preview */}
-        {(title || message) && (
-          <div className="border rounded p-2 bg-muted/50 space-y-1">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase">
-              Preview
-            </p>
-            {title && <p className="font-semibold text-sm">{title}</p>}
-            {message && (
-              <p className="text-xs text-muted-foreground">{message}</p>
-            )}
-            <div className="flex gap-2 text-xs">
-              {discount && (
-                <span className="text-primary font-medium">{discount}</span>
-              )}
-              {offerId && (
-                <span className="text-muted-foreground">Code: {offerId}</span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-2 justify-end">
-          <Button
-            onClick={handleClear}
-            variant="outline"
-            disabled={isLoading}
-            size="sm"
-            className="h-8 px-3 inline-flex"
-          >
-            <span className="text-xs">Clear</span>
-          </Button>
-          <Button
-            onClick={handleSendOffer}
-            disabled={
-              isLoading || !isConnected || !title.trim() || !message.trim()
-            }
-            className="inline-flex h-8"
-            size="sm"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                <span className="text-xs">Sending...</span>
-              </>
-            ) : (
-              <>
-                <Send className="mr-1.5 h-3 w-3" />
-                <span className="text-xs">Send</span>
-              </>
-            )}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      {/* Action Buttons */}
+      <div className="flex flex-wrap justify-end gap-3 pt-2">
+        <Button onClick={handleClear} variant="outline" disabled={isLoading}>
+          Clear
+        </Button>
+        <Button
+          onClick={handleSendOffer}
+          disabled={
+            isLoading || !isConnected || !title.trim() || !message.trim()
+          }
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Sending...
+            </>
+          ) : (
+            <>
+              <Send className="mr-2 h-4 w-4" />
+              Send
+            </>
+          )}
+        </Button>
+      </div>
+    </SectionCard>
   );
 }

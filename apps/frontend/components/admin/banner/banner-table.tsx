@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,7 +18,7 @@ import {
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { Banner } from "@/utils/types";
-import { ImageIcon, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ExternalLink, ImageIcon, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -29,6 +28,35 @@ interface BannerTableProps {
   onToggleActive: (banner: Banner) => void;
   togglingId: number | null;
 }
+
+// Badge colors per banner type — matches the filter chips in the list's
+// Filters dropdown (main=purple, promotional=amber, featured=cyan).
+const typeBadgeColors: Record<string, string> = {
+  main: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+  promotional:
+    "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+  featured:
+    "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300",
+  default: "bg-gray-100 text-gray-800 dark:bg-gray-900/40 dark:text-gray-300",
+};
+
+// Badge colors per banner position.
+const positionBadgeColors: Record<string, string> = {
+  top: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+  middle:
+    "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+  bottom:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300",
+  sidebar:
+    "bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-300",
+  default: "bg-gray-100 text-gray-800 dark:bg-gray-900/40 dark:text-gray-300",
+};
+
+const getBadgeColor = (
+  colors: Record<string, string>,
+  value: string | undefined
+) =>
+  (value && colors[value.trim().toLowerCase()]) || colors["default"];
 
 export function BannerTable({
   banners,
@@ -40,8 +68,8 @@ export function BannerTable({
   const { can } = usePermissions();
 
   return (
-    <div className="md:p-6 p-2">
-      <Table>
+    <div>
+      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Image</TableHead>
@@ -57,37 +85,62 @@ export function BannerTable({
         </TableHeader>
         <TableBody>
           {banners.map((banner) => (
-            <TableRow key={banner.id}>
+            <TableRow key={banner.id} className="hover:bg-muted/50">
               <TableCell>
-                <div className=" overflow-hidden">
+                <span className="flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
                   {banner?.image?.url ? (
                     <Image
                       src={banner.image.url}
                       alt={banner.title}
-                      width={120}
-                      height={60}
-                      className="object-cover aspect-[2/1]"
+                      width={80}
+                      height={48}
+                      className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="w-[120px] h-[60px] flex items-center justify-center bg-muted">
-                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                    </div>
+                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
                   )}
-                </div>
+                </span>
               </TableCell>
-              <TableCell className="font-medium">
-                <div>
-                  <div className="font-medium">{banner.title}</div>
-                  <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                    {banner.description || "No description"}
-                  </div>
-                </div>
+              <TableCell>
+                <Link
+                  href={`/admin/banner/${banner.id}/edit`}
+                  className="font-medium leading-tight hover:underline"
+                >
+                  {banner.title}
+                </Link>
+                <p className="mt-0.5 line-clamp-1 max-w-64 text-xs text-muted-foreground">
+                  {banner.description || "No description"}
+                </p>
+                {banner.targetUrl && (
+                  <a
+                    href={banner.targetUrl}
+                    target={banner.targetUrl.startsWith("/") ? undefined : "_blank"}
+                    rel="noopener noreferrer"
+                    className="mt-0.5 inline-flex max-w-64 items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                    title={banner.targetUrl}
+                  >
+                    <ExternalLink className="h-3 w-3 shrink-0" />
+                    <span className="truncate">
+                      {banner.targetUrl.startsWith("/")
+                        ? `Storefront: ${banner.targetUrl}`
+                        : banner.targetUrl}
+                    </span>
+                  </a>
+                )}
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                <Badge variant="outline">{banner.type}</Badge>
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getBadgeColor(typeBadgeColors, banner.type)}`}
+                >
+                  {banner.type}
+                </span>
               </TableCell>
               <TableCell className="hidden md:table-cell">
-                {banner.position}
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getBadgeColor(positionBadgeColors, banner.position)}`}
+                >
+                  {banner.position}
+                </span>
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 {banner?.displayOrder}

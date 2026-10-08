@@ -2,13 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { SectionCard } from "@/components/admin/products/form/section-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -163,193 +157,160 @@ export function SendMaintenanceNotification() {
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-orange-600" />
-          <div>
-            <CardTitle className="text-lg">
-              Send Maintenance Notification
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Notify users about system maintenance
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {/* Connection Status */}
-        <div className="flex items-center gap-2 text-xs">
-          <div
-            className={`h-1.5 w-1.5 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`}
+    <SectionCard
+      icon={AlertTriangle}
+      title="Send Maintenance Notification"
+      subtitle="Notify users about system maintenance"
+    >
+      {/* Connection Status */}
+      <div className="flex items-center gap-2 text-xs">
+        <div
+          className={`h-2 w-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`}
+        />
+        <span className={isConnected ? "text-green-600" : "text-red-600"}>
+          {isConnected ? "Connected" : "Disconnected"}
+        </span>
+      </div>
+
+      {/* Form Fields */}
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="title">
+            Title <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="title"
+            placeholder="Scheduled Maintenance"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={100}
           />
-          <span className={isConnected ? "text-green-600" : "text-red-600"}>
-            {isConnected ? "Connected" : "Disconnected"}
-          </span>
         </div>
 
-        {/* Form Fields */}
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="title" className="text-xs">
-              Title <span className="text-red-500">*</span>
-            </Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="message">
+            Message <span className="text-destructive">*</span>
+          </Label>
+          <Textarea
+            id="message"
+            placeholder="We'll be performing system maintenance. Services may be temporarily unavailable."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={3}
+            maxLength={300}
+            className="resize-none"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-1.5">
+            <Label>Severity</Label>
+            <Select
+              value={severity}
+              onValueChange={(value: any) => setSeverity(value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="info">Info</SelectItem>
+                <SelectItem value="warning">Warning</SelectItem>
+                <SelectItem value="critical">Critical</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Scheduled Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {scheduledDate ? (
+                    format(scheduledDate, "MMM dd, yyyy")
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={scheduledDate}
+                  onSelect={setScheduledDate}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="time">Time</Label>
+            <TimePicker
+              value={scheduledTime}
+              onChange={setScheduledTime}
+              placeholder="Select time"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="duration">Duration</Label>
             <Input
-              id="title"
-              placeholder="Scheduled Maintenance"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={100}
-              className="h-8 text-sm"
+              id="duration"
+              placeholder="e.g., 2 hours, 30 minutes"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              maxLength={30}
             />
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="message" className="text-xs">
-              Message <span className="text-red-500">*</span>
-            </Label>
-            <Textarea
-              id="message"
-              placeholder="We'll be performing system maintenance. Services may be temporarily unavailable."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              rows={3}
-              maxLength={300}
-              className="text-sm resize-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-4 gap-2">
-            <div className="space-y-1 w-full">
-              <Label htmlFor="severity" className="text-xs">
-                Severity
-              </Label>
-              <Select
-                value={severity}
-                onValueChange={(value: any) => setSeverity(value)}
-              >
-                <SelectTrigger className="h-8 text-xs w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="info" className="text-xs">
-                    Info
-                  </SelectItem>
-                  <SelectItem value="warning" className="text-xs">
-                    Warning
-                  </SelectItem>
-                  <SelectItem value="critical" className="text-xs">
-                    Critical
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1 w-full">
-              <Label className="text-xs">Scheduled Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="h-8 w-full justify-start text-left font-normal text-xs"
-                  >
-                    <CalendarIcon className="mr-2 h-3 w-3" />
-                    {scheduledDate ? (
-                      format(scheduledDate, "MMM dd, yyyy")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={scheduledDate}
-                    onSelect={setScheduledDate}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="space-y-1 w-full">
-              <Label htmlFor="time" className="text-xs">
-                Time
-              </Label>
-              <TimePicker
-                value={scheduledTime}
-                onChange={setScheduledTime}
-                placeholder="Select time"
-              />
-            </div>
-            <div className="space-y-1 w-full">
-              <Label htmlFor="duration" className="text-xs">
-                Duration
-              </Label>
-              <Input
-                id="duration"
-                placeholder="e.g., 2 hours, 30 minutes"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                maxLength={30}
-                className="h-8 text-xs"
-              />
-            </div>
           </div>
         </div>
+      </div>
 
-        {/* Preview */}
-        {(title || message) && (
-          <div className={`border rounded p-2 space-y-1 ${getSeverityColor()}`}>
-            <div className="flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" />
-              <p className="text-[10px] font-semibold uppercase">Preview</p>
-            </div>
-            {title && <p className="font-semibold text-sm">{title}</p>}
-            {message && <p className="text-xs opacity-90">{message}</p>}
-            <div className="flex flex-wrap gap-2 text-xs">
-              {scheduledDate && (
-                <span>📅 {format(scheduledDate, "MMM dd, yyyy")}</span>
-              )}
-              {scheduledTime && <span>🕐 {scheduledTime}</span>}
-              {duration && <span>⏱️ {duration}</span>}
-            </div>
+      {/* Preview */}
+      {(title || message) && (
+        <div className={`rounded-lg border p-3 space-y-1 ${getSeverityColor()}`}>
+          <div className="flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            <p className="text-[10px] font-semibold uppercase">Preview</p>
           </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-2 justify-end">
-          <Button
-            onClick={handleClear}
-            variant="outline"
-            disabled={isLoading}
-            size="sm"
-            className="h-8 px-5"
-          >
-            <span className="text-xs">Clear</span>
-          </Button>
-          <Button
-            onClick={handleSendMaintenance}
-            disabled={
-              isLoading || !isConnected || !title.trim() || !message.trim()
-            }
-            className="inline-flex h-8 px-5"
-            size="sm"
-            variant={severity === "critical" ? "destructive" : "default"}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                <span className="text-xs">Sending...</span>
-              </>
-            ) : (
-              <>
-                <Send className="mr-1.5 h-3 w-3" />
-                <span className="text-xs">Send</span>
-              </>
+          {title && <p className="text-sm font-semibold">{title}</p>}
+          {message && <p className="text-xs opacity-90">{message}</p>}
+          <div className="flex flex-wrap gap-2 text-xs">
+            {scheduledDate && (
+              <span>📅 {format(scheduledDate, "MMM dd, yyyy")}</span>
             )}
-          </Button>
+            {scheduledTime && <span>🕐 {scheduledTime}</span>}
+            {duration && <span>⏱️ {duration}</span>}
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex flex-wrap justify-end gap-3 pt-2">
+        <Button onClick={handleClear} variant="outline" disabled={isLoading}>
+          Clear
+        </Button>
+        <Button
+          onClick={handleSendMaintenance}
+          disabled={
+            isLoading || !isConnected || !title.trim() || !message.trim()
+          }
+          variant={severity === "critical" ? "destructive" : "default"}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Sending...
+            </>
+          ) : (
+            <>
+              <Send className="mr-2 h-4 w-4" />
+              Send
+            </>
+          )}
+        </Button>
+      </div>
+    </SectionCard>
   );
 }

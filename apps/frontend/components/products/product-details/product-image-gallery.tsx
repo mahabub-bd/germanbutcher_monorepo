@@ -87,23 +87,30 @@ export function ProductImageGallery({ product }: ProductImageGalleryProps) {
           </div>
         )}
 
-        {/* Main Image */}
+        {/* Main Image — priority: it's the page's LCP element, so it must
+            start loading with the document instead of waiting for layout. */}
         <Image
           src={selectedImage || FALLBACK_IMAGE}
           alt={product.name}
           title={product.name}
           fill
+          priority
+          fetchPriority="high"
+          quality={75}
           sizes="(max-width: 1024px) 100vw, 50vw"
           className="object-cover transition-transform duration-300"
           onLoad={handleMainImageLoad}
         />
 
-        {/* Zoomed Image Overlay */}
+        {/* Zoomed Image Overlay — uses the optimizer so hover doesn't
+            download the multi-MB original from S3. */}
         {isZoomed && !isMainImageLoading && (
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: `url(${selectedImage || FALLBACK_IMAGE}) no-repeat`,
+              background: `url(/_next/image?url=${encodeURIComponent(
+                selectedImage || FALLBACK_IMAGE
+              )}&w=1200&q=75) no-repeat`,
               backgroundSize: "200%",
               backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
               opacity: 0.8,

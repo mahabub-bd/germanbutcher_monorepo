@@ -25,13 +25,13 @@ export function StatusVisibilitySection({
       title="Status & Visibility"
       subtitle="Control product availability and placement"
       action={
-        <>
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
           <FormField
             control={control}
             name="isActive"
             render={({ field }) => (
               <FormItem className="flex items-center gap-2 space-y-0">
-                <span className="text-xs text-muted-foreground">
+                <span className="whitespace-nowrap text-xs text-muted-foreground">
                   Active Status
                 </span>
                 <FormControl>
@@ -50,7 +50,7 @@ export function StatusVisibilitySection({
             name="isFeatured"
             render={({ field }) => (
               <FormItem className="flex items-center gap-2 space-y-0">
-                <span className="text-xs text-muted-foreground">
+                <span className="whitespace-nowrap text-xs text-muted-foreground">
                   Featured Product
                 </span>
                 <FormControl>
@@ -63,7 +63,7 @@ export function StatusVisibilitySection({
               </FormItem>
             )}
           />
-        </>
+        </div>
       }
     />
   );
