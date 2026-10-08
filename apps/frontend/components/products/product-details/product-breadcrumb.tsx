@@ -28,7 +28,7 @@ export function ProductBreadcrumb({ product }: ProductBreadcrumbProps) {
 
   return (
     <div className="border-b border-gray-200/70 bg-white/90 backdrop-blur">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto md:px-0 px-2">
         <nav
           aria-label="Breadcrumb"
           className="flex items-center gap-2 overflow-x-auto py-2.5 text-xs sm:text-sm"

@@ -6,7 +6,7 @@ import { Leaf, Maximize2, Truck } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState, type MouseEvent } from "react";
 
-import { useProductFreeDelivery } from "../use-product-free-delivery";
+import { useProductFreeDelivery } from "@/hooks/use-product-free-delivery";
 
 interface ProductImageGalleryProps {
   product: Product;

@@ -29,6 +29,7 @@ import { useRouter } from "next/navigation";
 import { Form } from "@/components/ui/form";
 
 import { productSchema } from "@/utils/form-validation";
+import { type ProductFormValues } from "@/utils/product-form-types";
 import { BasicInformationSection } from "./form/basic-information-section";
 import { DiscountSection } from "./form/discount-section";
 import { IdentificationSection } from "./form/identification-section";
@@ -37,7 +38,6 @@ import { ProductFormFooter } from "./form/product-form-footer";
 import { ProductGallerySection } from "./form/product-gallery-section";
 import { ProductImageSection } from "./form/product-image-section";
 import { StatusVisibilitySection } from "./form/status-visibility-section";
-import { type ProductFormValues } from "./form/types";
 
 interface ProductFormProps {
   mode: "create" | "edit";

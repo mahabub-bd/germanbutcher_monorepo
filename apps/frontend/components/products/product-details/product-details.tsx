@@ -42,7 +42,7 @@ export default async function ProductDetails({ product }: ProductDetailsProps) {
 
         {/* Features + Details — full width below the fold */}
         <div className="space-y-4 md:space-y-6">
-          <ProductFeatures />
+          <ProductFeatures product={product} />
           <ProductDetailsCard product={product} />
         </div>
 

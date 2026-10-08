@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 import { SectionCard } from "@/components/admin/products/form/section-card";
-import type { ProductFormValues } from "@/components/admin/products/form/types";
+import type { ProductFormValues } from "@/utils/product-form-types";
 
 interface PricingInventorySectionProps {
   control: Control<ProductFormValues>;

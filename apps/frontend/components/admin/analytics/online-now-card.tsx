@@ -1,6 +1,6 @@
 "use client";
 
-import { useOnlineUsers } from "@/components/admin/analytics/use-online-users";
+import { useOnlineUsers } from "@/hooks/use-online-users";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { Users } from "lucide-react";
 

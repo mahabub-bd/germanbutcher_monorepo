@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { StatusCard } from "@/components/admin/dashboard/status-card";
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,8 @@ import { formatCurrencyEnglish } from "@/lib/utils";
 import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
 import type { Brand, Category, Product } from "@/utils/types";
 import {
+  Ban,
+  CheckCircle,
   Eye,
   Filter,
   MoreHorizontal,
@@ -283,57 +285,46 @@ export function ProductList({
     setCurrentPage(1);
   };
 
-  const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center text-center">
-      <Package className="h-10 w-10 text-muted-foreground mb-4" />
-      <h3 className="text-lg font-semibold">No products found</h3>
-      <p className="text-sm text-muted-foreground mt-2">
-        {searchQuery ||
-          categoryFilter ||
-          brandFilter ||
-          statusFilter ||
-          featuredFilter
-          ? "No products match your search criteria. Try different filters."
-          : "Get started by adding your first product."}
-      </p>
-      {!(
-        searchQuery ||
+  const hasActiveFilters = () =>
+    Boolean(
+      searchQuery ||
         categoryFilter ||
         brandFilter ||
         statusFilter ||
         featuredFilter
-      ) &&
-        can(MENU_URL, "canCreate") && (
+    );
+
+  const renderEmptyState = () => (
+    <div className="p-4 pb-6">
+      <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
+        <Package className="h-10 w-10 text-muted-foreground/50 mb-4" />
+        <h3 className="text-lg font-semibold">No products found</h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          {hasActiveFilters()
+            ? "No products match your search criteria. Try different filters."
+            : "Get started by adding your first product."}
+        </p>
+        {!hasActiveFilters() && can(MENU_URL, "canCreate") && (
           <Button asChild className="mt-4">
-            <Link href="/products/add">
+            <Link href="/admin/products/add">
               <Plus className="mr-2 h-4 w-4" /> Add Product
             </Link>
           </Button>
         )}
-      {(searchQuery ||
-        categoryFilter ||
-        brandFilter ||
-        statusFilter ||
-        featuredFilter) && (
+        {hasActiveFilters() && (
           <Button variant="outline" className="mt-4" onClick={clearFilters}>
             Clear Filters
           </Button>
         )}
+      </div>
     </div>
   );
 
   const renderActiveFilters = () => {
-    const hasFilters =
-      searchQuery ||
-      categoryFilter ||
-      brandFilter ||
-      statusFilter ||
-      featuredFilter;
-
-    if (!hasFilters) return null;
+    if (!hasActiveFilters()) return null;
 
     return (
-      <div className="flex flex-wrap gap-2 mt-4">
+      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
         {searchQuery && (
           <Badge
             variant="outline"
@@ -391,7 +382,7 @@ export function ProductList({
             variant="outline"
             className="flex items-center gap-1 px-3 py-1"
           >
-            {featuredFilter === "featured" ? "Featured" : "Not Featured"}
+            {featuredFilter === "true" ? "Featured" : "Not Featured"}
             <button onClick={() => setFeaturedFilter("")} className="ml-1">
               <XCircle className="h-3 w-3" />
             </button>
@@ -410,46 +401,177 @@ export function ProductList({
     );
   };
 
+  const renderFiltersMenu = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2 px-3 shrink-0">
+          <Filter className="h-4 w-4" />
+          <span>Filters</span>
+          {(categoryFilter ||
+            brandFilter ||
+            statusFilter ||
+            featuredFilter) && (
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-[400px]">
+        <div className="grid grid-cols-2 gap-3 p-3">
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold">Category</h4>
+            <Select
+              value={categoryFilter}
+              onValueChange={(value) => {
+                setCategoryFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem
+                    key={category.id}
+                    value={category.id.toString()}
+                  >
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold">Brand</h4>
+            <Select
+              value={brandFilter}
+              onValueChange={(value) => {
+                setBrandFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="All Brands" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Brands</SelectItem>
+                {brands.map((brand) => (
+                  <SelectItem key={brand.id} value={brand.id.toString()}>
+                    {brand.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold">Status</h4>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="true">Active</SelectItem>
+                <SelectItem value="false">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold">Featured</h4>
+            <Select
+              value={featuredFilter}
+              onValueChange={(value) => {
+                setFeaturedFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="true">Featured</SelectItem>
+                <SelectItem value="false">Not Featured</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(categoryFilter ||
+            brandFilter ||
+            statusFilter ||
+            featuredFilter) && (
+              <div className="col-span-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="w-full mt-2"
+                >
+                  Reset Filters
+                </Button>
+              </div>
+            )}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   const renderTableView = () => (
-    <div className=" p-2">
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Image</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>SKU</TableHead>
-
-            <TableHead>Purchase Price</TableHead>
-            <TableHead>Sale Price</TableHead>
+            <TableHead>Product</TableHead>
+            <TableHead className="text-right">Purchase Price</TableHead>
+            <TableHead className="text-right">Sale Price</TableHead>
             <TableHead>Unit</TableHead>
             <TableHead className="hidden md:table-cell">Brand</TableHead>
-            <TableHead className="hidden md:table-cell">Category</TableHead>
-            <TableHead className="hidden md:table-cell">Stock</TableHead>
-            <TableHead className="hidden md:table-cell">Sale Count</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
-
+            <TableHead className="hidden lg:table-cell">Category</TableHead>
+            <TableHead className="hidden md:table-cell text-center">
+              Stock
+            </TableHead>
+            <TableHead className="hidden lg:table-cell text-center">
+              Sold
+            </TableHead>
+            <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {products.map((product) => (
-            <TableRow key={product.id}>
+            <TableRow key={product.id} className="hover:bg-muted/50">
               <TableCell>
-                <ProductImage product={product} height={60} width={60} />
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                    <ProductImage product={product} width={40} height={40} />
+                  </span>
+                  <div className="min-w-0">
+                    <Link
+                      href={`/admin/products/${product.id}/view`}
+                      className="font-medium leading-tight hover:underline"
+                    >
+                      {product.name}
+                    </Link>
+                    <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                      {product?.productSku || "—"}
+                    </p>
+                  </div>
+                </div>
               </TableCell>
-              <TableCell className="font-medium text-wrap">
-                <Link
-                  href={`/admin/products/${product.id}/view`}
-
-                >
-                  {product.name}
-                </Link>
-              </TableCell>
-              <TableCell>{product?.productSku}</TableCell>
-              <TableCell>
+              <TableCell className="text-right text-muted-foreground">
                 {formatCurrencyEnglish(product?.purchasePrice)}
               </TableCell>
-              <TableCell>
+              <TableCell className="text-right font-medium">
                 {formatCurrencyEnglish(product?.sellingPrice)}
               </TableCell>
               <TableCell className="capitalize">
@@ -458,16 +580,24 @@ export function ProductList({
               <TableCell className="hidden md:table-cell">
                 {product.brand?.name || "-"}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell className="hidden lg:table-cell">
                 {product.category?.name || "-"}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
-                {product.stock}
+              <TableCell className="hidden md:table-cell text-center">
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    product.stock === 0
+                      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                      : "bg-muted"
+                  }`}
+                >
+                  {product.stock}
+                </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell className="hidden lg:table-cell text-center">
                 {product.saleCount}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <ActiveStatusToggle
                   isActive={product.isActive}
                   disabled={togglingId === product.id}
@@ -475,7 +605,6 @@ export function ProductList({
                   label={product.name}
                 />
               </TableCell>
-
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -521,7 +650,7 @@ export function ProductList({
 
   return (
     <>
-      <div className="w-full md:p-4 p-2">
+      <div className="w-full md:p-4 p-2 space-y-4">
         <PageHeader
           title="Products"
           description="Manage your product inventory"
@@ -533,138 +662,54 @@ export function ProductList({
             : {})}
         />
 
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search products..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
+        {/* Summary tiles */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <StatsCard
+            icon={Package}
+            title="Total Products"
+            value={totalItems}
+            bgColor="blue"
+          />
+          <StatsCard
+            icon={CheckCircle}
+            title="Active"
+            value={products.filter((p) => p.isActive).length}
+            bgColor="green"
+          />
+          <StatsCard
+            icon={Ban}
+            title="Inactive"
+            value={products.filter((p) => !p.isActive).length}
+            bgColor="orange"
+          />
+        </div>
+
+        {/* List card: toolbar + table */}
+        <div className="rounded-xl border bg-card">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
+                <Package className="h-4.5 w-4.5" />
+              </span>
+              <div>
+                <h3 className="font-semibold leading-tight">All Products</h3>
+                <p className="text-sm text-muted-foreground">
+                  {totalItems} product{totalItems === 1 ? "" : "s"}
+                </p>
+              </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[400px]">
-                  <div className="grid grid-cols-2 gap-3 p-3">
-                    <div className="space-y-1">
-                      <h4 className="text-xs font-semibold">Category</h4>
-                      <Select
-                        value={categoryFilter}
-                        onValueChange={(value) => {
-                          setCategoryFilter(value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <SelectTrigger className="h-9 w-full">
-                          <SelectValue placeholder="All Categories" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Categories</SelectItem>
-                          {categories.map((category) => (
-                            <SelectItem
-                              key={category.id}
-                              value={category.id.toString()}
-                            >
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <h4 className="text-xs font-semibold">Brand</h4>
-                      <Select
-                        value={brandFilter}
-                        onValueChange={(value) => {
-                          setBrandFilter(value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <SelectTrigger className="h-9 w-full">
-                          <SelectValue placeholder="All Brands" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Brands</SelectItem>
-                          {brands.map((brand) => (
-                            <SelectItem
-                              key={brand.id}
-                              value={brand.id.toString()}
-                            >
-                              {brand.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <h4 className="text-xs font-semibold">Status</h4>
-                      <Select
-                        value={statusFilter}
-                        onValueChange={(value) => {
-                          setStatusFilter(value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <SelectTrigger className="h-9 w-full">
-                          <SelectValue placeholder="All Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Status</SelectItem>
-                          <SelectItem value="true">Active</SelectItem>
-                          <SelectItem value="false">Inactive</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <h4 className="text-xs font-semibold">Featured</h4>
-                      <Select
-                        value={featuredFilter}
-                        onValueChange={(value) => {
-                          setFeaturedFilter(value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <SelectTrigger className="h-9 w-full">
-                          <SelectValue placeholder="All" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All</SelectItem>
-                          <SelectItem value="true">Featured</SelectItem>
-                          <SelectItem value="false">Not Featured</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {(categoryFilter ||
-                      brandFilter ||
-                      statusFilter ||
-                      featuredFilter) && (
-                        <div className="col-span-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={clearFilters}
-                            className="w-full mt-2"
-                          >
-                            Reset Filters
-                          </Button>
-                        </div>
-                      )}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search products..."
+                  className="pl-9"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                />
+              </div>
+              {renderFiltersMenu()}
             </div>
           </div>
 
@@ -675,41 +720,12 @@ export function ProductList({
           ) : products.length === 0 ? (
             renderEmptyState()
           ) : (
-            <>
-              {/* Summary Cards */}
-              <div className="mb-4 grid grid-cols-2 md:grid-cols-3 gap-3">
-                <StatusCard
-                  title="Total Products"
-                  value={totalItems}
-                  icon={Package}
-                  href="#"
-                  color="text-blue-600 dark:text-blue-400"
-                  gradient="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20"
-                />
-                <StatusCard
-                  title="Active"
-                  value={products.filter((p) => p.isActive).length}
-                  icon={Eye}
-                  href="#"
-                  color="text-green-600 dark:text-green-400"
-                  gradient="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20"
-                />
-                <StatusCard
-                  title="Inactive"
-                  value={products.filter((p) => !p.isActive).length}
-                  icon={XCircle}
-                  href="#"
-                  color="text-orange-600 dark:text-orange-400"
-                  gradient="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20"
-                />
-
-              </div>
-              <div className="mt-6">{renderTableView()}</div>
-            </>
+            renderTableView()
           )}
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
+        {/* Pagination */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground text-center md:text-left truncate">
               {`Showing ${products.length} of ${totalItems} products`}

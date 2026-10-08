@@ -103,7 +103,7 @@ export default async function WhereToBuyPage({ searchParams }: Props) {
   const data = await fetchSalesPoints(normalizedSearchParams);
 
   return (
-    <div className="min-h-screen  container mx-auto ">
+    <div className="min-h-screen  container mx-auto md:px-0 px-2">
       <BreadcrumbBar items={[{ label: "Where to Buy" }]} />
       <div className="relative px-4 py-8 lg:py-12">
         {/* Header Section */}

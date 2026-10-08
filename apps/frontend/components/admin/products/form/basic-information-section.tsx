@@ -2,8 +2,7 @@
 
 import { Link2, Package, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useWatch, type Control } from "react-hook-form";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch, type Control } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -17,10 +16,10 @@ import {
 import { Input } from "@/components/ui/input";
 
 import { SectionCard } from "@/components/admin/products/form/section-card";
-import { slugifyName } from "@/components/admin/products/form/slug-utils";
-import type { ProductFormValues } from "@/components/admin/products/form/types";
 import RichTextEditor from "@/components/ui/jodit-editor";
 import { Textarea } from "@/components/ui/textarea";
+import type { ProductFormValues } from "@/utils/product-form-types";
+import { slugifyName } from "@/utils/slug-utils";
 
 const DESCRIPTION_MAX_LENGTH = 2000;
 

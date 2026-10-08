@@ -1,7 +1,7 @@
 "use client";
 
 import { PulseDot } from "@/components/admin/analytics/online-now-card";
-import { useOnlineUsers } from "@/components/admin/analytics/use-online-users";
+import { useOnlineUsers } from "@/hooks/use-online-users";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AnalyticsOverview } from "@/utils/types";

@@ -1,6 +1,7 @@
 "use client";
 
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -158,25 +159,25 @@ export function CouponList() {
       title: "Total Coupons",
       value: coupons.length,
       icon: Tag,
-      tile: "bg-blue-100 text-blue-600",
+      bgColor: "blue" as const,
     },
     {
       title: "Active",
       value: activeCount,
       icon: CheckCircle,
-      tile: "bg-green-100 text-green-600",
+      bgColor: "green" as const,
     },
     {
       title: "Expiring Soon",
       value: expiringSoonCount,
       icon: Clock,
-      tile: "bg-orange-100 text-orange-600",
+      bgColor: "orange" as const,
     },
     {
       title: "Expired",
       value: expiredCount,
       icon: XCircle,
-      tile: "bg-red-100 text-red-600",
+      bgColor: "red" as const,
     },
   ];
 
@@ -243,27 +244,13 @@ export function CouponList() {
         {coupons.length > 0 && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {summaryTiles.map((tile) => (
-              <div
+              <StatsCard
                 key={tile.title}
-                className="flex items-center gap-3 rounded-xl border bg-card p-4"
-              >
-                <span
-                  className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-                    tile.tile
-                  )}
-                >
-                  <tile.icon className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="text-2xl font-bold leading-none">
-                    {tile.value}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {tile.title}
-                  </p>
-                </div>
-              </div>
+                icon={tile.icon}
+                title={tile.title}
+                value={tile.value}
+                bgColor={tile.bgColor}
+              />
             ))}
           </div>
         )}

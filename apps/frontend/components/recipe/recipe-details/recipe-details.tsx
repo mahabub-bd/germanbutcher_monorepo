@@ -1,4 +1,3 @@
-import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatDateTime } from "@/lib/utils";
@@ -49,7 +48,7 @@ export default async function RecipeDetails({
 }) {
   return (
     <div className="min-h-screen ">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto">
         {/* Breadcrumbs */}
         <RecipeBreadcrumb
           categoryName={recipeData.category?.name}
@@ -144,7 +143,7 @@ export default async function RecipeDetails({
                     }
                     alt={recipeData.category?.name}
                     fill
-                  sizes="120px"
+                    sizes="120px"
                     className="object-cover"
                   />
                 </div>

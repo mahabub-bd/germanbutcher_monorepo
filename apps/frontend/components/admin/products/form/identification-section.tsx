@@ -1,8 +1,8 @@
 "use client";
 
-import { WandSparkles, Box } from "lucide-react";
-import { useFormContext } from "react-hook-form";
+import { Box, WandSparkles } from "lucide-react";
 import type { Control } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 
 import { SectionCard } from "@/components/admin/products/form/section-card";
-import type { ProductFormValues } from "@/components/admin/products/form/types";
+import type { ProductFormValues } from "@/utils/product-form-types";
 import type { Brand, Category, Supplier, Unit } from "@/utils/types";
 
 interface IdentificationSectionProps {

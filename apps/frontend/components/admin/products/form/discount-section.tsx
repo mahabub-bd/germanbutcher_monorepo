@@ -4,7 +4,6 @@ import { Tags } from "lucide-react";
 import { useWatch, type Control } from "react-hook-form";
 
 import { SectionCard } from "@/components/admin/products/form/section-card";
-import type { ProductFormValues } from "@/components/admin/products/form/types";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   FormControl,
@@ -14,7 +13,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -22,7 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { formatCurrencyEnglish } from "@/lib/utils";
+import type { ProductFormValues } from "@/utils/product-form-types";
 import { DiscountType } from "@/utils/types";
 
 interface DiscountSectionProps {

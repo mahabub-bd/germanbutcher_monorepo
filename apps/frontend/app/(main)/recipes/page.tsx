@@ -59,7 +59,7 @@ export default async function RecipePage({
     breadcrumbItems.push({ label: `Search: "${searchQuery}"` });
   }
   return (
-    <div className="container mx-auto px-2">
+    <div className="container mx-auto md:px-0 px-2">
       <BreadcrumbBar items={breadcrumbItems} />
       <SearchForm initialQuery={searchQuery} />
       <CategoryList

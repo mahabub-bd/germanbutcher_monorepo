@@ -3,18 +3,19 @@
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
 import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
+import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { Badge } from "@/components/ui/badge";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { getPaymentStatusColor, getStatusIcon } from "@/utils/order-helper";
 import { AlertTriangle, Ban, RotateCcw } from "lucide-react";
@@ -73,6 +74,9 @@ export default function RefundsList({
 
   const settings = useBusinessSettings();
 
+  const totalValue = summary?.cancelledValue ?? 0;
+  const totalPaid = orders.reduce((sum, o) => sum + o.paidAmount, 0);
+
   const pdfRows = orders.map((o) => [
     o.date,
     o.orderNo,
@@ -84,13 +88,25 @@ export default function RefundsList({
 
   const pdfSummary = [
     { label: "Cancelled Orders", value: String(summary?.cancelledOrders ?? 0) },
-    { label: "Cancelled Value", value: formatCurrencyEnglish(summary?.cancelledValue ?? 0) },
+    { label: "Cancelled Value", value: formatCurrencyEnglish(totalValue) },
     { label: "Refunded Amount", value: formatCurrencyEnglish(summary?.refundedAmount ?? 0) },
   ];
 
+  const paymentBadge = (status: string) => (
+    <Badge
+      variant="secondary"
+      className={`capitalize ${getPaymentStatusColor(status)}`}
+    >
+      <span className="flex items-center gap-1.5">
+        {getStatusIcon(status)}
+        {status}
+      </span>
+    </Badge>
+  );
+
   return (
     <div className="w-full">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <PageHeader
           title="Refund & Cancelled Orders Report"
           description="Cancelled orders, refunded money and cancellation reasons for a date range"
@@ -120,7 +136,7 @@ export default function RefundsList({
             }.pdf`}
           >
             {({ loading, error }) => (
-              <Button variant="secondary" disabled={!!error} className="shrink-0">
+              <Button variant="secondary" disabled={!!error} className="shrink-0 w-full sm:w-auto">
                 {error
                   ? "PDF Error"
                   : loading
@@ -149,7 +165,7 @@ export default function RefundsList({
         <StatsCard
           icon={AlertTriangle}
           title="Cancelled Value"
-          value={formatCurrencyEnglish(summary?.cancelledValue ?? 0)}
+          value={formatCurrencyEnglish(totalValue)}
           bgColor="amber"
         />
         <StatsCard
@@ -160,7 +176,47 @@ export default function RefundsList({
         />
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Mobile card list */}
+      <div className="space-y-3 md:hidden">
+        {orders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-10 text-center">
+            <Ban className="h-8 w-8 text-muted-foreground/50 mb-3" />
+            <p className="text-sm text-muted-foreground">
+              No cancelled orders in this date range
+            </p>
+          </div>
+        ) : (
+          orders.map((o) => (
+            <div key={o.id} className="rounded-xl border bg-card p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium leading-tight">{o.orderNo}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{o.date}</p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-bold text-primaryColor">
+                    {formatCurrencyEnglish(o.totalValue)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Paid {formatCurrencyEnglish(o.paidAmount)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                {paymentBadge(o.paymentStatus)}
+                {o.reason && (
+                  <span className="text-xs text-muted-foreground truncate">
+                    {o.reason}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -168,18 +224,18 @@ export default function RefundsList({
               <TableHead>Order No</TableHead>
               <TableHead className="text-right">Value</TableHead>
               <TableHead className="text-right">Paid</TableHead>
-              <TableHead>Payment Status</TableHead>
+              <TableHead className="pl-8">Payment Status</TableHead>
               <TableHead>Reason</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="text-center py-12 text-muted-foreground"
-                >
-                  No cancelled orders in this date range
+                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                  <div className="flex flex-col items-center gap-2">
+                    <Ban className="h-8 w-8 text-muted-foreground/50" />
+                    No cancelled orders in this date range
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
@@ -187,28 +243,44 @@ export default function RefundsList({
                 <TableRow key={o.id} className="hover:bg-muted/50">
                   <TableCell className="whitespace-nowrap">{o.date}</TableCell>
                   <TableCell className="font-medium">{o.orderNo}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right font-medium">
                     {formatCurrencyEnglish(o.totalValue)}
                   </TableCell>
                   <TableCell className="text-right">
                     {formatCurrencyEnglish(o.paidAmount)}
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className={`capitalize ${getPaymentStatusColor(o.paymentStatus)}`}>
-                      <span className="flex items-center gap-1.5">
-                        {getStatusIcon(o.paymentStatus)}
-                        {o.paymentStatus}
-                      </span>
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="pl-8">{paymentBadge(o.paymentStatus)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground max-w-[240px] truncate">
                     {o.reason || "—"}
                   </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
+          {orders.length > 0 && (
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={2}>Total ({orders.length} orders)</TableCell>
+                <TableCell className="text-right font-semibold">
+                  {formatCurrencyEnglish(totalValue)}
+                </TableCell>
+                <TableCell className="text-right font-semibold">
+                  {formatCurrencyEnglish(totalPaid)}
+                </TableCell>
+                <TableCell />
+                <TableCell />
+              </TableRow>
+            </TableFooter>
+          )}
         </Table>
+      </div>
+
+      <div className="text-sm text-muted-foreground mt-3">
+        {orders.length} cancelled order{orders.length === 1 ? "" : "s"} in this
+        date range
+        {summary && summary.refundedAmount > 0 && (
+          <> · {formatCurrencyEnglish(summary.refundedAmount)} refunded</>
+        )}
       </div>
     </div>
   );

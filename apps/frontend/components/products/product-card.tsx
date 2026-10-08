@@ -10,7 +10,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AddToCartButton } from "../cart/add-to-cart-button";
-import { useProductFreeDelivery } from "./use-product-free-delivery";
+import { useProductFreeDelivery } from "@/hooks/use-product-free-delivery";
 
 interface TimeRemaining {
   days: number;

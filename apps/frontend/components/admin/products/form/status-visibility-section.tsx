@@ -4,13 +4,13 @@ import { Settings } from "lucide-react";
 import type { Control } from "react-hook-form";
 
 import { SectionCard } from "@/components/admin/products/form/section-card";
-import type { ProductFormValues } from "@/components/admin/products/form/types";
 import {
   FormControl,
   FormField,
   FormItem,
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
+import type { ProductFormValues } from "@/utils/product-form-types";
 
 interface StatusVisibilitySectionProps {
   control: Control<ProductFormValues>;
