@@ -45,7 +45,7 @@ export function NotificationBell({
       <PopoverContent
         className={cn(
           "w-[calc(100vw-2rem)] p-0",
-          "md:w-[520px]",
+          "md:w-[680px]",
           "max-h-[80vh]",
           "overflow-hidden"
         )}

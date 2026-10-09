@@ -42,9 +42,10 @@ import {
   BreadcrumbSeparator,
 } from "../ui/breadcrumb";
 
-// Dark rounded tile that sits behind each icon in the red bar.
+// Rounded tile that sits behind each icon in the red bar. Hover lifts with a
+// white overlay (black overlays read as black on the red bar).
 const iconTileClass =
-  "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-black/20 text-white transition-all duration-150 hover:bg-black/30 active:scale-90 active:bg-black/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40";
+  "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white transition-all duration-150 hover:bg-white/20 active:scale-90 active:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40";
 
 // Thin white separator between header clusters.
 function HeaderDivider() {
@@ -128,11 +129,11 @@ export function AdminHeader({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl bg-black/20 text-white transition-all duration-150 hover:bg-black/30 hover:text-white active:scale-90 active:bg-black/45"
+            className="h-11 w-11 rounded-xl bg-white/10 text-white transition-all duration-150 hover:bg-white/20 hover:text-white active:scale-90 active:bg-white/25"
             title="Menu"
             onClick={onMenuClick}
           >
-            <Menu className="size-6" />
+            <Menu className="size-5" />
           </Button>
           <Link
             href="/"
@@ -150,7 +151,7 @@ export function AdminHeader({
           </Link>
           <div className="text-white">
             <NotificationBell
-              buttonClassName="rounded-xl bg-black/20 p-0 shadow-none transition-all duration-150 hover:bg-black/30 hover:opacity-100 focus:bg-black/30 active:scale-90 active:bg-black/45 active:opacity-100"
+              buttonClassName="h-11 w-11 rounded-xl bg-white/10 p-0 text-white shadow-none transition-all duration-150 hover:bg-white/20 hover:text-white hover:opacity-100 focus:bg-white/20 active:scale-90 active:bg-white/25 active:opacity-100"
             />
           </div>
         </div>
@@ -222,7 +223,7 @@ export function AdminHeader({
 
           <div className="relative text-white">
             <NotificationBell
-              buttonClassName="rounded-xl bg-black/20 p-0 shadow-none transition-all duration-150 hover:bg-black/30 hover:opacity-100 focus:bg-black/30 active:scale-90 active:bg-black/45 active:opacity-100"
+              buttonClassName="h-11 w-11 rounded-xl bg-white/10 p-0 text-white shadow-none transition-all duration-150 hover:bg-white/20 hover:text-white hover:opacity-100 focus:bg-white/20 active:scale-90 active:bg-white/25 active:opacity-100"
             />
           </div>
 

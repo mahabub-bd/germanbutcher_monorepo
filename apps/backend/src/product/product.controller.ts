@@ -29,6 +29,7 @@ import { ModulePermissions } from 'src/auth/decorators/module-permissions.decora
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { SkipAnalytics } from 'src/common/decorators/skip-analytics.decorator';
+import { HttpCache } from 'src/common/decorators/http-cache.decorator';
 import { SkipThrottle } from 'src/common/decorators/skip-throttle.decorator';
 import { DateRangePreset } from '../common/enums/index';
 import { ApiResponseDto } from 'src/common/types';
@@ -73,10 +74,11 @@ export class ProductController {
   }
 
   @Get()
+  @HttpCache(15)
   @ApiOperation({
     summary: 'Get filtered products',
     description:
-      'Retrieve products with advanced filtering and sorting options',
+      'Browsers/CDN may serve cached list responses for up to 15s (@HttpCache).',
   })
   @ApiQuery({
     name: 'page',
@@ -237,6 +239,7 @@ export class ProductController {
   }
 
   @Get('discounted')
+  @HttpCache(15)
   @ApiOperation({
     summary: 'Get active discounted products',
     description: 'Retrieves products with currently active discounts',
@@ -291,6 +294,7 @@ export class ProductController {
     );
   }
   @Get('bestsellers')
+  @HttpCache(15)
   @ApiOperation({ summary: 'Get the best-selling products' })
   @ApiQuery({
     name: 'limit',
@@ -323,6 +327,7 @@ export class ProductController {
   }
 
   @Get('featured')
+  @HttpCache(15)
   @ApiOperation({ summary: 'Get featured products for homepage' })
   @ApiQuery({
     name: 'limit',

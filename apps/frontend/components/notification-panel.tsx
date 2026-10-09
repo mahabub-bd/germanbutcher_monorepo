@@ -9,37 +9,70 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import {
   Bell,
+  Check,
   CheckCircle2,
-  Circle,
+  Clock,
+  Copy,
   CreditCard,
-  ExternalLink,
+  Hash,
   Info,
   Package,
   Trash2,
   X,
 } from "lucide-react";
+import { useState } from "react";
 import Link from "next/link";
+
+/** Per-event accent colors: left bar, icon tile and unread dot share the hue. */
+const ACCENTS = {
+  newOrder: {
+    bar: "bg-blue-500",
+    tile: "bg-blue-100 dark:bg-blue-950/40",
+    dot: "bg-blue-500",
+  },
+  orderConfirmation: {
+    bar: "bg-green-500",
+    tile: "bg-green-100 dark:bg-green-950/40",
+    dot: "bg-green-500",
+  },
+  orderStatusUpdate: {
+    bar: "bg-amber-500",
+    tile: "bg-amber-100 dark:bg-amber-950/40",
+    dot: "bg-amber-500",
+  },
+  paymentStatusUpdate: {
+    bar: "bg-purple-500",
+    tile: "bg-purple-100 dark:bg-purple-950/40",
+    dot: "bg-purple-500",
+  },
+} as const;
+
+const DEFAULT_ACCENT = {
+  bar: "bg-gray-400",
+  tile: "bg-gray-100 dark:bg-gray-950/40",
+  dot: "bg-gray-500",
+};
 
 export function NotificationPanel() {
   const { notifications, isConnected, clearNotifications, removeNotification } =
     useNotification();
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const getNotificationIcon = (event: string) => {
-    const iconClass = "h-4 w-4";
     switch (event) {
       case "newOrder":
-        return <Package className={cn(iconClass, "text-blue-500")} />;
+        return <Package className="h-6 w-6 text-blue-500" />;
       case "orderConfirmation":
-        return <CheckCircle2 className={cn(iconClass, "text-green-500")} />;
+        return <CheckCircle2 className="h-6 w-6 text-green-500" />;
       case "orderStatusUpdate":
-        return <Package className={cn(iconClass, "text-amber-500")} />;
+        return <Package className="h-6 w-6 text-amber-500" />;
       case "paymentStatusUpdate":
-        return <CreditCard className={cn(iconClass, "text-purple-500")} />;
+        return <CreditCard className="h-6 w-6 text-purple-500" />;
       case "notification":
       case "broadcast":
-        return <Info className={cn(iconClass, "text-cyan-500")} />;
+        return <Info className="h-6 w-6 text-cyan-500" />;
       default:
-        return <Bell className={cn(iconClass, "text-gray-500")} />;
+        return <Bell className="h-6 w-6 text-gray-500" />;
     }
   };
 
@@ -62,18 +95,13 @@ export function NotificationPanel() {
     }
   };
 
-  const getNotificationColor = (event: string) => {
-    switch (event) {
-      case "newOrder":
-        return "bg-blue-50/50 dark:bg-blue-950/10 border-blue-200 dark:border-blue-900/50 hover:bg-blue-50 dark:hover:bg-blue-950/20";
-      case "orderConfirmation":
-        return "bg-green-50/50 dark:bg-green-950/10 border-green-200 dark:border-green-900/50 hover:bg-green-50 dark:hover:bg-green-950/20";
-      case "orderStatusUpdate":
-        return "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 hover:bg-amber-50 dark:hover:bg-amber-950/20";
-      case "paymentStatusUpdate":
-        return "bg-purple-50/50 dark:bg-purple-950/10 border-purple-200 dark:border-purple-900/50 hover:bg-purple-50 dark:hover:bg-purple-950/20";
-      default:
-        return "bg-gray-50/50 dark:bg-gray-950/10 border-gray-200 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-950/20";
+  const copyOrderNo = async (orderNo: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(orderNo);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 1500);
+    } catch {
+      // clipboard unavailable (permissions/insecure context) — ignore
     }
   };
 
@@ -82,12 +110,14 @@ export function NotificationPanel() {
       <CardHeader className="px-4 py-3 space-y-0 flex-shrink-0 border-b">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-base font-semibold">
-            <Bell className="h-4 w-4" />
+            <span className="rounded-xl bg-red-50 dark:bg-red-950/40 p-2">
+              <Bell className="h-5 w-5 text-red-500" />
+            </span>
             <span>Notifications</span>
             {notifications.length > 0 && (
               <Badge
                 variant="destructive"
-                className="h-5 min-w-5 px-1.5 text-xs"
+                className="h-6 min-w-6 px-1.5 rounded-full text-xs"
               >
                 {notifications.length > 99 ? "99+" : notifications.length}
               </Badge>
@@ -95,23 +125,27 @@ export function NotificationPanel() {
           </CardTitle>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-secondary/50">
-              <Circle
-                className={cn(
-                  "h-2 w-2 fill-current",
-                  isConnected ? "text-green-500 animate-pulse" : "text-red-500"
-                )}
-              />
+            <div
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium",
+                isConnected
+                  ? "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400"
+                  : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400"
+              )}
+            >
+              <CircleDot connected={isConnected} />
+              {isConnected ? "Online" : "Offline"}
             </div>
 
             {notifications.length > 0 && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={clearNotifications}
-                className="h-7 px-2 text-xs"
+                className="h-9 w-9 p-0 rounded-xl"
+                aria-label="Clear all notifications"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-4 w-4" />
               </Button>
             )}
           </div>
@@ -133,90 +167,133 @@ export function NotificationPanel() {
               </p>
             </div>
           ) : (
-            <div className="p-2 space-y-1.5">
-              {notifications.map((notification, index) => (
-                <Card
-                  key={index}
-                  className={cn(
-                    "overflow-hidden transition-all hover:shadow-md border",
-                    getNotificationColor(notification.event)
-                  )}
-                >
-                  <CardContent className="p-2">
-                    <div className="flex gap-2 items-center">
-                      {/* Icon */}
-                      <div className="flex-shrink-0">
-                        <div className="rounded-lg bg-background/80 p-1 shadow-sm">
+            <div className="p-3 space-y-2">
+              {notifications.map((notification, index) => {
+                const accent =
+                  ACCENTS[notification.event as keyof typeof ACCENTS] ??
+                  DEFAULT_ACCENT;
+                const hasOrder = Boolean(
+                  notification.data.orderNo && notification.data.orderId
+                );
+
+                return (
+                  <div
+                    key={index}
+                    className={cn(
+                      "flex items-stretch overflow-hidden rounded-xl border bg-blue-50/40 dark:bg-blue-950/10 border-blue-200/70 dark:border-blue-900/50 transition-all hover:shadow-md"
+                    )}
+                  >
+                    {/* Left accent bar */}
+                    <div className={cn("w-1.5 flex-shrink-0", accent.bar)} />
+
+                    <div className="flex-1 flex items-center gap-3 p-3 min-w-0">
+                      {/* Icon tile with unread dot */}
+                      <div className="relative flex-shrink-0">
+                        <div
+                          className={cn(
+                            "rounded-xl p-3 shadow-sm",
+                            accent.tile
+                          )}
+                        >
                           {getNotificationIcon(notification.event)}
                         </div>
+                        <span
+                          className={cn(
+                            "absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background",
+                            accent.dot
+                          )}
+                        />
                       </div>
 
-                      {/* Content */}
+                      {/* Title + order chip + message */}
                       <div className="flex-1 min-w-0">
-                        {/* First Line: Title, Order Info, Timestamp */}
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <h4 className="font-semibold text-xs leading-tight flex-1 truncate">
-                            {notification.data.title ||
-                              getNotificationTitle(notification.event)}
-                          </h4>
+                        <h4 className="font-bold text-sm leading-tight mb-1 truncate">
+                          {notification.data.title ||
+                            getNotificationTitle(notification.event)}
+                        </h4>
 
-                          {notification.data.totalValue && (
-                            <Badge
-                              variant="secondary"
-                              className="text-[10px] font-mono px-1.5 py-0 h-5"
-                            >
-                              ৳{notification.data.totalValue.toLocaleString()}
-                            </Badge>
-                          )}
-
-                          {notification.data.orderNo && (
+                        {hasOrder && (
+                          <div className="inline-flex items-center gap-1 rounded-lg bg-white/80 dark:bg-background/60 border px-1.5 py-1">
+                            <Hash className="h-3.5 w-3.5 text-blue-500" />
                             <Link
                               href={`/admin/order/${notification.data.orderId}/view`}
-                              className="flex-shrink-0"
+                              className="text-xs font-semibold hover:underline"
                             >
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] px-1.5 py-0 h-5 hover:bg-accent cursor-pointer gap-0.5"
-                              >
-                                #{notification.data.orderNo}
-                                <ExternalLink className="h-3 w-3" />
-                              </Badge>
+                              {notification.data.orderNo}
                             </Link>
-                          )}
-
-                          <p className="text-[10px] text-muted-foreground flex-shrink-0">
-                            {formatDistanceToNow(
-                              new Date(notification.timestamp),
-                              {
-                                addSuffix: true,
+                            <button
+                              type="button"
+                              onClick={() =>
+                                copyOrderNo(notification.data.orderNo, index)
                               }
-                            )}
+                              className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                              aria-label="Copy order number"
+                            >
+                              {copiedIndex === index ? (
+                                <Check className="h-3.5 w-3.5 text-green-500" />
+                              ) : (
+                                <Copy className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+
+                        {notification.data.message && (
+                          <p className="text-xs text-muted-foreground line-clamp-1 break-words mt-1">
+                            {notification.data.message}
                           </p>
+                        )}
+                      </div>
 
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeNotification(index)}
-                            className="h-5 w-5 p-0 hover:bg-destructive/20 flex-shrink-0"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
+                      {/* Right meta: price, time, dismiss */}
+                      <div className="flex items-center gap-2.5 flex-shrink-0">
+                        {notification.data.totalValue !== undefined && (
+                          <span className="rounded-lg bg-red-100 dark:bg-red-950/40 px-2.5 py-1.5 text-sm font-bold text-red-600 dark:text-red-400">
+                            ৳{notification.data.totalValue.toLocaleString()}
+                          </span>
+                        )}
 
-                        {/* Second Line: Message */}
-                        <p className="text-xs text-muted-foreground line-clamp-1 break-words">
-                          {notification.data.message ||
-                            `Order ${notification.data.orderNo || "N/A"}`}
-                        </p>
+                        <div className="w-px h-6 bg-border" />
+
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
+                          <Clock className="h-3.5 w-3.5" />
+                          {formatDistanceToNow(
+                            new Date(notification.timestamp),
+                            { addSuffix: true }
+                          )}
+                        </span>
+
+                        <div className="w-px h-6 bg-border" />
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeNotification(index)}
+                          className="h-8 w-8 p-0 rounded-full bg-muted/60 hover:bg-destructive/20 flex-shrink-0"
+                          aria-label="Dismiss notification"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           )}
         </ScrollArea>
       </CardContent>
     </Card>
+  );
+}
+
+function CircleDot({ connected }: { connected: boolean }) {
+  return (
+    <span
+      className={cn(
+        "h-2 w-2 rounded-full fill-current",
+        connected ? "bg-green-500 animate-pulse" : "bg-red-500"
+      )}
+    />
   );
 }

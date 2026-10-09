@@ -1,15 +1,67 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { LessThan, MoreThanOrEqual, Repository } from 'typeorm';
 import { LogRequestDto } from './dto/log-request.dto';
 import { Analytics } from './entities/analytics.entity';
 
+/** Flush the buffer once it holds this many rows (bulk INSERT). */
+const DEFAULT_FLUSH_BATCH_SIZE = 100;
+/** Flush cadence (ms) so low-traffic rows still land promptly. */
+const DEFAULT_FLUSH_INTERVAL_MS = 3000;
+/** Buffer cap — drop oldest rows if the DB is unreachable so memory stays bounded. */
+const DEFAULT_MAX_BUFFER_SIZE = 1000;
+/** Rows older than this many days are purged by the daily cron (0 disables). */
+const DEFAULT_RETENTION_DAYS = 90;
+
 @Injectable()
-export class AnalyticsService {
+export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(AnalyticsService.name);
+
+  private buffer: Partial<Analytics>[] = [];
+  private isFlushing = false;
+  private flushTimer: NodeJS.Timeout | null = null;
+
+  private flushBatchSize: number;
+  private maxBufferSize: number;
+
   constructor(
     @InjectRepository(Analytics)
     private analyticsRepository: Repository<Analytics>,
+    private configService: ConfigService,
   ) {}
+
+  onModuleInit(): void {
+    this.flushBatchSize = this.configService.get<number>(
+      'ANALYTICS_FLUSH_BATCH_SIZE',
+      DEFAULT_FLUSH_BATCH_SIZE,
+    );
+    this.maxBufferSize = this.configService.get<number>(
+      'ANALYTICS_MAX_BUFFER_SIZE',
+      DEFAULT_MAX_BUFFER_SIZE,
+    );
+    const intervalMs = this.configService.get<number>(
+      'ANALYTICS_FLUSH_INTERVAL_MS',
+      DEFAULT_FLUSH_INTERVAL_MS,
+    );
+
+    this.flushTimer = setInterval(() => {
+      void this.flush();
+    }, intervalMs);
+    // Don't hold the process open just for the timer
+    this.flushTimer.unref?.();
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    if (this.flushTimer) clearInterval(this.flushTimer);
+    await this.flush();
+  }
 
   private getDateFromPeriod(period: string): Date {
     const now = new Date();
@@ -38,7 +90,43 @@ export class AnalyticsService {
       userAgent: data.userAgent,
       isAuthenticated: data.isAuthenticated,
     });
-    await this.analyticsRepository.save(analytics);
+    this.buffer.push(analytics);
+    this.capBuffer();
+
+    if (this.buffer.length >= this.flushBatchSize) {
+      void this.flush();
+    }
+  }
+
+  /** Shed the oldest rows when the buffer exceeds its cap (DB-down safety). */
+  private capBuffer(): void {
+    if (this.buffer.length > this.maxBufferSize) {
+      this.buffer.splice(0, this.buffer.length - this.maxBufferSize);
+    }
+  }
+
+  /** Bulk-insert buffered rows in one round trip. Single-flight so overlapping
+   * timers/batches don't race; on failure rows are re-queued for the next try. */
+  private async flush(): Promise<void> {
+    if (this.isFlushing || this.buffer.length === 0) return;
+    this.isFlushing = true;
+    const batch = this.buffer;
+    this.buffer = [];
+
+    try {
+      await this.analyticsRepository.insert(batch);
+    } catch (error) {
+      // Re-queue (respecting the cap) — the next interval tick retries
+      this.buffer = [...batch, ...this.buffer];
+      this.capBuffer();
+      this.logger.error(
+        `Failed to flush analytics batch: ${
+          error instanceof Error ? error.message : error
+        }`,
+      );
+    } finally {
+      this.isFlushing = false;
+    }
   }
 
   async getOverview(period: string = '24h') {
@@ -242,5 +330,35 @@ export class AnalyticsService {
       month: 'short',
       day: 'numeric',
     });
+  }
+
+  /**
+   * Scheduled task: purge analytics rows older than the retention window
+   * (ANALYTICS_RETENTION_DAYS, default 90 — 0 disables). Keeps the table
+   * from growing unbounded in production. Runs daily at 3 AM, after the
+   * user-activity cleanup at 2 AM.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async scheduledRetention(): Promise<void> {
+    const days = this.configService.get<number>(
+      'ANALYTICS_RETENTION_DAYS',
+      DEFAULT_RETENTION_DAYS,
+    );
+    if (days <= 0) return;
+
+    try {
+      const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const deleted = await this.analyticsRepository.delete({
+        timestamp: LessThan(cutoff),
+      });
+
+      if (deleted.affected && deleted.affected > 0) {
+        this.logger.log(
+          `Analytics retention: deleted ${deleted.affected} rows older than ${days} days`,
+        );
+      }
+    } catch (error) {
+      this.logger.error('Error during analytics retention cleanup:', error);
+    }
   }
 }
