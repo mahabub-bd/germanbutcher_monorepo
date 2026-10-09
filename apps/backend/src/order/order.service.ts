@@ -1293,14 +1293,33 @@ export class OrderService {
       paidAmount: parseFloat(row.paidAmount) || 0,
       paymentStatus: row.paymentStatus,
       reason: row.reason || null,
+      refundedAmount: 0,
     }));
+
+    // Refunded money lives in the order_payment table as paymentType='refund'
+    // rows with negative amounts — paidAmount is zeroed once a refund
+    // completes, so it can't be used as the refund figure.
+    const refundRows: Record<string, string>[] =
+      await this.orderRepository.query(
+        `SELECT op."orderId", ABS(SUM(op.amount)) AS refunded
+         FROM order_payment op
+         WHERE op."paymentType" = 'refund'
+         GROUP BY op."orderId"`,
+      );
+    const refundedByOrder = new Map(
+      refundRows.map((row) => [
+        parseInt(row.orderId, 10),
+        parseFloat(row.refunded) || 0,
+      ]),
+    );
+    for (const order of orders) {
+      order.refundedAmount = refundedByOrder.get(order.id) ?? 0;
+    }
 
     const summary = {
       cancelledOrders: orders.length,
       cancelledValue: orders.reduce((sum, o) => sum + o.totalValue, 0),
-      refundedAmount: orders
-        .filter((o) => o.paymentStatus?.startsWith('refund'))
-        .reduce((sum, o) => sum + o.paidAmount, 0),
+      refundedAmount: orders.reduce((sum, o) => sum + o.refundedAmount, 0),
     };
 
     return { summary, orders };
