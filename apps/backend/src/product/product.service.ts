@@ -20,6 +20,7 @@ import { Supplier } from '../supplier/entities/supplier.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
+import { SwrCache } from 'src/common/utils/swr-cache';
 
 interface FindAllOptions {
   page?: number;
@@ -61,6 +62,22 @@ export class ProductService {
     private cacheManager: Cache,
   ) {}
 
+  /**
+   * Product-list results: fresh 60s, stale-while-revalidate up to 10min.
+   * Replaces TypeORM's .cache() here — its expiry let every concurrent
+   * request hit the DB simultaneously (the p99 herd under load). Mutations
+   * invalidate via invalidateListCache().
+   */
+  private readonly listCache = new SwrCache<[Product[], number]>(
+    60_000,
+    600_000,
+  );
+
+  /** Drop all cached product-list results (call after any product mutation). */
+  private invalidateListCache(): void {
+    this.listCache.invalidate();
+  }
+
   async create(
     createProductDto: CreateProductDto,
     user: User,
@@ -97,7 +114,9 @@ export class ProductService {
       product.attachment = await this.validateAttachment(attachment);
     }
 
-    return this.productRepository.save(product);
+    const saved = await this.productRepository.save(product);
+    this.invalidateListCache();
+    return saved;
   }
 
   async findAll(options: FindAllOptions = {}): Promise<[Product[], number]> {
@@ -215,16 +234,16 @@ export class ProductService {
       maxPrice ?? ''
     }_${tags ?? ''}`;
 
-    const [products, countResult] = await Promise.all([
-      query
-        .skip((page - 1) * limit)
-        .take(limit)
-        .cache(cacheKey, 30000)
-        .getMany(),
-      countQuery.getRawOne<{ count: string }>(),
-    ]);
-
-    return [products, parseInt(countResult?.count ?? '0', 10) || 0];
+    return this.listCache.get(cacheKey, async () => {
+      const [products, countResult] = await Promise.all([
+        query.skip((page - 1) * limit).take(limit).getMany(),
+        countQuery.getRawOne<{ count: string }>(),
+      ]);
+      return [products, parseInt(countResult?.count ?? '0', 10) || 0] as [
+        Product[],
+        number,
+      ];
+    });
   }
 
   /** Shared WHERE clauses for product list queries — usable on joined and
@@ -860,6 +879,7 @@ export class ProductService {
     // Clear relevant caches
     await this.cacheManager.del(`product_id_${id}`);
     await this.cacheManager.del(`product_slug_${savedProduct.slug}`);
+    this.invalidateListCache();
 
     return savedProduct;
   }
@@ -867,6 +887,7 @@ export class ProductService {
   async remove(id: number): Promise<void> {
     const product = await this.findOne(id);
     await this.productRepository.remove(product);
+    this.invalidateListCache();
 
     if (product.attachment) {
       await this.attachmentService.deleteFile(product.attachment.id);
