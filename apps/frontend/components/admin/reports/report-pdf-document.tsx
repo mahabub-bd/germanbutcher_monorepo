@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 9,
     textAlign: "left",
+    paddingHorizontal: 4,
   },
   row: {
     flexDirection: "row",
@@ -87,6 +88,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "left",
     fontSize: 8.5,
+    paddingHorizontal: 4,
   },
 
   // ----- Summary -----

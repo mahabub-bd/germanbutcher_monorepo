@@ -17,6 +17,14 @@ import {
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
+
+// Plain number formatting for the table/PDF — the ৳ symbol stays on the
+// stat cards only.
+const amount = (value: number) =>
+  Number(value).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 import { getPaymentStatusColor, getStatusIcon } from "@/utils/order-helper";
 import { AlertTriangle, Ban, RotateCcw } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -41,6 +49,7 @@ interface RefundOrder {
   paidAmount: number;
   paymentStatus: string;
   reason: string | null;
+  refundedAmount: number;
 }
 
 interface RefundsListProps {
@@ -76,20 +85,25 @@ export default function RefundsList({
 
   const totalValue = summary?.cancelledValue ?? 0;
   const totalPaid = orders.reduce((sum, o) => sum + o.paidAmount, 0);
+  const totalRefunded = orders.reduce(
+    (sum, o) => sum + o.refundedAmount,
+    0
+  );
 
   const pdfRows = orders.map((o) => [
     o.date,
     o.orderNo,
-    formatCurrencyEnglish(o.totalValue),
-    formatCurrencyEnglish(o.paidAmount),
+    amount(o.totalValue),
+    amount(o.paidAmount),
+    amount(o.refundedAmount),
     o.paymentStatus,
     o.reason ?? "—",
   ]);
 
   const pdfSummary = [
     { label: "Cancelled Orders", value: String(summary?.cancelledOrders ?? 0) },
-    { label: "Cancelled Value", value: formatCurrencyEnglish(totalValue) },
-    { label: "Refunded Amount", value: formatCurrencyEnglish(summary?.refundedAmount ?? 0) },
+    { label: "Cancelled Value", value: amount(totalValue) },
+    { label: "Refunded Amount", value: amount(summary?.refundedAmount ?? 0) },
   ];
 
   const paymentBadge = (status: string) => (
@@ -121,11 +135,12 @@ export default function RefundsList({
                   "Order No",
                   "Value",
                   "Paid",
+                  "Refunded",
                   "Payment Status",
                   "Reason",
                 ]}
-                flexes={[1, 1.2, 1, 1, 1.2, 1.8]}
-                alignRight={[2, 3]}
+                flexes={[1.1, 1.3, 0.9, 0.9, 0.9, 1.2, 1.8]}
+                alignRight={[2, 3, 4]}
                 rows={pdfRows}
                 summary={pdfSummary}
                 settings={settings}
@@ -195,11 +210,16 @@ export default function RefundsList({
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="text-sm font-bold text-primaryColor">
-                    {formatCurrencyEnglish(o.totalValue)}
+                    {amount(o.totalValue)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Paid {formatCurrencyEnglish(o.paidAmount)}
+                    Paid {amount(o.paidAmount)}
                   </p>
+                  {o.refundedAmount > 0 && (
+                    <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-0.5">
+                      Refunded {amount(o.refundedAmount)}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-2">
@@ -224,6 +244,7 @@ export default function RefundsList({
               <TableHead>Order No</TableHead>
               <TableHead className="text-right">Value</TableHead>
               <TableHead className="text-right">Paid</TableHead>
+              <TableHead className="text-right">Refunded</TableHead>
               <TableHead className="pl-8">Payment Status</TableHead>
               <TableHead>Reason</TableHead>
             </TableRow>
@@ -231,7 +252,7 @@ export default function RefundsList({
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                   <div className="flex flex-col items-center gap-2">
                     <Ban className="h-8 w-8 text-muted-foreground/50" />
                     No cancelled orders in this date range
@@ -244,10 +265,13 @@ export default function RefundsList({
                   <TableCell className="whitespace-nowrap">{o.date}</TableCell>
                   <TableCell className="font-medium">{o.orderNo}</TableCell>
                   <TableCell className="text-right font-medium">
-                    {formatCurrencyEnglish(o.totalValue)}
+                    {amount(o.totalValue)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatCurrencyEnglish(o.paidAmount)}
+                    {amount(o.paidAmount)}
+                  </TableCell>
+                  <TableCell className="text-right font-medium text-red-600 dark:text-red-400">
+                    {amount(o.refundedAmount)}
                   </TableCell>
                   <TableCell className="pl-8">{paymentBadge(o.paymentStatus)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground max-w-[240px] truncate">
@@ -262,10 +286,13 @@ export default function RefundsList({
               <TableRow>
                 <TableCell colSpan={2}>Total ({orders.length} orders)</TableCell>
                 <TableCell className="text-right font-semibold">
-                  {formatCurrencyEnglish(totalValue)}
+                  {amount(totalValue)}
                 </TableCell>
                 <TableCell className="text-right font-semibold">
-                  {formatCurrencyEnglish(totalPaid)}
+                  {amount(totalPaid)}
+                </TableCell>
+                <TableCell className="text-right font-semibold text-red-600 dark:text-red-400">
+                  {amount(totalRefunded)}
                 </TableCell>
                 <TableCell />
                 <TableCell />
@@ -279,7 +306,7 @@ export default function RefundsList({
         {orders.length} cancelled order{orders.length === 1 ? "" : "s"} in this
         date range
         {summary && summary.refundedAmount > 0 && (
-          <> · {formatCurrencyEnglish(summary.refundedAmount)} refunded</>
+          <> · {amount(summary.refundedAmount)} refunded</>
         )}
       </div>
     </div>

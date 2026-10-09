@@ -1,15 +1,20 @@
 "use client";
 
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { AddPaymentModal } from "@/components/admin/orders/add-payment-modal";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
-import { PageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { fetchProtectedData } from "@/utils/api-utils";
 import { listSlugToRoute } from "@/utils/order-list-routes";
 import { Order } from "@/utils/types";
-import { ArrowLeft, CheckCircle, Clock, DollarSign, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  DollarSign,
+  Plus,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
@@ -71,101 +76,60 @@ function OrderPaymentsListPageContent() {
   const remainingAmount = order.totalValue - order.paidAmount;
 
   return (
-    <div className="w-full border rounded-sm">
-      <div className="md:p-4 p-2">
-        <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-          <PageHeader
-            title={`Payments for Order #${order.orderNo}`}
-            description="Manage and track payment details"
-          />
+    <div className="space-y-6 p-2 md:p-4">
+      {/* Page header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="truncate text-2xl font-bold">
+            Payments for Order #{order.orderNo}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Manage and track payment details
+          </p>
+        </div>
+        <div className="flex shrink-0 gap-3">
+          <Button variant="outline" asChild>
+            <Link href={buildListUrl()}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Orders
+            </Link>
+          </Button>
 
-          <div className="flex gap-3">
-            <Button variant="secondary" asChild>
-              <Link href={buildListUrl()} className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back to Orders</span>
-              </Link>
+          {remainingAmount > 0 && (
+            <Button onClick={() => setShowAddPaymentModal(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Payment
             </Button>
-
-            {remainingAmount > 0 && (
-              <Button onClick={() => setShowAddPaymentModal(true)}>
-                <Plus className="h-4 w-4" />
-                <span>Add Payment</span>
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Compact Payment Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-          {/* Total Value Card */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <DollarSign className="h-5 w-5 text-blue-600" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Total Value
-                  </p>
-                  <p className="text-lg font-bold">
-                    {formatCurrencyEnglish(order.totalValue)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Paid Amount Card */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Paid Amount
-                  </p>
-                  <p className="text-lg font-bold text-green-600">
-                    {formatCurrencyEnglish(order.paidAmount)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Remaining Amount Card */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${remainingAmount > 0 ? "bg-orange-100" : "bg-green-100"}`}
-                >
-                  <Clock
-                    className={`h-5 w-5 ${remainingAmount > 0 ? "text-orange-600" : "text-green-600"}`}
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Remaining
-                  </p>
-                  <p
-                    className={`text-lg font-bold ${remainingAmount > 0 ? "text-orange-600" : "text-green-600"}`}
-                  >
-                    {formatCurrencyEnglish(remainingAmount)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          )}
         </div>
       </div>
 
-      <div className="md:p-6 p-2">
+      {/* Summary stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatsCard
+          icon={DollarSign}
+          title="Total Value"
+          value={formatCurrencyEnglish(order.totalValue)}
+          bgColor="blue"
+        />
+        <StatsCard
+          icon={CheckCircle2}
+          title="Paid Amount"
+          value={formatCurrencyEnglish(order.paidAmount)}
+          bgColor="green"
+        />
+        <StatsCard
+          icon={Clock}
+          title="Remaining"
+          value={formatCurrencyEnglish(remainingAmount)}
+          bgColor={remainingAmount > 0 ? "orange" : "green"}
+        />
+      </div>
+
+      {/* Payments table */}
+      <section className="rounded-xl border bg-card p-5">
         <PaymentsTable payments={order.payments ?? []} />
-      </div>
+      </section>
 
       <AddPaymentModal
         orderId={Number(orderId)}
