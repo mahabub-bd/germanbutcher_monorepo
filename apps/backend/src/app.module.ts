@@ -7,6 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AddressModule } from './address/address.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ActivityInterceptor } from './interceptor/activity.interceptor';
+import { HttpCacheInterceptor } from './common/interceptors/http-cache.interceptor';
 import { AttachmentModule } from './attachment/attachment.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtStrategy } from './auth/strategies/jwt.strategy';
@@ -93,7 +94,17 @@ import { WishlistModule } from './wishlist/wishlist.module';
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
         autoLoadEntities: true,
-        synchronize: true,
+        // Schema sync in dev only — the shared gb_test DB relies on it, but
+        // never touch the production schema on boot.
+        synchronize: configService.get('NODE_ENV') !== 'production',
+        extra: {
+          // node-postgres pool. Default is 10, which capped the API at roughly
+          // pool_size / db_round_trip ≈ 10 / 60ms ≈ 165 req/s.
+          max: configService.get<number>('DATABASE_POOL_MAX', 30),
+          min: 2,
+          idleTimeoutMillis: 30000,
+          connectionTimeoutMillis: 8000,
+        },
       }),
     }),
 
@@ -148,6 +159,10 @@ import { WishlistModule } from './wishlist/wishlist.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: ActivityInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HttpCacheInterceptor,
     },
   ],
 })

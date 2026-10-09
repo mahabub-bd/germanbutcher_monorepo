@@ -4,6 +4,7 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import compression from 'compression';
 import { AnalyticsService } from './analytics/analytics.service';
 import { AnalyticsInterceptor } from './analytics/interceptors/analytics.interceptor';
 import { AppModule } from './app.module';
@@ -17,8 +18,14 @@ async function bootstrap() {
   app.useBodyParser('json', { limit: '2mb' });
   app.useBodyParser('urlencoded', { limit: '2mb', extended: true });
 
+  // Compress JSON responses (product lists compress well over the WAN)
+  app.use(compression());
+
   // Apply Helmet security headers
   app.use(helmet());
+
+  // Flush pending analytics rows on SIGTERM/SIGINT via AnalyticsService.onModuleDestroy
+  app.enableShutdownHooks();
 
   // Trust proxy when behind reverse proxy (Nginx, AWS ELB, Cloudflare, etc.)
   (app as any).getHttpAdapter().getInstance().set('trust proxy', 1);
@@ -28,6 +35,12 @@ async function bootstrap() {
     type: VersioningType.URI,
   });
 
+  // Swagger: on in dev, off in production unless SWAGGER_ENABLED=true
+  const swaggerEnabled =
+    configService.get('NODE_ENV', 'development') !== 'production' ||
+    configService.get('SWAGGER_ENABLED', 'false') === 'true';
+
+  if (swaggerEnabled) {
   // Swagger configuration from env
   const config = new DocumentBuilder()
     .setTitle(configService.get('SWAGGER_TITLE', 'German Butcher Ecommerce'))
@@ -67,6 +80,7 @@ async function bootstrap() {
       displayRequestDuration: true,
     },
   });
+  }
 
   // Allow CORS from env
   const corsOrigins = configService
@@ -115,7 +129,9 @@ async function bootstrap() {
   console.log(`   Port: ${port}`);
   if (nodeEnv === 'production') {
     console.log(`   API: ${apiUrl}`);
-    console.log(`   Docs: ${apiUrl}/docs`);
+    if (swaggerEnabled) {
+      console.log(`   Docs: ${apiUrl}/docs`);
+    }
   } else {
     console.log(`   Local: http://localhost:${port}`);
     console.log(`   Docs: http://localhost:${port}/docs`);
