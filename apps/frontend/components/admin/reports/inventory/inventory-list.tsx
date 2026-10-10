@@ -97,7 +97,7 @@ export default function InventoryList({
               }.pdf`}
           >
             {({ loading, error }) => (
-              <Button variant="secondary" disabled={!!error} className="shrink-0">
+              <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0">
                 {error
                   ? "PDF Error"
                   : loading

@@ -6,6 +6,7 @@ import {  getDateRangeFromPreset,  parseReportDate,} from 'src/common/utils/repo
 import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { DeliveryMan } from 'src/delivery-man/entities/delivery-man.entity';
 import { FreeDeliveryCampaignsService } from 'src/free-delivery-campaigns/free-delivery-campaigns.service';
+import { FreeDeliveryUsageLogService } from 'src/free-delivery-usage-log/free-delivery-usage-log.service';
 
 import { EmailService } from 'src/email/email.service';
 import { NotificationService } from 'src/notification/notification.service';
@@ -72,6 +73,7 @@ export class OrderService {
     private readonly smsService: SmsService,
     private readonly couponUsageLogService: CouponUsageLogService,
     private readonly freeDeliveryCampaignsService: FreeDeliveryCampaignsService,
+    private readonly freeDeliveryUsageLogService: FreeDeliveryUsageLogService,
   ) {}
 
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -267,6 +269,7 @@ export class OrderService {
     const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
     let freeDeliveryEligible = false;
     let matchedCampaignId: number | null = null;
+    let matchedCampaign: import('src/free-delivery-campaigns/entities/free-delivery-campaign.entity').FreeDeliveryCampaign | null = null;
     try {
       const evaluation = await this.freeDeliveryCampaignsService.evaluate({
         payableSubtotal,
@@ -279,6 +282,7 @@ export class OrderService {
       });
       freeDeliveryEligible = evaluation.eligible;
       matchedCampaignId = evaluation.campaign?.id ?? null;
+      matchedCampaign = evaluation.campaign ?? null;
     } catch (error) {
       this.logger.error(
         `Free delivery campaign evaluation failed for ${orderNo}: ${error}`,
@@ -348,6 +352,24 @@ export class OrderService {
         // Log error but don't fail the order creation
         this.logger.error(
           `Failed to log coupon usage for order ${orderNo}: ${error}`,
+        );
+      }
+    }
+
+    // Log free delivery campaign usage — which customer used which campaign
+    if (matchedCampaignId && freeDeliveryApplied && matchedCampaign) {
+      try {
+        await this.freeDeliveryUsageLogService.create({
+          campaign: matchedCampaign,
+          campaignName: matchedCampaign.name,
+          order,
+          user,
+          shippingWaived: Number(shippingMethod.cost),
+          orderTotal: totalValue,
+        });
+      } catch (error) {
+        this.logger.error(
+          `Failed to log free delivery usage for order ${orderNo}: ${error}`,
         );
       }
     }

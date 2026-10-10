@@ -51,13 +51,19 @@ export class CouponUsageLogController {
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'fromDate', required: false, type: String, example: '2026-10-01' })
+  @ApiQuery({ name: 'toDate', required: false, type: String, example: '2026-10-10' })
   async getAllCouponUsageLogs(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
   ) {
     const { data, total } = await this.couponUsageLogService.findAll({
       page: +page,
       limit: +limit,
+      fromDate,
+      toDate,
     });
     return {
       message: 'Coupon usage logs retrieved successfully',
@@ -67,6 +73,52 @@ export class CouponUsageLogController {
       page: +page,
       limit: +limit,
       totalPages: Math.ceil(total / +limit),
+    };
+  }
+
+  @Get('report-stats')
+  @ApiOperation({
+    summary: 'Get coupon usage report stats',
+    description:
+      'Aggregated coupon usage statistics (total uses, discounts given, order value) across all coupons, optionally filtered by date range and coupon code',
+  })
+  @ApiQuery({ name: 'fromDate', required: false, type: String, example: '2026-10-01' })
+  @ApiQuery({ name: 'toDate', required: false, type: String, example: '2026-10-10' })
+  @ApiQuery({ name: 'couponCode', required: false, type: String })
+  @ApiOkResponse({
+    description: 'Coupon report stats retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        statusCode: { type: 'number', example: 200 },
+        data: {
+          type: 'object',
+          properties: {
+            totalUses: { type: 'number', example: 42 },
+            totalDiscountGiven: { type: 'number', example: 5250.5 },
+            totalOrderValue: { type: 'number', example: 125000 },
+            avgDiscountAmount: { type: 'number', example: 125.01 },
+            uniqueCoupons: { type: 'number', example: 7 },
+          },
+        },
+      },
+    },
+  })
+  async getReportStats(
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+    @Query('couponCode') couponCode?: string,
+  ) {
+    const data = await this.couponUsageLogService.getReportStats({
+      fromDate,
+      toDate,
+      couponCode,
+    });
+    return {
+      message: 'Coupon report stats retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
     };
   }
 

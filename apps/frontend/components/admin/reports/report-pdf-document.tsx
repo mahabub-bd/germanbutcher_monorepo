@@ -8,8 +8,8 @@ import {
   View,
 } from "@react-pdf/renderer";
 
-import { ReportPDFHeader } from "./report-pdf-header";
 import type { BusinessSettings } from "@/utils/types";
+import { ReportPDFHeader } from "./report-pdf-header";
 
 /**
  * Generic table-based report PDF in the same visual style as the order

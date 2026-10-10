@@ -243,7 +243,7 @@ export default function CustomerListReport({
               fileName={`customer-list-${new Date().toISOString().split("T")[0]}.pdf`}
             >
               {({ loading, error }) => (
-                <Button variant="secondary" disabled={!!error}>
+                <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white">
                   {error ? "PDF Error" : loading ? "Generating PDF..." : "Download PDF"}
                 </Button>
               )}
@@ -286,7 +286,7 @@ export default function CustomerListReport({
                 ? formatCurrencyEnglish(
                   summary.totalOrderValue / summary.totalCustomers
                 )
-                : "৳0"
+                : "BDT 0"
             }
             icon={TrendingUp}
             count={String(summary.totalCustomers)}

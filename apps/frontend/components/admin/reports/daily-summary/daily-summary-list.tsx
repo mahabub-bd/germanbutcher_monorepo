@@ -234,9 +234,8 @@ export default function DailySummaryList({
           >
             {({ loading, error }) => (
               <Button
-                variant="secondary"
+                className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0"
                 disabled={!!error}
-                className="shrink-0"
               >
                 {error
                   ? "PDF Error"

@@ -121,7 +121,7 @@ export default function ProductSalesList({
             }.pdf`}
           >
             {({ loading, error }) => (
-              <Button variant="secondary" disabled={!!error} className="shrink-0 w-full sm:w-auto">
+              <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0 w-full sm:w-auto">
                 {error
                   ? "PDF Error"
                   : loading

@@ -17,15 +17,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrencyEnglish } from "@/lib/utils";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { Award, Crown, ShoppingCart, TrendingUp, Users } from "lucide-react";
+import { formatCurrencyEnglish } from "@/lib/utils";
+import { Award, Crown, Eye, ShoppingCart, TrendingUp, Users } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import StatsCard from "../../dashboard/stats-card";
-import { Eye } from "lucide-react";
 import { TopCustomersPDF } from "./TopCustomersPDF";
 
 const PDFDownloadLink = dynamic(
@@ -210,7 +209,7 @@ export default function TopCustomersReport({
                 .split("T")[0]}.pdf`}
             >
               {({ loading, error }) => (
-                <Button variant="secondary" disabled={!!error}>
+                <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white">
                   {error
                     ? "PDF Error"
                     : loading

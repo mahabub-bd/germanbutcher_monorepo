@@ -121,7 +121,7 @@ export default function MonthlyOrderReportList({
             fileName={`monthly-order-report-${selectedYear ?? "all"}-${new Date().toISOString().split("T")[0]}.pdf`}
           >
             {({ loading, error }) => (
-              <Button variant="secondary" disabled={!!error}>
+              <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white">
                 {error ? "PDF Error" : loading ? "Generating PDF..." : "Download PDF"}
               </Button>
             )}

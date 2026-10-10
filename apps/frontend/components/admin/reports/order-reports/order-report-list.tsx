@@ -20,8 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrencyEnglish } from "@/lib/utils";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
+import { formatCurrencyEnglish } from "@/lib/utils";
 import {
   endOfMonth,
   endOfWeek,
@@ -217,7 +217,7 @@ export default function OrderReportList({
             fileName={`order-report-${new Date().toISOString().split("T")[0]}.pdf`}
           >
             {({ loading, error }) => (
-              <Button variant="secondary" disabled={!!error} className="w-full sm:w-auto shrink-0">
+              <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white w-full sm:w-auto shrink-0">
                 {error ? "PDF Error" : loading ? "Generating PDF..." : "Download PDF"}
               </Button>
             )}

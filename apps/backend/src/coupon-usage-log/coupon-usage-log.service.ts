@@ -7,6 +7,14 @@ import { CouponUsageLog } from './entities/coupon-usage-log.entity';
 export interface FindAllUsageLogsOptions {
   page?: number;
   limit?: number;
+  fromDate?: string;
+  toDate?: string;
+}
+
+export interface CouponReportStatsOptions {
+  fromDate?: string;
+  toDate?: string;
+  couponCode?: string;
 }
 
 @Injectable()
@@ -44,7 +52,7 @@ export class CouponUsageLogService {
 
   private async findPaginated(
     filter: { couponCode?: string },
-    { page = 1, limit = 10 }: FindAllUsageLogsOptions,
+    { page = 1, limit = 10, fromDate, toDate }: FindAllUsageLogsOptions,
   ): Promise<{ data: any[]; total: number }> {
     const skip = (page - 1) * limit;
 
@@ -67,6 +75,24 @@ export class CouponUsageLogService {
       });
       countQuery.where('log.couponCode = :couponCode', {
         couponCode: filter.couponCode,
+      });
+    }
+
+    // Date range is inclusive on both ends
+    if (fromDate) {
+      dataQuery.andWhere('log.createdAt >= :fromDate', {
+        fromDate: `${fromDate} 00:00:00`,
+      });
+      countQuery.andWhere('log.createdAt >= :fromDate', {
+        fromDate: `${fromDate} 00:00:00`,
+      });
+    }
+    if (toDate) {
+      dataQuery.andWhere('log.createdAt <= :toDate', {
+        toDate: `${toDate} 23:59:59`,
+      });
+      countQuery.andWhere('log.createdAt <= :toDate', {
+        toDate: `${toDate} 23:59:59`,
       });
     }
 
@@ -147,6 +173,44 @@ export class CouponUsageLogService {
       totalDiscountGiven: parseFloat(result.totalDiscountGiven) || 0,
       avgDiscountAmount: parseFloat(result.avgDiscountAmount) || 0,
       totalOrderValue: parseFloat(result.totalOrderValue) || 0,
+    };
+  }
+
+  // Aggregate stats for the Reports page — across all coupons (or one when
+  // couponCode is given), optionally within a date range.
+  async getReportStats(options: CouponReportStatsOptions = {}) {
+    const { fromDate, toDate, couponCode } = options;
+
+    const query = this.couponUsageLogRepository
+      .createQueryBuilder('log')
+      .select('COUNT(log.id)', 'totalUses')
+      .addSelect('SUM(log.discountAmount)', 'totalDiscountGiven')
+      .addSelect('SUM(log.orderTotal)', 'totalOrderValue')
+      .addSelect('AVG(log.discountAmount)', 'avgDiscountAmount')
+      .addSelect('COUNT(DISTINCT log.couponCode)', 'uniqueCoupons');
+
+    if (couponCode) {
+      query.where('log.couponCode = :couponCode', { couponCode });
+    }
+    if (fromDate) {
+      query.andWhere('log.createdAt >= :fromDate', {
+        fromDate: `${fromDate} 00:00:00`,
+      });
+    }
+    if (toDate) {
+      query.andWhere('log.createdAt <= :toDate', {
+        toDate: `${toDate} 23:59:59`,
+      });
+    }
+
+    const result = await query.getRawOne();
+
+    return {
+      totalUses: parseInt(result.totalUses) || 0,
+      totalDiscountGiven: parseFloat(result.totalDiscountGiven) || 0,
+      totalOrderValue: parseFloat(result.totalOrderValue) || 0,
+      avgDiscountAmount: parseFloat(result.avgDiscountAmount) || 0,
+      uniqueCoupons: parseInt(result.uniqueCoupons) || 0,
     };
   }
 }

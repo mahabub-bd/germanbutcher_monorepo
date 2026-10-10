@@ -17,6 +17,10 @@ import {
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
+import { getPaymentStatusColor, getStatusIcon } from "@/utils/order-helper";
+import { AlertTriangle, Ban, RotateCcw } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 
 // Plain number formatting for the table/PDF — the ৳ symbol stays on the
 // stat cards only.
@@ -25,10 +29,6 @@ const amount = (value: number) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-import { getPaymentStatusColor, getStatusIcon } from "@/utils/order-helper";
-import { AlertTriangle, Ban, RotateCcw } from "lucide-react";
-import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
 
 const PDFDownloadLink = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
@@ -151,7 +151,7 @@ export default function RefundsList({
             }.pdf`}
           >
             {({ loading, error }) => (
-              <Button variant="secondary" disabled={!!error} className="shrink-0 w-full sm:w-auto">
+              <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0 w-full sm:w-auto">
                 {error
                   ? "PDF Error"
                   : loading
