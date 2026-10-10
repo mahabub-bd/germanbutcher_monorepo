@@ -96,7 +96,12 @@ import { WishlistModule } from './wishlist/wishlist.module';
         autoLoadEntities: true,
         // Schema sync in dev only — the shared gb_test DB relies on it, but
         // never touch the production schema on boot.
-        synchronize: configService.get('NODE_ENV') !== 'production',
+        // TEMPORARY OVERRIDE: set TEMP_DB_SYNC=true on a single production
+        // deploy to let synchronize create missing tables (e.g. product_reviews),
+        // then remove the env var and redeploy. Do not leave it enabled.
+        synchronize:
+          configService.get('NODE_ENV') !== 'production' ||
+          configService.get('TEMP_DB_SYNC') === 'true',
         extra: {
           // node-postgres pool. Default is 10, which capped the API at roughly
           // pool_size / db_round_trip ≈ 10 / 60ms ≈ 165 req/s.
