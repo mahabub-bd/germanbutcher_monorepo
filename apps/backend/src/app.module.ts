@@ -34,6 +34,7 @@ import { OrderModule } from './order/order.module';
 import { PaymentMethodModule } from './payment-method/payment-method.module';
 import { PaymentModule } from './payment/payment.module';
 import { ProductModule } from './product/product.module';
+import { ProductReviewModule } from './product-review/product-review.module';
 import { PurchasesModule } from './purchase/purchase.module';
 import { RecipeModule } from './recipe/recipe.module';
 import { RolesModule } from './roles/roles.module';
@@ -134,6 +135,7 @@ import { WishlistModule } from './wishlist/wishlist.module';
     PaymentModule,
     PaymentMethodModule,
     ProductModule,
+    ProductReviewModule,
     PurchasesModule,
     RecipeModule,
     RolesModule,

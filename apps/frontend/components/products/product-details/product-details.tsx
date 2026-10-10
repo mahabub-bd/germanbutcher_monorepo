@@ -8,6 +8,7 @@ import { ProductFeatures } from "./product-features";
 import { ProductImageGallery } from "./product-image-gallery";
 import { ProductInfo } from "./product-info";
 import { ProductPurchaseSection } from "./product-purchase-section";
+import { ProductReviews } from "./product-reviews/product-reviews";
 
 interface ProductDetailsProps {
   product: Product;
@@ -44,6 +45,7 @@ export default async function ProductDetails({ product }: ProductDetailsProps) {
         <div className="space-y-4 md:space-y-6">
           <ProductFeatures product={product} />
           <ProductDetailsCard product={product} />
+          <ProductReviews product={product} user={user} />
         </div>
 
         {showRelatedProducts && (
