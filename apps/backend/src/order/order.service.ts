@@ -425,6 +425,14 @@ export class OrderService {
       console.error('Failed to send order confirmation email:', error);
     }
 
+    // Admin notification — fire-and-forget, never blocks order creation
+    void this.emailService.sendNewOrderAdminEmail({
+      orderNo: completeOrder.orderNo,
+      customerName: user.name,
+      totalAmount: Number(completeOrder.totalValue).toFixed(2),
+      itemCount: completeOrder.items?.length ?? 0,
+    });
+
     // Send order confirmation SMS
     if (user.mobileNumber) {
       try {

@@ -47,6 +47,14 @@ export class BusinessSetting {
 
   @Column({ nullable: true })
   @ApiPropertyOptional({
+    example: 'admin1@germanbutcherbd.com, admin2@germanbutcherbd.com',
+    description:
+      'Comma-separated list of addresses that receive admin notifications (new orders, new reviews)',
+  })
+  adminNotificationEmail: string;
+
+  @Column({ nullable: true })
+  @ApiPropertyOptional({
     example: '+8801911080825',
     description: 'WhatsApp number including country code',
   })

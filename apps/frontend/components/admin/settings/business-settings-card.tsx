@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { fetchData, formPostData, patchData } from "@/utils/api-utils";
 import type { BusinessSettings } from "@/utils/types";
 import {
+  Bell,
   Building2,
   Globe,
   ImageOff,
@@ -36,6 +37,7 @@ interface BusinessSettingsForm {
   address: string;
   phone: string;
   email: string;
+  adminNotificationEmail: string;
   whatsappNumber: string;
   messengerUrl: string;
   websiteUrl: string;
@@ -46,6 +48,7 @@ const EMPTY_FORM: BusinessSettingsForm = {
   address: "",
   phone: "",
   email: "",
+  adminNotificationEmail: "",
   whatsappNumber: "",
   messengerUrl: "",
   websiteUrl: "",
@@ -78,7 +81,24 @@ function InfoField({
           {label}
         </dt>
         <dd className="mt-0.5 font-semibold text-gray-900 dark:text-gray-50 [overflow-wrap:anywhere]">
-          {href && value?.trim() ? (
+          {value?.includes(",") && !href ? (
+            // Comma-separated values (e.g. admin notification emails) render
+            // as individual pills instead of one long wrapped string.
+            <span className="flex flex-wrap gap-1.5">
+              {value
+                .split(",")
+                .map((item) => item.trim())
+                .filter(Boolean)
+                .map((item) => (
+                  <span
+                    key={item}
+                    className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                  >
+                    {item}
+                  </span>
+                ))}
+            </span>
+          ) : href && value?.trim() ? (
             <a
               href={href}
               {...(external
@@ -162,6 +182,7 @@ export function BusinessSettingsCard() {
       address: settings?.address ?? "",
       phone: settings?.phone ?? "",
       email: settings?.email ?? "",
+      adminNotificationEmail: settings?.adminNotificationEmail ?? "",
       whatsappNumber: settings?.whatsappNumber ?? "",
       messengerUrl: settings?.messengerUrl ?? "",
       websiteUrl: settings?.websiteUrl ?? "",
@@ -244,6 +265,11 @@ export function BusinessSettingsCard() {
     ["businessName", "Business Name", "e.g. German Butcher"],
     ["phone", "Phone", "e.g. +8809666791991"],
     ["email", "Email", "e.g. support@germanbutcherbd.com"],
+    [
+      "adminNotificationEmail",
+      "Admin Notification Emails",
+      "Comma-separated, e.g. admin1@example.com, admin2@example.com",
+    ],
     ["whatsappNumber", "WhatsApp Number", "e.g. +8801911080825"],
     ["messengerUrl", "Messenger Page URL", "https://www.facebook.com/<page>"],
     ["websiteUrl", "Website URL", "https://www.germanbutcherbd.com"],
@@ -338,6 +364,12 @@ export function BusinessSettingsCard() {
                   value={settings?.websiteUrl}
                   href={settings?.websiteUrl || undefined}
                   external
+                />
+                <InfoField
+                  icon={Bell}
+                  label="Admin Notification Emails"
+                  value={settings?.adminNotificationEmail}
+                  className="sm:col-span-2 lg:col-span-3"
                 />
                 <InfoField
                   icon={MapPin}

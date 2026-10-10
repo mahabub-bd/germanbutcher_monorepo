@@ -1,7 +1,7 @@
 import ProductDetails from "@/components/products/product-details/product-details";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { fetchData } from "@/utils/api-utils";
-import { Product } from "@/utils/types";
+import { Product, RatingSummary } from "@/utils/types";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -84,6 +84,18 @@ export async function generateMetadata({
 
     const availability = product.stock > 0 ? "InStock" : "OutOfStock";
 
+    // Real rating data for JSON-LD; cached 60s like other non-product
+    // endpoints. Omitted entirely when there are no approved reviews —
+    // Google flags AggregateRating with reviewCount 0 as a Rich Results error.
+    let ratingSummary: RatingSummary | null = null;
+    try {
+      ratingSummary = await fetchData<RatingSummary>(
+        `reviews/product/${product.id}/rating-summary`
+      );
+    } catch (error) {
+      console.error("Error fetching rating summary:", error);
+    }
+
     return {
       title: `${product.name} | ${product.brand?.name || "Your Store"} - ${formatCurrencyEnglish(finalPrice)}`,
       description: metaDescription,
@@ -160,11 +172,11 @@ export async function generateMetadata({
             itemCondition: "https://schema.org/NewCondition",
           },
           aggregateRating:
-            product.saleCount > 0
+            ratingSummary && ratingSummary.reviewCount > 0
               ? {
                   "@type": "AggregateRating",
-                  ratingValue: "4.5", // Add actual ratings if available
-                  reviewCount: product.saleCount.toString(),
+                  ratingValue: ratingSummary.averageRating,
+                  reviewCount: ratingSummary.reviewCount,
                 }
               : undefined,
           weight: product.weight
