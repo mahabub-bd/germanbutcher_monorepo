@@ -1,29 +1,29 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ScheduleModule } from '@nestjs/schedule';
 import { AddressModule } from './address/address.module';
 import { AnalyticsModule } from './analytics/analytics.module';
-import { ActivityInterceptor } from './interceptor/activity.interceptor';
-import { HttpCacheInterceptor } from './common/interceptors/http-cache.interceptor';
 import { AttachmentModule } from './attachment/attachment.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtStrategy } from './auth/strategies/jwt.strategy';
 import { BannerModule } from './banner/banner.module';
-import { BusinessSettingsModule } from './business-settings/business-settings.module';
 import { BrandModule } from './brand/brand.module';
+import { BusinessSettingsModule } from './business-settings/business-settings.module';
 import { CartModule } from './cart/cart.module';
 import { CategoryModule } from './category/category.module';
 import { ClientModule } from './client/client.module';
-import { DeliveryManModule } from './delivery-man/delivery-man.module';
 import { ThrottlerGuard } from './common/guards/throttler.guard';
+import { HttpCacheInterceptor } from './common/interceptors/http-cache.interceptor';
 import { ContactMessageModule } from './contact-message/contact-message.module';
-import { CouponModule } from './coupon/coupon.module';
 import { CouponUsageLogModule } from './coupon-usage-log/coupon-usage-log.module';
-import { GalleryModule } from './gallery/gallery.module';
+import { CouponModule } from './coupon/coupon.module';
+import { DeliveryManModule } from './delivery-man/delivery-man.module';
 import { FreeDeliveryCampaignsModule } from './free-delivery-campaigns/free-delivery-campaigns.module';
+import { GalleryModule } from './gallery/gallery.module';
+import { ActivityInterceptor } from './interceptor/activity.interceptor';
 import { MenuPermissionModule } from './menu-permission/menu-permission.module';
 import { MenuModule } from './menu/menu.module';
 import { NotificationModule } from './notification/notification.module';
@@ -33,8 +33,8 @@ import { OrderPaymentModule } from './order-payment/order-payment.module';
 import { OrderModule } from './order/order.module';
 import { PaymentMethodModule } from './payment-method/payment-method.module';
 import { PaymentModule } from './payment/payment.module';
-import { ProductModule } from './product/product.module';
 import { ProductReviewModule } from './product-review/product-review.module';
+import { ProductModule } from './product/product.module';
 import { PurchasesModule } from './purchase/purchase.module';
 import { RecipeModule } from './recipe/recipe.module';
 import { RolesModule } from './roles/roles.module';
@@ -95,17 +95,11 @@ import { WishlistModule } from './wishlist/wishlist.module';
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
         autoLoadEntities: true,
-        // Schema sync in dev only — the shared gb_test DB relies on it, but
-        // never touch the production schema on boot.
-        // TEMPORARY OVERRIDE: set TEMP_DB_SYNC=true on a single production
-        // deploy to let synchronize create missing tables (e.g. product_reviews),
-        // then remove the env var and redeploy. Do not leave it enabled.
+
         synchronize:
           configService.get('NODE_ENV') !== 'production' ||
           configService.get('TEMP_DB_SYNC') === 'true',
         extra: {
-          // node-postgres pool. Default is 10, which capped the API at roughly
-          // pool_size / db_round_trip ≈ 10 / 60ms ≈ 165 req/s.
           max: configService.get<number>('DATABASE_POOL_MAX', 30),
           min: 2,
           idleTimeoutMillis: 30000,
@@ -173,4 +167,4 @@ import { WishlistModule } from './wishlist/wishlist.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
