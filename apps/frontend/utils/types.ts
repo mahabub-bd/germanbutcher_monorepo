@@ -284,6 +284,7 @@ export interface BusinessSettings {
   address: string | null;
   phone: string | null;
   email: string | null;
+  adminNotificationEmail: string | null;
   whatsappNumber: string | null;
   messengerUrl: string | null;
   websiteUrl: string | null;

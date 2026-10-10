@@ -35,6 +35,15 @@ export class UpdateBusinessSettingsDto {
   email?: string;
 
   @ApiPropertyOptional({
+    example: 'admin1@germanbutcherbd.com, admin2@germanbutcherbd.com',
+    description:
+      'Comma-separated addresses that receive admin notifications (new orders, new reviews)',
+  })
+  @IsOptional()
+  @IsString()
+  adminNotificationEmail?: string;
+
+  @ApiPropertyOptional({
     example: '+8801911080825',
     description: 'WhatsApp number including country code',
   })

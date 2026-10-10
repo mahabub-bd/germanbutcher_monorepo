@@ -11,6 +11,9 @@ import { Order } from 'src/order/entities/order.entity';
 import { OrderItem } from 'src/order/entities/order-item.entity';
 import { OrderStatus } from 'src/common/enums';
 import { ApiResponseDto } from 'src/common/types';
+import { EmailService } from 'src/email/email.service';
+import { Product } from 'src/product/entities/product.entity';
+import { User } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { AdminUpdateReviewDto } from './dto/admin-update-review.dto';
 import { CreateProductReviewDto } from './dto/create-product-review.dto';
@@ -39,6 +42,11 @@ export class ProductReviewService {
     private orderItemRepository: Repository<OrderItem>,
     @InjectRepository(Attachment)
     private attachmentRepository: Repository<Attachment>,
+    @InjectRepository(Product)
+    private productRepository: Repository<Product>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    private emailService: EmailService,
   ) {}
 
   // Resolves the review photo; null attachmentId clears it, undefined keeps it.
@@ -227,6 +235,19 @@ export class ProductReviewService {
     });
 
     const saved = await this.reviewRepository.save(review);
+
+    // Fire-and-forget admin alert — never blocks or fails the submission.
+    const [customer, product] = await Promise.all([
+      this.userRepository.findOne({ where: { id: userId } }),
+      this.productRepository.findOne({ where: { id: productId } }),
+    ]);
+    void this.emailService.sendNewReviewAdminEmail({
+      customerName: customer?.name ?? `User #${userId}`,
+      productName: product?.name ?? `Product #${productId}`,
+      rating: saved.rating,
+      title: saved.title,
+      comment: saved.comment,
+    });
 
     return {
       message: 'Review submitted successfully and is awaiting approval',
