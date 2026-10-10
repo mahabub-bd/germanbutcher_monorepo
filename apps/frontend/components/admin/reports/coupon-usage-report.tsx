@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { fetchDataPagination } from "@/utils/api-utils";
+import { formatDateTime } from "@/lib/utils";
 import { Tag, Ticket, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -147,20 +148,20 @@ export function CouponUsageReport({
           subtitle={periodLabel}
           fileName="coupon-usage-report"
           columns={[
-            { header: "Coupon", width: 1.2 },
+            { header: "Date", width: 2 },
+            { header: "Coupon", width: 1.1 },
             { header: "Customer", width: 1.6 },
-            { header: "Order No", width: 1.4 },
-            { header: "Discount", width: 1.2, align: "right" },
-            { header: "Order Total", width: 1.2, align: "right" },
-            { header: "Date", width: 1.4 },
+            { header: "Order No", width: 1.3 },
+            { header: "Discount", width: 1, align: "right" },
+            { header: "Order Total", width: 1, align: "right" },
           ]}
           rows={rows.map((row) => [
+            formatDateTime(row.createdAt),
             row.couponCode,
             row.user?.name || "-",
             row.order?.orderNo || "-",
             formatMoneyPdf(row.discountAmount),
             formatMoneyPdf(row.orderTotal),
-            new Date(row.createdAt).toLocaleString(),
           ])}
           summary={
             stats
@@ -183,21 +184,33 @@ export function CouponUsageReport({
 
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatsCard title="Total Uses" value={stats.totalUses} icon={Ticket} />
+          <StatsCard
+            title="Total Uses"
+            value={stats.totalUses}
+            description="Coupon applications in period"
+            icon={Ticket}
+            bgColor="blue"
+          />
           <StatsCard
             title="Total Discount Given"
             value={formatMoney(stats.totalDiscountGiven)}
+            description="Sum of all coupon discounts"
             icon={Tag}
+            bgColor="red"
           />
           <StatsCard
             title="Total Order Value"
             value={formatMoney(stats.totalOrderValue)}
+            description="Value of orders using coupons"
             icon={TrendingUp}
+            bgColor="green"
           />
           <StatsCard
             title="Unique Coupons Used"
             value={stats.uniqueCoupons}
+            description="Distinct coupons applied"
             icon={Users}
+            bgColor="purple"
           />
         </div>
       )}
@@ -206,15 +219,19 @@ export function CouponUsageReport({
         <LoadingIndicator message="Loading coupon usage report..." />
       ) : (
         <div className="mt-2">
-          <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+          <Table className="[&_td]:py-4 [&_td]:px-3 [&_th]:pb-3 [&_th]:pt-0 [&_th]:px-3">
             <TableHeader>
               <TableRow>
-                <TableHead>Coupon</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Order</TableHead>
-                <TableHead className="hidden md:table-cell">Discount</TableHead>
-                <TableHead className="hidden md:table-cell">Order Total</TableHead>
-                <TableHead className="hidden md:table-cell">Date</TableHead>
+                <TableHead className="w-[12%]">Date</TableHead>
+                <TableHead className="w-[14%]">Coupon</TableHead>
+                <TableHead className="w-[28%]">Customer</TableHead>
+                <TableHead className="w-[16%]">Order</TableHead>
+                <TableHead className="hidden md:table-cell md:w-[14%] md:text-right">
+                  Discount
+                </TableHead>
+                <TableHead className="hidden md:table-cell md:w-[16%] md:text-right">
+                  Order Total
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -227,6 +244,11 @@ export function CouponUsageReport({
               ) : (
                 rows.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/50">
+                    <TableCell className="whitespace-nowrap">
+                      <span className="text-sm text-muted-foreground">
+                        {formatDateTime(row.createdAt)}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <span className="rounded-full bg-primaryColor/5 px-2.5 py-0.5 text-xs font-semibold text-primaryColor">
                         {row.couponCode}
@@ -242,7 +264,7 @@ export function CouponUsageReport({
                       {row.order?.orderNo ? (
                         <Link
                           href="/admin/orders"
-                          className="text-sm font-medium hover:underline"
+                          className="text-sm font-medium whitespace-nowrap hover:underline"
                         >
                           {row.order.orderNo}
                         </Link>
@@ -250,18 +272,13 @@ export function CouponUsageReport({
                         <span className="text-sm">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell className="hidden md:table-cell text-right whitespace-nowrap">
                       <span className="text-sm font-medium text-primaryColor">
                         {formatMoney(row.discountAmount)}
                       </span>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell className="hidden md:table-cell text-right whitespace-nowrap">
                       <span className="text-sm">{formatMoney(row.orderTotal)}</span>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(row.createdAt).toLocaleString()}
-                      </span>
                     </TableCell>
                   </TableRow>
                 ))

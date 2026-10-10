@@ -1,9 +1,9 @@
 "use client";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
-import { PaginationComponent } from "@/components/common/pagination";
-import { ReportDateFilters, type ReportFilterParams } from "@/components/admin/reports/report-date-filters";
 import { ReportPdfButton } from "@/components/admin/reports/generic-report-pdf";
+import { ReportDateFilters, type ReportFilterParams } from "@/components/admin/reports/report-date-filters";
+import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -13,8 +13,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatDateTime } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
-import { Ticket, Truck, TrendingUp, Users } from "lucide-react";
+import { Ticket, TrendingUp, Truck, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -148,28 +149,28 @@ export function FreeDeliveryUsageReport({
           subtitle={periodLabel}
           fileName="free-delivery-usage-report"
           columns={[
+            { header: "Date", width: 2 },
             { header: "Customer", width: 1.6 },
-            { header: "Order No", width: 1.4 },
+            { header: "Order No", width: 1.3 },
             { header: "Campaign", width: 1.6 },
-            { header: "Shipping Waived", width: 1.2, align: "right" },
-            { header: "Order Total", width: 1.2, align: "right" },
-            { header: "Date", width: 1.4 },
+            { header: "Waived", width: 1.1, align: "right" },
+            { header: "Total", width: 1.1, align: "right" },
           ]}
           rows={rows.map((row) => [
+            formatDateTime(row.createdAt),
             row.user?.name || "-",
             row.order?.orderNo || "-",
             row.campaignName,
             formatMoneyPdf(row.shippingWaived),
             formatMoneyPdf(row.orderTotal),
-            new Date(row.createdAt).toLocaleString(),
           ])}
           summary={
             stats
               ? [
-                  { label: "Total Uses", value: String(stats.totalUses) },
-                  { label: "Shipping Waived", value: formatMoneyPdf(stats.totalShippingWaived) },
-                  { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
-                ]
+                { label: "Total Uses", value: String(stats.totalUses) },
+                { label: "Shipping Waived", value: formatMoneyPdf(stats.totalShippingWaived) },
+                { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
+              ]
               : undefined
           }
         />
@@ -184,21 +185,33 @@ export function FreeDeliveryUsageReport({
 
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatsCard title="Total Uses" value={stats.totalUses} icon={Truck} />
+          <StatsCard
+            title="Total Uses"
+            value={stats.totalUses}
+            description="Free deliveries granted in period"
+            icon={Truck}
+            bgColor="blue"
+          />
           <StatsCard
             title="Total Shipping Waived"
             value={formatMoney(stats.totalShippingWaived)}
+            description="Shipping cost covered by campaigns"
             icon={Ticket}
+            bgColor="green"
           />
           <StatsCard
             title="Total Order Value"
             value={formatMoney(stats.totalOrderValue)}
+            description="Value of orders with free delivery"
             icon={TrendingUp}
+            bgColor="purple"
           />
           <StatsCard
             title="Campaigns Used"
             value={stats.uniqueCampaigns}
+            description="Distinct campaigns applied"
             icon={Users}
+            bgColor="orange"
           />
         </div>
       )}
@@ -207,15 +220,19 @@ export function FreeDeliveryUsageReport({
         <LoadingIndicator message="Loading free delivery usage report..." />
       ) : (
         <div className="mt-2">
-          <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+          <Table className="[&_td]:py-4 [&_td]:px-3 [&_th]:pb-3 [&_th]:pt-0 [&_th]:px-3">
             <TableHeader>
               <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Order</TableHead>
-                <TableHead>Campaign</TableHead>
-                <TableHead className="hidden md:table-cell">Shipping Waived</TableHead>
-                <TableHead className="hidden md:table-cell">Order Total</TableHead>
-                <TableHead className="hidden md:table-cell">Date</TableHead>
+                <TableHead className="w-[12%]">Date</TableHead>
+                <TableHead className="w-[28%]">Customer</TableHead>
+                <TableHead className="w-[16%]">Order</TableHead>
+                <TableHead className="w-[17%]">Campaign</TableHead>
+                <TableHead className="hidden md:table-cell md:w-[13%] md:text-right">
+                  Shipping Waived
+                </TableHead>
+                <TableHead className="hidden md:table-cell md:w-[14%] md:text-right">
+                  Order Total
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -228,6 +245,11 @@ export function FreeDeliveryUsageReport({
               ) : (
                 rows.map((row) => (
                   <TableRow key={row.id} className="hover:bg-muted/50">
+                    <TableCell className="whitespace-nowrap">
+                      <span className="text-sm text-muted-foreground">
+                        {formatDateTime(row.createdAt)}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <p className="text-sm font-medium">{row.user?.name || "—"}</p>
                       <p className="text-xs text-muted-foreground truncate max-w-48">
@@ -238,7 +260,7 @@ export function FreeDeliveryUsageReport({
                       {row.order?.orderNo ? (
                         <Link
                           href="/admin/orders"
-                          className="text-sm font-medium hover:underline"
+                          className="text-sm font-medium whitespace-nowrap hover:underline"
                         >
                           {row.order.orderNo}
                         </Link>
@@ -249,23 +271,18 @@ export function FreeDeliveryUsageReport({
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className="bg-primaryColor/5 text-primaryColor border-primaryColor/20"
+                        className="max-w-40 truncate bg-primaryColor/5 text-primaryColor border-primaryColor/20"
                       >
                         {row.campaignName}
                       </Badge>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell className="hidden md:table-cell text-right whitespace-nowrap">
                       <span className="text-sm font-medium text-green-700 dark:text-green-400">
                         {formatMoney(row.shippingWaived)}
                       </span>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell className="hidden md:table-cell text-right whitespace-nowrap">
                       <span className="text-sm">{formatMoney(row.orderTotal)}</span>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(row.createdAt).toLocaleString()}
-                      </span>
                     </TableCell>
                   </TableRow>
                 ))

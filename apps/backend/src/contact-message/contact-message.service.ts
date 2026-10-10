@@ -17,9 +17,41 @@ export class ContactMessageService {
     private emailService: EmailService,
   ) {}
 
-  async create(createContactMessageDto: CreateContactMessageDto): Promise<ContactMessage> {
-    const contactMessage = this.contactMessageRepository.create(createContactMessageDto);
+  async create(
+    createContactMessageDto: CreateContactMessageDto,
+    userId?: number,
+  ): Promise<ContactMessage> {
+    const contactMessage = this.contactMessageRepository.create({
+      ...createContactMessageDto,
+      userId: userId ?? null,
+    });
     return await this.contactMessageRepository.save(contactMessage);
+  }
+
+  /**
+   * Paginated messages sent by a specific user (the authenticated customer).
+   */
+  async findForUser(userId: number, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.contactMessageRepository
+      .createQueryBuilder('contact_message')
+      .leftJoinAndSelect('contact_message.handledBy', 'handledBy')
+      .where('contact_message.userId = :userId', { userId })
+      .orderBy('contact_message.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      message: 'Contact messages retrieved successfully',
+      statusCode: 200,
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
   }
 
   async findAll(query: ContactMessageQueryDto) {

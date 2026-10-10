@@ -1,5 +1,6 @@
 "use client";
 
+import { AccountPageHeader } from "@/components/user-account/account-page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +11,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatDateTime } from "@/lib/utils";
+import {
+  getPaymentMethodColor,
+  getPaymentMethodIcon,
+  getStatusIcon,
+} from "@/utils/order-helper";
 import { Order } from "@/utils/types";
 import { Eye } from "lucide-react";
 import Link from "next/link";
@@ -60,15 +67,15 @@ const OrderTable = ({ orders }: MyOrderProps) => {
 
   return (
     <div className="w-full  ">
-      <h2 className="text-xl font-semibold mb-4">My Orders</h2>
+      <AccountPageHeader title="My Orders" />
 
       <div className="rounded-md  overflow-hidden">
         <Table>
           <TableHeader className="bg-gray-50">
             <TableRow>
               <TableHead>Order ID</TableHead>
-              <TableHead>Date</TableHead>
               <TableHead>Order Status</TableHead>
+              <TableHead>Date</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Payment Status</TableHead>
               <TableHead>Payment Method</TableHead>
@@ -83,24 +90,44 @@ const OrderTable = ({ orders }: MyOrderProps) => {
                   <TableCell className="font-medium">{order.orderNo}</TableCell>
 
                   <TableCell>
-                    {new Date(order.createdAt).toLocaleDateString()}
+                    <Badge
+                      className={`rounded-full px-3 py-1 ${getStatusColor(order.orderStatus)}`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {getStatusIcon(order.orderStatus)}
+                        {formatStatus(order.orderStatus)}
+                      </span>
+                    </Badge>
                   </TableCell>
 
-                  <TableCell>
-                    <Badge className={getStatusColor(order.orderStatus)}>
-                      {formatStatus(order.orderStatus)}
-                    </Badge>
+                  <TableCell className="whitespace-nowrap">
+                    {formatDateTime(order.createdAt)}
                   </TableCell>
 
                   <TableCell>৳{formatCurrency(order.totalValue)}</TableCell>
 
                   <TableCell>
-                    <Badge className={getStatusColor(order.paymentStatus)}>
-                      {formatStatus(order.paymentStatus)}
+                    <Badge
+                      className={`rounded-full px-3 py-1 ${getStatusColor(order.paymentStatus)}`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {getStatusIcon(order.paymentStatus)}
+                        {formatStatus(order.paymentStatus)}
+                      </span>
                     </Badge>
                   </TableCell>
 
-                  <TableCell>{order.paymentMethod.name}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={`capitalize ${getPaymentMethodColor(order.paymentMethod?.name)}`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {getPaymentMethodIcon(order.paymentMethod?.name || "")}
+                        {order.paymentMethod?.name || "N/A"}
+                      </span>
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     {order.paymentStatus === "pending" && (
                       <PayNow order={order} className="inline-flex" />
@@ -120,7 +147,7 @@ const OrderTable = ({ orders }: MyOrderProps) => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                   No orders found
                 </TableCell>
               </TableRow>

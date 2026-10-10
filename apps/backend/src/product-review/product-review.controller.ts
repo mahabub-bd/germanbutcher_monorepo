@@ -126,6 +126,32 @@ export class ProductReviewController {
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('token')
+  @Get('my')
+  @ApiOperation({
+    summary: 'Get my reviews',
+    description:
+      "Retrieves the authenticated customer's own reviews, including pending and rejected ones",
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiResponse({
+    status: 200,
+    description: 'My reviews retrieved successfully',
+  })
+  findMyReviews(
+    @GetUser() user: User,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ): Promise<ApiResponseDto<ProductReview[]>> {
+    return this.reviewService.findForUser(
+      user.userId,
+      Number(page) || 1,
+      Number(limit) || 10,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('token')
   @Get('eligibility/:productId')
   @ApiOperation({
     summary: 'Check review eligibility',

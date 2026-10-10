@@ -1,9 +1,9 @@
 "use client";
 
-import { User } from "lucide-react";
+import { Home } from "lucide-react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
-import { BreadcrumbItem, PageBreadcrumb } from "../ui/page-breadcrumb";
 
 interface NavItem {
   icon: React.ReactNode;
@@ -16,90 +16,92 @@ interface ProfileBreadcrumbProps {
   navItems: NavItem[];
   baseLabel?: string;
   baseHref?: string;
-  baseIcon?: React.ReactNode;
 }
 
-interface BreadcrumbConfig {
-  baseLabel: string;
-  baseHref: string;
-  baseIcon: React.ReactNode;
+const DEFAULT_BASE_LABEL = "My Account";
+const DEFAULT_BASE_HREF = "/profile";
+
+function CrumbLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="relative text-gray-500 transition-colors hover:text-primaryColor after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-0 after:bg-primaryColor after:transition-all after:duration-300 hover:after:w-full"
+    >
+      {children}
+    </Link>
+  );
 }
 
-const DEFAULT_CONFIG: BreadcrumbConfig = {
-  baseLabel: "My Account",
-  baseHref: "/profile",
-  baseIcon: <User className="h-2.5 w-2.5 sm:h-3 sm:w-3" />,
-};
-
 /**
- * Creates breadcrumb items for profile navigation
- */
-const createBreadcrumbItems = (
-  pathname: string,
-  navItems: NavItem[],
-  config: BreadcrumbConfig
-): BreadcrumbItem[] => {
-  const baseItem: BreadcrumbItem = {
-    label: config.baseLabel,
-    href: config.baseHref,
-    icon: config.baseIcon,
-    isActive: pathname === config.baseHref,
-  };
-
-  // If we're on the base profile page, return just the base item
-  if (pathname === config.baseHref) {
-    return [baseItem];
-  }
-
-  // Find the current page from navigation items
-  const currentPage = navItems.find((item) => pathname.startsWith(item.href));
-
-  if (!currentPage) {
-    // If no matching nav item found, still show base item as active fallback
-    return [{ ...baseItem, isActive: true }];
-  }
-
-  // Clone the icon to avoid React warnings about reusing elements
-  const clonedIcon = React.isValidElement(currentPage.icon)
-    ? React.cloneElement(currentPage.icon, {
-        key: `icon-${currentPage.href}`,
-      })
-    : currentPage.icon;
-
-  const currentPageItem: BreadcrumbItem = {
-    label: currentPage.label,
-    icon: clonedIcon,
-    isActive: true,
-  };
-
-  return [baseItem, currentPageItem];
-};
-
-/**
- * ProfileBreadcrumb Component
- *
- * Renders breadcrumb navigation for profile pages with automatic active state detection
+ * Breadcrumb for profile pages, styled the same as the product details
+ * page breadcrumb: plain home link, "/" separators and an animated
+ * underline on hover. The current section is highlighted in primaryColor.
  */
 const ProfileBreadcrumb: React.FC<ProfileBreadcrumbProps> = ({
   navItems,
-  baseLabel = DEFAULT_CONFIG.baseLabel,
-  baseHref = DEFAULT_CONFIG.baseHref,
-  baseIcon = DEFAULT_CONFIG.baseIcon,
+  baseLabel = DEFAULT_BASE_LABEL,
+  baseHref = DEFAULT_BASE_HREF,
 }) => {
   const pathname = usePathname();
 
-  const config: BreadcrumbConfig = {
-    baseLabel,
-    baseHref,
-    baseIcon,
-  };
+  const currentPage = navItems.find((item) => pathname.startsWith(item.href));
+  const onBasePage = pathname === baseHref;
 
-  const breadcrumbItems = React.useMemo(
-    () => createBreadcrumbItems(pathname, navItems, config),
-    [pathname, navItems, config]
+  return (
+    <div className="border-b border-gray-200/70 bg-white/90 backdrop-blur">
+      <div className="container mx-auto md:px-0 px-2">
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-2 overflow-x-auto py-2.5 text-xs sm:text-sm"
+        >
+          <Link
+            href="/"
+            aria-label="Home"
+            className="flex shrink-0 items-center text-gray-500 transition-colors hover:text-primaryColor"
+          >
+            <Home className="size-4" />
+          </Link>
+
+          <span className="shrink-0 text-gray-300" aria-hidden>
+            /
+          </span>
+
+          {!onBasePage && currentPage ? (
+            <CrumbLink href={baseHref}>
+              <span className="whitespace-nowrap">{baseLabel}</span>
+            </CrumbLink>
+          ) : (
+            <span
+              aria-current="page"
+              className="truncate whitespace-nowrap font-medium text-primaryColor"
+            >
+              {baseLabel}
+            </span>
+          )}
+
+          {currentPage && (
+            <>
+              <span className="shrink-0 text-gray-300" aria-hidden>
+                /
+              </span>
+              <span
+                aria-current="page"
+                className="truncate whitespace-nowrap font-medium text-primaryColor"
+              >
+                {currentPage.label}
+              </span>
+            </>
+          )}
+        </nav>
+      </div>
+    </div>
   );
-
-  return <PageBreadcrumb items={breadcrumbItems} />;
 };
 
 export default ProfileBreadcrumb;

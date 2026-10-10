@@ -3,7 +3,7 @@ import MiniSparkline from "@/components/ui/mini-sparkline";
 import { cn } from "@/lib/utils";
 import type React from "react";
 
-interface StatCardProps {
+export interface StatCardProps {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   value: string | number;

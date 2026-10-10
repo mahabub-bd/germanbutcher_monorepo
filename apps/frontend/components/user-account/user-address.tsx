@@ -1,9 +1,17 @@
 "use client";
 
 import { deleteData } from "@/utils/api-utils";
+import { AccountPageHeader } from "@/components/user-account/account-page-header";
 import { serverRevalidate } from "@/utils/revalidatePath";
 import { Address } from "@/utils/types";
-import { Home, MapPin, PencilLine, Plus, Trash2 } from "lucide-react";
+import {
+  CircleCheck,
+  FileText,
+  MapPin,
+  PencilLine,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -103,11 +111,13 @@ export default function MyAddress({
   }) => {
     if (!address) {
       return (
-        <div className="p-6 bg-white rounded-lg border border-gray-200">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-2">
-              <Icon className="w-5 h-5 text-gray-600" />
-              <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <div className="p-6 sm:p-7 bg-white rounded-xl border border-gray-200">
+          <div className="flex justify-between items-center pb-4 mb-6 border-b border-gray-100">
+            <div className="flex items-center gap-3.5">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50 text-primaryColor">
+                <Icon className="w-5 h-5" />
+              </span>
+              <h2 className="text-xl font-bold text-gray-900">{title}</h2>
             </div>
           </div>
           <div className="text-center py-8">
@@ -117,7 +127,7 @@ export default function MyAddress({
             </p>
             <button
               type="button"
-              className="px-4 py-2 text-sm font-medium text-white bg-primaryColor  rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-primaryColor rounded-md transition-colors"
               onClick={handleAddAddress}
             >
               Add {title}
@@ -131,16 +141,18 @@ export default function MyAddress({
     const canDelete = canDeleteAddress(address);
 
     return (
-      <div className="p-6 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <Icon className="w-5 h-5 text-gray-600" />
-            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+      <div className="p-6 sm:p-7 bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div className="flex justify-between items-center pb-4 mb-6 border-b border-gray-100">
+          <div className="flex items-center gap-3.5">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50 text-primaryColor">
+              <Icon className="w-5 h-5" />
+            </span>
+            <h2 className="text-xl font-bold text-gray-900">{title}</h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <button
               type="button"
-              className="px-3 py-1.5 text-sm font-medium text-primaryColor  hover:bg-blue-50 rounded-md transition-colors flex items-center gap-1"
+              className="flex items-center gap-1.5 text-base font-medium text-primaryColor transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => handleEditAddress(address)}
               disabled={isDeleting}
             >
@@ -148,47 +160,43 @@ export default function MyAddress({
               Edit
             </button>
             {canDelete && (
-              <button
-                type="button"
-                className="px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={() => handleDeleteClick(address)}
-                disabled={isDeleting}
-              >
-                <Trash2 className="w-4 h-4" />
-                {isDeleting ? "Deleting..." : "Delete"}
-              </button>
+              <>
+                <span className="h-5 w-px bg-gray-200" aria-hidden />
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 text-base font-medium text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => handleDeleteClick(address)}
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {isDeleting ? "Deleting..." : "Delete"}
+                </button>
+              </>
             )}
           </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-start gap-2">
-            <span className="font-medium text-gray-700 min-w-[80px]">
-              Address:
-            </span>
-            <span className="text-gray-600">{address.address}</span>
+        <div className="space-y-3.5">
+          <div className="flex items-start gap-4">
+            <span className="w-24 shrink-0 text-gray-500">Address</span>
+            <span className="font-medium text-gray-900">{address.address}</span>
           </div>
-          <div className="flex items-start gap-2">
-            <span className="font-medium text-gray-700 min-w-[80px]">
-              Area:
-            </span>
-            <span className="text-gray-600">{address.area}</span>
+          <div className="flex items-start gap-4">
+            <span className="w-24 shrink-0 text-gray-500">Area</span>
+            <span className="font-medium text-gray-900">{address.area}</span>
           </div>
-          <div className="flex items-start gap-2">
-            <span className="font-medium text-gray-700 min-w-[80px]">
-              City:
-            </span>
-            <span className="text-gray-600">{address.city}</span>
+          <div className="flex items-start gap-4">
+            <span className="w-24 shrink-0 text-gray-500">City</span>
+            <span className="font-medium text-gray-900">{address.city}</span>
           </div>
-          <div className="flex items-start gap-2">
-            <span className="font-medium text-gray-700 min-w-[80px]">
-              Division:
-            </span>
-            <span className="text-gray-600">{address.division}</span>
+          <div className="flex items-start gap-4">
+            <span className="w-24 shrink-0 text-gray-500">Division</span>
+            <span className="font-medium text-gray-900">{address.division}</span>
           </div>
           {address.isDefault && (
-            <div className="mt-3">
-              <span className="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
+            <div className="pt-2">
+              <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-4 py-2 text-sm font-medium text-green-700">
+                <CircleCheck className="h-4 w-4 fill-green-600 text-white" />
                 Default {address.type} address
               </span>
             </div>
@@ -200,27 +208,29 @@ export default function MyAddress({
 
   return (
     <div className="w-full md:p-4 p-2">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Manage Addresses</h2>
-        <Button
-          className="px-4 py-2 text-sm font-medium text-white rounded-md transition-colors flex items-center gap-2"
-          onClick={handleAddAddress}
-        >
-          <Plus className="w-4 h-4" />
-          Add New
-        </Button>
-      </div>
+      <AccountPageHeader
+        title="Manage Addresses"
+        action={
+          <Button
+            className="px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-colors flex items-center gap-2 h-auto"
+            onClick={handleAddAddress}
+          >
+            <Plus className="w-4 h-4" />
+            Add New
+          </Button>
+        }
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <AddressCard
           address={shippingAddress}
           title="Shipping Address"
-          icon={Home}
+          icon={MapPin}
         />
         <AddressCard
           address={billingAddress}
           title="Billing Address"
-          icon={MapPin}
+          icon={FileText}
         />
       </div>
 

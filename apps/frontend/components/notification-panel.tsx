@@ -283,6 +283,16 @@ export function NotificationPanel() {
           )}
         </ScrollArea>
       </CardContent>
+
+      <div className="flex-shrink-0 border-t p-2">
+        <Button
+          asChild
+          variant="ghost"
+          className="w-full text-sm font-medium text-primaryColor hover:text-primaryColor"
+        >
+          <Link href="/admin/notifications">View all notifications</Link>
+        </Button>
+      </div>
     </Card>
   );
 }

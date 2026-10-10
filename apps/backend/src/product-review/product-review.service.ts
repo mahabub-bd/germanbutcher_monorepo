@@ -137,6 +137,8 @@ export class ProductReviewService {
     const [reviews, total] = await this.reviewRepository
       .createQueryBuilder('review')
       .innerJoinAndSelect('review.user', 'user')
+      .innerJoinAndSelect('review.product', 'product')
+      .leftJoinAndSelect('product.attachment', 'productAttachment')
       .leftJoinAndSelect('review.attachment', 'attachment')
       .where('review.product.id = :productId', { productId })
       .andWhere('review.isApproved = :isApproved', { isApproved: true })
@@ -276,7 +278,11 @@ export class ProductReviewService {
     // Edited content re-enters moderation.
     const { attachmentId, ...updateData } = updateProductReviewDto;
     const attachment = await this.resolveAttachment(attachmentId);
-    Object.assign(review, updateData);
+    // Only apply provided fields — an edit must never wipe the title or photo.
+    const changes = Object.fromEntries(
+      Object.entries(updateData).filter(([, value]) => value !== undefined),
+    );
+    Object.assign(review, changes);
     if (attachment !== undefined) {
       review.attachment = attachment;
     }
@@ -288,6 +294,39 @@ export class ProductReviewService {
       message: 'Review updated successfully and is awaiting re-approval',
       statusCode: 200,
       data: saved,
+    };
+  }
+
+  /**
+   * Paginated reviews written by a specific user (the authenticated customer),
+   * including pending/rejected ones so they can see moderation state.
+   */
+  async findForUser(
+    userId: number,
+    page = 1,
+    limit = 10,
+  ): Promise<ApiResponseDto<ProductReview[]>> {
+    const qb = this.reviewRepository
+      .createQueryBuilder('review')
+      .innerJoinAndSelect('review.user', 'user')
+      .innerJoinAndSelect('review.product', 'product')
+      .leftJoinAndSelect('product.attachment', 'productAttachment')
+      .leftJoinAndSelect('review.attachment', 'attachment')
+      .where('user.id = :userId', { userId })
+      .orderBy('review.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [reviews, total] = await qb.getManyAndCount();
+
+    return {
+      message: 'My reviews retrieved successfully',
+      statusCode: 200,
+      data: reviews,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
     };
   }
 

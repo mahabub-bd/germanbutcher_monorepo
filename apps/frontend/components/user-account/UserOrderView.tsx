@@ -5,6 +5,7 @@ import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { PaymentsTable } from "@/app/admin/order/[id]/payments/payment-table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { AccountPageHeader } from "@/components/user-account/account-page-header";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -200,27 +201,24 @@ export default function OrderView({ order, onBack }: OrderViewProps) {
   return (
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {onBack && (
+      <AccountPageHeader
+        title="Order Details"
+        subtitle={`Order #${order.orderNo}`}
+        leading={
+          onBack && (
             <Button variant="ghost" size="icon" onClick={onBack}>
               <ArrowLeft className="size-4" />
             </Button>
-          )}
-          <div>
-            <h1 className="text-2xl font-bold">Order Details</h1>
-            <p className="text-sm text-muted-foreground">
-              Order #{order.orderNo}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGeneratePDF}
-            disabled={isGeneratingPDF}
-          >
+          )
+        }
+        action={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGeneratePDF}
+              disabled={isGeneratingPDF}
+            >
             {isGeneratingPDF ? (
               <>
                 <Clock className="size-4 mr-2 animate-spin" />
@@ -234,7 +232,8 @@ export default function OrderView({ order, onBack }: OrderViewProps) {
             )}
           </Button>
         </div>
-      </div>
+        }
+      />
 
       {/* Status Badges */}
       <div className="flex gap-2">

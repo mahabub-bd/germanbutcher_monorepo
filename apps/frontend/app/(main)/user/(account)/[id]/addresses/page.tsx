@@ -1,4 +1,4 @@
-import MyAddress from "@/components/user-account/MyAddress";
+import MyAddress from "@/components/user-account/user-address";
 import { fetchProtectedData } from "@/utils/api-utils";
 import { Address } from "@/utils/types"; // Assuming you have an Address type
 

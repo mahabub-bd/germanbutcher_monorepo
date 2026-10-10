@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -19,8 +20,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from 'src/auth/guards/optional-jwt-auth.guard';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { ContactMessageService } from './contact-message.service';
 import { ContactMessageQueryDto } from './dto/contact-message-query.dto';
@@ -36,14 +39,19 @@ export class ContactMessageController {
   @Post()
   @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 messages per minute to prevent spam
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Create a new contact message' })
   @ApiResponse({
     status: 201,
     description: 'Contact message created successfully',
   })
-  async create(@Body() createContactMessageDto: CreateContactMessageDto) {
+  async create(
+    @Body() createContactMessageDto: CreateContactMessageDto,
+    @Request() req,
+  ) {
     const contactMessage = await this.contactMessageService.create(
       createContactMessageDto,
+      req.user?.userId,
     );
     return {
       message: 'Contact message created successfully',
@@ -83,6 +91,25 @@ export class ContactMessageController {
       statusCode: 200,
       data: stats,
     };
+  }
+
+  @Get('my')
+  @ApiOperation({
+    summary: 'Get my contact messages',
+    description: 'Paginated messages sent by the authenticated user',
+  })
+  @ApiBearerAuth('token')
+  @UseGuards(JwtAuthGuard)
+  async findForUser(
+    @GetUser() user: any,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return await this.contactMessageService.findForUser(
+      user.userId,
+      Number(page) || 1,
+      Number(limit) || 10,
+    );
   }
 
   @Get(':id')

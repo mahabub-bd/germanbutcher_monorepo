@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { postData } from "@/utils/api-utils";
 import { Order } from "@/utils/types";
-import { CreditCard, Loader2 } from "lucide-react";
+import { Loader2, Wallet } from "lucide-react";
 import { useState } from "react";
 
 interface PayNowProps {
@@ -30,16 +30,17 @@ export default function PayNow({ order, className }: PayNowProps) {
       <Button
         onClick={handlePayment}
         disabled={isProcessing}
-        className={className || "w-full py-0"}
+        size="sm"
+        className={`rounded-lg px-4 ${className || "w-full"}`}
       >
         {isProcessing ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
             Processing...
           </>
         ) : (
           <>
-            <CreditCard className="mr-2 h-4 w-4" />
+            <Wallet className="h-4 w-4" />
             Pay Now
           </>
         )}

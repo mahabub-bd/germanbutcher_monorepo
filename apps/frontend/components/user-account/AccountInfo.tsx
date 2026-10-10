@@ -1,6 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
+import { AccountPageHeader } from "@/components/user-account/account-page-header";
 import { patchData } from "@/utils/api-utils";
 import { User } from "@/utils/types";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -437,23 +438,19 @@ export default function AccountInfo({ user }: AccountInfoProps) {
       {/* Main Form Card */}
       <form onSubmit={handleSubmit(onSubmit)} className=" overflow-hidden">
         {/* Card Header */}
-        <div className="px-4 sm:px-0 py-2 border-b">
-          <div className="flex  gap-4 justify-between">
-            <div className="flex items-center gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Personal Details
-                </h2>
-              </div>
-            </div>
-            <ActionButtons
-              isEditing={isEditing}
-              onCancel={handleCancel}
-              onEdit={handleEdit}
-              isSubmitting={isSubmitting}
-              isValid={isValid}
-            />
-          </div>
+        <div className="pb-2">
+          <AccountPageHeader
+            title="Personal Details"
+            action={
+              <ActionButtons
+                isEditing={isEditing}
+                onCancel={handleCancel}
+                onEdit={handleEdit}
+                isSubmitting={isSubmitting}
+                isValid={isValid}
+              />
+            }
+          />
         </div>
 
         {/* Form Content */}

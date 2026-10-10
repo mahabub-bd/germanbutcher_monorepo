@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -14,6 +15,15 @@ import {
 export class ContactMessage {
   @PrimaryGeneratedColumn()
   id: number;
+
+  /** Set when the message was sent by a logged-in user; null for guests. */
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @Column({ name: 'user_id', type: 'int', nullable: true })
+  @Index()
+  userId: number | null;
 
   @Column({ type: 'varchar', length: 100 })
   name: string;

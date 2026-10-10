@@ -1,4 +1,4 @@
-import Myorder from "@/components/user-account/Myorder";
+import Myorder from "@/components/user-account/user-orderlist";
 import { fetchProtectedData } from "@/utils/api-utils";
 import { Order } from "@/utils/types";
 

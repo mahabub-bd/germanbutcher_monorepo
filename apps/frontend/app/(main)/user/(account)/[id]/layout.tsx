@@ -5,7 +5,16 @@ import MobileSidebar from "@/components/common/MobileSidebar";
 
 import Sidebar from "@/components/common/Sidebar";
 import ProfileBreadcrumb from "@/components/user-account/profile-breadcrumb";
-import { Headphones, Heart, MapPin, ShoppingBag, User } from "lucide-react";
+import {
+  Bell,
+  Headphones,
+  Heart,
+  LifeBuoy,
+  MapPin,
+  ShoppingBag,
+  Star,
+  User,
+} from "lucide-react";
 
 interface UserProfileLayoutProps {
   children: React.ReactNode;
@@ -40,13 +49,31 @@ const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
       href: `/user/${user.id}/wishlist`,
       description: "Your saved items",
     },
+    {
+      icon: <Star className="w-5 h-5" />,
+      label: "Reviews",
+      href: `/user/${user.id}/reviews`,
+      description: "Reviews you've written",
+    },
+    {
+      icon: <Bell className="w-5 h-5" />,
+      label: "Notifications",
+      href: `/user/${user.id}/notifications`,
+      description: "Your notifications",
+    },
+    {
+      icon: <LifeBuoy className="w-5 h-5" />,
+      label: "Support",
+      href: `/user/${user.id}/support`,
+      description: "Your support requests",
+    },
   ];
 
   return (
     <div className="min-h-screen ">
       <ProfileBreadcrumb navItems={navItems} />
 
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto md:px-0 px-4 mt-4">
         <div className="grid grid-cols-12 md:gap-8 gap-4">
           {/* Desktop Sidebar */}
           <div className="col-span-12">

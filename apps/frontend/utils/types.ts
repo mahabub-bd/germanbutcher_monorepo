@@ -766,6 +766,8 @@ export enum ActionTaken {
 
 export interface ContactMessage {
   id: number;
+  /** Set when sent by a logged-in user; null for guest messages. */
+  userId?: number | null;
   name: string;
   email: string;
   mobile?: string;
@@ -933,6 +935,33 @@ export interface Notification {
   timestamp: Date;
 }
 
+// Persisted notification row (GET /notifications/my)
+export interface PersistedNotification {
+  id: number;
+  /** Recipient user; null = broadcast, visible to everyone. */
+  userId: number | null;
+  type:
+    | 'orderConfirmation'
+    | 'orderStatusUpdate'
+    | 'paymentStatusUpdate'
+    | 'notification'
+    | 'broadcast'
+    | string;
+  title: string;
+  message: string;
+  data: Record<string, any> | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface PaginatedEnvelope<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface NotificationContextType {
   socket: any | null;
   notifications: Notification[];
@@ -1034,7 +1063,12 @@ export interface ProductReview {
   isApproved: boolean;
   isRejected: boolean;
   user: { id: number; name: string };
-  product?: { id: number; name: string; slug?: string };
+  product?: {
+    id: number;
+    name: string;
+    slug?: string;
+    attachment?: { url: string } | null;
+  };
   attachment?: Attachment | null;
   orderId: number | null;
   createdAt: string;

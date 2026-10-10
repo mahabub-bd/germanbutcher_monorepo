@@ -21,7 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { formatCurrencyEnglish } from "@/lib/utils";
+import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import {
   endOfMonth,
   endOfWeek,
@@ -365,7 +365,11 @@ export default function OrderReportList({
                   <TableCell>{o.orderNo}</TableCell>
                   <TableCell>{o.orderStatus}</TableCell>
                   <TableCell>{o.paymentStatus}</TableCell>
-                  <TableCell>{format(new Date(o.orderDate), "PPpp")}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <span className="text-sm text-muted-foreground">
+                      {formatDateTime(o.orderDate)}
+                    </span>
+                  </TableCell>
                   <TableCell>{formatCurrencyEnglish(o.totalValue)}</TableCell>
                   <TableCell>{formatCurrencyEnglish(o.paidAmount)}</TableCell>
                   <TableCell className="text-right">
