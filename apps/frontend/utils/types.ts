@@ -1024,3 +1024,35 @@ export interface AnalyticsDashboardData {
   topEndpoints: TopEndpoint[];
   responseTimes: ResponseTimes;
 }
+
+export interface ProductReview {
+  id: number;
+  rating: number;
+  title: string | null;
+  comment: string;
+  isApproved: boolean;
+  isRejected: boolean;
+  user: { id: number; name: string };
+  product?: { id: number; name: string; slug?: string };
+  attachment?: Attachment | null;
+  orderId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RatingSummary {
+  averageRating: number;
+  reviewCount: number;
+  breakdown: Record<"1" | "2" | "3" | "4" | "5", number>;
+}
+
+export type ReviewEligibilityStatus =
+  | "eligible"
+  | "already_reviewed"
+  | "not_verified_buyer";
+
+export interface ReviewEligibility {
+  canReview: boolean;
+  status: ReviewEligibilityStatus;
+  review?: ProductReview | null;
+}
