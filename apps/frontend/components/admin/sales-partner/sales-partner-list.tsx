@@ -137,13 +137,13 @@ export function SalesPartnerList() {
           {salesPartners.map((salesPartner: SalesPartner) => (
             <TableRow key={salesPartner.Id} className="hover:bg-muted/50">
               <TableCell>
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                <span className="flex aspect-[3/2] h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
                   <Image
                     src={salesPartner?.Image?.url || "/placeholder.svg"}
                     alt={salesPartner.name}
-                    width={40}
-                    height={40}
-                    className="h-full w-full object-cover"
+                    width={96}
+                    height={64}
+                    className="h-full w-full object-contain"
                   />
                 </span>
               </TableCell>

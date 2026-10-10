@@ -3,6 +3,8 @@ import GermanbutcherLogo from "@/public/images/logo.webp";
 import AddBannerBG from "@/public/images/Add Banner BG.webp";
 import AvatarImageIcon from "@/public/images/avatar/avatar-1.png";
 
+import AdminHeaderBg from "@/public/images/admin-header-bg.png";
+
 import BgFooter from "@/public/images/bg_footer.png";
 import Chairman from "@/public/images/Chairmen.png";
 import cashOnDelivery from "@/public/images/cod.png";
@@ -24,6 +26,7 @@ import SSLcomarz from "@/public/images/ssllogo.png";
 
 export {
   AddBannerBG,
+  AdminHeaderBg,
   AvatarImageIcon,
   BgFooter,
   cashOnDelivery,

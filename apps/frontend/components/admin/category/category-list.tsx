@@ -350,13 +350,13 @@ export function CategoryList({
             <TableRow key={category.id} className="hover:bg-muted/50">
               <TableCell>
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border bg-muted">
+                  <span className="flex aspect-[3/2] h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
                     <Image
                       src={category?.attachment?.url || "/placeholder.svg"}
                       alt={category.name}
-                      width={44}
-                      height={44}
-                      className="h-full w-full object-cover"
+                      width={96}
+                      height={64}
+                      className="h-full w-full object-contain"
                     />
                   </span>
                   <div className="min-w-0">

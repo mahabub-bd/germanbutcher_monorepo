@@ -556,8 +556,8 @@ export function ProductList({
             <TableRow key={product.id} className="hover:bg-muted/50">
               <TableCell>
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
-                    <ProductImage product={product} width={40} height={40} />
+                  <span className="flex aspect-[3/2] h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                    <ProductImage product={product} width={96} height={64} />
                   </span>
                   <div className="min-w-0">
                     <Link

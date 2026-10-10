@@ -87,14 +87,14 @@ export function BannerTable({
           {banners.map((banner) => (
             <TableRow key={banner.id} className="hover:bg-muted/50">
               <TableCell>
-                <span className="flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                <span className="flex aspect-[3/2] h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
                   {banner?.image?.url ? (
                     <Image
                       src={banner.image.url}
                       alt={banner.title}
-                      width={80}
-                      height={48}
-                      className="h-full w-full object-cover"
+                      width={96}
+                      height={64}
+                      className="h-full w-full object-contain"
                     />
                   ) : (
                     <ImageIcon className="h-6 w-6 text-muted-foreground" />

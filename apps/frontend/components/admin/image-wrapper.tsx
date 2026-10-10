@@ -5,9 +5,15 @@ interface ProductImageProps {
   product: Product;
   width: number;
   height: number;
+  className?: string;
 }
 
-export const ProductImage = ({ product, width, height }: ProductImageProps) => {
+export const ProductImage = ({
+  product,
+  width,
+  height,
+  className = "object-contain",
+}: ProductImageProps) => {
   return (
     <div className={`rounded-md `}>
       <Image
@@ -15,7 +21,7 @@ export const ProductImage = ({ product, width, height }: ProductImageProps) => {
         alt={product?.name}
         width={width}
         height={height}
-        className="object-contain"
+        className={className}
       />
     </div>
   );
