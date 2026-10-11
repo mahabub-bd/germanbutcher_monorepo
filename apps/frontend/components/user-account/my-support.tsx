@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 interface MySupportProps {
   messagesData: PaginatedEnvelope<ContactMessage>;
-  user: { name?: string; email?: string };
+  user: { name?: string; email?: string; mobileNumber?: string };
   userId: string;
   currentPage: number;
   onSubmitMessage: (payload: {
@@ -57,7 +57,7 @@ const MySupport = ({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
-  const [mobile, setMobile] = useState("");
+  const [mobile, setMobile] = useState(user?.mobileNumber || "");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
