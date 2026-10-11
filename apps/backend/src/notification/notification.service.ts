@@ -37,7 +37,8 @@ export class NotificationService {
       audience: 'admin',
       type: 'newOrder',
       title: 'New order received',
-      message: `New order ${order.orderNo} has been placed.`,
+      // orderNo is not repeated here — the UI shows it as a chip/link.
+      message: 'A new order has been placed.',
       data: order as any,
     });
   }

@@ -3,7 +3,15 @@
 import { getUser } from "@/actions/auth";
 import { NotificationContext } from "@/contexts/notification-context";
 import { playNotificationSound } from "@/lib/notification-sound";
-import { Notification, OrderStatus } from "@/utils/types";
+import {
+  fetchProtectedData,
+  patchData,
+} from "@/utils/api-utils";
+import {
+  Notification,
+  OrderStatus,
+  PersistedNotification,
+} from "@/utils/types";
 import { useCallback, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { toast } from "sonner";
@@ -21,6 +29,63 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Seed the bell with unread rows persisted in the DB, so the modal matches
+  // the notifications page after a reload. Runs on mount and again on every
+  // socket (re)connect, closing the gap where an order lands while the
+  // socket is down and its live event is never received.
+  const seedFromDb = useCallback(async () => {
+    try {
+      const user = await getUser();
+      if (!user?.isAdmin) return;
+
+      console.log("🔔 [Notifications] Seeding unread from DB…");
+      // fetchProtectedData unwraps the API envelope — the result IS the row array.
+      const rows = await fetchProtectedData<PersistedNotification[]>(
+        "notifications/admin?page=1&limit=15"
+      );
+
+      const seeded: Notification[] = (rows ?? [])
+        .filter((n) => !n.isRead)
+        .map((n) => ({
+          event: n.type as Notification["event"],
+          data: {
+            ...(n.data ?? {}),
+            title: n.title,
+            message: n.message,
+          },
+          timestamp: new Date(n.createdAt),
+          id: n.id,
+          isRead: n.isRead,
+        }));
+
+      setNotifications((prev) => [
+        // Skip rows already present — by DB id, or by order number when the
+        // same order arrived live (live events carry no id).
+        ...seeded.filter(
+          (s) =>
+            !prev.some(
+              (p) =>
+                p.id === s.id ||
+                (p.event === s.event &&
+                  s.data.orderNo &&
+                  p.data.orderNo === s.data.orderNo)
+            )
+        ),
+        ...prev,
+      ]);
+      console.log(
+        `🔔 [Notifications] Seeded ${seeded.length} unread notification(s)`
+      );
+    } catch (error) {
+      console.error("Error seeding notifications from DB:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+    seedFromDb();
+  }, [isMounted, seedFromDb]);
 
   useEffect(() => {
     if (!isMounted) return;
@@ -60,6 +125,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           newSocket?.id
         );
         setIsConnected(true);
+        // Anything that happened while disconnected is already persisted —
+        // pull the unread rows so the bell never misses an order.
+        seedFromDb();
       });
 
       newSocket.on("disconnect", (reason) => {
@@ -196,10 +264,26 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         newSocket.close();
       }
     };
-  }, [isMounted]);
+  }, [isMounted, seedFromDb]);
 
   const clearNotifications = useCallback(() => {
-    setNotifications([]);
+    setNotifications((prev) => {
+      // Rows backed by the DB are marked read so they don't reappear as
+      // unread on the next load or on the notifications page.
+      prev
+        .filter((n) => n.id)
+        .forEach((n) => {
+          patchData(`notifications/admin/${n.id}/read`).catch(() => {});
+        });
+      return [];
+    });
+  }, []);
+
+  const markNotificationRead = useCallback((id: number) => {
+    patchData(`notifications/admin/${id}/read`).catch(() => {});
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+    );
   }, []);
 
   const removeNotification = useCallback((index: number) => {
@@ -214,9 +298,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         isConnected,
         clearNotifications,
         removeNotification,
+        markNotificationRead,
       }}
     >
       {children}
     </NotificationContext.Provider>
   );
 }
+
+// Re-export for consumers that want the concrete type.
+export type { Notification };

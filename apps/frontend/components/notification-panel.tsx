@@ -54,8 +54,13 @@ const DEFAULT_ACCENT = {
 };
 
 export function NotificationPanel() {
-  const { notifications, isConnected, clearNotifications, removeNotification } =
-    useNotification();
+  const {
+    notifications,
+    isConnected,
+    clearNotifications,
+    removeNotification,
+    markNotificationRead,
+  } = useNotification();
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const getNotificationIcon = (event: string) => {
@@ -179,8 +184,14 @@ export function NotificationPanel() {
                 return (
                   <div
                     key={index}
+                    onClick={() =>
+                      notification.id &&
+                      !notification.isRead &&
+                      markNotificationRead(notification.id)
+                    }
                     className={cn(
-                      "flex items-stretch overflow-hidden rounded-xl border bg-blue-50/40 dark:bg-blue-950/10 border-blue-200/70 dark:border-blue-900/50 transition-all hover:shadow-md"
+                      "flex items-stretch overflow-hidden rounded-xl border bg-blue-50/40 dark:bg-blue-950/10 border-blue-200/70 dark:border-blue-900/50 transition-all hover:shadow-md",
+                      notification.id && !notification.isRead && "cursor-pointer"
                     )}
                   >
                     {/* Left accent bar */}
@@ -223,9 +234,11 @@ export function NotificationPanel() {
                             </Link>
                             <button
                               type="button"
-                              onClick={() =>
-                                copyOrderNo(notification.data.orderNo, index)
-                              }
+                              onClick={() => {
+                                if (notification.data.orderNo) {
+                                  copyOrderNo(notification.data.orderNo, index);
+                                }
+                              }}
                               className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
                               aria-label="Copy order number"
                             >

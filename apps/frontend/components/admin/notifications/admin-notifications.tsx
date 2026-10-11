@@ -112,57 +112,73 @@ const AdminNotifications = ({
               : null;
 
             return (
-              <button
+              <div
                 key={notification.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() =>
                   !notification.isRead && handleMarkRead(notification.id)
                 }
-                disabled={markingId === notification.id}
-                className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-colors ${
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    !notification.isRead && handleMarkRead(notification.id);
+                  }
+                }}
+                aria-disabled={markingId === notification.id}
+                className={`flex w-full cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border p-3 text-left transition-colors ${
+                  markingId === notification.id ? "opacity-60" : ""
+                } ${
                   notification.isRead
                     ? "border-gray-200 bg-white"
                     : "border-primaryColor/20 bg-red-50/50"
                 }`}
               >
                 <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
                     notification.isRead
                       ? "bg-gray-100 text-gray-500"
                       : "bg-red-50 text-primaryColor"
                   }`}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-4 w-4" />
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2">
-                    <span className="truncate font-semibold text-gray-900">
-                      {notification.title}
-                    </span>
-                    {!notification.isRead && (
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full bg-primaryColor"
-                        aria-label="Unread"
-                      />
-                    )}
-                  </span>
-                  <span className="mt-0.5 block text-sm text-gray-600">
-                    {notification.message}
-                  </span>
-                  {order && (
-                    <Link
-                      href={`/admin/order/${order.orderId}/view`}
-                      className="mt-1.5 inline-flex items-center gap-1 rounded-lg border bg-white px-1.5 py-1 text-xs font-semibold hover:underline"
-                    >
-                      <Hash className="h-3.5 w-3.5 text-blue-500" />
-                      {order.orderNo}
-                    </Link>
+
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900 sm:w-40 sm:flex-none">
+                  {notification.title}
+                </span>
+
+                <span className="order-last w-full min-w-0 pl-12 text-sm text-gray-600 sm:order-none sm:w-auto sm:flex-1 sm:truncate sm:pl-0">
+                  {/* Older rows already contain the orderNo in the message —
+                      only add the chip when it's not duplicated there. */}
+                  {order && !notification.message.includes(order.orderNo) ? (
+                    <>
+                      {notification.message}{" "}
+                      <Link
+                        href={`/admin/order/${order.orderId}/view`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 rounded-lg border bg-white px-1.5 py-0.5 align-middle text-xs font-semibold text-gray-900 hover:underline"
+                      >
+                        <Hash className="h-3 w-3 text-blue-500" />
+                        {order.orderNo}
+                      </Link>
+                    </>
+                  ) : (
+                    notification.message
                   )}
-                  <span className="mt-1 block text-xs text-gray-400">
-                    {getRelativeTime(notification.createdAt)}
-                  </span>
                 </span>
-              </button>
+
+                <span className="shrink-0 text-xs text-gray-400">
+                  {getRelativeTime(notification.createdAt)}
+                </span>
+
+                {!notification.isRead && (
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full bg-primaryColor"
+                    aria-label="Unread"
+                  />
+                )}
+              </div>
             );
           })}
 
