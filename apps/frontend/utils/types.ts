@@ -902,9 +902,10 @@ export enum PaymentStatus {
 
 // WebSocket Notification Types
 export interface NotificationData {
-  orderId: string;
-  orderNo: string;
-  userId: string;
+  // Optional: broadcasts and seeded DB rows may not carry order fields.
+  orderId?: string;
+  orderNo?: string;
+  userId?: string;
   orderStatus?: OrderStatus | string;
   paymentStatus?: PaymentStatus | string;
   totalValue?: number;
@@ -933,6 +934,9 @@ export interface Notification {
   event: 'newOrder' | 'orderConfirmation' | 'orderStatusUpdate' | 'paymentStatusUpdate' | 'notification' | 'broadcast';
   data: NotificationData;
   timestamp: Date;
+  /** Present when the notification is backed by a persisted DB row. */
+  id?: number;
+  isRead?: boolean;
 }
 
 // Persisted notification row (GET /notifications/my)
@@ -968,6 +972,8 @@ export interface NotificationContextType {
   isConnected: boolean;
   clearNotifications: () => void;
   removeNotification: (index: number) => void;
+  /** Mark a persisted notification read (DB + local state). */
+  markNotificationRead: (id: number) => void;
 }
 
 // Delivery Man Types
