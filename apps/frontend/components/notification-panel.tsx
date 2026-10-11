@@ -132,7 +132,7 @@ export function NotificationPanel() {
           <div className="flex items-center gap-2">
             <div
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium",
+                "flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium",
                 isConnected
                   ? "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400"
                   : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400"
@@ -197,12 +197,12 @@ export function NotificationPanel() {
                     {/* Left accent bar */}
                     <div className={cn("w-1.5 flex-shrink-0", accent.bar)} />
 
-                    <div className="flex-1 flex items-center gap-3 p-3 min-w-0">
+                    <div className="flex-1 flex flex-wrap items-center gap-2 sm:gap-3 p-2.5 sm:p-3 min-w-0">
                       {/* Icon tile with unread dot */}
                       <div className="relative flex-shrink-0">
                         <div
                           className={cn(
-                            "rounded-xl p-3 shadow-sm",
+                            "rounded-xl p-2 sm:p-3 shadow-sm",
                             accent.tile
                           )}
                         >
@@ -217,13 +217,19 @@ export function NotificationPanel() {
                       </div>
 
                       {/* Title + order chip + message */}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-[180px] sm:min-w-0">
                         <h4 className="font-bold text-sm leading-tight mb-1 truncate">
                           {notification.data.title ||
                             getNotificationTitle(notification.event)}
                         </h4>
 
-                        {hasOrder && (
+                        {/* Older rows already contain the orderNo in the
+                            message — only add the chip when it's not
+                            duplicated there. */}
+                        {hasOrder &&
+                          !notification.data.message?.includes(
+                            notification.data.orderNo ?? ""
+                          ) && (
                           <div className="inline-flex items-center gap-1 rounded-lg bg-white/80 dark:bg-background/60 border px-1.5 py-1">
                             <Hash className="h-3.5 w-3.5 text-blue-500" />
                             <Link
@@ -258,31 +264,35 @@ export function NotificationPanel() {
                         )}
                       </div>
 
-                      {/* Right meta: price, time, dismiss */}
-                      <div className="flex items-center gap-2.5 flex-shrink-0">
+                      {/* Right meta: price, time, dismiss — wraps to its own
+                          full-width row on mobile */}
+                      <div className="w-full sm:w-auto flex items-center gap-2 sm:gap-2.5 flex-shrink-0 pl-12 sm:pl-0">
                         {notification.data.totalValue !== undefined && (
-                          <span className="rounded-lg bg-red-100 dark:bg-red-950/40 px-2.5 py-1.5 text-sm font-bold text-red-600 dark:text-red-400">
+                          <span className="rounded-lg bg-red-100 dark:bg-red-950/40 px-2 py-1 sm:px-2.5 sm:py-1.5 text-xs sm:text-sm font-bold text-red-600 dark:text-red-400">
                             ৳{notification.data.totalValue.toLocaleString()}
                           </span>
                         )}
 
-                        <div className="w-px h-6 bg-border" />
+                        <div className="w-px h-6 bg-border hidden sm:block" />
 
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
-                          <Clock className="h-3.5 w-3.5" />
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap truncate min-w-0">
+                          <Clock className="h-3.5 w-3.5 shrink-0" />
                           {formatDistanceToNow(
                             new Date(notification.timestamp),
                             { addSuffix: true }
                           )}
                         </span>
 
-                        <div className="w-px h-6 bg-border" />
+                        <div className="w-px h-6 bg-border hidden sm:block" />
 
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeNotification(index)}
-                          className="h-8 w-8 p-0 rounded-full bg-muted/60 hover:bg-destructive/20 flex-shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeNotification(index);
+                          }}
+                          className="ml-auto sm:ml-0 h-7 w-7 sm:h-8 sm:w-8 p-0 rounded-full bg-muted/60 hover:bg-destructive/20 flex-shrink-0"
                           aria-label="Dismiss notification"
                         >
                           <X className="h-4 w-4" />
