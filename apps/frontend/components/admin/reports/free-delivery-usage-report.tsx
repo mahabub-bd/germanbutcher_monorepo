@@ -268,10 +268,10 @@ export function FreeDeliveryUsageReport({
                         <span className="text-sm">—</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       <Badge
                         variant="outline"
-                        className="max-w-40 truncate bg-primaryColor/5 text-primaryColor border-primaryColor/20 px-3 py-1"
+                        className="whitespace-nowrap bg-primaryColor/5 text-primaryColor border-primaryColor/20 px-3 py-1"
                       >
                         {row.campaignName}
                       </Badge>
