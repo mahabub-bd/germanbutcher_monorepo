@@ -56,7 +56,7 @@ const UserProfileSection: React.FC<{
                   <AvatarImage
                     src={user.profilePhoto.url}
                     alt={`${user.name || "User"}'s avatar`}
-                    className="object-cover"
+                    className="object-contain"
                     referrerPolicy="no-referrer"
                   />
                 )}

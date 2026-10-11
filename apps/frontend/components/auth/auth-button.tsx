@@ -1,7 +1,6 @@
 "use client";
 
 import { logout } from "@/actions/auth";
-import { clearLocalCart, clearLocalCoupon } from "@/utils/cart-storage";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { clearLocalCart, clearLocalCoupon } from "@/utils/cart-storage";
 import type { authResponse, UserTypes } from "@/utils/types";
 import {
   Heart,

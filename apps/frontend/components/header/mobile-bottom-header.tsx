@@ -18,6 +18,8 @@ interface NavigationItem {
   }>;
   activePattern: string | RegExp;
   badge?: boolean;
+  /** When set, renders the round profile photo instead of the icon. */
+  photoUrl?: string;
 }
 
 interface MobileBottomHeaderProps {
@@ -58,7 +60,16 @@ const NavItem = memo(
           prefetch={true}
         >
           <span className="relative -mt-6 flex size-11 items-center justify-center rounded-full bg-gradient-to-b from-secondaryColor to-primaryColor ring-[3px] ring-white shadow-md shadow-primaryColor/40">
-            <Icon className="size-5 text-white" strokeWidth={2} />
+            {item.photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={item.photoUrl}
+                alt=""
+                className="size-9 rounded-full object-contain bg-white"
+              />
+            ) : (
+              <Icon className="size-5 text-white" strokeWidth={2} />
+            )}
             {badge}
           </span>
           <span className="mt-0.5 text-xs font-semibold text-primaryColor">
@@ -80,10 +91,19 @@ const NavItem = memo(
         prefetch={true}
       >
         <span className="relative">
-          <Icon
-            className="size-6 text-gray-500 transition-colors duration-200 group-hover:text-primaryColor"
-            strokeWidth={1.8}
-          />
+          {item.photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.photoUrl}
+              alt=""
+              className="size-6 rounded-full object-contain bg-white transition-opacity duration-200 group-hover:opacity-80"
+            />
+          ) : (
+            <Icon
+              className="size-6 text-gray-500 transition-colors duration-200 group-hover:text-primaryColor"
+              strokeWidth={1.8}
+            />
+          )}
           {badge}
         </span>
         <span className="text-xs text-gray-500 transition-colors duration-200 group-hover:text-primaryColor">
@@ -137,9 +157,10 @@ export const MobileBottomHeader = memo(({ user }: MobileBottomHeaderProps) => {
         href: `/user/${user?.id}/profile`,
         icon: User,
         activePattern: /^\/user/,
+        photoUrl: user?.profilePhoto?.url,
       },
     ],
-    [user?.id]
+    [user?.id, user?.profilePhoto?.url]
   );
 
   // Memoize active states to prevent regex execution on every render
