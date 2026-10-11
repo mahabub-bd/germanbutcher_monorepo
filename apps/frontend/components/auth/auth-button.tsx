@@ -104,12 +104,17 @@ const UserAvatar: React.FC<{
 
   return (
     <div className="relative">
-      <Avatar className={cn(avatarSize)}>
+      <Avatar
+        className={cn(
+          avatarSize,
+          "rounded-full ring-2 ring-white/80 shadow-sm"
+        )}
+      >
         {user?.profilePhoto?.url && (
           <AvatarImage
             src={user.profilePhoto.url}
             alt={`${user.name || "User"}'s avatar`}
-            className="object-cover"
+            className="object-contain bg-white"
             referrerPolicy="no-referrer"
           />
         )}

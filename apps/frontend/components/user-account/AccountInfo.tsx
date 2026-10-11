@@ -11,18 +11,20 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { AccountPageHeader } from "@/components/user-account/account-page-header";
-import { formPostData, patchData } from "@/utils/api-utils";
+import { logout } from "@/actions/auth";
+import { formPostData, patchData, resetAuthTokenCache } from "@/utils/api-utils";
 import { User } from "@/utils/types";
 import {
   AlertCircle,
   Camera,
   CheckCircle,
   Edit3,
+  Eye,
+  EyeOff,
   Loader2,
   Mail,
   Phone,
   Shield,
-  Trash2,
   User as UserIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -35,7 +37,7 @@ interface AccountInfoProps {
   user: User;
 }
 
-// Read-only display field on the page
+// Read-only display field on the page — label and info share one line
 function DisplayField({
   label,
   icon: Icon,
@@ -48,41 +50,27 @@ function DisplayField({
   locked?: boolean;
 }) {
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-        <div className="p-1.5 rounded-lg bg-primaryColor/10">
+    <div className="flex items-center gap-3 min-h-12 px-4 py-3 bg-gray-50 rounded-lg border">
+      <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 shrink-0">
+        <span className="p-1.5 rounded-lg bg-primaryColor/10">
           <Icon className="w-4 h-4 text-primaryColor" />
-        </div>
+        </span>
         {label}
       </label>
-      <div className="min-h-12 flex items-center px-4 py-3 bg-gray-50 rounded-lg border">
-        <p className="text-sm text-gray-800 font-medium truncate">
-          {value || "Not provided"}
-        </p>
-        {locked && (
-          <span className="ml-auto shrink-0 text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
-            Cannot be changed
-          </span>
-        )}
-      </div>
+      <p className="ml-auto text-sm text-gray-800 font-medium truncate text-right">
+        {value || "Not provided"}
+      </p>
+      {locked && (
+        <span className="shrink-0 text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+          Cannot be changed
+        </span>
+      )}
     </div>
   );
 }
 
-// Profile photo upload section — uploads instantly, independent of the edit modal
-function ProfilePhotoSection({
-  user,
-  onPhotoChange,
-}: {
-  user: User;
-  onPhotoChange: () => void;
-}) {
-  const [uploading, setUploading] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(
-    user.profilePhoto?.url || null
-  );
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
+// Profile photo display only — changes happen inside the edit modal
+function ProfilePhotoSection({ user }: { user: User }) {
   const getInitials = (name: string): string => {
     return name
       .split(" ")
@@ -91,146 +79,34 @@ function ProfilePhotoSection({
       .substring(0, 2);
   };
 
-  const handleFileSelect = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    // Allow re-selecting the same file after a cancelled pick
-    event.target.value = "";
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file (JPG, PNG, etc.)");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be smaller than 5MB");
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // Upload the image, then link it as the user's profile photo
-      const uploadResult = await formPostData("attachment", formData);
-      const attachmentId = uploadResult?.data?.id;
-      if (!attachmentId) {
-        throw new Error("Image upload failed");
-      }
-
-      const response = await patchData(`users/${user.id}`, {
-        profilePhotoId: String(attachmentId),
-      });
-
-      if (response?.statusCode === 200) {
-        setPhotoUrl(response?.data?.profilePhoto?.url || null);
-        onPhotoChange();
-        toast.success("Profile photo updated successfully");
-      } else {
-        toast.error(response?.message || "Failed to update profile photo");
-      }
-    } catch (err) {
-      console.error("Profile photo upload error:", err);
-      toast.error("An error occurred while uploading the image");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleRemove = async () => {
-    setUploading(true);
-    try {
-      const response = await patchData(`users/${user.id}`, {
-        profilePhotoId: null,
-      });
-
-      if (response?.statusCode === 200) {
-        setPhotoUrl(null);
-        onPhotoChange();
-        toast.success("Profile photo removed");
-      } else {
-        toast.error(response?.message || "Failed to remove photo");
-      }
-    } catch (err) {
-      console.error("Profile photo remove error:", err);
-      toast.error("An error occurred while removing the photo");
-    } finally {
-      setUploading(false);
-    }
-  };
-
   return (
     <div className="flex items-center gap-4 p-4 rounded-lg border bg-gray-50/50">
-      <div className="relative">
-        <Avatar className="h-20 w-20 border-2 border-white shadow-sm">
-          {photoUrl ? (
-            <AvatarImage src={photoUrl} alt={user.name || "Profile"} />
-          ) : (
-            <AvatarFallback className="text-xl font-semibold bg-primaryColor/10 text-primaryColor">
-              {user.name ? getInitials(user.name) : <UserIcon className="w-8 h-8" />}
-            </AvatarFallback>
-          )}
-        </Avatar>
-        <label
-          className={`absolute -bottom-1 -right-1 p-2 rounded-full bg-primaryColor text-white shadow-md transition-opacity ${
-            uploading ? "opacity-50" : "hover:opacity-90 cursor-pointer"
-          }`}
-          title="Upload profile photo"
-        >
-          {uploading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Camera className="w-4 h-4" />
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileSelect}
-            disabled={uploading}
+      <Avatar className="h-20 w-20 border-2 border-white bg-white shadow-sm">
+        {user.profilePhoto?.url ? (
+          <AvatarImage
+            src={user.profilePhoto.url}
+            alt={user.name || "Profile"}
+            className="object-contain"
           />
-        </label>
-      </div>
+        ) : (
+          <AvatarFallback className="text-xl font-semibold bg-primaryColor/10 text-primaryColor">
+            {user.name ? getInitials(user.name) : <UserIcon className="w-8 h-8" />}
+          </AvatarFallback>
+        )}
+      </Avatar>
 
       <div className="flex-1">
         <p className="text-sm font-semibold text-gray-900">Profile Photo</p>
         <p className="text-xs text-gray-500 mt-0.5">
-          JPG, PNG or WEBP. Max 5MB.
+          JPG, PNG or WEBP. Max 5MB. Use Edit to change your photo.
         </p>
-        <div className="flex flex-wrap gap-2 mt-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={uploading}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Camera className="w-4 h-4 mr-1" />
-            {photoUrl ? "Change Photo" : "Upload Photo"}
-          </Button>
-          {photoUrl && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-              disabled={uploading}
-              onClick={handleRemove}
-            >
-              <Trash2 className="w-4 h-4 mr-1" />
-              Remove
-            </Button>
-          )}
-        </div>
       </div>
     </div>
   );
 }
 
-// Edit modal — contact number stays read-only
+// Edit modal — photo is picked here and uploaded together with the details
+// on save; contact number stays read-only
 function EditDetailsModal({
   user,
   open,
@@ -246,6 +122,51 @@ function EditDetailsModal({
   const [email, setEmail] = useState(user.email || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Photo picker state — uploaded only when the modal is saved
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset the form each time the modal opens
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setName(user.name || "");
+      setEmail(user.email || "");
+      setError(null);
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setRemovePhoto(false);
+    } else if (photoPreview) {
+      URL.revokeObjectURL(photoPreview);
+    }
+    onOpenChange(nextOpen);
+  };
+
+  const handlePhotoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = event.target.files?.[0];
+    if (!selected) return;
+    if (!selected.type.startsWith("image/")) {
+      toast.error("Please select an image file (JPG, PNG, WEBP)");
+      return;
+    }
+    if (selected.size > 5 * 1024 * 1024) {
+      toast.error("Image must be smaller than 5MB");
+      return;
+    }
+    setPhotoFile(selected);
+    setRemovePhoto(false);
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoPreview(URL.createObjectURL(selected));
+  };
+
+  const clearPickedPhoto = () => {
+    setPhotoFile(null);
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoPreview(null);
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  };
 
   const handleSave = async () => {
     if (saving) return;
@@ -269,9 +190,27 @@ function EditDetailsModal({
     setSaving(true);
     setError(null);
     try {
+      // Upload the picked photo first, then link it on the user record
+      let attachmentId: string | undefined;
+      if (photoFile) {
+        const formData = new FormData();
+        formData.append("file", photoFile);
+        const uploadResult = await formPostData("attachment", formData);
+        attachmentId = uploadResult?.data?.id;
+        if (!attachmentId) {
+          throw new Error("Image upload failed");
+        }
+      }
+
       const response = await patchData(`users/${user.id}`, {
         name: trimmedName,
         email: trimmedEmail,
+        // undefined = keep current photo, null = remove it
+        profilePhotoId: photoFile
+          ? String(attachmentId)
+          : removePhoto
+            ? null
+            : undefined,
       });
 
       if (response?.statusCode === 200) {
@@ -293,17 +232,85 @@ function EditDetailsModal({
     }
   };
 
+  const previewPhoto = photoPreview
+    ? photoPreview
+    : !removePhoto
+      ? user.profilePhoto?.url
+      : null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Personal Details</DialogTitle>
           <DialogDescription>
-            Update your name and email address.
+            Update your photo, name and email address.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {/* Photo picker */}
+          <div>
+            <p className="mb-2 text-sm font-semibold text-gray-900">
+              Profile Photo
+            </p>
+            <div className="flex items-center gap-3">
+              {previewPhoto ? (
+                <div className="relative w-fit">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewPhoto}
+                    alt="Profile photo preview"
+                    className="h-16 w-16 rounded-full border-2 border-white object-cover shadow-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      photoPreview ? clearPickedPhoto() : setRemovePhoto(true)
+                    }
+                    disabled={saving}
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-white shadow"
+                    aria-label={
+                      photoPreview ? "Clear selected photo" : "Remove photo"
+                    }
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={saving}
+                  className="flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded-full border-2 border-dashed border-gray-200 text-gray-400 transition-colors hover:border-primaryColor hover:text-primaryColor"
+                >
+                  <Camera className="h-4 w-4" />
+                  <span className="text-[10px]">Add photo</span>
+                </button>
+              )}
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoSelect}
+                disabled={saving}
+              />
+              <div className="text-xs text-muted-foreground">
+                <p>JPG, PNG or WEBP. Max 5MB.</p>
+                {removePhoto && (
+                  <button
+                    type="button"
+                    onClick={() => setRemovePhoto(false)}
+                    className="mt-1 text-xs text-primaryColor hover:underline"
+                  >
+                    Undo remove — keep current photo
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
               <div className="p-1.5 rounded-lg bg-primaryColor/10">
@@ -389,9 +396,221 @@ function EditDetailsModal({
   );
 }
 
+// Password input with an eye toggle to show/hide the value
+function PasswordField({
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  autoComplete,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  disabled?: boolean;
+  autoComplete?: string;
+}) {
+  const [show, setShow] = useState(false);
+
+  return (
+    <div className="relative">
+      <Input
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="h-10 text-sm pr-10"
+        disabled={disabled}
+        autoComplete={autoComplete}
+      />
+      <button
+        type="button"
+        onClick={() => setShow((s) => !s)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600"
+        aria-label={show ? "Hide password" : "Show password"}
+      >
+        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
+  );
+}
+
+// Change password modal — verifies the current password server-side
+function ChangePasswordModal({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setError(null);
+    }
+    onOpenChange(nextOpen);
+  };
+
+  const handleSave = async () => {
+    if (saving) return;
+
+    if (!currentPassword) {
+      setError("Please enter your current password");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError("New password must be at least 8 characters");
+      return;
+    }
+    if (newPassword === currentPassword) {
+      setError("New password must be different from the current password");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("New password and confirm password do not match");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await patchData("users/password/change", {
+        currentPassword,
+        newPassword,
+      });
+
+      if (response?.statusCode === 200) {
+        toast.success("Password changed successfully — please sign in again");
+        // All sessions/endpoints are tied to the old credentials, so sign the
+        // user out and send them to the login page.
+        try {
+          await logout();
+        } catch (logoutErr) {
+          console.error("Logout after password change failed:", logoutErr);
+        }
+        resetAuthTokenCache();
+        onOpenChange(false);
+        router.push("/auth/sign-in");
+        router.refresh();
+      } else {
+        setError(response?.message || "Failed to change password");
+      }
+    } catch (err) {
+      console.error("Change password error:", err);
+      const errorMessage =
+        err && typeof err === "object" && "message" in err
+          ? (err as { message?: string }).message
+          : undefined;
+      setError(errorMessage || "An error occurred while changing password");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const showMismatch =
+    confirmPassword.length > 0 && newPassword !== confirmPassword;
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Change Password</DialogTitle>
+          <DialogDescription>
+            Verify your current password, then choose a new one.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-900">
+              Current Password
+            </label>
+            <PasswordField
+              value={currentPassword}
+              onChange={setCurrentPassword}
+              placeholder="Enter your current password"
+              disabled={saving}
+              autoComplete="current-password"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-900">
+              New Password
+            </label>
+            <PasswordField
+              value={newPassword}
+              onChange={setNewPassword}
+              placeholder="At least 8 characters"
+              disabled={saving}
+              autoComplete="new-password"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-900">
+              Confirm New Password
+            </label>
+            <PasswordField
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              placeholder="Re-enter your new password"
+              disabled={saving}
+              autoComplete="new-password"
+            />
+            {showMismatch && (
+              <p className="text-xs text-red-600">
+                Passwords do not match
+              </p>
+            )}
+          </div>
+
+          {error && (
+            <div className="flex items-start gap-3 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="gap-3 sm:gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+          <Button type="button" onClick={handleSave} disabled={saving}>
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Change Password"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AccountInfo({ user }: AccountInfoProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   // Refresh server data after an edit or photo change
   const handleSaved = useCallback(() => {
@@ -401,7 +620,7 @@ export default function AccountInfo({ user }: AccountInfoProps) {
   return (
     <div className="space-y-4">
       {/* Profile Photo Section */}
-      <ProfilePhotoSection user={user} onPhotoChange={handleSaved} />
+      <ProfilePhotoSection user={user} />
 
       {/* Personal Details Card */}
       <div className="overflow-hidden">
@@ -409,10 +628,20 @@ export default function AccountInfo({ user }: AccountInfoProps) {
           <AccountPageHeader
             title="Personal Details"
             action={
-              <Button type="button" onClick={() => setEditOpen(true)}>
-                <Edit3 className="w-4 h-4" />
-                Edit
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPasswordOpen(true)}
+                >
+                  <Shield className="w-4 h-4" />
+                  Change Password
+                </Button>
+                <Button type="button" onClick={() => setEditOpen(true)}>
+                  <Edit3 className="w-4 h-4" />
+                  Edit
+                </Button>
+              </div>
             }
           />
         </div>
@@ -430,49 +659,43 @@ export default function AccountInfo({ user }: AccountInfoProps) {
             <DisplayField label="Email Address" icon={Mail} value={user.email} />
           </div>
 
-          {/* Account Status Section */}
+          {/* Account Status Section — label and value on one line */}
           <div className="pt-6 border-t">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                <div className="p-2 rounded-lg bg-green-100">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Account Status
-                  </p>
-                  <p className="text-sm text-green-600 font-medium">
-                    {user.isVerified ? "Verified" : "Pending Verification"}
-                  </p>
-                </div>
+                <span className="p-2 rounded-lg bg-green-100 shrink-0">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                </span>
+                <p className="text-sm font-medium text-gray-900 shrink-0">
+                  Account Status
+                </p>
+                <p className="ml-auto text-sm text-green-600 font-medium truncate text-right">
+                  {user.isVerified ? "Verified" : "Pending Verification"}
+                </p>
               </div>
 
               <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                <div className="p-2 rounded-lg bg-blue-100">
-                  <UserIcon className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Member Since
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {formatDateTime(user.createdAt)}
-                  </p>
-                </div>
+                <span className="p-2 rounded-lg bg-blue-100 shrink-0">
+                  <UserIcon className="w-4 h-4 text-blue-600" />
+                </span>
+                <p className="text-sm font-medium text-gray-900 shrink-0">
+                  Member Since
+                </p>
+                <p className="ml-auto text-sm text-gray-600 truncate text-right">
+                  {formatDateTime(user.createdAt)}
+                </p>
               </div>
 
               <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg sm:col-span-2 lg:col-span-1">
-                <div className="p-2 rounded-lg bg-purple-100">
-                  <Shield className="w-5 h-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Last Updated
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {new Date(user.updatedAt).toLocaleDateString()}
-                  </p>
-                </div>
+                <span className="p-2 rounded-lg bg-purple-100 shrink-0">
+                  <Shield className="w-4 h-4 text-purple-600" />
+                </span>
+                <p className="text-sm font-medium text-gray-900 shrink-0">
+                  Last Updated
+                </p>
+                <p className="ml-auto text-sm text-gray-600 truncate text-right">
+                  {new Date(user.updatedAt).toLocaleDateString()}
+                </p>
               </div>
             </div>
           </div>
@@ -485,6 +708,12 @@ export default function AccountInfo({ user }: AccountInfoProps) {
         open={editOpen}
         onOpenChange={setEditOpen}
         onSaved={handleSaved}
+      />
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        open={passwordOpen}
+        onOpenChange={setPasswordOpen}
       />
     </div>
   );

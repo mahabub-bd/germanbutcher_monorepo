@@ -220,72 +220,71 @@ const MyReviews = ({
           </Link>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {reviews.map((review) => (
             <div
               key={review.id}
-              className="rounded-xl border border-gray-200 bg-white p-5"
+              className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gray-200 bg-white p-3"
             >
-              <div className="flex items-start gap-4">
-                {review.product?.attachment?.url && (
+              {review.product?.attachment?.url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={review.product.attachment.url}
+                  alt={review.product.name}
+                  className="h-20 w-20 shrink-0 rounded-lg border border-gray-100 object-contain bg-white"
+                />
+              )}
+
+              {review.product ? (
+                <Link
+                  href={`/product/${review.product.slug}`}
+                  className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900 transition-colors hover:text-primaryColor sm:w-44 sm:flex-none"
+                >
+                  {review.product.name}
+                </Link>
+              ) : (
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900 sm:w-44 sm:flex-none">
+                  Product unavailable
+                </span>
+              )}
+
+              <span className="flex shrink-0 items-center gap-2">
+                <RatingStars rating={review.rating} size="h-3.5 w-3.5" />
+                <ReviewStatusBadge review={review} />
+              </span>
+
+              {/* Comment line: text left, photo right — stays a single second row */}
+              <span className="order-last flex w-full items-start gap-3 pl-[92px] sm:order-none sm:w-auto sm:flex-1 sm:pl-0">
+                <span className="min-w-0 flex-1 text-sm text-gray-600 sm:truncate">
+                  {review.title && (
+                    <span className="font-semibold text-gray-900">
+                      {review.title} —{" "}
+                    </span>
+                  )}
+                  {review.comment}
+                </span>
+                {review.attachment?.url && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={review.product.attachment.url}
-                    alt={review.product.name}
-                    className="h-16 w-16 shrink-0 rounded-lg border border-gray-100 object-cover"
+                    src={review.attachment.url}
+                    alt={`Photo for review of ${review.product?.name ?? "product"}`}
+                    className="h-16 w-16 shrink-0 rounded-lg border border-gray-100 object-contain bg-white sm:h-14 sm:w-14"
                   />
                 )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      {review.product ? (
-                        <Link
-                          href={`/product/${review.product.slug}`}
-                          className="font-semibold text-gray-900 transition-colors hover:text-primaryColor"
-                        >
-                          {review.product.name}
-                        </Link>
-                      ) : (
-                        <span className="font-semibold text-gray-900">
-                          Product unavailable
-                        </span>
-                      )}
-                      <div className="mt-1 flex flex-wrap items-center gap-3">
-                        <RatingStars rating={review.rating} />
-                        <ReviewStatusBadge review={review} />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => openEditDialog(review)}
-                      className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-primaryColor transition-colors"
-                    >
-                      <PencilLine className="h-4 w-4" />
-                      Edit
-                    </button>
-                  </div>
+              </span>
 
-                  {review.title && (
-                    <p className="mt-2 text-sm font-semibold text-gray-900">
-                      {review.title}
-                    </p>
-                  )}
-                  <p className="mt-1 text-sm leading-relaxed text-gray-600">
-                    {review.comment}
-                  </p>
-                  {review.attachment?.url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={review.attachment.url}
-                      alt={`Photo for review of ${review.product?.name ?? "product"}`}
-                      className="mt-2 h-20 w-20 rounded-lg border border-gray-100 object-cover"
-                    />
-                  )}
-                  <p className="mt-2 text-xs text-gray-400">
-                    {formatDateTime(review.createdAt)}
-                  </p>
-                </div>
-              </div>
+              <span className="shrink-0 text-xs text-gray-400">
+                {formatDateTime(review.createdAt)}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => openEditDialog(review)}
+                className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-primaryColor transition-colors"
+              >
+                <PencilLine className="h-4 w-4" />
+                Edit
+              </button>
             </div>
           ))}
 

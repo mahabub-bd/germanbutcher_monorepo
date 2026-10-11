@@ -57,7 +57,7 @@ export async function ProductReviews({ product, user }: ProductReviewsProps) {
       {summary && summary.reviewCount > 0 && (
         <>
           <RatingSummaryCard summary={summary} />
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {reviewList.map((review) => (
               <ReviewItem key={review.id} review={review} />
             ))}

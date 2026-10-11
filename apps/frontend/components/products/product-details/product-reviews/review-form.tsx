@@ -230,14 +230,9 @@ export function ReviewForm({ product, user }: ReviewFormProps) {
         <ReviewItem
           review={eligibility.review}
           action={
-            <>
-              <span className="text-xs text-muted-foreground">
-                Your review is live. Edits will be re-checked before publishing.
-              </span>
-              <Button variant="outline" size="sm" onClick={startEditing}>
-                <Pencil className="mr-2 h-3.5 w-3.5" /> Edit review
-              </Button>
-            </>
+            <Button variant="outline" size="sm" onClick={startEditing}>
+              <Pencil className="mr-2 h-3.5 w-3.5" /> Edit review
+            </Button>
           }
         />
       </div>
