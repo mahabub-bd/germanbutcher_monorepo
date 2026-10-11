@@ -23,32 +23,27 @@ import {
 import { useState } from "react";
 import Link from "next/link";
 
-/** Per-event accent colors: left bar, icon tile and unread dot share the hue. */
+/** Per-event accent colors: icon tile and unread dot share the hue. */
 const ACCENTS = {
   newOrder: {
-    bar: "bg-blue-500",
     tile: "bg-blue-100 dark:bg-blue-950/40",
     dot: "bg-blue-500",
   },
   orderConfirmation: {
-    bar: "bg-green-500",
     tile: "bg-green-100 dark:bg-green-950/40",
     dot: "bg-green-500",
   },
   orderStatusUpdate: {
-    bar: "bg-amber-500",
     tile: "bg-amber-100 dark:bg-amber-950/40",
     dot: "bg-amber-500",
   },
   paymentStatusUpdate: {
-    bar: "bg-purple-500",
     tile: "bg-purple-100 dark:bg-purple-950/40",
     dot: "bg-purple-500",
   },
 } as const;
 
 const DEFAULT_ACCENT = {
-  bar: "bg-gray-400",
   tile: "bg-gray-100 dark:bg-gray-950/40",
   dot: "bg-gray-500",
 };
@@ -194,9 +189,6 @@ export function NotificationPanel() {
                       notification.id && !notification.isRead && "cursor-pointer"
                     )}
                   >
-                    {/* Left accent bar */}
-                    <div className={cn("w-1.5 flex-shrink-0", accent.bar)} />
-
                     <div className="flex-1 flex flex-wrap items-center gap-2 sm:gap-3 p-2.5 sm:p-3 min-w-0">
                       {/* Icon tile with unread dot */}
                       <div className="relative flex-shrink-0">
