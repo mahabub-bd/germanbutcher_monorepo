@@ -82,4 +82,13 @@ export class UpdateUserDto {
   @IsBoolean()
   @IsOptional()
   isVerified?: boolean;
+
+  @ApiProperty({
+    description: 'ID of the uploaded profile photo attachment',
+    example: '1',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  profilePhotoId?: string;
 }

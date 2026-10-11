@@ -1,25 +1,30 @@
 "use client";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { AccountPageHeader } from "@/components/user-account/account-page-header";
-import { patchData } from "@/utils/api-utils";
+import { formPostData, patchData } from "@/utils/api-utils";
 import { User } from "@/utils/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertCircle,
+  Camera,
   CheckCircle,
   Edit3,
   Eye,
   EyeOff,
+  Loader2,
   Lock,
   Mail,
   Phone,
   Save,
   Shield,
+  Trash2,
   User as UserIcon,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FieldPath, useForm, UseFormRegister } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -45,8 +50,8 @@ const accountSchema = z
       .string()
       .optional()
       .refine((val) => !val || val === "********" || val.length >= 8, {
-          message: "Password must be at least 8 characters if provided"
-    }),
+        message: "Password must be at least 8 characters if provided"
+      }),
     confirmPassword: z.string().optional(),
   })
   .refine(
@@ -143,11 +148,10 @@ function FormField({
             type={type}
             {...register(name)}
             placeholder={placeholder}
-            className={`h-12 text-base transition-all duration-200 ${
-              error
+            className={`h-12 text-base transition-all duration-200 ${error
                 ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                 : "focus-visible:border-primaryColor focus-visible:ring-primaryColor/20"
-            }`}
+              }`}
           />
           {error && (
             <div className="flex items-start gap-3 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
@@ -237,11 +241,10 @@ function PasswordField({
             type={showPassword ? "text" : "password"}
             {...register(name)}
             placeholder={placeholder}
-            className={`h-12 pr-12 text-base transition-all duration-200 ${
-              error
+            className={`h-12 pr-12 text-base transition-all duration-200 ${error
                 ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                 : "focus-visible:border-primaryColor focus-visible:ring-primaryColor/20"
-            }`}
+              }`}
           />
           {showToggle && (
             <button
@@ -316,7 +319,169 @@ interface AccountInfoProps {
   user: User;
 }
 
+// Profile photo upload section — uploads instantly, independent of the edit form
+function ProfilePhotoSection({
+  user,
+  onPhotoChange,
+}: {
+  user: User;
+  onPhotoChange: (url: string | null) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(
+    user.profilePhoto?.url || null
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const getInitials = (name: string): string => {
+    return name
+      .split(" ")
+      .map((n) => n[0]?.toUpperCase() ?? "")
+      .join("")
+      .substring(0, 2);
+  };
+
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    // Allow re-selecting the same file after a cancelled pick
+    event.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file (JPG, PNG, etc.)");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be smaller than 5MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Upload the image, then link it as the user's profile photo
+      const uploadResult = await formPostData("attachment", formData);
+      const attachmentId = uploadResult?.data?.id;
+      if (!attachmentId) {
+        throw new Error("Image upload failed");
+      }
+
+      const response = await patchData(`users/${user.id}`, {
+        profilePhotoId: String(attachmentId),
+      });
+
+      if (response?.statusCode === 200) {
+        const newUrl = response?.data?.profilePhoto?.url || null;
+        setPhotoUrl(newUrl);
+        onPhotoChange(newUrl);
+        toast.success("Profile photo updated successfully");
+      } else {
+        toast.error(response?.message || "Failed to update profile photo");
+      }
+    } catch (err) {
+      console.error("Profile photo upload error:", err);
+      toast.error("An error occurred while uploading the image");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    setUploading(true);
+    try {
+      const response = await patchData(`users/${user.id}`, {
+        profilePhotoId: null,
+      });
+
+      if (response?.statusCode === 200) {
+        setPhotoUrl(null);
+        onPhotoChange(null);
+        toast.success("Profile photo removed");
+      } else {
+        toast.error(response?.message || "Failed to remove photo");
+      }
+    } catch (err) {
+      console.error("Profile photo remove error:", err);
+      toast.error("An error occurred while removing the photo");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-4 p-4 rounded-lg border bg-gray-50/50">
+      <div className="relative">
+        <Avatar className="h-20 w-20 border-2 border-white shadow-sm">
+          {photoUrl ? (
+            <AvatarImage src={photoUrl} alt={user.name || "Profile"} />
+          ) : (
+            <AvatarFallback className="text-xl font-semibold bg-primaryColor/10 text-primaryColor">
+              {user.name ? getInitials(user.name) : <UserIcon className="w-8 h-8" />}
+            </AvatarFallback>
+          )}
+        </Avatar>
+        <label
+          className={`absolute -bottom-1 -right-1 p-2 rounded-full bg-primaryColor text-white shadow-md transition-opacity ${uploading ? "opacity-50" : "hover:opacity-90 cursor-pointer"
+            }`}
+          title="Upload profile photo"
+        >
+          {uploading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Camera className="w-4 h-4" />
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileSelect}
+            disabled={uploading}
+          />
+        </label>
+      </div>
+
+      <div className="flex-1">
+        <p className="text-sm font-semibold text-gray-900">Profile Photo</p>
+        <p className="text-xs text-gray-500 mt-0.5">
+          JPG, PNG or WEBP. Max 5MB.
+        </p>
+        <div className="flex flex-wrap gap-2 mt-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Camera className="w-4 h-4 mr-1" />
+            {photoUrl ? "Change Photo" : "Upload Photo"}
+          </Button>
+          {photoUrl && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+              disabled={uploading}
+              onClick={handleRemove}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Remove
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AccountInfo({ user }: AccountInfoProps) {
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -433,8 +598,18 @@ export default function AccountInfo({ user }: AccountInfoProps) {
     setIsEditing(true);
   }, []);
 
+  // Refresh server data so the account header avatar stays in sync
+  const handlePhotoChange = useCallback(() => {
+    router.refresh();
+  }, []);
+
   return (
     <div className="">
+      {/* Profile Photo Section */}
+      <div className="pb-4">
+        <ProfilePhotoSection user={user} onPhotoChange={handlePhotoChange} />
+      </div>
+
       {/* Main Form Card */}
       <form onSubmit={handleSubmit(onSubmit)} className=" overflow-hidden">
         {/* Card Header */}
