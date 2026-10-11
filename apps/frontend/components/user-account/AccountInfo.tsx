@@ -1,331 +1,81 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { AccountPageHeader } from "@/components/user-account/account-page-header";
 import { formPostData, patchData } from "@/utils/api-utils";
 import { User } from "@/utils/types";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertCircle,
   Camera,
   CheckCircle,
   Edit3,
-  Eye,
-  EyeOff,
   Loader2,
-  Lock,
   Mail,
   Phone,
-  Save,
   Shield,
   Trash2,
   User as UserIcon,
-  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { FieldPath, useForm, UseFormRegister } from "react-hook-form";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
 import { formatDateTime } from "../../lib/utils";
 import { Button } from "../ui/button";
-
-// Enhanced Zod validation schema
-const accountSchema = z
-  .object({
-    firstName: z
-      .string()
-      .min(2, "Name must be at least 2 characters")
-      .max(50, "Name must be less than 50 characters")
-      .regex(/^[a-zA-Z\s]+$/, "Name can only contain letters and spaces"),
-    contactNumber: z
-      .string()
-      .min(10, "Contact number must be at least 10 digits")
-      .max(15, "Contact number must be less than 15 digits")
-      .regex(/^[0-9+\-\s()]+$/, "Invalid phone number format"),
-    email: z.string().email("Please enter a valid email address")
-      .min(1, "Email is required"),
-    password: z
-      .string()
-      .optional()
-      .refine((val) => !val || val === "********" || val.length >= 8, {
-        message: "Password must be at least 8 characters if provided"
-      }),
-    confirmPassword: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      if (
-        data.password &&
-        data.password !== "********" &&
-        data.password !== ""
-      ) {
-        return data.password === data.confirmPassword;
-      }
-      return true;
-    },
-    {
-      path: ["confirmPassword"],
-      message: "Passwords don't match"
-    }
-  );
-
-type AccountFormData = z.infer<typeof accountSchema>;
-
-// Form field configuration
-const FORM_FIELDS = [
-  {
-    label: "Full Name",
-    name: "firstName" as const,
-    type: "text",
-    icon: UserIcon,
-    placeholder: "Enter your full name",
-    disabled: false,
-  },
-  {
-    label: "Contact Number",
-    name: "contactNumber" as const,
-    type: "tel",
-    icon: Phone,
-    placeholder: "Enter your phone number",
-    disabled: true,
-  },
-  {
-    label: "Email Address",
-    name: "email" as const,
-    type: "email",
-    icon: Mail,
-    placeholder: "Enter your email address",
-    disabled: false,
-  },
-] as const;
-
-// Enhanced form field component
-interface FormFieldProps {
-  label: string;
-  name: FieldPath<AccountFormData>;
-  register: UseFormRegister<AccountFormData>;
-  error?: string;
-  isEditing: boolean;
-  type?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  placeholder: string;
-  disabled?: boolean;
-  value?: string;
-}
-
-function FormField({
-  label,
-  name,
-  register,
-  error,
-  isEditing,
-  type = "text",
-  icon: Icon,
-  placeholder,
-  disabled = false,
-  value,
-}: FormFieldProps) {
-  // If field is disabled, never allow editing
-  const canEdit = isEditing && !disabled;
-
-  return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-primaryColor/10">
-            <Icon className="w-4 h-4 text-primaryColor" />
-          </div>
-          {label}
-          {!disabled && <span className="text-red-500 text-xs">*</span>}
-        </label>
-      </div>
-
-      {canEdit ? (
-        <div className="space-y-3">
-          <Input
-            type={type}
-            {...register(name)}
-            placeholder={placeholder}
-            className={`h-12 text-base transition-all duration-200 ${error
-                ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
-                : "focus-visible:border-primaryColor focus-visible:ring-primaryColor/20"
-              }`}
-          />
-          {error && (
-            <div className="flex items-start gap-3 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="min-h-12 flex items-center px-4 py-3 bg-gray-50 rounded-lg border">
-          <p className="text-sm text-gray-800 font-medium">
-            {value || "Not provided"}
-          </p>
-          {disabled && (
-            <span className="ml-auto text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
-              Cannot be changed
-            </span>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Password field component with show/hide functionality
-interface PasswordFieldProps {
-  label: string;
-  name: FieldPath<AccountFormData>;
-  register: UseFormRegister<AccountFormData>;
-  error?: string;
-  placeholder: string;
-  description?: string;
-  isEditing: boolean;
-  showToggle?: boolean;
-}
-
-function PasswordField({
-  label,
-  name,
-  register,
-  error,
-  placeholder,
-  description,
-  isEditing,
-  showToggle = true,
-}: PasswordFieldProps) {
-  const [showPassword, setShowPassword] = useState(false);
-
-  if (!isEditing) {
-    return (
-      <div className="space-y-3">
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-blue-50">
-              <Lock className="w-4 h-4 text-blue-600" />
-            </div>
-            {label}
-          </label>
-        </div>
-        <div className="min-h-12 flex items-center px-4 py-3 bg-gray-50 rounded-lg border">
-          <p className="text-sm text-gray-800 font-medium">••••••••••••</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-primaryColor/10">
-            <Lock className="w-4 h-4 text-primaryColor" />
-          </div>
-          {label}
-          {name === "confirmPassword" && (
-            <span className="text-red-500 text-xs">*</span>
-          )}
-        </label>
-        {description && (
-          <p className="text-xs text-gray-500 ml-7">{description}</p>
-        )}
-      </div>
-
-      <div className="space-y-3">
-        <div className="relative">
-          <Input
-            type={showPassword ? "text" : "password"}
-            {...register(name)}
-            placeholder={placeholder}
-            className={`h-12 pr-12 text-base transition-all duration-200 ${error
-                ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
-                : "focus-visible:border-primaryColor focus-visible:ring-primaryColor/20"
-              }`}
-          />
-          {showToggle && (
-            <button
-              type="button"
-              className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600 transition-colors touch-manipulation"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? (
-                <EyeOff className="w-5 h-5" />
-              ) : (
-                <Eye className="w-5 h-5" />
-              )}
-            </button>
-          )}
-        </div>
-        {error && (
-          <div className="flex items-start gap-3 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Enhanced action buttons component
-interface ActionButtonsProps {
-  isEditing: boolean;
-  onCancel: () => void;
-  onEdit: () => void;
-  isSubmitting: boolean;
-  isValid: boolean;
-}
-
-function ActionButtons({
-  isEditing,
-  onCancel,
-  onEdit,
-  isSubmitting,
-  isValid,
-}: ActionButtonsProps) {
-  if (isEditing) {
-    return (
-      <div className="flex flex-col gap-3 sm:flex-row sm:gap-3 items-center">
-        <Button
-          type="button"
-          className=" "
-          onClick={onCancel}
-          disabled={isSubmitting}
-        >
-          <X className="w-4 h-4" />
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting || !isValid}>
-          <Save className="w-4 h-4" />
-          {isSubmitting ? "Saving..." : "Save"}
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <Button type="button" onClick={onEdit}>
-      <Edit3 className="w-4 h-4" />
-      Edit
-    </Button>
-  );
-}
 
 interface AccountInfoProps {
   user: User;
 }
 
-// Profile photo upload section — uploads instantly, independent of the edit form
+// Read-only display field on the page
+function DisplayField({
+  label,
+  icon: Icon,
+  value,
+  locked = false,
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  value?: string;
+  locked?: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+        <div className="p-1.5 rounded-lg bg-primaryColor/10">
+          <Icon className="w-4 h-4 text-primaryColor" />
+        </div>
+        {label}
+      </label>
+      <div className="min-h-12 flex items-center px-4 py-3 bg-gray-50 rounded-lg border">
+        <p className="text-sm text-gray-800 font-medium truncate">
+          {value || "Not provided"}
+        </p>
+        {locked && (
+          <span className="ml-auto shrink-0 text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+            Cannot be changed
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Profile photo upload section — uploads instantly, independent of the edit modal
 function ProfilePhotoSection({
   user,
   onPhotoChange,
 }: {
   user: User;
-  onPhotoChange: (url: string | null) => void;
+  onPhotoChange: () => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(
@@ -375,9 +125,8 @@ function ProfilePhotoSection({
       });
 
       if (response?.statusCode === 200) {
-        const newUrl = response?.data?.profilePhoto?.url || null;
-        setPhotoUrl(newUrl);
-        onPhotoChange(newUrl);
+        setPhotoUrl(response?.data?.profilePhoto?.url || null);
+        onPhotoChange();
         toast.success("Profile photo updated successfully");
       } else {
         toast.error(response?.message || "Failed to update profile photo");
@@ -399,7 +148,7 @@ function ProfilePhotoSection({
 
       if (response?.statusCode === 200) {
         setPhotoUrl(null);
-        onPhotoChange(null);
+        onPhotoChange();
         toast.success("Profile photo removed");
       } else {
         toast.error(response?.message || "Failed to remove photo");
@@ -425,8 +174,9 @@ function ProfilePhotoSection({
           )}
         </Avatar>
         <label
-          className={`absolute -bottom-1 -right-1 p-2 rounded-full bg-primaryColor text-white shadow-md transition-opacity ${uploading ? "opacity-50" : "hover:opacity-90 cursor-pointer"
-            }`}
+          className={`absolute -bottom-1 -right-1 p-2 rounded-full bg-primaryColor text-white shadow-md transition-opacity ${
+            uploading ? "opacity-50" : "hover:opacity-90 cursor-pointer"
+          }`}
           title="Upload profile photo"
         >
           {uploading ? (
@@ -480,278 +230,262 @@ function ProfilePhotoSection({
   );
 }
 
+// Edit modal — contact number stays read-only
+function EditDetailsModal({
+  user,
+  open,
+  onOpenChange,
+  onSaved,
+}: {
+  user: User;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(user.name || "");
+  const [email, setEmail] = useState(user.email || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSave = async () => {
+    if (saving) return;
+
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (trimmedName.length < 2 || trimmedName.length > 50) {
+      setError("Name must be between 2 and 50 characters");
+      return;
+    }
+    if (!/^[a-zA-Z\s]+$/.test(trimmedName)) {
+      setError("Name can only contain letters and spaces");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await patchData(`users/${user.id}`, {
+        name: trimmedName,
+        email: trimmedEmail,
+      });
+
+      if (response?.statusCode === 200) {
+        toast.success(response?.message || "Profile updated successfully");
+        onOpenChange(false);
+        onSaved();
+      } else {
+        setError(response?.message || "Failed to update profile");
+      }
+    } catch (err) {
+      console.error("Update error:", err);
+      const errorMessage =
+        err && typeof err === "object" && "message" in err
+          ? (err as { message?: string }).message
+          : undefined;
+      setError(errorMessage || "An error occurred while updating profile");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Personal Details</DialogTitle>
+          <DialogDescription>
+            Update your name and email address.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primaryColor/10">
+                <UserIcon className="w-4 h-4 text-primaryColor" />
+              </div>
+              Full Name
+              <span className="text-red-500 text-xs">*</span>
+            </label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your full name"
+              className="h-12 text-base"
+              disabled={saving}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primaryColor/10">
+                <Phone className="w-4 h-4 text-primaryColor" />
+              </div>
+              Contact Number
+            </label>
+            <div className="min-h-12 flex items-center px-4 py-3 bg-gray-50 rounded-lg border">
+              <p className="text-sm text-gray-800 font-medium">
+                {user.mobileNumber || "Not provided"}
+              </p>
+              <span className="ml-auto text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                Cannot be changed
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primaryColor/10">
+                <Mail className="w-4 h-4 text-primaryColor" />
+              </div>
+              Email Address
+              <span className="text-red-500 text-xs">*</span>
+            </label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email address"
+              className="h-12 text-base"
+              disabled={saving}
+            />
+          </div>
+
+          {error && (
+            <div className="flex items-start gap-3 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="gap-3 sm:gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+          <Button type="button" onClick={handleSave} disabled={saving}>
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Changes"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AccountInfo({ user }: AccountInfoProps) {
   const router = useRouter();
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isValid },
-    reset,
-    watch,
-  } = useForm<AccountFormData>({
-    resolver: zodResolver(accountSchema),
-    mode: "onChange",
-    defaultValues: {
-      firstName: "",
-      contactNumber: "",
-      email: "",
-      password: "********",
-      confirmPassword: "",
-    },
-  });
-
-  const passwordValue = watch("password");
-  const showConfirmPassword =
-    isEditing &&
-    passwordValue &&
-    passwordValue !== "********" &&
-    passwordValue !== "";
-
-  useEffect(() => {
-    if (user) {
-      reset({
-        firstName: user.name || "",
-        contactNumber: user.mobileNumber || "",
-        email: user.email || "",
-        password: "********",
-        confirmPassword: "",
-      });
-    }
-  }, [user, reset]);
-
-  // Handle form submission
-  const onSubmit = useCallback(
-    async (data: AccountFormData) => {
-      if (isSubmitting) return;
-
-      setIsSubmitting(true);
-
-      try {
-        const updateData: Partial<{
-          name: string;
-          mobileNumber: string;
-          email: string;
-          password: string;
-        }> = {
-          name: data.firstName,
-          mobileNumber: data.contactNumber,
-          email: data.email,
-        };
-
-        // Only include password if it's being changed
-        if (
-          data.password &&
-          data.password !== "********" &&
-          data.password !== ""
-        ) {
-          updateData.password = data.password;
-        }
-
-        const endpoint = `users/${user?.id}`;
-        const response = await patchData(endpoint, updateData);
-
-        if (response?.statusCode === 200) {
-          setIsEditing(false);
-          toast.success(response?.message || "Profile updated successfully");
-
-          reset({
-            firstName: data.firstName,
-            contactNumber: data.contactNumber,
-            email: data.email,
-            password: "********",
-            confirmPassword: "",
-          });
-        } else {
-          toast.error(response?.message || "Failed to update profile");
-        }
-      } catch (err) {
-        console.error("Update error:", err);
-        const errorMessage =
-          err && typeof err === "object" && "message" in err
-            ? (err as { message?: string }).message
-            : undefined;
-        toast.error(errorMessage || "An error occurred while updating profile");
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [user?.id, isSubmitting, reset]
-  );
-
-  const handleCancel = useCallback(() => {
-    if (user) {
-      reset({
-        firstName: user.name || "",
-        contactNumber: user.mobileNumber || "",
-        email: user.email || "",
-        password: "********",
-        confirmPassword: "",
-      });
-    }
-    setIsEditing(false);
-  }, [user, reset]);
-
-  const handleEdit = useCallback(() => {
-    setIsEditing(true);
-  }, []);
-
-  // Refresh server data so the account header avatar stays in sync
-  const handlePhotoChange = useCallback(() => {
+  // Refresh server data after an edit or photo change
+  const handleSaved = useCallback(() => {
     router.refresh();
   }, []);
 
   return (
-    <div className="">
+    <div className="space-y-4">
       {/* Profile Photo Section */}
-      <div className="pb-4">
-        <ProfilePhotoSection user={user} onPhotoChange={handlePhotoChange} />
-      </div>
+      <ProfilePhotoSection user={user} onPhotoChange={handleSaved} />
 
-      {/* Main Form Card */}
-      <form onSubmit={handleSubmit(onSubmit)} className=" overflow-hidden">
-        {/* Card Header */}
+      {/* Personal Details Card */}
+      <div className="overflow-hidden">
         <div className="pb-2">
           <AccountPageHeader
             title="Personal Details"
             action={
-              <ActionButtons
-                isEditing={isEditing}
-                onCancel={handleCancel}
-                onEdit={handleEdit}
-                isSubmitting={isSubmitting}
-                isValid={isValid}
-              />
+              <Button type="button" onClick={() => setEditOpen(true)}>
+                <Edit3 className="w-4 h-4" />
+                Edit
+              </Button>
             }
           />
         </div>
 
-        {/* Form Content */}
-        <div className="py-4">
-          <div className="space-y-2">
-            <div className=" grid md:grid-cols-3 grid-cols-1 gap-4">
-              {FORM_FIELDS.map((field) => (
-                <FormField
-                  key={field.name}
-                  label={field.label}
-                  name={field.name}
-                  register={register}
-                  error={errors[field.name]?.message}
-                  isEditing={isEditing}
-                  type={field.type}
-                  icon={field.icon}
-                  placeholder={field.placeholder}
-                  disabled={field.disabled}
-                  value={watch(field.name)}
-                />
-              ))}
-            </div>
-
-            {/* Security Section */}
-            <div className="mt-5">
-              <div className="flex items-center gap-3 text-sm font-medium text-gray-700 uppercase tracking-wide">
-                <div className="w-1 h-4 bg-red-600 rounded-full"></div>
-                Security Settings
-              </div>
-
-              <div className="mt-5">
-                <PasswordField
-                  label="Password"
-                  name="password"
-                  register={register}
-                  error={errors.password?.message as string | undefined}
-                  placeholder="Leave blank to keep current password"
-                  description="Must be at least 8 characters long"
-                  isEditing={isEditing}
-                />
-
-                {showConfirmPassword && (
-                  <PasswordField
-                    label="Confirm New Password"
-                    name="confirmPassword"
-                    register={register}
-                    error={errors.confirmPassword?.message}
-                    placeholder="Confirm your new password"
-                    description="Must match the password above"
-                    isEditing={isEditing}
-                    showToggle={false}
-                  />
-                )}
-              </div>
-
-              {isEditing && (
-                <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                  <div className="flex items-start gap-3">
-                    <Shield className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-amber-800">
-                        Password Security Tips
-                      </h4>
-                      <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
-                        <li>Use at least 8 characters</li>
-                        <li>Include uppercase and lowercase letters</li>
-                        <li>Add numbers and special characters</li>
-                        <li>Avoid using personal information</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+        <div className="py-4 space-y-6">
+          {/* Details Grid */}
+          <div className="grid md:grid-cols-3 grid-cols-1 gap-4">
+            <DisplayField label="Full Name" icon={UserIcon} value={user.name} />
+            <DisplayField
+              label="Contact Number"
+              icon={Phone}
+              value={user.mobileNumber}
+              locked
+            />
+            <DisplayField label="Email Address" icon={Mail} value={user.email} />
           </div>
 
           {/* Account Status Section */}
-          {!isEditing && (
-            <div className="mt-8 pt-6 border-t">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                  <div className="p-2 rounded-lg bg-green-100">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      Account Status
-                    </p>
-                    <p className="text-sm text-green-600 font-medium">
-                      {user.isVerified ? "Verified" : "Pending Verification"}
-                    </p>
-                  </div>
+          <div className="pt-6 border-t">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                <div className="p-2 rounded-lg bg-green-100">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
                 </div>
-
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                  <div className="p-2 rounded-lg bg-blue-100">
-                    <UserIcon className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      Member Since
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {formatDateTime(user.createdAt)}
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    Account Status
+                  </p>
+                  <p className="text-sm text-green-600 font-medium">
+                    {user.isVerified ? "Verified" : "Pending Verification"}
+                  </p>
                 </div>
+              </div>
 
-                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg sm:col-span-2 lg:col-span-1">
-                  <div className="p-2 rounded-lg bg-purple-100">
-                    <Shield className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      Last Updated
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {new Date(user.updatedAt).toLocaleDateString()}
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                <div className="p-2 rounded-lg bg-blue-100">
+                  <UserIcon className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    Member Since
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {formatDateTime(user.createdAt)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg sm:col-span-2 lg:col-span-1">
+                <div className="p-2 rounded-lg bg-purple-100">
+                  <Shield className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    Last Updated
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {new Date(user.updatedAt).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </form>
+      </div>
+
+      {/* Edit Modal */}
+      <EditDetailsModal
+        user={user}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSaved={handleSaved}
+      />
     </div>
   );
 }
