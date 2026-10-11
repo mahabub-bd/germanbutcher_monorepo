@@ -260,8 +260,10 @@ export function DeliveryManList({
                   href={`/admin/delivery-man/${deliveryMan.id}/view`}
                   className="flex items-center gap-3 font-medium leading-tight hover:underline"
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted">
-                    <User className="h-5 w-5 text-muted-foreground" />
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-muted text-sm font-semibold text-muted-foreground uppercase">
+                    {deliveryMan.name?.charAt(0) || (
+                      <User className="h-5 w-5" />
+                    )}
                   </span>
                   <span className="truncate">{deliveryMan.name}</span>
                 </Link>

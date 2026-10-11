@@ -271,7 +271,7 @@ export function FreeDeliveryUsageReport({
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className="max-w-40 truncate bg-primaryColor/5 text-primaryColor border-primaryColor/20"
+                        className="max-w-40 truncate bg-primaryColor/5 text-primaryColor border-primaryColor/20 px-3 py-1"
                       >
                         {row.campaignName}
                       </Badge>

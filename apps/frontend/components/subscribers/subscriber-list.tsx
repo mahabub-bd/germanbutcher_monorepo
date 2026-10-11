@@ -143,8 +143,10 @@ export function SubscriberList({
             <TableRow key={subscriber.id} className="hover:bg-muted/50">
               <TableCell>
                 <span className="flex items-center gap-3 font-medium">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted">
-                    <Mail className="h-5 w-5 text-muted-foreground" />
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-muted text-sm font-semibold text-muted-foreground uppercase">
+                    {subscriber.email?.charAt(0) || (
+                      <Mail className="h-5 w-5" />
+                    )}
                   </span>
                   <span className="truncate">{subscriber.email}</span>
                 </span>
