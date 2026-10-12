@@ -140,8 +140,8 @@ const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
 
           {/* Main Content Area */}
           <div className="col-span-12">
-            <div className="shadow-md rounded-md  min-h-[600px]">
-              <main className="md:p-4 p-2">{children}</main>
+            <div className="rounded-md">
+              <main>{children}</main>
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import {
   PaginatedEnvelope,
   PersistedNotification,
 } from "@/utils/types";
+import Link from "next/link";
 
 export default async function AdminNotificationsPage({
   searchParams,
@@ -52,12 +53,12 @@ export default async function AdminNotificationsPage({
           <p className="mb-6 text-gray-600">
             There was an error loading your notifications. Please try again.
           </p>
-          <a
+          <Link
             href="/admin/notifications"
             className="rounded-lg bg-primaryColor px-6 py-3 text-white transition-colors hover:bg-primaryColor/90"
           >
             Retry
-          </a>
+          </Link>
         </div>
       </div>
     );

@@ -8,7 +8,14 @@ type CartContextType = {
   cart: Cart | { items: any[] };
   isLoading: boolean;
   appliedCoupon: LocalCoupon | null;
-  addItem: (product: Product, quantity?: number) => Promise<void>;
+  addItem: (
+    product: Product,
+    quantity?: number,
+    options?: { silent?: boolean }
+  ) => Promise<void>;
+  addManyItems: (
+    lines: { product: Product; quantity: number }[]
+  ) => Promise<{ added: number; skipped: number; skippedNames: string[] }>;
   updateItemQuantity: (
     itemId: number | string,
     quantity: number

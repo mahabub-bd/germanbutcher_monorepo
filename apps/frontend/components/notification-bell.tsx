@@ -13,8 +13,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useNotification } from "@/hooks/use-notification";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useNotification } from "@/hooks/use-notification";
 import { cn } from "@/lib/utils";
 import { Bell } from "lucide-react";
 import { useState } from "react";
@@ -61,7 +61,7 @@ export function NotificationBell({
         <SheetContent
           side="bottom"
           showClose={false}
-          className="h-[85dvh] rounded-t-2xl p-0"
+          className="h-[85dvh] rounded-t-2xl p-0 bg-transparent shadow-none border-0"
           onClickCapture={(e) => {
             // Close when a link inside the panel ("View all", an order
             // number) is followed.
@@ -70,7 +70,7 @@ export function NotificationBell({
         >
           <SheetTitle className="sr-only">Notifications</SheetTitle>
           <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-muted" />
-          <div className="min-h-0 flex-1">
+          <div className="min-h-0 flex-1 px-3 pb-3">
             <NotificationPanel />
           </div>
         </SheetContent>
@@ -88,8 +88,11 @@ export function NotificationBell({
           "max-h-[80vh]",
           "overflow-hidden"
         )}
-        align="center"
+        align="end"
         side="bottom"
+        // Keep a gap between the popover and the viewport edge when it
+        // would otherwise be shifted/clamped to fit.
+        collisionPadding={16}
       >
         <NotificationPanel />
       </PopoverContent>

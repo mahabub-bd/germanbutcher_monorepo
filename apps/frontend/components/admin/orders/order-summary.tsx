@@ -110,9 +110,15 @@ export function OrderSummary({
             <span className="text-sm text-muted-foreground">
               Shipping ({shippingMethod?.name || "Standard"}):
             </span>
-            <span className="text-sm">
-              {formatCurrencyEnglish(orderSummary.shippingCost)}
-            </span>
+            {orderSummary.shippingCost > 0 ? (
+              <span className="text-sm">
+                {formatCurrencyEnglish(orderSummary.shippingCost)}
+              </span>
+            ) : (
+              <span className="text-sm font-medium text-green-600">
+                Free Delivery
+              </span>
+            )}
           </div>
           <Separator className="my-2" />
           <div className="flex justify-between font-medium text-base">

@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formPostData } from "@/utils/api-utils";
 import { formatDateTime } from "@/lib/utils";
 import { PaginatedEnvelope, ProductReview } from "@/utils/types";
-import { ImagePlus, Loader2, PencilLine, Star } from "lucide-react";
+import { Calendar, ImagePlus, Loader2, PencilLine, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState } from "react";
@@ -220,80 +220,88 @@ const MyReviews = ({
           </Link>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2">
           {reviews.map((review) => (
             <div
               key={review.id}
-              className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gray-200 bg-white p-3"
+              className="grid grid-cols-[80px_1fr] items-start gap-x-3 gap-y-1.5 rounded-xl border border-gray-200 bg-white p-3"
             >
               {review.product?.attachment?.url && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={review.product.attachment.url}
                   alt={review.product.name}
-                  className="h-20 w-20 shrink-0 rounded-lg border border-gray-100 object-contain bg-white"
+                  className="h-20 w-20 shrink-0 rounded-lg border border-gray-100 object-contain bg-white row-span-3"
                 />
               )}
 
-              {review.product ? (
-                <Link
-                  href={`/product/${review.product.slug}`}
-                  className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900 transition-colors hover:text-primaryColor sm:w-44 sm:flex-none"
-                >
-                  {review.product.name}
-                </Link>
-              ) : (
-                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900 sm:w-44 sm:flex-none">
-                  Product unavailable
-                </span>
-              )}
-
-              <span className="flex shrink-0 items-center gap-2">
-                <RatingStars rating={review.rating} size="h-3.5 w-3.5" />
-                <ReviewStatusBadge review={review} />
-              </span>
-
-              {/* Comment line: text left, photo right — stays a single second row */}
-              <span className="order-last flex w-full items-start gap-3 pl-[92px] sm:order-none sm:w-auto sm:flex-1 sm:pl-0">
-                <span className="min-w-0 flex-1 text-sm text-gray-600 sm:truncate">
-                  {review.title && (
-                    <span className="font-semibold text-gray-900">
-                      {review.title} —{" "}
-                    </span>
-                  )}
-                  {review.comment}
-                </span>
-                {review.attachment?.url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={review.attachment.url}
-                    alt={`Photo for review of ${review.product?.name ?? "product"}`}
-                    className="h-16 w-16 shrink-0 rounded-lg border border-gray-100 object-contain bg-white sm:h-14 sm:w-14"
-                  />
+              {/* Line 1: product name (truncated) | date */}
+              <div className="col-start-2 flex items-center justify-between gap-2 min-w-0">
+                {review.product ? (
+                  <Link
+                    href={`/product/${review.product.slug}`}
+                    className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900 transition-colors hover:text-primaryColor"
+                  >
+                    {review.product.name}
+                  </Link>
+                ) : (
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">
+                    Product unavailable
+                  </span>
                 )}
+                <span className="flex shrink-0 items-center gap-1 text-xs text-gray-400">
+                  <Calendar className="h-3 w-3" />
+                  {formatDateTime(review.createdAt)}
+                </span>
+              </div>
+
+              {/* Line 2: stars + status | edit */}
+              <div className="col-start-2 flex items-center justify-between gap-2">
+                <span className="flex shrink-0 items-center gap-2">
+                  <RatingStars rating={review.rating} size="h-3.5 w-3.5" />
+                  <ReviewStatusBadge review={review} />
+                </span>
+                <button
+                  type="button"
+                  onClick={() => openEditDialog(review)}
+                  className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-primaryColor transition-colors"
+                >
+                  <PencilLine className="h-3.5 w-3.5" />
+                  Edit
+                </button>
+              </div>
+
+              {/* Line 3: title + description, in the right column beside the
+                  product image */}
+              <span className="col-start-2 text-sm text-gray-600">
+                {review.title && (
+                  <span className="font-semibold text-gray-900">
+                    {review.title} —{" "}
+                  </span>
+                )}
+                {review.comment}
               </span>
 
-              <span className="shrink-0 text-xs text-gray-400">
-                {formatDateTime(review.createdAt)}
-              </span>
-
-              <button
-                type="button"
-                onClick={() => openEditDialog(review)}
-                className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-primaryColor transition-colors"
-              >
-                <PencilLine className="h-4 w-4" />
-                Edit
-              </button>
+              {/* Review photo — own line at the left edge */}
+              {review.attachment?.url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={review.attachment.url}
+                  alt={`Photo for review of ${review.product?.name ?? "product"}`}
+                  className="col-span-2 h-16 w-16 rounded-lg border border-gray-100 object-contain bg-white"
+                />
+              )}
             </div>
           ))}
 
           {reviewsData.totalPages > 1 && (
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={reviewsData.totalPages}
-              baseUrl="?page="
-            />
+            <div className="col-span-full">
+              <PaginationComponent
+                currentPage={currentPage}
+                totalPages={reviewsData.totalPages}
+                baseUrl="?page="
+              />
+            </div>
           )}
         </div>
       )}

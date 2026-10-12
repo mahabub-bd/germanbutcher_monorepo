@@ -7,14 +7,33 @@
 const LOGO_URL =
   'https://germanbutcher.s3.ap-southeast-1.amazonaws.com/31ab7b72-a761-47d5-9d79-33b6a68227e4.webp';
 
+/**
+ * Embedded <style> block for the <head> of every email. Media queries are
+ * supported by the major clients (Gmail, Apple Mail, Outlook.com, iOS mail);
+ * Outlook desktop ignores them and keeps the fixed desktop layout, which is
+ * acceptable — it renders the unmodified table widths.
+ */
+export const EMAIL_RESPONSIVE_STYLES = `
+    <style>
+      @media only screen and (max-width: 620px) {
+        .em-header, .em-footer { padding: 20px 16px !important; }
+        .em-col { display: block !important; width: 100% !important; }
+        .em-right { text-align: left !important; padding-top: 12px !important; }
+        .em-content { padding: 24px 16px !important; }
+        .em-half { display: block !important; width: 100% !important; padding: 0 0 16px 0 !important; }
+        .em-summary { width: 100% !important; display: block !important; }
+        .em-items th, .em-items td { padding: 8px !important; }
+      }
+    </style>`;
+
 export function generateEmailHeader(rightTitle: string, rightSubtitle: string): string {
   return `
               <!-- Header -->
               <tr>
-                <td style="padding: 32px; border-bottom: 3px solid #8B0000; background-color: #fafafa;">
+                <td class="em-header" style="padding: 32px; border-bottom: 3px solid #8B0000; background-color: #fafafa;">
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
-                      <td width="60%" style="vertical-align: top;">
+                      <td class="em-col" width="60%" style="vertical-align: top;">
                         <!-- Logo and Company Info -->
                         <table cellpadding="0" cellspacing="0">
                           <tr>
@@ -33,7 +52,7 @@ export function generateEmailHeader(rightTitle: string, rightSubtitle: string): 
                           </tr>
                         </table>
                       </td>
-                      <td width="40%" style="text-align: right; vertical-align: top;">
+                      <td class="em-col em-right" width="40%" style="text-align: right; vertical-align: top;">
                         <div style="font-size: 14px; font-weight: bold; color: #333333; margin-bottom: 4px;">${rightTitle}</div>
                         <div style="font-size: 12px; color: #666666;">${rightSubtitle}</div>
                       </td>
@@ -48,7 +67,7 @@ export function generateEmailFooter(): string {
   return `
               <!-- Footer -->
               <tr>
-                <td style="padding: 28px 32px; border-top: 3px solid #8B0000; background-color: #fafafa;">
+                <td class="em-footer" style="padding: 28px 32px; border-top: 3px solid #8B0000; background-color: #fafafa;">
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                       <td width="70%" style="vertical-align: bottom;">

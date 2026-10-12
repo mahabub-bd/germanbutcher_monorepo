@@ -26,7 +26,7 @@ export class NotificationService {
     private notificationGateway: NotificationGateway,
     @InjectRepository(Notification)
     private notificationRepository: Repository<Notification>,
-  ) {}
+  ) { }
 
   /**
    * Compact order snapshot for realtime events and persisted rows. Full
@@ -67,8 +67,9 @@ export class NotificationService {
       audience: 'admin',
       type: 'newOrder',
       title: 'New order received',
-      // orderNo is not repeated here — the UI shows it as a chip/link.
-      message: 'A new order has been placed.',
+      message: order.user?.name
+        ? `${order.user.name} ordered ${order.items?.length ?? 0} item(s).`
+        : `${order.items?.length ?? 0} item(s) ordered.`,
       data: slim,
     });
   }

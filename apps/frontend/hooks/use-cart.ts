@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { applyCoupon as applyCouponApi } from "@/lib/coupon-service";
@@ -153,7 +153,11 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
     syncCartWithServer();
   }, [isLoggedIn, localCart, appliedCoupon]);
 
-  const addItem = async (product: Product, quantity = 1) => {
+  const addItem = async (
+    product: Product,
+    quantity = 1,
+    options?: { silent?: boolean }
+  ) => {
     setIsLoading(true);
 
     try {
@@ -201,14 +205,75 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
         });
       }
 
-      toast.success("Item added to cart", {
-        description: `${product.name} has been added to your cart`,
-      });
+      if (!options?.silent) {
+        toast.success("Item added to cart", {
+          description: `${product.name} has been added to your cart`,
+        });
+      }
     } catch (error) {
       console.error("Error adding item to cart:", error);
+      // Bulk callers show their own summary toast — rethrow for them.
+      if (options?.silent) throw error;
       toast.error("Failed to add item", {
         description: "Please try again later",
       });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Reorder helper: replay an order's lines into the cart, skipping
+  // unavailable products and reporting the outcome in one summary toast.
+  const addManyItems = async (
+    lines: { product: Product; quantity: number }[]
+  ): Promise<{ added: number; skipped: number; skippedNames: string[] }> => {
+    const addable = lines.filter(
+      (line) =>
+        line.product &&
+        line.product.isActive !== false &&
+        !(typeof line.product.stock === "number" && line.product.stock <= 0)
+    );
+    const skippedNames = lines
+      .filter((line) => !addable.includes(line))
+      .map((line) => line.product?.name ?? "Unknown item");
+
+    if (addable.length === 0) {
+      toast.info("Nothing to add", {
+        description: "None of the items in this order are currently available.",
+      });
+      return { added: 0, skipped: lines.length, skippedNames };
+    }
+
+    setIsLoading(true);
+    let failed = 0;
+    try {
+      for (const line of addable) {
+        try {
+          await addItem(line.product, line.quantity, { silent: true });
+        } catch {
+          failed++;
+        }
+      }
+
+      if (failed > 0) {
+        toast.error(`Failed to add ${failed} item${failed > 1 ? "s" : ""}`, {
+          description: "Please try again later",
+        });
+      } else if (skippedNames.length > 0) {
+        toast.success(`${addable.length} of ${lines.length} items added to cart`, {
+          description: `Not available: ${skippedNames.join(", ")}`,
+        });
+      } else {
+        toast.success(`${addable.length} item${addable.length > 1 ? "s" : ""} added to cart`, {
+          description: "Items from your order were added to your cart",
+        });
+      }
+
+      return {
+        added: addable.length - failed,
+        skipped: lines.length - addable.length,
+        skippedNames,
+      };
     } finally {
       setIsLoading(false);
     }
@@ -579,6 +644,7 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
     isLoading,
     appliedCoupon,
     addItem,
+    addManyItems,
     updateItemQuantity,
     removeItem,
     clearCart,

@@ -429,6 +429,8 @@ export class OrderService {
           productName: item.product?.name || 'Product',
           quantity: item.quantity,
           price: Number(item.unitPrice),
+          unitDiscount: Number(item.unitDiscount) || 0,
+          productImage: item.product?.attachment?.url ?? null,
         })),
         ...(coupon && {
           coupon: {

@@ -99,12 +99,12 @@ export default function MyAddress({
 
   if (!addresses || addresses.length === 0) {
     return (
-      <div className="w-full md:p-4 p-2">
+      <div className="w-full">
         <AccountPageHeader
           title="Manage Addresses"
           action={
             <Button
-              className="px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-colors flex items-center gap-2 h-auto"
+              className="px-3 py-1.5 text-xs sm:px-5 sm:py-2.5 sm:text-sm font-semibold text-white rounded-lg transition-colors flex items-center gap-1.5 sm:gap-2 h-auto"
               onClick={handleAddAddress}
             >
               <Plus className="w-4 h-4" />
@@ -140,7 +140,7 @@ export default function MyAddress({
   }
 
   return (
-    <div className="w-full md:p-4 p-2">
+    <div className="w-full">
       <AccountPageHeader
         title="Manage Addresses"
         action={
@@ -170,7 +170,7 @@ export default function MyAddress({
           return (
             <div
               key={address.id}
-              className="p-3.5 sm:p-6 bg-white rounded-xl border border-gray-200 shadow-sm"
+              className="p-3.5 sm:p-6 bg-white rounded-xl border border-gray-200"
             >
               <div className="flex justify-between items-center pb-3 mb-3.5 sm:pb-4 sm:mb-5 border-b border-gray-100">
                 <div className="flex items-center gap-2.5 sm:gap-3.5">
