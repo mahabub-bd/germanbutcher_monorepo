@@ -244,6 +244,7 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-end",
     paddingVertical: 2,
   },
   summaryLabel: {
@@ -267,6 +268,7 @@ const styles = StyleSheet.create({
   summaryTotal: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-end",
     paddingVertical: 8,
     paddingHorizontal: 10,
     marginTop: 5,
@@ -286,6 +288,7 @@ const styles = StyleSheet.create({
   dueAmount: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-end",
     paddingVertical: 6,
     paddingHorizontal: 10,
     marginTop: 4,
@@ -416,6 +419,21 @@ export const OrderPDFDocument = ({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {/* Center watermark logo — drawn first so all content renders above it */}
+        {invoiceLogoUrl && (
+          <Image
+            src={invoiceLogoUrl}
+            style={{
+              position: "absolute",
+              top: 250,
+              left: 148,
+              width: 300,
+              height: 300,
+              opacity: 0.06,
+            }}
+          />
+        )}
+
         {/* Header with Logo */}
         <View style={styles.header}>
           <View style={styles.logoSection}>
@@ -564,24 +582,40 @@ export const OrderPDFDocument = ({
                   <View style={[styles.tableCell, styles.productCell]}>
                     <Text style={styles.productName}>
                       {item.product?.name || "N/A"}
-                    </Text>
-                    {item.product?.weight && (
+                      {item.product?.weight && (
+                        <Text style={styles.productSku}>
+                          {" · "}
+                          {Number(item.product.weight) % 1 === 0
+                            ? Math.floor(Number(item.product.weight))
+                            : item.product.weight}{" "}
+                          {item.product.unit?.name?.toLowerCase() || ""}
+                        </Text>
+                      )}
                       <Text style={styles.productSku}>
-                        {Number(item.product.weight) % 1 === 0
-                          ? Math.floor(Number(item.product.weight))
-                          : item.product.weight}{" "}
-                        {item.product.unit?.name?.toLowerCase() || ""}
+                        {" · SKU: "}
+                        {item.product?.productSku || "N/A"}
                       </Text>
-                    )}
-
-                    <Text style={styles.productSku}>
-                      SKU: {item.product?.productSku || "N/A"}
                     </Text>
                   </View>
                   <Text style={[styles.tableCell, styles.quantityCell]}>
                     {item.quantity || 0}
                   </Text>
-                  <View style={[styles.tableCell, styles.priceCell]}>
+                  <View
+                    style={[
+                      styles.tableCell,
+                      styles.priceCell,
+                      ...(hasDiscount
+                        ? [
+                            {
+                              flexDirection: "row" as const,
+                              justifyContent: "flex-end" as const,
+                              alignItems: "center" as const,
+                              gap: 4,
+                            },
+                          ]
+                        : []),
+                    ]}
+                  >
                     {hasDiscount && (
                       <Text style={styles.strikethrough}>
                         {formatCurrency(originalPrice)}
@@ -635,9 +669,15 @@ export const OrderPDFDocument = ({
               <Text style={styles.summaryLabel}>
                 Shipping ({order.shippingMethod?.name || "Standard"}):
               </Text>
-              <Text style={styles.summaryValue}>
-                {formatCurrency(orderSummary.shippingCost)}
-              </Text>
+              {orderSummary.shippingCost > 0 ? (
+                <Text style={styles.summaryValue}>
+                  {formatCurrency(orderSummary.shippingCost)}
+                </Text>
+              ) : (
+                <Text style={[styles.summaryValue, { color: "#16a34a" }]}>
+                  Free Delivery
+                </Text>
+              )}
             </View>
             <View style={styles.summaryDivider} />
           </View>

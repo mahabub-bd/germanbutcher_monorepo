@@ -289,20 +289,20 @@ export default function AddressDialog({
               />
             </div>
 
-            <DialogFooter className="gap-2">
+            <DialogFooter className="flex-row justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
                 disabled={isSubmitting}
-                className="w-full sm:w-auto"
+                className="flex-1 sm:flex-none"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full sm:w-auto"
+                className="flex-1 sm:flex-none"
               >
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -13,7 +13,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { NotificationBell } from "@/components/notification-bell";
+import { InboxModal } from "@/components/admin/inbox/inbox-modal";
 import { Button } from "@/components/ui/button";
+import { fetchProtectedData } from "@/utils/api-utils";
 import { AdminHeaderBg, GermanbutcherLogo } from "@/public/images";
 
 import {
@@ -29,6 +31,10 @@ import {
 // keep the icons legible over the photo.
 const iconTileClass =
   "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-black/80 text-white shadow-sm transition-all duration-150 hover:bg-black hover:text-white active:scale-90 active:bg-black active:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:text-white";
+
+// Hamburger variant — primary red instead of black.
+const menuTileClass =
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primaryColor text-white shadow-sm transition-all duration-150 hover:bg-primaryColor/90 active:scale-90 active:bg-primaryColor/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
 
 // Thin separator between header clusters.
 function HeaderDivider() {
@@ -46,6 +52,32 @@ export function AdminHeader({
   const pathname = usePathname();
   const pathSegments = pathname.split("/").filter(Boolean);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Unread inbox badge — pending contact messages, refreshed on navigation
+  // and once a minute while the header stays mounted.
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    const loadUnread = async () => {
+      try {
+        const stats = await fetchProtectedData<{
+          byStatus?: Record<string, number>;
+        }>("contact-messages/statistics");
+        if (active) {
+          setUnreadMessages(stats?.byStatus?.pending ?? 0);
+        }
+      } catch {
+        // best-effort badge — ignore auth/permission failures
+      }
+    };
+    loadUnread();
+    const interval = setInterval(loadUnread, 60_000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [pathname]);
 
   // Format path segments for breadcrumb (capitalize, replace hyphens with spaces)
   const formatSegment = (segment: string) => {
@@ -99,7 +131,7 @@ export function AdminHeader({
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-lg bg-black/80 text-white shadow-sm transition-all duration-150 hover:bg-black hover:text-white active:scale-90 active:bg-black active:text-white"
+            className={menuTileClass}
             title="Menu"
             onClick={onMenuClick}
           >
@@ -119,7 +151,11 @@ export function AdminHeader({
               priority
             />
           </Link>
-          <div>
+          <div className="flex items-center gap-2">
+            <InboxModal
+              unreadCount={unreadMessages}
+              triggerClassName={iconTileClass}
+            />
             <NotificationBell
               buttonClassName="h-9 w-9 rounded-lg bg-black/80 p-0 text-white shadow-sm transition-all duration-150 hover:bg-black hover:text-white hover:opacity-100 focus:bg-black focus:text-white active:scale-90 active:bg-black active:text-white active:opacity-100"
             />
@@ -145,7 +181,7 @@ export function AdminHeader({
         <Button
           variant="ghost"
           size="icon"
-          className={`${iconTileClass} hidden md:inline-flex`}
+          className={`${menuTileClass} hidden md:inline-flex`}
           title="Toggle sidebar"
           onClick={onToggleSidebar}
         >
@@ -155,7 +191,7 @@ export function AdminHeader({
         <HeaderDivider />
 
         <Breadcrumb className="hidden lg:block">
-          <BreadcrumbList className="text-base [&_a]:text-muted-foreground [&_a:hover]:text-primaryColor [&_span]:text-muted-foreground [&_span[aria-current='page']]:text-primaryColor">
+          <BreadcrumbList className="text-base font-semibold [&_a]:text-primaryColor [&_a:hover]:text-primaryColor/80 [&_span]:text-primaryColor [&_span[aria-current='page']]:text-primaryColor">
             <BreadcrumbItem>
               <BreadcrumbLink href="/admin" className="text-base">
                 Admin
@@ -197,6 +233,11 @@ export function AdminHeader({
             />
           </div>
 
+          <InboxModal
+            unreadCount={unreadMessages}
+            triggerClassName={iconTileClass}
+          />
+
           <Link
             href="/admin/settings/business-info"
             title="Settings"
@@ -205,7 +246,7 @@ export function AdminHeader({
             <Settings className="size-4" />
           </Link>
 
-          <button
+          <Button
             type="button"
             title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
             onClick={toggleFullscreen}
@@ -216,7 +257,7 @@ export function AdminHeader({
             ) : (
               <Maximize className="size-4" />
             )}
-          </button>
+          </Button>
 
           <HeaderDivider />
         </div>

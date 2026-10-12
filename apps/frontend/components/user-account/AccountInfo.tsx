@@ -80,7 +80,7 @@ function ProfilePhotoSection({ user }: { user: User }) {
   };
 
   return (
-    <div className="flex items-center gap-4 md:p-4 p-2 rounded-lg border bg-gray-50/50">
+    <div className="flex items-center gap-4 p-3 md:px-0 rounded-lg border bg-gray-50/50">
       <Avatar className="h-20 w-20 border-2 border-white bg-white shadow-sm">
         {user.profilePhoto?.url ? (
           <AvatarImage

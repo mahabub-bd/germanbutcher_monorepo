@@ -1,3 +1,9 @@
+import {
+  EMAIL_RESPONSIVE_STYLES,
+  generateEmailFooter,
+  generateEmailHeader,
+} from './email-layout.template';
+
 export interface OrderEmailData {
   orderNo: string;
   customerName: string;
@@ -11,6 +17,8 @@ export interface OrderEmailData {
     productName: string;
     quantity: number;
     price: number;
+    unitDiscount?: number;
+    productImage?: string | null;
   }>;
   shippingAddress?: {
     address: string;
@@ -39,10 +47,29 @@ export function generateOrderConfirmationHTML(
       (item, index) => `
       <tr style="border-bottom: 1px solid #e5e7eb;">
         <td style="padding: 12px; text-align: left; background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
-          <strong style="color: #1f2937;">${item.productName}</strong>
+          <table cellpadding="0" cellspacing="0">
+            <tr>
+              ${item.productImage ? `
+              <td style="padding-right: 10px; vertical-align: middle;">
+                <img src="${item.productImage}"
+                     alt="${item.productName}"
+                     width="40"
+                     height="40"
+                     style="display: block; border-radius: 4px; border: 1px solid #e5e7eb; object-fit: cover;" />
+              </td>
+              ` : ''}
+              <td style="vertical-align: middle;">
+                <strong style="color: #1f2937;">${item.productName}</strong>
+              </td>
+            </tr>
+          </table>
         </td>
         <td style="padding: 12px; text-align: center; color: #374151; background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">${item.quantity}</td>
-        <td style="padding: 12px; text-align: right; color: #374151; background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">৳${item.price.toFixed(2)}</td>
+        <td style="padding: 12px; text-align: right; color: #374151; background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'}; white-space: nowrap;">
+          ${(item.unitDiscount ?? 0) > 0
+            ? `<span style="text-decoration: line-through; color: #9ca3af; margin-right: 6px;">৳${(item.price + Number(item.unitDiscount)).toFixed(2)}</span>৳${item.price.toFixed(2)}`
+            : `৳${item.price.toFixed(2)}`}
+        </td>
         <td style="padding: 12px; text-align: right; font-weight: bold; color: #374151; background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">৳${(item.quantity * item.price).toFixed(2)}</td>
       </tr>
     `,
@@ -54,7 +81,7 @@ export function generateOrderConfirmationHTML(
     <!-- Customer & Shipping Info -->
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 28px;">
       <tr>
-        <td width="48%" style="vertical-align: top; padding-right: 2%;">
+        <td class="em-half" width="48%" style="vertical-align: top; padding-right: 2%;">
           <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-left: 4px solid #8B0000; border-radius: 6px;">
             <tr>
               <td style="padding: 18px;">
@@ -75,7 +102,7 @@ export function generateOrderConfirmationHTML(
             </tr>
           </table>
         </td>
-        <td width="48%" style="vertical-align: top; padding-left: 2%;">
+        <td class="em-half" width="48%" style="vertical-align: top; padding-left: 2%;">
           <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-left: 4px solid #8B0000; border-radius: 6px;">
             <tr>
               <td style="padding: 18px;">
@@ -103,6 +130,7 @@ export function generateOrderConfirmationHTML(
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      ${EMAIL_RESPONSIVE_STYLES}
       <title>Order Confirmation - ${orderData.orderNo}</title>
     </head>
     <body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f3f4f6;">
@@ -112,44 +140,11 @@ export function generateOrderConfirmationHTML(
             <!-- Main Container -->
             <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 700px; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
 
-              <!-- Header -->
-              <tr>
-                <td style="padding: 32px; border-bottom: 3px solid #8B0000; background-color: #fafafa;">
-                  <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td width="60%" style="vertical-align: top;">
-                        <!-- Logo and Company Info -->
-                        <table cellpadding="0" cellspacing="0">
-                          <tr>
-                            <td style="padding-right: 15px; vertical-align: top;">
-                              <img src="https://germanbutcher.s3.ap-southeast-1.amazonaws.com/31ab7b72-a761-47d5-9d79-33b6a68227e4.webp"
-                                   alt="German Butcher Logo"
-                                   width="100"
-                                   style="display: block; border-radius: 8px;" />
-                            </td>
-                            <td style="vertical-align: top;">
-                              <div style="font-size: 24px; font-weight: bold; color: #8B0000; margin-bottom: 8px;">German Butcher</div>
-                              <div style="font-size: 12px; color: #374151; margin-bottom: 3px;">House-56/B, Road-132, Gulshan-1, Dhaka</div>
-                              <div style="font-size: 11px; color: #6b7280;">Mobile: 01404-009000</div>
-                              <div style="font-size: 11px; color: #6b7280;">Email: support@germanbutcherbd.com</div>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                      <td width="40%" style="text-align: right; vertical-align: top;">
-                        <!-- Invoice Header -->
-                    
-                        <div style="font-size: 14px; font-weight: bold; color: #333333; margin-bottom: 4px;">${orderData.orderNo}</div>
-                        <div style="font-size: 12px; color: #666666;">${currentDate}</div>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
+              ${generateEmailHeader(orderData.orderNo, currentDate)}
 
               <!-- Content -->
               <tr>
-                <td style="padding: 32px;">
+                <td class="em-content" style="padding: 32px;">
                   <!-- Greeting -->
                   <p style="font-size: 14px; color: #374151; margin: 0 0 8px 0;">
                     Dear <strong style="color: #1f2937;">${orderData.customerName}</strong>,
@@ -163,7 +158,7 @@ export function generateOrderConfirmationHTML(
                   <!-- Order Items -->
                   <div style="margin-bottom: 24px;">
                     <div style="font-size: 13px; font-weight: bold; color: #8B0000; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #e5e7eb; text-transform: uppercase; letter-spacing: 0.5px;">Order Items</div>
-                    <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #d1d5db; border-collapse: collapse;">
+                    <table class="em-items" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #d1d5db; border-collapse: collapse;">
                       <thead>
                         <tr style="background-color: #8B0000;">
                           <th style="padding: 12px; text-align: left; font-size: 11px; font-weight: bold; color: #ffffff; text-transform: uppercase;">Product Details</th>
@@ -182,7 +177,7 @@ export function generateOrderConfirmationHTML(
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                       <td width="45%"></td>
-                      <td width="55%">
+                      <td class="em-summary" width="55%">
                         <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
                           <tr>
                             <td style="padding: 18px;">
@@ -203,7 +198,11 @@ export function generateOrderConfirmationHTML(
                                 }
                                 <tr>
                                   <td style="padding: 6px 0; font-size: 12px; color: #64748b;">Shipping (${orderData.shippingMethod}):</td>
-                                  <td style="padding: 6px 0; font-size: 12px; color: #1e293b; text-align: right; font-weight: 500;">৳${orderData.shippingFee.toFixed(2)}</td>
+                                  ${
+                                    Number(orderData.shippingFee) > 0
+                                      ? `<td style="padding: 6px 0; font-size: 12px; color: #1e293b; text-align: right; font-weight: 500;">৳${orderData.shippingFee.toFixed(2)}</td>`
+                                      : `<td style="padding: 6px 0; font-size: 12px; color: #16a34a; text-align: right; font-weight: 500;">Free Delivery</td>`
+                                  }
                                 </tr>
                                 <tr>
                                   <td style="padding: 6px 0; font-size: 12px; color: #64748b;">Payment Method:</td>
@@ -234,34 +233,7 @@ export function generateOrderConfirmationHTML(
                 </td>
               </tr>
 
-              <!-- Footer -->
-              <tr>
-                <td style="padding: 28px 32px; border-top: 3px solid #8B0000; background-color: #fafafa;">
-                  <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td width="70%" style="vertical-align: bottom;">
-                        <div style="font-size: 16px; font-weight: bold; color: #8B0000; margin-bottom: 12px;">🙏 Thank you for choosing German Butcher</div>
-                        <div style="font-size: 12px; color: #4b5563; margin-bottom: 5px; font-weight: 500;">📍 House-56/B, Road-132, Gulshan-1, Dhaka</div>
-                        <div style="font-size: 12px; color: #4b5563; margin-bottom: 5px; font-weight: 500;">📧 support@germanbutcherbd.com</div>
-                        <div style="font-size: 12px; color: #4b5563; margin-bottom: 5px; font-weight: 500;">📞 +8809666791991 | +8801404-009000</div>
-                        <div style="font-size: 12px; color: #4b5563; margin-bottom: 12px; font-weight: 500;">🌐 www.germanbutcherbd.com</div>
-                        <div style="font-size: 11px; color: #6b7280; padding-top: 10px; border-top: 1px solid #e5e7eb; margin-bottom: 12px;">
-                          Follow us on social media for exclusive offers!
-                        </div>
-                        <div style="margin-top: 12px;">
-                          <a href="https://www.facebook.com/germanbutcherbd" target="_blank" style="display: inline-block; margin-right: 12px; text-decoration: none;">
-                            <img src="https://cdn-icons-png.flaticon.com/512/174/174848.png" alt="Facebook" width="32" height="32" style="display: block;" />
-                          </a>
-                          <a href="https://www.instagram.com/germanbutcherbd" target="_blank" style="display: inline-block; text-decoration: none;">
-                            <img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" alt="Instagram" width="32" height="32" style="display: block;" />
-                          </a>
-                        </div>
-                      </td>
-                     
-                    </tr>
-                  </table>
-                </td>
-              </tr>
+              ${generateEmailFooter()}
 
             </table>
           </td>

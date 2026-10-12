@@ -25,9 +25,7 @@ import type {
   StockSummary,
 } from "@/utils/types";
 
-// Reports only change when orders do — a short server-side cache window makes
-// repeat dashboard loads skip the API entirely (checkout already calls
-// refreshDashboard() to bust the "dashboard" tag on order changes).
+
 const DASHBOARD_REVALIDATE = 60;
 
 async function DashboardReportsSection() {

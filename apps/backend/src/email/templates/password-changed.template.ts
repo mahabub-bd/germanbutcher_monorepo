@@ -1,4 +1,5 @@
 import {
+  EMAIL_RESPONSIVE_STYLES,
   generateEmailFooter,
   generateEmailHeader,
 } from './email-layout.template';
@@ -23,6 +24,11 @@ export function generatePasswordChangedHTML(
   return `
   <!DOCTYPE html>
   <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      ${EMAIL_RESPONSIVE_STYLES}
+    </head>
     <body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f3f4f6;">
       <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 20px;">
         <tr>
@@ -34,7 +40,7 @@ export function generatePasswordChangedHTML(
 
               <!-- Content -->
               <tr>
-                <td style="padding: 32px;">
+                <td class="em-content" style="padding: 32px;">
                   <h2 style="color: #1f2937; font-size: 18px; margin: 0 0 16px;">
                     Your password has been changed
                   </h2>

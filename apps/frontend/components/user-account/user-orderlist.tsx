@@ -12,15 +12,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/utils";
+import { useCartContext } from "@/contexts/cart-context";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
+import { downloadOrderInvoice } from "@/utils/invoice-download";
 import {
   getPaymentMethodColor,
   getPaymentMethodIcon,
   getStatusIcon,
 } from "@/utils/order-helper";
 import { Order } from "@/utils/types";
-import { Eye } from "lucide-react";
+import { Eye, FileText, Loader2, Repeat } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import PayNow from "../payment/pay-now";
 
 interface MyOrderProps {
@@ -30,6 +34,12 @@ interface MyOrderProps {
 const OrderTable = ({ orders }: MyOrderProps) => {
   const params = useParams();
   const userId = params.id as string;
+  const settings = useBusinessSettings();
+  const { addManyItems } = useCartContext();
+
+  // Row-local busy states so one order's action doesn't disable the others
+  const [reorderingId, setReorderingId] = useState<number | null>(null);
+  const [invoicingId, setInvoicingId] = useState<number | null>(null);
 
   // Sort orders by date (newest first)
   const sortedOrders = [...orders].sort((a, b) => {
@@ -63,6 +73,29 @@ const OrderTable = ({ orders }: MyOrderProps) => {
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US").format(amount);
+  };
+
+  const handleReorder = async (order: Order) => {
+    setReorderingId(order.id);
+    try {
+      await addManyItems(
+        order.items.map((item) => ({
+          product: item.product,
+          quantity: item.quantity,
+        }))
+      );
+    } finally {
+      setReorderingId(null);
+    }
+  };
+
+  const handleInvoice = async (order: Order) => {
+    setInvoicingId(order.id);
+    try {
+      await downloadOrderInvoice(order, settings);
+    } finally {
+      setInvoicingId(null);
+    }
   };
 
   return (
@@ -134,13 +167,39 @@ const OrderTable = ({ orders }: MyOrderProps) => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-4">
+                    <div className="flex gap-2">
                       <Link href={`/user/${userId}/order/${order.id}`}>
                         <Button variant="outline" size="sm">
                           <Eye className="h-4 w-4 mr-1" />
                           View
                         </Button>
                       </Link>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleReorder(order)}
+                        disabled={reorderingId === order.id}
+                      >
+                        {reorderingId === order.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Repeat className="h-4 w-4 mr-1" />
+                        )}
+                        Buy Again
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleInvoice(order)}
+                        disabled={invoicingId === order.id}
+                      >
+                        {invoicingId === order.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <FileText className="h-4 w-4 mr-1" />
+                        )}
+                        Invoice
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>

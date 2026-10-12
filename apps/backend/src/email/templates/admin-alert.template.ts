@@ -1,3 +1,9 @@
+import {
+  EMAIL_RESPONSIVE_STYLES,
+  generateEmailFooter,
+  generateEmailHeader,
+} from './email-layout.template';
+
 export interface NewReviewAlertData {
   customerName: string;
   productName: string;
@@ -13,29 +19,27 @@ export interface NewOrderAlertData {
   itemCount: number;
 }
 
-const wrap = (title: string, bodyHtml: string) => `
+const wrap = (rightTitle: string, bodyHtml: string) => `
 <!DOCTYPE html>
 <html>
-  <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px 0;">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${rightTitle}</title>
+    ${EMAIL_RESPONSIVE_STYLES}
+  </head>
+  <body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background-color:#f3f4f6;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:20px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="max-width:700px;background-color:#ffffff;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+            ${generateEmailHeader(rightTitle, 'Admin Notification')}
             <tr>
-              <td style="background-color:#8B0000;padding:20px 32px;">
-                <h1 style="margin:0;color:#ffffff;font-size:18px;">${title}</h1>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:24px 32px;font-size:14px;color:#3f3f46;line-height:1.6;">
+              <td class="em-content" style="padding:24px 32px;font-size:14px;color:#3f3f46;line-height:1.6;">
                 ${bodyHtml}
               </td>
             </tr>
-            <tr>
-              <td style="padding:16px 32px;background:#fafafa;border-top:1px solid #e4e4e7;">
-                <p style="margin:0;font-size:11px;color:#a1a1aa;">German Butcher admin notification</p>
-              </td>
-            </tr>
+            ${generateEmailFooter()}
           </table>
         </td>
       </tr>

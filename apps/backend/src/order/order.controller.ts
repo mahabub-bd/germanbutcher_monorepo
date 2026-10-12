@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpStatus,
   Param,
@@ -40,6 +41,19 @@ import { FindAllOrdersOptions, OrderService } from './order.service';
 @ApiBearerAuth('token')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
+
+  // Customers may only read their own orders; staff (admin/superadmin) can
+  // read any — same role convention as admin.guard/permission.guard. The JWT
+  // request.user is the plain payload from jwt.strategy, not a User entity.
+  private assertCanRead(
+    user: { userId: number; role?: string } | undefined,
+    ownerId: number,
+  ) {
+    const isStaff = user?.role === 'admin' || user?.role === 'superadmin';
+    if (!isStaff && Number(user?.userId) !== Number(ownerId)) {
+      throw new ForbiddenException('You can only view your own orders');
+    }
+  }
 
   @UseGuards(JwtAuthGuard)
   @Get()
@@ -138,8 +152,10 @@ export class OrderController {
   @ApiParam({ name: 'id', type: Number })
   async findOne(
     @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
   ): Promise<ApiResponseDto<Order>> {
     const data = await this.orderService.getOrderById(id);
+    this.assertCanRead(req.user as { userId: number; role?: string }, data.user?.id);
     return {
       message: 'Order retrieved successfully',
       statusCode: HttpStatus.OK,
@@ -168,7 +184,9 @@ export class OrderController {
   @ApiParam({ name: 'userId', type: Number })
   async getOrdersByUserId(
     @Param('userId', ParseIntPipe) userId: number,
+    @Req() req: Request,
   ): Promise<ApiResponseDto<Order[]>> {
+    this.assertCanRead(req.user as { userId: number; role?: string }, userId);
     const data = await this.orderService.getOrdersByUserId(userId);
     return {
       message: 'Orders for the user retrieved successfully',
