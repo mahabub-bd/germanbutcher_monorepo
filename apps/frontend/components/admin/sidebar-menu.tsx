@@ -375,15 +375,23 @@ export function SidebarMenu({
                 </nav>
         </div>
 
-        <div className="border-t border-primaryColor/20 p-2 md:hidden">
+        <div className="border-t border-primaryColor/20 p-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="w-full h-auto py-2 px-2 justify-start hover:bg-primaryColor/10 text-gray-700 hover:text-primaryColor"
+                className={cn(
+                  "w-full h-auto py-2 px-2 justify-start hover:bg-primaryColor/10 text-gray-700 hover:text-primaryColor",
+                  collapsed && "justify-center px-0"
+                )}
               >
-                <div className="flex items-center gap-2 w-full min-w-0">
-                  <Avatar className="h-7 w-7 shrink-0">
+                <div
+                  className={cn(
+                    "flex items-center gap-2 w-full min-w-0",
+                    collapsed && "w-auto"
+                  )}
+                >
+                  <Avatar className="h-8 w-8 shrink-0 ring-1 ring-primaryColor/20">
                     {user?.profilePhoto?.url && (
                       <AvatarImage
                         src={user?.profilePhoto?.url || "/placeholder.svg"}
@@ -395,17 +403,21 @@ export function SidebarMenu({
                       {user?.name ? getInitials(user.name) : "US"}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col items-start min-w-0 flex-1">
-                    <span className="text-xs font-medium text-gray-700 truncate max-w-full">
-                      {user?.name || "User"}
-                    </span>
-                    {user?.email && (
-                      <span className="text-[10px] text-gray-500 truncate max-w-full">
-                        {user.email}
-                      </span>
-                    )}
-                  </div>
-                  <ChevronDown className="h-3 w-3 shrink-0 text-gray-500" />
+                  {!collapsed && (
+                    <>
+                      <div className="flex flex-col items-start min-w-0 flex-1">
+                        <span className="text-sm font-medium text-gray-700 truncate max-w-full">
+                          {user?.name || "User"}
+                        </span>
+                        {user?.email && (
+                          <span className="text-xs text-gray-500 truncate max-w-full">
+                            {user.email}
+                          </span>
+                        )}
+                      </div>
+                      <ChevronDown className="h-4 w-4 shrink-0 text-gray-500" />
+                    </>
+                  )}
                 </div>
               </Button>
             </DropdownMenuTrigger>

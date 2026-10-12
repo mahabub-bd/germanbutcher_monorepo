@@ -3,36 +3,19 @@
 import React, { useEffect, useState } from "react";
 
 import {
-  ChevronDown,
-  LogOut,
   Maximize,
   Menu,
   Minimize,
   Settings,
-  User,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-import { logout } from "@/actions/auth";
 import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { AdminHeaderBg, GermanbutcherLogo } from "@/public/images";
-import { resetAuthTokenCache } from "@/utils/api-utils";
-import { authResponse } from "@/utils/types";
 
-import { toast } from "sonner";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -45,7 +28,7 @@ import {
 // Rounded tile that sits behind each icon in the header. Solid black tiles
 // keep the icons legible over the photo.
 const iconTileClass =
-  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-black/80 text-white shadow-sm transition-all duration-150 hover:bg-black active:scale-90 active:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-black/80 text-white shadow-sm transition-all duration-150 hover:bg-black hover:text-white active:scale-90 active:bg-black active:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:text-white";
 
 // Thin separator between header clusters.
 function HeaderDivider() {
@@ -53,18 +36,15 @@ function HeaderDivider() {
 }
 
 export function AdminHeader({
-  user,
   onMenuClick,
   onToggleSidebar,
 }: {
-  user: { name?: string; email?: string; image?: string };
+  user?: { name?: string; email?: string; image?: string };
   onMenuClick?: () => void;
   onToggleSidebar?: () => void;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const pathSegments = pathname.split("/").filter(Boolean);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Format path segments for breadcrumb (capitalize, replace hyphens with spaces)
@@ -94,27 +74,6 @@ export function AdminHeader({
       console.error("Fullscreen toggle failed:", error);
     }
   };
-
-  const handleLogout = async () => {
-    try {
-      setIsLoggingOut(true);
-      const result: authResponse = await logout();
-
-      if (result.statusCode === 200) {
-        resetAuthTokenCache();
-        toast.success("Logged out successfully");
-        router.push("/auth/sign-in");
-        router.refresh();
-      } else {
-        toast.error("Failed to log out");
-      }
-    } catch (error) {
-      toast.error("Failed to log out");
-      console.error("Logout error:", error);
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
   return (
     <header className="sticky top-0 z-40 overflow-hidden bg-primaryColor shadow-lg">
       {/* Background image strip */}
@@ -140,7 +99,7 @@ export function AdminHeader({
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-lg bg-black/80 text-white shadow-sm transition-all duration-150 hover:bg-black active:scale-90 active:bg-black"
+            className="h-9 w-9 rounded-lg bg-black/80 text-white shadow-sm transition-all duration-150 hover:bg-black hover:text-white active:scale-90 active:bg-black active:text-white"
             title="Menu"
             onClick={onMenuClick}
           >
@@ -162,7 +121,7 @@ export function AdminHeader({
           </Link>
           <div>
             <NotificationBell
-              buttonClassName="h-9 w-9 rounded-lg bg-black/80 p-0 text-white shadow-sm transition-all duration-150 hover:bg-black hover:opacity-100 focus:bg-black active:scale-90 active:bg-black active:opacity-100"
+              buttonClassName="h-9 w-9 rounded-lg bg-black/80 p-0 text-white shadow-sm transition-all duration-150 hover:bg-black hover:text-white hover:opacity-100 focus:bg-black focus:text-white active:scale-90 active:bg-black active:text-white active:opacity-100"
             />
           </div>
         </div>
@@ -234,7 +193,7 @@ export function AdminHeader({
 
           <div className="relative">
             <NotificationBell
-              buttonClassName="h-9 w-9 rounded-lg bg-black/80 p-0 text-white shadow-sm transition-all duration-150 hover:bg-black hover:opacity-100 focus:bg-black active:scale-90 active:bg-black active:opacity-100"
+              buttonClassName="h-9 w-9 rounded-lg bg-black/80 p-0 text-white shadow-sm transition-all duration-150 hover:bg-black hover:text-white hover:opacity-100 focus:bg-black focus:text-white active:scale-90 active:bg-black active:text-white active:opacity-100"
             />
           </div>
 
@@ -260,53 +219,6 @@ export function AdminHeader({
           </button>
 
           <HeaderDivider />
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 rounded-full bg-transparent px-2 py-2.5 text-white shadow-none transition-all duration-150 hover:bg-white/10 hover:text-white active:scale-[0.97] active:bg-white/10"
-              >
-                <Avatar className="h-8 w-8 ring-1 ring-primaryColor/20 bg-white">
-                  <AvatarImage
-                    src={user?.image || ""}
-                    alt={user?.name || "User"}
-                    className="object-contain"
-                  />
-                  <AvatarFallback className="bg-gradient-to-br from-secondaryColor to-primaryColor text-sm font-semibold text-white">
-                    {user?.name?.charAt(0) || <User className="h-4 w-4" />}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="hidden min-w-0 flex-col items-start lg:flex">
-                  <span className="flex max-w-[160px] items-center gap-1 truncate text-sm font-semibold text-white drop-shadow-sm">
-                    {user?.name}
-                    <ChevronDown className="h-4 w-4 shrink-0 text-white" />
-                  </span>
-                  <span className="max-w-[180px] truncate text-xs text-white/70 drop-shadow-sm">{user?.email}</span>
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/admin/profile">
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </Link>
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950 dark:focus:text-red-400"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>{isLoggingOut ? "Signing out..." : "Sign out"}</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     </header>
