@@ -265,7 +265,7 @@ export function AdminHeader({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="flex items-center gap-2 rounded-full bg-white/80 px-2 py-2.5 text-foreground shadow-sm transition-all duration-150 hover:bg-white hover:text-foreground active:scale-[0.97] active:bg-white"
+                className="flex items-center gap-2 rounded-full bg-transparent px-2 py-2.5 text-black shadow-none transition-all duration-150 hover:bg-transparent hover:text-black active:scale-[0.97] active:bg-transparent"
               >
                 <Avatar className="h-8 w-8 ring-1 ring-primaryColor/20 bg-white">
                   <AvatarImage
@@ -278,11 +278,11 @@ export function AdminHeader({
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden min-w-0 flex-col items-start lg:flex">
-                  <span className="flex max-w-[160px] items-center gap-1 truncate text-sm font-semibold text-foreground">
+                  <span className="flex max-w-[160px] items-center gap-1 truncate text-sm font-semibold text-black">
                     {user?.name}
-                    <ChevronDown className="h-4 w-4 shrink-0 text-foreground" />
+                    <ChevronDown className="h-4 w-4 shrink-0 text-black" />
                   </span>
-                  <span className="max-w-[180px] truncate text-xs text-muted-foreground">{user?.email}</span>
+                  <span className="max-w-[180px] truncate text-xs text-black/70">{user?.email}</span>
                 </div>
               </Button>
             </DropdownMenuTrigger>
