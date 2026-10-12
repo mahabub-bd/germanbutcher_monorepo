@@ -182,6 +182,12 @@ export default function MyAddress({
                   </h2>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-4">
+                  {address.isDefault && (
+                    <span className="inline-flex items-center gap-1 sm:gap-1.5 rounded-full bg-green-100 px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-green-700">
+                      <CircleCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-green-600 text-white" />
+                      Default
+                    </span>
+                  )}
                   <button
                     type="button"
                     className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-base font-medium text-primaryColor transition-colors hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -219,14 +225,6 @@ export default function MyAddress({
                     </span>
                   </div>
                 ))}
-                {address.isDefault && (
-                  <div className="pt-0.5 sm:pt-1">
-                    <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-green-100 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-green-700">
-                      <CircleCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-green-600 text-white" />
-                      Default {address.type} address
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
           );
