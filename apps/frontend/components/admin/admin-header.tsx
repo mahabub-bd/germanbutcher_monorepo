@@ -267,10 +267,11 @@ export function AdminHeader({
                 variant="ghost"
                 className="flex items-center gap-2 rounded-full bg-white/80 px-2 py-2.5 text-foreground shadow-sm transition-all duration-150 hover:bg-white hover:text-foreground active:scale-[0.97] active:bg-white"
               >
-                <Avatar className="h-8 w-8 ring-1 ring-primaryColor/20">
+                <Avatar className="h-8 w-8 ring-1 ring-primaryColor/20 bg-white">
                   <AvatarImage
                     src={user?.image || ""}
                     alt={user?.name || "User"}
+                    className="object-contain"
                   />
                   <AvatarFallback className="bg-gradient-to-br from-secondaryColor to-primaryColor text-sm font-semibold text-white">
                     {user?.name?.charAt(0) || <User className="h-4 w-4" />}

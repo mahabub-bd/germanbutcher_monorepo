@@ -63,7 +63,11 @@ export function AdminLayoutClient({
         setCollapsed={setSidebarCollapsed}
       />
       <AdminHeader
-        user={safeUser}
+        user={{
+          ...safeUser,
+          // Session stores the photo under profilePhoto; the header reads image.
+          image: safeUser.profilePhoto?.url ?? safeUser.image,
+        }}
         onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
       />

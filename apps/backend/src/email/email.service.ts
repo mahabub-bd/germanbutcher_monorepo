@@ -12,6 +12,14 @@ import {
   NewOrderAlertData,
   NewReviewAlertData,
 } from './templates/admin-alert.template';
+import {
+  generatePasswordChangedHTML,
+  PasswordChangedEmailData,
+} from './templates/password-changed.template';
+import {
+  generatePasswordResetOtpHTML,
+  PasswordResetOtpEmailData,
+} from './templates/password-reset-otp.template';
 
 interface EmailAddress {
   address: string;
@@ -183,6 +191,80 @@ export class EmailService {
         err.stack,
       );
       // Don't throw — admin alerts must never break the main flow
+    }
+  }
+
+  // Security confirmation sent to the user after a successful password change.
+  // Never throws — the password change itself must not fail on email errors.
+  async sendPasswordChangedEmail(
+    data: PasswordChangedEmailData,
+  ): Promise<void> {
+    try {
+      const htmlBody = generatePasswordChangedHTML(data);
+
+      await this.client.sendMail({
+        from: {
+          address: this.fromAddress,
+          name: this.fromName,
+        },
+        to: [
+          {
+            email_address: {
+              address: data.email,
+              name: data.name,
+            },
+          },
+        ],
+        subject: 'Your German Butcher password has been changed',
+        htmlbody: htmlBody,
+      });
+
+      this.logger.log(
+        `Password changed confirmation email sent to ${data.email}`,
+      );
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(
+        `Failed to send password changed email to ${data.email}: ${err.message}`,
+        err.stack,
+      );
+      // Don't throw — the password change already succeeded
+    }
+  }
+
+  // Password reset OTP, sent alongside the SMS for users with an email on file.
+  // Never throws — the reset request must not fail on email errors.
+  async sendPasswordResetOtpEmail(
+    data: PasswordResetOtpEmailData,
+  ): Promise<void> {
+    try {
+      const htmlBody = generatePasswordResetOtpHTML(data);
+
+      await this.client.sendMail({
+        from: {
+          address: this.fromAddress,
+          name: this.fromName,
+        },
+        to: [
+          {
+            email_address: {
+              address: data.email,
+              name: data.name,
+            },
+          },
+        ],
+        subject: `Your password reset code: ${data.otp}`,
+        htmlbody: htmlBody,
+      });
+
+      this.logger.log(`Password reset OTP email sent to ${data.email}`);
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(
+        `Failed to send password reset OTP email to ${data.email}: ${err.message}`,
+        err.stack,
+      );
+      // Don't throw — the SMS already carries the code
     }
   }
 

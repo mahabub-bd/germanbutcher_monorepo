@@ -13,6 +13,7 @@ import { DeepPartial, Repository } from 'typeorm';
 import { instanceToPlain } from 'class-transformer';
 import { OtpService } from 'src/auth/otp.service';
 import { SmsService } from 'src/auth/sms.service';
+import { EmailService } from 'src/email/email.service';
 import { DateRangePreset } from 'src/common/enums';
 import { Role } from 'src/roles/entities/role.entity';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -31,6 +32,7 @@ export class UserService {
     private readonly roleRepository: Repository<Role>,
     private readonly otpService: OtpService,
     private readonly smsService: SmsService,
+    private readonly emailService: EmailService,
   ) {}
 
   // async findAll(
@@ -772,15 +774,110 @@ export class UserService {
       ...updateUserDto,
     };
 
+    // profilePhoto is an eager relation owning the profilePhotoId FK —
+    // setting the scalar alone is clobbered by the loaded relation on save.
+    // Assign the relation (or null to clear) instead.
+    if (updateUserDto.profilePhotoId !== undefined) {
+      if (updateUserDto.profilePhotoId === null) {
+        updateData.profilePhoto = null;
+      } else {
+        const attachment = await this.userRepository.manager
+          .getRepository('Attachment')
+          .findOne({ where: { id: updateUserDto.profilePhotoId } });
+        if (!attachment) {
+          throw new BadRequestException({
+            message: `Attachment with ID ${updateUserDto.profilePhotoId} not found`,
+            statusCode: HttpStatus.BAD_REQUEST,
+            data: null,
+          });
+        }
+        updateData.profilePhoto = attachment as any;
+      }
+    }
+
     const updatedUser = this.userRepository.merge(user, updateData);
-    const savedUser = await this.userRepository.save(updatedUser);
+    await this.userRepository.save(updatedUser);
+
+    // Reload: save() does not refresh the eager profilePhoto relation, so
+    // the returned entity would carry the previous photo.
+    const freshUser = await this.userRepository.findOne({
+      where: { id: user.id },
+    });
+    if (!freshUser) {
+      throw new NotFoundException({
+        message: 'User not found',
+        statusCode: HttpStatus.NOT_FOUND,
+        data: null,
+      });
+    }
+
+    // Never return credential / verification fields.
+    const { password, otp, otpExpiresAt, ...safeUser } = freshUser;
 
     return {
       message: 'User updated successfully',
       statusCode: 200,
-      data: savedUser,
+      data: safeUser as User,
     };
   }
+  /**
+   * Change the authenticated user's own password, verifying the current one.
+   * The password column is select:false, so it is pulled explicitly.
+   */
+  async changePassword(
+    id: number,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ message: string; statusCode: number; data: null }> {
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.id = :id', { id })
+      .getOne();
+
+    if (!user || !user.password) {
+      throw new NotFoundException({
+        message: 'User not found',
+        statusCode: HttpStatus.NOT_FOUND,
+        data: null,
+      });
+    }
+
+    const isCurrentValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentValid) {
+      throw new BadRequestException({
+        message: 'Current password is incorrect',
+        statusCode: HttpStatus.BAD_REQUEST,
+        data: null,
+      });
+    }
+
+    const isSameAsCurrent = await bcrypt.compare(newPassword, user.password);
+    if (isSameAsCurrent) {
+      throw new BadRequestException({
+        message: 'New password must be different from the current password',
+        statusCode: HttpStatus.BAD_REQUEST,
+        data: null,
+      });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await this.userRepository.save(user);
+
+    // Fire-and-forget security confirmation — never blocks or fails the change.
+    void this.emailService.sendPasswordChangedEmail({
+      name: user.name,
+      email: user.email,
+      changedAt: new Date(),
+    });
+
+    return {
+      message: 'Password changed successfully',
+      statusCode: 200,
+      data: null,
+    };
+  }
+
   async remove(id: number): Promise<{ message: string; statusCode: number }> {
     const result = await this.userRepository.delete(id);
     if (result.affected === 0) {
@@ -876,8 +973,18 @@ export class UserService {
     const message = `Your German Butcher password reset code: ${otp}. Valid for 5 minutes. Thank you`;
     await this.smsService.sendSms(mobileNumber, message, 'PASSWORD-RESET');
 
+    // Same code via email so the reset works even when SMS is undeliverable.
+    if (user.email) {
+      void this.emailService.sendPasswordResetOtpEmail({
+        name: user.name,
+        email: user.email,
+        otp,
+        expiresAt: otpExpiresAt,
+      });
+    }
+
     return {
-      message: 'OTP has been sent to your mobile number',
+      message: 'OTP has been sent to your mobile number and email',
       statusCode: HttpStatus.OK,
     };
   }
@@ -917,6 +1024,21 @@ export class UserService {
     user.otpExpiresAt = null;
 
     await this.userRepository.save(user);
+
+    // Security confirmation via both channels — fire-and-forget so a mail/SMS
+    // outage never fails the reset itself.
+    if (user.email) {
+      void this.emailService.sendPasswordChangedEmail({
+        name: user.name,
+        email: user.email,
+        changedAt: new Date(),
+      });
+    }
+    void this.smsService.sendSms(
+      mobileNumber,
+      'Your German Butcher account password has been reset successfully. If this was not you, contact support immediately.',
+      'PASSWORD-RESET',
+    );
 
     return {
       message: 'Password has been reset successfully',

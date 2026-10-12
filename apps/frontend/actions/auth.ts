@@ -3,7 +3,7 @@
 import { logoutPost, postData } from "@/utils/api-utils";
 
 import { loginSchema, registerSchema } from "@/utils/form-validation";
-import { authResponse } from "@/utils/types";
+import { authResponse, UserTypes } from "@/utils/types";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { getUserFromToken } from "./jwt-utils";
@@ -50,6 +50,7 @@ export async function setUserCookies(userData: any) {
     mobileNumber: "",
     roles: "",
     isAdmin: false,
+    profilePhoto: undefined as UserTypes["profilePhoto"],
     createdAt: "",
   };
 
@@ -64,6 +65,7 @@ export async function setUserCookies(userData: any) {
         mobileNumber: user.mobileNumber || "",
         roles: user.roles || "",
         isAdmin: isAdminRole(user.roles),
+        profilePhoto: user.profilePhoto,
         createdAt: user.createdAt || "",
       };
     }
@@ -76,6 +78,7 @@ export async function setUserCookies(userData: any) {
         mobileNumber: userData.mobileNumber || "",
         roles: userData.roles || "",
         isAdmin: isAdminRole(userData.roles),
+        profilePhoto: userData.profilePhoto,
         createdAt: userData.createdAt || "",
       };
     }
@@ -88,6 +91,7 @@ export async function setUserCookies(userData: any) {
         mobileNumber: userData.mobileNo,
         roles: roleNameOf(userData.roles),
         isAdmin: isAdminRole(userData.roles),
+        profilePhoto: userData.profilePhoto,
         createdAt: userData?.createdAt,
       };
     }
@@ -240,6 +244,28 @@ export async function getUser() {
       console.error("Invalid user data format");
       return null;
     }
+
+    // Sessions created before profilePhoto was stored in the cookie lack the
+    // key entirely — backfill it from the API so the navbar can show the
+    // photo without forcing a re-login.
+    if (parsedValue.id && parsedValue.profilePhoto === undefined) {
+      try {
+        const token = cookieStore.get("auth_token")?.value;
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/v1";
+        const res = await fetch(`${apiUrl}/users/${parsedValue.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          cache: "no-store",
+        });
+        if (res.ok) {
+          const json = await res.json();
+          parsedValue.profilePhoto = json?.data?.profilePhoto;
+        }
+      } catch {
+        // Best effort only — fall back to the initials avatar
+      }
+    }
+
     return parsedValue;
   } catch (error) {
     console.error("Error parsing user data:", error);

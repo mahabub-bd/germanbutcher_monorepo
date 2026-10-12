@@ -137,6 +137,7 @@ export class ProductReviewService {
     const [reviews, total] = await this.reviewRepository
       .createQueryBuilder('review')
       .innerJoinAndSelect('review.user', 'user')
+      .leftJoinAndSelect('user.profilePhoto', 'reviewerPhoto')
       .innerJoinAndSelect('review.product', 'product')
       .leftJoinAndSelect('product.attachment', 'productAttachment')
       .leftJoinAndSelect('review.attachment', 'attachment')
@@ -309,6 +310,7 @@ export class ProductReviewService {
     const qb = this.reviewRepository
       .createQueryBuilder('review')
       .innerJoinAndSelect('review.user', 'user')
+      .leftJoinAndSelect('user.profilePhoto', 'reviewerPhoto')
       .innerJoinAndSelect('review.product', 'product')
       .leftJoinAndSelect('product.attachment', 'productAttachment')
       .leftJoinAndSelect('review.attachment', 'attachment')
@@ -338,6 +340,7 @@ export class ProductReviewService {
     const qb = this.reviewRepository
       .createQueryBuilder('review')
       .innerJoinAndSelect('review.user', 'user')
+      .leftJoinAndSelect('user.profilePhoto', 'reviewerPhoto')
       .innerJoinAndSelect('review.product', 'product')
       .leftJoinAndSelect('review.attachment', 'attachment');
 

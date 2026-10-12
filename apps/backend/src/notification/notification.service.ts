@@ -28,10 +28,40 @@ export class NotificationService {
     private notificationRepository: Repository<Notification>,
   ) {}
 
+  /**
+   * Compact order snapshot for realtime events and persisted rows. Full
+   * order entities drag in product/supplier/unit relations whose
+   * createdBy/updatedBy user entities leak password hashes — and bloat
+   * every notification payload. Keep only the fields the UIs render.
+   */
+  private slimOrder(order: OrderNotificationData) {
+    return {
+      orderId: order.orderId,
+      orderNo: order.orderNo,
+      userId: order.userId,
+      orderStatus: order.orderStatus,
+      paymentStatus: order.paymentStatus,
+      totalValue: order.totalValue,
+      itemCount: order.items?.length ?? 0,
+      // callers already send only { id, name, email, mobileNumber }
+      user: order.user,
+      items: order.items?.map((item: any) => ({
+        productId: item.productId ?? item.product?.id,
+        name: item.product?.name,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+      })),
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+    };
+  }
+
   // Notify admins about a new order: realtime emit plus a persisted row
   // in the admin feed (audience 'admin', no recipient user).
   async notifyNewOrder(order: OrderNotificationData) {
-    this.notificationGateway.emitNewOrder(order);
+    const slim = this.slimOrder(order);
+    this.notificationGateway.emitNewOrder(slim);
     await this.persist({
       userId: null,
       audience: 'admin',
@@ -39,31 +69,33 @@ export class NotificationService {
       title: 'New order received',
       // orderNo is not repeated here — the UI shows it as a chip/link.
       message: 'A new order has been placed.',
-      data: order as any,
+      data: slim,
     });
   }
 
   // Notify user about order confirmation
   async notifyOrderConfirmation(userId: string, order: OrderNotificationData) {
-    this.notificationGateway.emitOrderConfirmation(userId, order);
+    const slim = this.slimOrder(order);
+    this.notificationGateway.emitOrderConfirmation(userId, slim);
     await this.persist({
       userId: Number(userId),
       type: 'orderConfirmation',
       title: 'Order confirmed',
       message: `Your order ${order.orderNo} has been confirmed.`,
-      data: order as any,
+      data: slim,
     });
   }
 
   // Notify user about order status change
   async notifyOrderStatusUpdate(userId: string, order: OrderNotificationData) {
-    this.notificationGateway.emitOrderStatusUpdate(userId, order);
+    const slim = this.slimOrder(order);
+    this.notificationGateway.emitOrderStatusUpdate(userId, slim);
     await this.persist({
       userId: Number(userId),
       type: 'orderStatusUpdate',
       title: 'Order status updated',
       message: `Your order ${order.orderNo} status updated to ${order.orderStatus}.`,
-      data: order as any,
+      data: slim,
     });
   }
 
@@ -72,13 +104,14 @@ export class NotificationService {
     userId: string,
     order: OrderNotificationData,
   ) {
-    this.notificationGateway.emitPaymentStatusUpdate(userId, order);
+    const slim = this.slimOrder(order);
+    this.notificationGateway.emitPaymentStatusUpdate(userId, slim);
     await this.persist({
       userId: Number(userId),
       type: 'paymentStatusUpdate',
       title: 'Payment status updated',
       message: `Payment for order ${order.orderNo} is now ${order.paymentStatus}.`,
-      data: order as any,
+      data: slim,
     });
   }
 

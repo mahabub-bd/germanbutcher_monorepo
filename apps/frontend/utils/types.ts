@@ -1068,7 +1068,11 @@ export interface ProductReview {
   comment: string;
   isApproved: boolean;
   isRejected: boolean;
-  user: { id: number; name: string };
+  user: {
+    id: number;
+    name: string;
+    profilePhoto?: { url: string } | null;
+  };
   product?: {
     id: number;
     name: string;

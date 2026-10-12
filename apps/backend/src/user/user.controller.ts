@@ -23,9 +23,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
+import { User } from 'src/user/entities/user.entity';
 import { DateRangePreset } from 'src/common/enums';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { TopCustomersQueryDto } from './dto/top-customers-query.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -285,6 +288,30 @@ export class UserController {
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async create(@Body() createUserDto: CreateUserDto) {
     return this.userService.create(createUserDto);
+  }
+  @UseGuards(JwtAuthGuard)
+  @Patch('password/change')
+  @ApiOperation({
+    summary: 'Change my password',
+    description:
+      'Change the authenticated user’s password after verifying the current one',
+  })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({
+    status: 400,
+    description: 'Current password incorrect or new password identical',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async changePassword(
+    @GetUser() user: User,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.userService.changePassword(
+      user.userId,
+      changePasswordDto.currentPassword,
+      changePasswordDto.newPassword,
+    );
   }
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
