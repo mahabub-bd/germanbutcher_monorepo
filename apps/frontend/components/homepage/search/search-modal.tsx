@@ -27,12 +27,12 @@ export function SearchModal() {
   useEffect(() => {
     if (isOpen && !searchQuery.trim()) {
       const timer = setTimeout(() => {
-        setIsOpen(false);
+        clearSearch();
       }, 300); // 300ms delay
 
       return () => clearTimeout(timer);
     }
-  }, [searchQuery, isOpen, setIsOpen]);
+  }, [searchQuery, isOpen, clearSearch]);
 
   const shouldShowModal = () => {
     const adminRoutes = ["/admin"];
@@ -58,7 +58,9 @@ export function SearchModal() {
   };
 
   const handleClose = () => {
-    setIsOpen(false);
+    // Full clear (not just close) so a stale ?search= in the URL can't
+    // re-open the modal on the next render/reload
+    clearSearch();
   };
 
   const displayedProducts = products.slice(0, 4);

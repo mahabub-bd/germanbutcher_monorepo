@@ -1,6 +1,4 @@
-// Readable slugs for the order list routes. Detail links carry the source
-// list as `?from=<slug>` (omitted for the default list) so "Back" can
-// restore the exact page without putting encoded paths in the URL.
+
 const LIST_ROUTES: Record<string, string> = {
   orders: "/admin/orders",
   pending: "/admin/orders/pending",

@@ -58,7 +58,6 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
         // Only update if not aborted
         if (!fetchAbortController.current.signal.aborted) {
           setProducts(data || []);
-          setIsOpen(true);
         }
       } catch (err) {
         // Ignore abort errors

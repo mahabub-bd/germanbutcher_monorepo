@@ -8,8 +8,8 @@ import {
   Smartphone,
   Truck,
   Wallet,
-  Zap,
   XCircle,
+  Zap,
 } from "lucide-react";
 import { OrderStatus } from "./types";
 
@@ -209,13 +209,10 @@ const getShippingMethodIcon = (method: string): React.ReactNode => {
 };
 
 export {
-  getOrderStatusColor,
-  getShippingMethodColor,
-  getShippingMethodIcon,
-  getPaymentMethodColor,
+  getOrderStatusColor, getPaymentMethodColor,
   getPaymentMethodIcon,
-  getPaymentStatusColor,
-  getStatusDotColor,
+  getPaymentStatusColor, getShippingMethodColor,
+  getShippingMethodIcon, getStatusDotColor,
   getStatusIcon
 };
 
