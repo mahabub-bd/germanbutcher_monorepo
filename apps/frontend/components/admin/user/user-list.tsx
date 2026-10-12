@@ -279,7 +279,7 @@ export function UserList({
                   className="flex items-center gap-3 font-medium leading-tight hover:underline"
                 >
                   {user.profilePhoto?.url ? (
-                    <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg border bg-muted">
+                    <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border bg-muted">
                       <Image
                         src={user.profilePhoto.url}
                         alt={user.name || "User"}
@@ -288,7 +288,7 @@ export function UserList({
                       />
                     </span>
                   ) : (
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-muted text-sm font-semibold text-muted-foreground uppercase">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-muted text-sm font-semibold text-muted-foreground uppercase">
                       {user.name?.charAt(0) || <UserIcon className="h-5 w-5" />}
                     </span>
                   )}
