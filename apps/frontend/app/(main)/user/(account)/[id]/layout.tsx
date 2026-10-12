@@ -70,10 +70,10 @@ const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
   ];
 
   return (
-    <div className="min-h-screen py-4 ">
+    <div className="min-h-screen">
       <ProfileBreadcrumb navItems={navItems} />
 
-      <div className="container mx-auto md:px-0 px-4 mt-4">
+      <div className="container mx-auto md:px-0 px-4 md:py-8 py-4">
         <div className="grid grid-cols-12 md:gap-8 gap-4">
           {/* Desktop Sidebar */}
           <div className="col-span-12">
