@@ -1,8 +1,8 @@
+import { formatDateTime } from "@/lib/utils";
+import type { ProductReview } from "@/utils/types";
 import { BadgeCheck } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { formatDateTime } from "@/lib/utils";
-import type { ProductReview } from "@/utils/types";
 import { Stars } from "./stars";
 
 interface ReviewItemProps {
@@ -19,7 +19,7 @@ export function ReviewItem({ review, action }: ReviewItemProps) {
   const reviewerName = review.user?.name || "Customer";
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-gray-100 pb-4 last:border-b-0">
       {/* Reviewer photo, falling back to an initial */}
       {review.user?.profilePhoto?.url ? (
         // eslint-disable-next-line @next/next/no-img-element

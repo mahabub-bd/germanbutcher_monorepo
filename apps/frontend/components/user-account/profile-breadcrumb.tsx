@@ -58,7 +58,7 @@ const ProfileBreadcrumb: React.FC<ProfileBreadcrumbProps> = ({
       <div className="container mx-auto md:px-0 px-2">
         <nav
           aria-label="Breadcrumb"
-          className="flex items-center gap-2 overflow-x-auto py-2.5 text-xs sm:text-sm"
+          className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-2.5 text-xs sm:text-sm"
         >
           <Link
             href="/"

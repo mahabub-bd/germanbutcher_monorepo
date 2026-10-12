@@ -70,10 +70,10 @@ const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
   ];
 
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen">
       <ProfileBreadcrumb navItems={navItems} />
 
-      <div className="container mx-auto md:px-0 px-4 mt-4">
+      <div className="container mx-auto md:px-0 px-4 md:py-8 py-4">
         <div className="grid grid-cols-12 md:gap-8 gap-4">
           {/* Desktop Sidebar */}
           <div className="col-span-12">
@@ -82,9 +82,18 @@ const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
                 {/* User Profile Header */}
                 <div className="bg-gradient-to-br from-primaryColor via-[#6d0000] to-primaryColor p-4 text-white">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6" />
-                    </div>
+                    {user?.profilePhoto?.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={user.profilePhoto.url}
+                        alt={user?.name || "Profile"}
+                        className="w-12 h-12 shrink-0 rounded-full border border-white/40 object-contain bg-white"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                        <User className="w-6 h-6" />
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <h3 className="font-semibold text-white truncate">
                         {user?.name || "User"}
@@ -102,17 +111,26 @@ const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
             </div>
 
             {/* Mobile Sidebar */}
-            <div className="lg:hidden mb-6">
-              <div className="bg-white rounded-md shadow-md p-4">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-primaryColor via-[#6d0000] to-primaryColor rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold truncate">
+            <div className="lg:hidden mb-4">
+              <div className="bg-white rounded-md shadow-md overflow-hidden">
+                <div className="flex items-center gap-2.5 p-3 pb-1">
+                  {user?.profilePhoto?.url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user.profilePhoto.url}
+                      alt={user?.name || "Profile"}
+                      className="w-9 h-9 shrink-0 rounded-full border border-gray-100 object-contain bg-white"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 shrink-0 bg-primaryColor rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold truncate">
                       {user?.name || "User"}
                     </h3>
-                    <p className="text-gray-500 text-sm">Account Settings</p>
+                    <p className="text-gray-500 text-xs">Account Settings</p>
                   </div>
                 </div>
                 <MobileSidebar navItems={navItems} />
