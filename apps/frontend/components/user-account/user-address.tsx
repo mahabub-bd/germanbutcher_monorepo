@@ -154,7 +154,7 @@ export default function MyAddress({
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6 items-start">
         {sortedAddresses.map((address) => {
           const isDeleting = deletingId === address.id;
           const canDelete = canDeleteAddress(address);
@@ -170,37 +170,37 @@ export default function MyAddress({
           return (
             <div
               key={address.id}
-              className="p-5 sm:p-6 bg-white rounded-xl border border-gray-200 shadow-sm"
+              className="p-3.5 sm:p-6 bg-white rounded-xl border border-gray-200 shadow-sm"
             >
-              <div className="flex justify-between items-center pb-4 mb-5 border-b border-gray-100">
-                <div className="flex items-center gap-3.5">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50 text-primaryColor">
-                    <Icon className="w-5 h-5" />
+              <div className="flex justify-between items-center pb-3 mb-3.5 sm:pb-4 sm:mb-5 border-b border-gray-100">
+                <div className="flex items-center gap-2.5 sm:gap-3.5">
+                  <span className="flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full bg-red-50 text-primaryColor">
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </span>
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 capitalize">
+                  <h2 className="text-sm sm:text-xl font-bold text-gray-900 capitalize">
                     {address.type} Address
                   </h2>
                 </div>
-                <div className="flex items-center gap-3 sm:gap-4">
+                <div className="flex items-center gap-2 sm:gap-4">
                   <button
                     type="button"
-                    className="flex items-center gap-1.5 text-base font-medium text-primaryColor transition-colors hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-base font-medium text-primaryColor transition-colors hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => handleEditAddress(address)}
                     disabled={isDeleting}
                   >
-                    <PencilLine className="w-4 h-4" />
+                    <PencilLine className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     Edit
                   </button>
                   {canDelete && (
                     <>
-                      <span className="h-5 w-px bg-gray-200" aria-hidden />
+                      <span className="h-4 w-px sm:h-5 bg-gray-200" aria-hidden />
                       <button
                         type="button"
-                        className="flex items-center gap-1.5 text-base font-medium text-red-600 transition-colors hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-base font-medium text-red-600 transition-colors hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={() => handleDeleteClick(address)}
                         disabled={isDeleting}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         Delete
                       </button>
                     </>
@@ -208,21 +208,21 @@ export default function MyAddress({
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-2 sm:space-y-4">
                 {fields.map((field) => (
-                  <div key={field.label} className="flex items-start gap-4">
-                    <span className="w-24 sm:w-28 lg:w-36 shrink-0 text-gray-500">
+                  <div key={field.label} className="flex items-start gap-2.5 sm:gap-4">
+                    <span className="w-20 sm:w-28 lg:w-36 shrink-0 text-xs sm:text-base text-gray-500">
                       {field.label}
                     </span>
-                    <span className="font-medium text-gray-900 break-words">
+                    <span className="text-xs sm:text-base font-medium text-gray-900 break-words">
                       {field.value}
                     </span>
                   </div>
                 ))}
                 {address.isDefault && (
-                  <div className="pt-1">
-                    <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-4 py-2 text-sm font-medium text-green-700">
-                      <CircleCheck className="h-4 w-4 fill-green-600 text-white" />
+                  <div className="pt-0.5 sm:pt-1">
+                    <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-green-100 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-green-700">
+                      <CircleCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-green-600 text-white" />
                       Default {address.type} address
                     </span>
                   </div>
