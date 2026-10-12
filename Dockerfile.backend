@@ -1,0 +1,61 @@
+# Multi-stage Dockerfile for the NestJS backend.
+# Build context must be the repository root so the pnpm workspace
+# lockfile (pnpm-lock.yaml + pnpm-workspace.yaml) is available.
+# syntax=docker/dockerfile:1
+
+# Stage 1: Dependencies
+FROM node:24-alpine AS deps
+WORKDIR /app
+
+# Install pnpm (pinned major: pnpm 12 fails installs on unapproved build scripts)
+RUN npm install -g pnpm@10
+
+# Copy workspace root manifest, lockfile and workspace config
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# The lockfile records an importer for every workspace package,
+# so each package.json must be present for a frozen install
+COPY apps/frontend/package.json apps/frontend/package.json
+COPY apps/backend/package.json apps/backend/package.json
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Stage 2: Builder
+FROM deps AS builder
+
+# Copy the backend sources (node_modules/dist are excluded via .dockerignore)
+COPY apps/backend ./apps/backend
+
+# Set environment for build
+ENV NODE_ENV=production
+
+# Build the application
+RUN pnpm --filter germanbutcher-backend build
+
+# Ensure public directory exists (even if empty) for the COPY command
+RUN mkdir -p /app/apps/backend/public
+
+# Stage 3: Production Runner
+FROM node:24-alpine AS runner
+WORKDIR /app
+
+# Set environment
+ENV NODE_ENV=production
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nestjs
+
+# Copy built files and dependencies with correct ownership (much faster than chown -R)
+# pnpm's node_modules keeps its .pnpm store and symlinks intact when copied as a whole
+COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/dist ./dist
+COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/package.json ./
+COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/public ./public
+
+USER nestjs
+
+EXPOSE 3000
+
+CMD ["node", "dist/main"]

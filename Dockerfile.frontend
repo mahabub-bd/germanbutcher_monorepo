@@ -1,0 +1,88 @@
+# Multi-stage Dockerfile for the Next.js frontend.
+# Build context must be the repository root so the pnpm workspace
+# lockfile (pnpm-lock.yaml + pnpm-workspace.yaml) is available.
+# syntax=docker/dockerfile:1
+
+# Base stage - minimal Alpine with Node.js only
+FROM node:24-alpine AS base
+
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Build stage with tools for compiling native modules
+FROM base AS build-tools
+
+# Install build tools only for this stage
+RUN apk add --no-cache libc6-compat python3 make g++ \
+    && rm -rf /var/cache/apk/*
+
+# Install pnpm (pinned major: pnpm 12 fails installs on unapproved build scripts)
+RUN npm install -g pnpm@10
+
+FROM build-tools AS deps
+
+# Copy workspace root manifest, lockfile and workspace config
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# The lockfile records an importer for every workspace package,
+# so each package.json must be present for a frozen install
+COPY apps/frontend/package.json apps/frontend/package.json
+COPY apps/backend/package.json apps/backend/package.json
+
+# Install dependencies with frozen lockfile for reproducible builds
+RUN pnpm install --frozen-lockfile
+
+FROM deps AS builder
+
+# Copy the frontend sources (node_modules/.next are excluded via .dockerignore)
+COPY apps/frontend ./apps/frontend
+
+# Set environment for build
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV CI=true
+
+# Build arguments for public environment variables
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_BASE_URL
+ARG NEXT_PUBLIC_SOCKET_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+ENV NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
+
+# Build the application
+RUN pnpm --filter germanbutcher-frontend run build
+
+# Production stage - start from clean base (no build tools)
+FROM node:24-alpine AS production
+
+ENV NODE_ENV=production
+ENV PORT=3002
+ENV HOSTNAME=0.0.0.0
+ENV NEXT_TELEMETRY_DISABLED=1
+
+WORKDIR /app
+
+# Build arguments for runtime environment variables
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_BASE_URL
+ARG NEXT_PUBLIC_SOCKET_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+ENV NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
+
+# Copy standalone output - in a workspace build it mirrors the monorepo layout:
+# apps/frontend/server.js plus the hoisted node_modules at the workspace root
+COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/.next/static ./apps/frontend/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/public ./apps/frontend/public
+
+USER nextjs
+
+EXPOSE 3002
+
+CMD ["node", "apps/frontend/server.js"]

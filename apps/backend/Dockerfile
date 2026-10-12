@@ -1,3 +1,6 @@
+# SUPERSEDED: this Dockerfile cannot work in this monorepo - the pnpm lockfile lives
+# at the repository root and is outside this build context. Use the root-level
+# Dockerfile.frontend / Dockerfile.backend with the repo root as the build context.
 # Multi-stage Dockerfile for NestJS Backend
 # Stage 1: Dependencies
 FROM node:24-alpine AS deps

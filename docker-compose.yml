@@ -3,8 +3,8 @@
 services:
   frontend:
     build:
-      context: ./apps/frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.frontend
     container_name: germanbutcher-frontend
     ports:
       - "3002:3002"
@@ -25,8 +25,8 @@ services:
 
   backend:
     build:
-      context: ./apps/backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.backend
     container_name: germanbutcher-backend
     ports:
       - "3000:3000"
