@@ -10,7 +10,7 @@ export function RatingSummary({ summary }: RatingSummaryProps) {
   const { averageRating, reviewCount, breakdown } = summary;
 
   return (
-    <div className="flex flex-col md:flex-row items-center gap-6 md:gap-0 rounded-xl border border-gray-100 bg-white p-5 md:p-6 shadow-sm">
+    <div className="flex flex-col md:flex-row items-center gap-6 md:gap-0  md:p-4 p-2">
       {/* Average */}
       <div className="flex flex-col items-center text-center md:w-52 md:shrink-0 md:md:border-r md:border-gray-100">
         <span className="text-5xl font-bold leading-none text-primaryColor">

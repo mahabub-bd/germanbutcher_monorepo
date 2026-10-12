@@ -1,5 +1,6 @@
 "use client";
 
+import { logout } from "@/actions/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
@@ -11,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { AccountPageHeader } from "@/components/user-account/account-page-header";
-import { logout } from "@/actions/auth";
 import { formPostData, patchData, resetAuthTokenCache } from "@/utils/api-utils";
 import { User } from "@/utils/types";
 import {
@@ -50,18 +50,18 @@ function DisplayField({
   locked?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 min-h-12 px-4 py-3 bg-gray-50 rounded-lg border">
+    <div className="flex items-center gap-2 min-h-12 px-4 py-3 bg-gray-50 rounded-lg border">
       <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 shrink-0">
         <span className="p-1.5 rounded-lg bg-primaryColor/10">
           <Icon className="w-4 h-4 text-primaryColor" />
         </span>
         {label}
       </label>
-      <p className="ml-auto text-sm text-gray-800 font-medium truncate text-right">
+      <p className="ml-auto min-w-0 flex-1 truncate text-right text-sm text-gray-800 font-medium">
         {value || "Not provided"}
       </p>
       {locked && (
-        <span className="shrink-0 text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+        <span className="shrink-0 whitespace-nowrap text-xs md:block hidden text-gray-500 bg-gray-200 px-2 py-1 rounded">
           Cannot be changed
         </span>
       )}
@@ -80,7 +80,7 @@ function ProfilePhotoSection({ user }: { user: User }) {
   };
 
   return (
-    <div className="flex items-center gap-4 p-4 rounded-lg border bg-gray-50/50">
+    <div className="flex items-center gap-4 md:p-4 p-2 rounded-lg border bg-gray-50/50">
       <Avatar className="h-20 w-20 border-2 border-white bg-white shadow-sm">
         {user.profilePhoto?.url ? (
           <AvatarImage
@@ -335,13 +335,11 @@ function EditDetailsModal({
               </div>
               Contact Number
             </label>
-            <div className="min-h-12 flex items-center px-4 py-3 bg-gray-50 rounded-lg border">
-              <p className="text-sm text-gray-800 font-medium">
+            <div className="min-h-12 flex items-center gap-2 px-4 py-3 bg-gray-50 rounded-lg border">
+              <p className="min-w-0 flex-1 truncate text-sm text-gray-800 font-medium">
                 {user.mobileNumber || "Not provided"}
               </p>
-              <span className="ml-auto text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
-                Cannot be changed
-              </span>
+
             </div>
           </div>
 

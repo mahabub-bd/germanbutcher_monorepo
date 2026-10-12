@@ -44,7 +44,7 @@ export async function ProductReviews({ product, user }: ProductReviewsProps) {
   }
 
   return (
-    <section className="rounded-xl border border-gray-100 bg-gray-50/50 p-4 md:p-0 space-y-6">
+    <section className="rounded-xl border border-gray-100 bg-white shadow-sm p-2 md:p-4 space-y-6">
       <div className="flex items-center gap-3">
         <h2 className="text-xl font-bold text-gray-900">Customer Reviews</h2>
         {summary && summary.reviewCount > 0 && (
