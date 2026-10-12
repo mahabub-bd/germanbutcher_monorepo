@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchData, formPostData, patchData } from "@/utils/api-utils";
+import { revalidatePublic } from "@/actions/revalidate";
 import type { BusinessSettings } from "@/utils/types";
 import {
   Bell,
@@ -252,6 +253,8 @@ export function BusinessSettingsCard() {
       });
       setSettings(response.data as BusinessSettings);
       setIsEditOpen(false);
+      // Settings feed the root layout's OG metadata — bust its 60s cache.
+      await revalidatePublic();
       toast.success("Business settings saved");
     } catch (error) {
       console.error("Error saving business settings:", error);

@@ -5,6 +5,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { formPostData, patchData, postData } from "@/utils/api-utils"
+
+import { revalidatePublic } from "@/actions/revalidate"
 import type { Client } from "@/utils/types"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Upload } from "lucide-react"
@@ -87,6 +89,7 @@ export function ClientForm({ mode, client }: ClientFormProps) {
       if (response?.statusCode === 200 || response?.statusCode === 201) {
         const successMessage = mode === "create" ? "Client created successfully" : "Client updated successfully"
         toast.success(successMessage)
+        await revalidatePublic()
         router.back()
       } else {
         toast.error(response?.message || "An error occurred")

@@ -36,16 +36,14 @@ const fontVariables = `${quicksand.variable} ${castorTwoW01.variable}`;
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getBusinessSettings();
   // The OG/twitter logo comes from Business Settings; until a logo is
-  // uploaded only the static twitter-card image is used.
+  // uploaded only the static twitter-card image is used. Dimensions are
+  // omitted so scrapers don't crop the logo to a 1200x630 card.
   const logoUrl = settings?.logo?.url;
   const logoImage = logoUrl
     ? [
         {
           url: logoUrl,
-          width: 1200,
-          height: 630,
           alt: "German Butcher Logo",
-          type: "image/png",
         },
       ]
     : [];
@@ -106,9 +104,7 @@ export async function generateMetadata(): Promise<Metadata> {
     telephone: false,
   },
   metadataBase: new URL("https://www.germanbutcherbd.com"),
-  alternates: {
-    canonical: "/",
-  },
+  alternates: {},
   openGraph: {
     title: "German Butcher - Premium German Sausages & Meat Products in Bangladesh",
     description:
@@ -117,7 +113,7 @@ export async function generateMetadata(): Promise<Metadata> {
     siteName: "German Butcher",
     images: [
       {
-        url: "https://germanbutcherbd.com/images/twitter-card.png",
+        url: "/images/twitter-card.png",
         width: 1200,
         height: 630,
         alt: "German Butcher - Premium German Sausages & Meat Products",
@@ -138,7 +134,7 @@ export async function generateMetadata(): Promise<Metadata> {
       "Pioneer of authentic German Sausages in Bangladesh since 1991. Premium quality gourmet sausages, cold cuts, ham, bacon and meat products. Order online for fresh delivery.",
     images: [
       {
-        url: "https://germanbutcherbd.com/images/twitter-card.png",
+        url: "/images/twitter-card.png",
         width: 1200,
         height: 630,
         alt: "German Butcher - Premium German Sausages & Meat Products",

@@ -212,9 +212,7 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
     }
 
     toast.success("Phone number verified successfully");
-    serverRevalidate("/");
-
-    serverRevalidate("/checkout");
+    serverRevalidate(["/", "/checkout"]);
     router.refresh();
   };
 
@@ -380,8 +378,7 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
       const response = await postData("orders", orderData);
       clearLocalCoupon();
       await clearCart();
-      serverRevalidate("/");
-      serverRevalidate("/checkout");
+      serverRevalidate(["/", "/checkout"]);
       await refreshDashboard();
       toast.success("Order placed successfully!");
       router.push(`/order-confirmation/${response.data.id}`);

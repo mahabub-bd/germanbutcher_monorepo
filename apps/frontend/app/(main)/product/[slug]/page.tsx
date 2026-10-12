@@ -59,8 +59,11 @@ export async function generateMetadata({
       }
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://germanbutcherbd.com";
-    const productUrl = `${baseUrl}/products/${product.slug || product.id}`;
+    // JSON-LD requires absolute URLs; defaults to the production host so it
+    // matches the root metadataBase. OG url and canonical stay relative and
+    // are resolved against metadataBase by Next.js.
+    const jsonLdUrl = `${process.env.NEXT_PUBLIC_BASE_URL || "https://www.germanbutcherbd.com"}/products/${product.slug || product.id}`;
+    const productPath = `/products/${product.slug || product.id}`;
 
     const description =
       product.description ||
@@ -104,15 +107,17 @@ export async function generateMetadata({
       openGraph: {
         title: `${product.name} - ${formatCurrencyEnglish(finalPrice)}`,
         description: metaDescription,
-        url: productUrl,
+        url: productPath,
         siteName: "German Butcher Bangladesh",
         images: [
-          {
-            url: product.attachment?.url || "/placeholder-product.jpg",
-            width: 1200,
-            height: 630,
-            alt: product.name,
-          },
+          ...(product.attachment?.url
+            ? [
+                {
+                  url: product.attachment.url,
+                  alt: product.name,
+                },
+              ]
+            : []),
           ...(product?.gallery?.attachments?.slice(0, 3).map((img) => ({
             url: img.url,
             width: 800,
@@ -128,8 +133,8 @@ export async function generateMetadata({
         card: "summary_large_image",
         title: `${product.name} - ${formatCurrencyEnglish(finalPrice)}`,
         description: metaDescription,
-        images: [product.attachment?.url || "/placeholder-product.jpg"],
-        creator: "@yourstore",
+        ...(product.attachment?.url ? { images: [product.attachment.url] } : {}),
+        creator: "@germanbutcherbd",
       },
 
       other: {
@@ -158,7 +163,7 @@ export async function generateMetadata({
           ].filter(Boolean),
           offers: {
             "@type": "Offer",
-            url: productUrl,
+            url: jsonLdUrl,
             priceCurrency: "BDT",
             price: finalPrice.toFixed(2),
             priceValidUntil: hasActiveDiscount
@@ -203,7 +208,7 @@ export async function generateMetadata({
       },
 
       alternates: {
-        canonical: productUrl,
+        canonical: productPath,
       },
     };
   } catch (error) {

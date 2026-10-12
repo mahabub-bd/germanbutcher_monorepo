@@ -11,12 +11,15 @@ import { NewsletterSection } from "@/components/homepage/subscriber/newsletter";
 import { TestimonialSection } from "@/components/homepage/testimonial/testimonial-section-server";
 import ProductList from "@/components/products/product-list";
 
-export const revalidate = 60; // Revalidate every 60 seconds
-
+// No `revalidate` segment config here: the root layout reads cookies(), so
+// every route renders dynamically and the config would be inert anyway.
 export const metadata = {
   title: "German Butcher - Premium Quality Meat Products",
   description: "Discover premium quality meat products at German Butcher. Fresh cuts, sausages, and more delivered to your doorstep.",
   keywords: "german butcher, meat products, fresh meat, sausages, premium quality",
+  alternates: {
+    canonical: "/",
+  },
 };
 
 export default function Home() {

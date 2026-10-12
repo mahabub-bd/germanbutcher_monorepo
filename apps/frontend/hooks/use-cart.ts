@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { applyCoupon as applyCouponApi } from "@/lib/coupon-service";
@@ -25,6 +26,7 @@ type UseCartProps = {
 };
 
 export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
+  const router = useRouter();
   const [localCart, setLocalCart] = useState<LocalCart | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +36,28 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // The server cart comes from the root layout, which soft navigations never
+  // re-render — prices would stay at page-load values until a full reload
+  // even though the API returns fresh ones. Re-fetch it by refreshing the
+  // RSC tree when the tab regains focus (throttled to once a minute).
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    let lastRefresh = 0;
+    const refreshCart = () => {
+      if (Date.now() - lastRefresh < 60_000) return;
+      lastRefresh = Date.now();
+      router.refresh();
+    };
+
+    window.addEventListener("focus", refreshCart);
+    document.addEventListener("visibilitychange", refreshCart);
+    return () => {
+      window.removeEventListener("focus", refreshCart);
+      document.removeEventListener("visibilitychange", refreshCart);
+    };
+  }, [isLoggedIn, router]);
 
   useEffect(() => {
     if (isInitialized || !isMounted) return;
@@ -45,12 +69,12 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
       const storedCoupon = getCouponFromLocalStorage();
 
       if (storedCart) {
-        // Check if cart is older than 1 hour, refresh product data
-        const cartAge = Date.now() - storedCart.lastUpdated;
-        const oneHour = 60 * 60 * 1000;
-
-        if (cartAge > oneHour && storedCart.items.length > 0) {
-          // Refresh product data for items in cart
+        if (storedCart.items.length > 0) {
+          // Render the stored snapshot immediately, then re-price it in the
+          // background so price/stock changes made since add-time show up.
+          // (Previously only ran when the cart sat idle over an hour, which
+          // let actively-updated carts serve stale prices indefinitely.)
+          setLocalCart(storedCart);
           refreshCartProductData(storedCart);
         } else {
           setLocalCart(storedCart);
@@ -110,9 +134,7 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
           saveCartToLocalStorage({ items: [], lastUpdated: Date.now() });
           clearLocalCoupon();
 
-          serverRevalidate("/");
-          serverRevalidate("/cart");
-          serverRevalidate("/checkout");
+          serverRevalidate(["/", "/cart", "/checkout"]);
 
           toast.success("Cart synced successfully", {
             description: "Your cart has been synced with your account",
@@ -141,8 +163,7 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
           quantity,
         });
 
-        serverRevalidate("/");
-        serverRevalidate("/cart");
+        serverRevalidate(["/", "/cart"]);
       } else {
         setLocalCart((prev) => {
           if (!prev)
@@ -204,8 +225,7 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
       if (isLoggedIn) {
         await patchData(`cart/items/${itemId}`, { quantity });
 
-        serverRevalidate("/");
-        serverRevalidate("/cart");
+        serverRevalidate(["/", "/cart"]);
       } else {
         setLocalCart((prev) => {
           if (!prev) return null;
@@ -241,8 +261,7 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
       if (isLoggedIn) {
         await deleteData("cart/items", itemId);
 
-        serverRevalidate("/");
-        serverRevalidate("/cart");
+        serverRevalidate(["/", "/cart"]);
       } else {
         setLocalCart((prev) => {
           if (!prev) return null;
@@ -278,8 +297,7 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
       if (isLoggedIn) {
         await deleteData("cart", "");
 
-        serverRevalidate("/");
-        serverRevalidate("/cart");
+        serverRevalidate(["/", "/cart"]);
       } else {
         setLocalCart({ items: [], lastUpdated: Date.now() });
         saveCartToLocalStorage({ items: [], lastUpdated: Date.now() });
@@ -529,8 +547,7 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
           await deleteData("cart/items", itemId);
         }
 
-        serverRevalidate("/");
-        serverRevalidate("/cart");
+        serverRevalidate(["/", "/cart"]);
         serverRevalidate("/checkout");
       } else {
         // Remove inactive items from local cart

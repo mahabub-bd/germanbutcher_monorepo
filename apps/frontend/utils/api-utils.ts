@@ -67,15 +67,24 @@ export async function clearAuthCookies(): Promise<void> {
   }
 }
 
-// Simple in-memory cache for product endpoints
+// Client-side in-memory cache for product endpoints. On the client the
+// `next` option is ignored, so this is the only dedupe. On the server the
+// Data Cache already covers these endpoints — and revalidateProducts() can
+// bust it — so the map is skipped there to avoid un-bustable extra staleness.
 const productCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 5000; // 5 seconds cache
+const PRODUCT_CACHE_TTL = 5000; // 5 seconds cache
+
+const isClient = () => typeof window !== "undefined";
 
 export async function fetchData<T>(endpoint: string): Promise<T> {
   // Check cache for product endpoints (both slug and id based)
-  if (endpoint.startsWith('products/slug/') || endpoint.match(/products\/\d+$/)) {
+  if (
+    isClient() &&
+    (endpoint.startsWith("products/slug/") ||
+      endpoint.match(/products\/\d+$/))
+  ) {
     const cached = productCache.get(endpoint);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    if (cached && Date.now() - cached.timestamp < PRODUCT_CACHE_TTL) {
       return cached.data;
     }
   }
@@ -112,8 +121,9 @@ export async function fetchData<T>(endpoint: string): Promise<T> {
     const result = await response.json();
     const data = result.data;
 
-    // Cache product slug endpoints for 5 seconds
-    if (endpoint.startsWith('products/slug/')) {
+    // Cache product slug endpoints for 5 seconds (client only — the server
+    // relies on the Data Cache, which revalidateProducts() can bust)
+    if (isClient() && endpoint.startsWith('products/slug/')) {
       productCache.set(endpoint, {
         data,
         timestamp: Date.now(),
@@ -135,8 +145,8 @@ export async function fetchProtectedData<T>(
   const token = await resolveAuthToken();
 
   // Passing `revalidate` opts into Next's data cache (bounded staleness,
-  // bustable via the "dashboard" tag). Without it, previous behavior:
-  // always fresh, never cached.
+  // bustable via the "dashboard" tag). Without it: always fresh, never
+  // cached — tags would be no-ops on an uncached request, so none set.
   const init: RequestInit & { next?: Record<string, unknown> } = {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -147,7 +157,6 @@ export async function fetchProtectedData<T>(
     init.next = { revalidate: options.revalidate, tags: ["dashboard"] };
   } else {
     init.cache = "no-store";
-    init.next = { tags: ["dashboard"] };
   }
 
   try {
@@ -193,10 +202,11 @@ export async function fetchDataPagination<T>(
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      cache: options?.revalidate ? undefined : "no-store",
-      next: options?.revalidate
-        ? { revalidate: options.revalidate, tags: ["dashboard"] }
-        : { tags: ["dashboard"] },
+      // Cached only when an explicit revalidate window is requested;
+      // otherwise always fresh (tags on a no-store request are no-ops).
+      ...(options?.revalidate
+        ? { next: { revalidate: options.revalidate, tags: ["dashboard"] } }
+        : { cache: "no-store" }),
     });
 
     if (!response.ok) {
@@ -221,7 +231,9 @@ export async function fetchDataPagination<T>(
   }
 }
 
-// Public fetch function for non-authenticated endpoints (supports ISR)
+// Public fetch function for non-authenticated endpoints (supports ISR).
+// Tagged "public" so admin content edits (banners, categories, brands…) can
+// bust it instantly via revalidatePublic() instead of waiting out the 60s.
 export async function fetchPublicData<T>(endpoint: string): Promise<T> {
   const url = `${apiUrl}/${endpoint}`;
 
@@ -230,7 +242,7 @@ export async function fetchPublicData<T>(endpoint: string): Promise<T> {
       headers: {
         "Content-Type": "application/json",
       },
-      next: { revalidate: 60 }, // Enable ISR with 60s revalidation
+      next: { revalidate: 60, tags: ["public"] }, // ISR with 60s fallback
     });
 
     if (!response.ok) {

@@ -45,6 +45,8 @@ import {
   patchData,
   postData,
 } from "@/utils/api-utils";
+
+import { revalidatePublic } from "@/actions/revalidate";
 import { bannerSchema } from "@/utils/form-validation";
 import {
   Banner,
@@ -244,6 +246,7 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
             ? "Banner created successfully"
             : "Banner updated successfully";
         toast.success(successMessage);
+        await revalidatePublic();
         router.back();
       } else {
         toast.error(response?.message || "An error occurred");
