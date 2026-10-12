@@ -1,7 +1,7 @@
 import { Info, type LucideIcon } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 
 // Tinted header styles for accent-colored form sections.
 const sectionAccents: Record<string, { header: string; icon: string }> = {
@@ -115,3 +115,4 @@ const SwitchCard = ({
 );
 
 export { InfoBox, Section, SwitchCard };
+

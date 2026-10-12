@@ -1,8 +1,4 @@
-/**
- * Slug suggestion helper for the product form. Mirrors the backend's
- * `generateSlug()` (transliteration `slugify`) closely enough for a live
- * suggestion without adding a dependency.
- */
+
 const GERMAN_MAP: Record<string, string> = {
   ä: "ae",
   ö: "oe",

@@ -6,11 +6,7 @@ import { toast } from "sonner";
 import { OrderPDFDocument } from "@/components/admin/orders/order-pdf-document";
 import type { BusinessSettings, Order } from "@/utils/types";
 
-/**
- * Generate and download the branded invoice PDF for an order. Shared by the
- * customer order list rows and the order detail page so both render the same
- * document with business-settings branding.
- */
+
 export async function downloadOrderInvoice(
   order: Order,
   settings: BusinessSettings | null

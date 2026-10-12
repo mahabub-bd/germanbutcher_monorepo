@@ -10,9 +10,7 @@ export type ApiResponse<T = any> = {
 
 export const apiUrl = process.env.NEXT_PUBLIC_API_URL as string;
 
-// Browser-side token cache: without it, every protected request pays a
-// serialized /api/auth/token round-trip before the actual API call. Reset on
-// logout and 401 recovery so a stale or revoked token never sticks.
+
 let cachedAuthToken: string | null = null;
 let tokenFetch: Promise<string | null> | null = null;
 
@@ -20,10 +18,7 @@ export function resetAuthTokenCache(): void {
   cachedAuthToken = null;
 }
 
-// Resolve the auth token without a Server Action round-trip on the client.
-// Server components read the cookie directly; client components use the
-// /api/auth/token route handler, whose stable URL keeps already-open tabs
-// working across redeployments (Server Action IDs change on every build).
+
 export async function resolveAuthToken(): Promise<string | null> {
   if (typeof window === "undefined") {
     const { getToken } = await import("@/actions/auth");
@@ -50,7 +45,7 @@ export async function resolveAuthToken(): Promise<string | null> {
   return tokenFetch;
 }
 
-// Clear the httpOnly auth cookies (401 recovery). Same split as above.
+
 export async function clearAuthCookies(): Promise<void> {
   cachedAuthToken = null;
 
@@ -67,10 +62,7 @@ export async function clearAuthCookies(): Promise<void> {
   }
 }
 
-// Client-side in-memory cache for product endpoints. On the client the
-// `next` option is ignored, so this is the only dedupe. On the server the
-// Data Cache already covers these endpoints — and revalidateProducts() can
-// bust it — so the map is skipped there to avoid un-bustable extra staleness.
+
 const productCache = new Map<string, { data: any; timestamp: number }>();
 const PRODUCT_CACHE_TTL = 5000; // 5 seconds cache
 
@@ -92,10 +84,7 @@ export async function fetchData<T>(endpoint: string): Promise<T> {
   const url = `${apiUrl}/${endpoint}`;
 
   try {
-    // Product data gets a longer cache window plus a "products" tag: admin
-    // mutations call revalidateProducts() to bust it instantly. Everything
-    // else caches for 60s as a safety net. Browsers ignore the `next` option,
-    // so client-side callers are unaffected.
+
     const isProductData = endpoint.startsWith("products");
     const response = await fetch(url, {
       next: {
@@ -121,8 +110,7 @@ export async function fetchData<T>(endpoint: string): Promise<T> {
     const result = await response.json();
     const data = result.data;
 
-    // Cache product slug endpoints for 5 seconds (client only — the server
-    // relies on the Data Cache, which revalidateProducts() can bust)
+
     if (isClient() && endpoint.startsWith('products/slug/')) {
       productCache.set(endpoint, {
         data,
@@ -144,9 +132,6 @@ export async function fetchProtectedData<T>(
   const url = `${apiUrl}/${endpoint}`;
   const token = await resolveAuthToken();
 
-  // Passing `revalidate` opts into Next's data cache (bounded staleness,
-  // bustable via the "dashboard" tag). Without it: always fresh, never
-  // cached — tags would be no-ops on an uncached request, so none set.
   const init: RequestInit & { next?: Record<string, unknown> } = {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -202,8 +187,7 @@ export async function fetchDataPagination<T>(
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      // Cached only when an explicit revalidate window is requested;
-      // otherwise always fresh (tags on a no-store request are no-ops).
+
       ...(options?.revalidate
         ? { next: { revalidate: options.revalidate, tags: ["dashboard"] } }
         : { cache: "no-store" }),
@@ -231,9 +215,7 @@ export async function fetchDataPagination<T>(
   }
 }
 
-// Public fetch function for non-authenticated endpoints (supports ISR).
-// Tagged "public" so admin content edits (banners, categories, brands…) can
-// bust it instantly via revalidatePublic() instead of waiting out the 60s.
+
 export async function fetchPublicData<T>(endpoint: string): Promise<T> {
   const url = `${apiUrl}/${endpoint}`;
 
