@@ -42,10 +42,10 @@ import {
   BreadcrumbSeparator,
 } from "../ui/breadcrumb";
 
-// Rounded tile that sits behind each icon in the light image header. Solid
-// white tiles keep the icons legible over the photo.
+// Rounded tile that sits behind each icon in the header. Solid black tiles
+// keep the icons legible over the photo.
 const iconTileClass =
-  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/70 text-primaryColor shadow-sm transition-all duration-150 hover:bg-white active:scale-90 active:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primaryColor/40";
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-black/80 text-white shadow-sm transition-all duration-150 hover:bg-black active:scale-90 active:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
 
 // Thin separator between header clusters.
 function HeaderDivider() {
@@ -140,7 +140,7 @@ export function AdminHeader({
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-lg bg-white/70 text-primaryColor shadow-sm transition-all duration-150 hover:bg-white active:scale-90 active:bg-white"
+            className="h-9 w-9 rounded-lg bg-black/80 text-white shadow-sm transition-all duration-150 hover:bg-black active:scale-90 active:bg-black"
             title="Menu"
             onClick={onMenuClick}
           >
@@ -162,7 +162,7 @@ export function AdminHeader({
           </Link>
           <div>
             <NotificationBell
-              buttonClassName="h-9 w-9 rounded-lg bg-white/70 p-0 text-primaryColor shadow-sm transition-all duration-150 hover:bg-white hover:opacity-100 focus:bg-white active:scale-90 active:bg-white active:opacity-100"
+              buttonClassName="h-9 w-9 rounded-lg bg-black/80 p-0 text-white shadow-sm transition-all duration-150 hover:bg-black hover:opacity-100 focus:bg-black active:scale-90 active:bg-black active:opacity-100"
             />
           </div>
         </div>
@@ -234,7 +234,7 @@ export function AdminHeader({
 
           <div className="relative">
             <NotificationBell
-              buttonClassName="h-9 w-9 rounded-lg bg-white/70 p-0 text-primaryColor shadow-sm transition-all duration-150 hover:bg-white hover:opacity-100 focus:bg-white active:scale-90 active:bg-white active:opacity-100"
+              buttonClassName="h-9 w-9 rounded-lg bg-black/80 p-0 text-white shadow-sm transition-all duration-150 hover:bg-black hover:opacity-100 focus:bg-black active:scale-90 active:bg-black active:opacity-100"
             />
           </div>
 
@@ -265,7 +265,7 @@ export function AdminHeader({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="flex items-center gap-2 rounded-full bg-transparent px-2 py-2.5 text-black shadow-none transition-all duration-150 hover:bg-transparent hover:text-black active:scale-[0.97] active:bg-transparent"
+                className="flex items-center gap-2 rounded-full bg-transparent px-2 py-2.5 text-white shadow-none transition-all duration-150 hover:bg-white/10 hover:text-white active:scale-[0.97] active:bg-white/10"
               >
                 <Avatar className="h-8 w-8 ring-1 ring-primaryColor/20 bg-white">
                   <AvatarImage
@@ -278,11 +278,11 @@ export function AdminHeader({
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden min-w-0 flex-col items-start lg:flex">
-                  <span className="flex max-w-[160px] items-center gap-1 truncate text-sm font-semibold text-black">
+                  <span className="flex max-w-[160px] items-center gap-1 truncate text-sm font-semibold text-white drop-shadow-sm">
                     {user?.name}
-                    <ChevronDown className="h-4 w-4 shrink-0 text-black" />
+                    <ChevronDown className="h-4 w-4 shrink-0 text-white" />
                   </span>
-                  <span className="max-w-[180px] truncate text-xs text-black/70">{user?.email}</span>
+                  <span className="max-w-[180px] truncate text-xs text-white/70 drop-shadow-sm">{user?.email}</span>
                 </div>
               </Button>
             </DropdownMenuTrigger>
