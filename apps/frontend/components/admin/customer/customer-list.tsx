@@ -37,6 +37,7 @@ import {
   Users,
   XCircle
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -209,9 +210,20 @@ export function CustomerList({
                   href={`/admin/customer/${customer.id}/view`}
                   className="flex items-center gap-3 font-medium leading-tight hover:underline"
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-muted text-sm font-semibold text-muted-foreground uppercase">
-                    {customer.name?.charAt(0) || <UserIcon className="h-5 w-5" />}
-                  </span>
+                  {customer.profilePhoto?.url ? (
+                    <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg border bg-muted">
+                      <Image
+                        src={customer.profilePhoto.url}
+                        alt={customer.name || "Customer"}
+                        fill
+                        className="object-contain"
+                      />
+                    </span>
+                  ) : (
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-muted text-sm font-semibold text-muted-foreground uppercase">
+                      {customer.name?.charAt(0) || <UserIcon className="h-5 w-5" />}
+                    </span>
+                  )}
                   <span className="truncate">{customer.name}</span>
                 </Link>
               </TableCell>
