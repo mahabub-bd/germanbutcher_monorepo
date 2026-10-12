@@ -38,6 +38,7 @@ RUN mkdir -p /app/apps/backend/public
 
 # Stage 3: Production Runner
 FROM node:24-alpine AS runner
+WORKDIR /app
 
 # Set environment
 ENV NODE_ENV=production
