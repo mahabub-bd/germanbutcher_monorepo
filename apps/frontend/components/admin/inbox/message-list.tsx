@@ -172,8 +172,8 @@ function StatusUpdateModal({
                       onClick={() => onUpdateStatus(status)}
                       disabled={isUpdating || message.contactStatus === status}
                       className={`p-2.5 rounded-lg border text-center transition-all ${isCurrent
-                          ? 'border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 opacity-50 cursor-not-allowed'
-                          : 'border-gray-200 dark:border-neutral-700 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                        ? 'border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 opacity-50 cursor-not-allowed'
+                        : 'border-gray-200 dark:border-neutral-700 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
                         }`}
                     >
                       <div className="flex flex-col items-center gap-1">
@@ -196,8 +196,8 @@ function StatusUpdateModal({
                 <button
                   onMouseDown={(e) => { e.preventDefault(); onActionChange(""); }}
                   className={`p-2 rounded-lg border text-center transition-all text-xs ${!selectedAction
-                      ? 'border-gray-300 bg-white dark:bg-neutral-800 shadow-sm font-semibold'
-                      : 'border-gray-200 dark:border-neutral-700 hover:border-gray-300'
+                    ? 'border-gray-300 bg-white dark:bg-neutral-800 shadow-sm font-semibold'
+                    : 'border-gray-200 dark:border-neutral-700 hover:border-gray-300'
                     }`}
                   disabled={isUpdating}
                 >
@@ -210,8 +210,8 @@ function StatusUpdateModal({
                     disabled={isUpdating}
                     title={action.label}
                     className={`p-2 rounded-lg border text-center transition-all ${selectedAction === action.value
-                        ? `border-${action.color}-400 bg-${action.color}-50 dark:bg-${action.color}-900/20 shadow-sm`
-                        : 'border-gray-200 dark:border-neutral-700 hover:border-gray-300'
+                      ? `border-${action.color}-400 bg-${action.color}-50 dark:bg-${action.color}-900/20 shadow-sm`
+                      : 'border-gray-200 dark:border-neutral-700 hover:border-gray-300'
                       }`}
                   >
                     <div className="flex flex-col items-center gap-0.5">
@@ -638,7 +638,7 @@ export function ContactMessageList({
     ];
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {stats.map((stat) => (
           <StatsCard
             key={stat.title}
@@ -861,8 +861,8 @@ export function ContactMessageList({
                             setCurrentPage(1);
                           }}
                           className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all"
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
                             }`}
                         >
                           All
@@ -873,8 +873,8 @@ export function ContactMessageList({
                             setCurrentPage(1);
                           }}
                           className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === ContactStatus.PENDING
-                              ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/30 dark:border-yellow-800 text-yellow-600 dark:text-yellow-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/30 dark:border-yellow-800 text-yellow-600 dark:text-yellow-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
                             }`}
                         >
                           <Clock className="h-2 w-2" />
@@ -886,8 +886,8 @@ export function ContactMessageList({
                             setCurrentPage(1);
                           }}
                           className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === ContactStatus.IN_PROGRESS
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
                             }`}
                         >
                           <AlertCircle className="h-2 w-2" />
@@ -899,8 +899,8 @@ export function ContactMessageList({
                             setCurrentPage(1);
                           }}
                           className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === ContactStatus.RESOLVED
-                              ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
                             }`}
                         >
                           <CheckCircle className="h-2 w-2" />
