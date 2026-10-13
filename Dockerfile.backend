@@ -1,14 +1,10 @@
-# Multi-stage Dockerfile for the NestJS backend.
-# Build context must be the repository root so the pnpm workspace
-# lockfile (pnpm-lock.yaml + pnpm-workspace.yaml) is available.
-# syntax=docker/dockerfile:1
 
 # Stage 1: Dependencies
 FROM node:24-alpine AS deps
 WORKDIR /app
 
-# Install pnpm (pinned major: pnpm 12 fails installs on unapproved build scripts)
-RUN npm install -g pnpm@10
+
+RUN npm install -g pnpm@11
 
 # Copy workspace root manifest, lockfile and workspace config
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./

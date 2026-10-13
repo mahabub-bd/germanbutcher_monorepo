@@ -1,7 +1,4 @@
-# Multi-stage Dockerfile for the Next.js frontend.
-# Build context must be the repository root so the pnpm workspace
-# lockfile (pnpm-lock.yaml + pnpm-workspace.yaml) is available.
-# syntax=docker/dockerfile:1
+
 
 # Base stage - minimal Alpine with Node.js only
 FROM node:24-alpine AS base
@@ -16,8 +13,8 @@ FROM base AS build-tools
 RUN apk add --no-cache libc6-compat python3 make g++ \
     && rm -rf /var/cache/apk/*
 
-# Install pnpm (pinned major: pnpm 12 fails installs on unapproved build scripts)
-RUN npm install -g pnpm@10
+# Install pnpm (matches lockfileVersion 9.0; build scripts approved in pnpm-workspace.yaml)
+RUN npm install -g pnpm@11
 
 FROM build-tools AS deps
 
@@ -75,8 +72,6 @@ ENV NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001
 
-# Copy standalone output - in a workspace build it mirrors the monorepo layout:
-# apps/frontend/server.js plus the hoisted node_modules at the workspace root
 COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/.next/static ./apps/frontend/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/public ./apps/frontend/public
