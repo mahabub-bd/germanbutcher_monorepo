@@ -29,6 +29,7 @@ import { ContactMessageService } from './contact-message.service';
 import { ContactMessageQueryDto } from './dto/contact-message-query.dto';
 import { CreateContactMessageDto } from './dto/create-contact-message.dto';
 import { UpdateContactMessageDto } from './dto/update-contact-message.dto';
+import { SendContactResponseDto } from './dto/send-contact-response.dto';
 
 @ApiTags('Contact Messages')
 @Controller('contact-messages')
@@ -151,6 +152,23 @@ export class ContactMessageController {
     );
     return {
       message: 'Contact message updated successfully',
+      statusCode: 200,
+      data: contactMessage,
+    };
+  }
+
+  @Post(':id/reply')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/inbox')
+  @ApiOperation({ summary: 'Send an email response to a contact message' })
+  async sendReply(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: SendContactResponseDto,
+  ) {
+    const contactMessage = await this.contactMessageService.sendReply(id, dto.responseNotes);
+    return {
+      message: 'Response email sent successfully',
       statusCode: 200,
       data: contactMessage,
     };

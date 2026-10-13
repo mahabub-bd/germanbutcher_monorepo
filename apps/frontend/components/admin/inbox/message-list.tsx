@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { deleteData, fetchDataPagination, fetchProtectedData, patchData } from "@/utils/api-utils";
+import { deleteData, fetchDataPagination, fetchProtectedData, patchData, postData } from "@/utils/api-utils";
 import type { ContactMessage } from "@/utils/types";
 import { ActionTaken } from "@/utils/types";
 import {
@@ -68,6 +68,7 @@ interface StatusUpdateModalProps {
   isUpdating: boolean;
   onClose: () => void;
   onUpdateStatus: (status: ContactStatus) => void;
+  onSendMessage: () => void;
   onActionChange: (action: ActionTaken | "") => void;
   onNotesChange: (notes: string) => void;
   responseNotesRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -83,6 +84,7 @@ function StatusUpdateModal({
   isUpdating,
   onClose,
   onUpdateStatus,
+  onSendMessage,
   onActionChange,
   onNotesChange,
   responseNotesRef,
@@ -254,7 +256,13 @@ function StatusUpdateModal({
         {/* Footer */}
         <div className="px-5 py-3 border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 flex items-center justify-between">
           <p className="text-[10px] text-gray-500">Click status to save</p>
-          <Button variant="outline" size="sm" onClick={onClose} disabled={isUpdating}>Cancel</Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={onSendMessage} disabled={isUpdating || !responseNotes.trim()}>
+              <Send className="mr-2 h-4 w-4" />
+              Send Message
+            </Button>
+            <Button variant="outline" size="sm" onClick={onClose} disabled={isUpdating}>Cancel</Button>
+          </div>
         </div>
       </div>
     </div>
@@ -462,6 +470,28 @@ export function ContactMessageList({
     } catch (error) {
       console.error("Error updating status:", error);
       toast.error("Failed to update status. Please try again.");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!selectedMessageForStatusUpdate || !responseNotes.trim()) return;
+
+    setIsUpdatingStatus(true);
+    try {
+      await postData(`contact-messages/${selectedMessageForStatusUpdate.id}/reply`, {
+        responseNotes: responseNotes.trim(),
+      });
+      await fetchMessages();
+      toast.success("Message sent successfully");
+      setIsStatusUpdateModalOpen(false);
+      setSelectedMessageForStatusUpdate(null);
+      setSelectedActionTaken("");
+      setResponseNotes("");
+    } catch (error) {
+      console.error("Error sending contact response:", error);
+      toast.error("Failed to send message. Please try again.");
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -952,6 +982,7 @@ export function ContactMessageList({
           setResponseNotes("");
         }}
         onUpdateStatus={handleStatusUpdate}
+        onSendMessage={handleSendMessage}
         onActionChange={setSelectedActionTaken}
         onNotesChange={setResponseNotes}
         responseNotesRef={responseNotesRef}

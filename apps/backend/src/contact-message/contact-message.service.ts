@@ -127,6 +127,22 @@ export class ContactMessageService {
     return updatedMessage;
   }
 
+  async sendReply(id: number, responseNotes: string): Promise<ContactMessage> {
+    const contactMessage = await this.findOne(id);
+
+    await this.emailService.sendContactResponseEmailOrThrow({
+      recipientName: contactMessage.name,
+      recipientEmail: contactMessage.email,
+      originalMessage: contactMessage.message,
+      responseNotes,
+      ticketId: contactMessage.id,
+    });
+
+    contactMessage.actionTaken = ActionTaken.REPLIED_VIA_EMAIL;
+    contactMessage.responseNotes = responseNotes;
+    return this.contactMessageRepository.save(contactMessage);
+  }
+
   async remove(id: number): Promise<void> {
     const contactMessage = await this.findOne(id);
     await this.contactMessageRepository.remove(contactMessage);

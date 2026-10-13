@@ -151,6 +151,30 @@ export class EmailService {
     }
   }
 
+  async sendContactResponseEmailOrThrow(
+    contactData: ContactResponseEmailData,
+  ): Promise<void> {
+    if (!this.client) {
+      throw new Error('Email service is not configured');
+    }
+
+    try {
+      await this.client.sendMail({
+        from: { address: this.fromAddress, name: this.fromName },
+        to: [{ email_address: { address: contactData.recipientEmail, name: contactData.recipientName } }],
+        subject: `Response to your inquiry - Ticket #${contactData.ticketId}`,
+        htmlbody: generateContactResponseHTML(contactData),
+      });
+      this.logger.log(
+        `Contact response email sent successfully to ${contactData.recipientEmail} for ticket #${contactData.ticketId}`,
+      );
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Failed to send contact response email: ${err.message}`, err.stack);
+      throw error;
+    }
+  }
+
   // Admin notification inbox from Business Settings → adminNotificationEmail
   // (comma-separated for multiple recipients). Skips with a warn when unset
   // so flows never break on it.
