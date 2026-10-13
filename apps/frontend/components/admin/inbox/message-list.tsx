@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { deleteData, fetchDataPagination, fetchProtectedData, patchData, postData } from "@/utils/api-utils";
+import { deleteData, fetchDataPagination, fetchProtectedData, postData } from "@/utils/api-utils";
 import type { ContactMessage } from "@/utils/types";
 import { ActionTaken } from "@/utils/types";
 import {
@@ -64,6 +64,7 @@ interface StatusUpdateModalProps {
   isOpen: boolean;
   message: ContactMessage | null;
   selectedAction: ActionTaken | "";
+  selectedStatus: ContactStatus;
   responseNotes: string;
   isUpdating: boolean;
   onClose: () => void;
@@ -80,6 +81,7 @@ function StatusUpdateModal({
   isOpen,
   message,
   selectedAction,
+  selectedStatus,
   responseNotes,
   isUpdating,
   onClose,
@@ -163,12 +165,12 @@ function StatusUpdateModal({
               <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">New Status</label>
               <div className="grid grid-cols-2 gap-1.5">
                 {Object.values(ContactStatus).map((status) => {
-                  const isCurrent = message.contactStatus === status;
+                  const isCurrent = selectedStatus === status;
                   return (
                     <button
                       key={status}
                       onClick={() => onUpdateStatus(status)}
-                      disabled={isUpdating || isCurrent}
+                      disabled={isUpdating || message.contactStatus === status}
                       className={`p-2.5 rounded-lg border text-center transition-all ${
                         isCurrent
                           ? 'border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 opacity-50 cursor-not-allowed'
@@ -315,6 +317,7 @@ export function ContactMessageList({
 
   // Status update form state
   const [selectedActionTaken, setSelectedActionTaken] = useState<ActionTaken | "">("");
+  const [selectedStatus, setSelectedStatus] = useState<ContactStatus>(ContactStatus.PENDING);
   const [responseNotes, setResponseNotes] = useState("");
   const responseNotesRef = useRef<HTMLTextAreaElement>(null);
 
@@ -440,6 +443,7 @@ export function ContactMessageList({
   const handleStatusUpdateClick = (message: ContactMessage) => {
     setSelectedMessageForStatusUpdate(message);
     setSelectedActionTaken(message.actionTaken || "");
+    setSelectedStatus(message.contactStatus as ContactStatus);
     setResponseNotes(message.responseNotes || "");
     setIsStatusUpdateModalOpen(true);
   };
@@ -450,29 +454,7 @@ export function ContactMessageList({
   };
 
   const handleStatusUpdate = async (newStatus: ContactStatus) => {
-    if (!selectedMessageForStatusUpdate) return;
-
-    setIsUpdatingStatus(true);
-    try {
-      await patchData(`contact-messages/${selectedMessageForStatusUpdate.id}`, {
-        contactStatus: newStatus,
-        actionTaken: selectedActionTaken || null,
-        responseNotes: responseNotes || null,
-      });
-
-      fetchMessages();
-      fetchStatistics();
-      toast.success("Status updated successfully");
-      setIsStatusUpdateModalOpen(false);
-      setSelectedMessageForStatusUpdate(null);
-      setSelectedActionTaken("");
-      setResponseNotes("");
-    } catch (error) {
-      console.error("Error updating status:", error);
-      toast.error("Failed to update status. Please try again.");
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    setSelectedStatus(newStatus);
   };
 
   const handleSendMessage = async () => {
@@ -482,8 +464,10 @@ export function ContactMessageList({
     try {
       await postData(`contact-messages/${selectedMessageForStatusUpdate.id}/reply`, {
         responseNotes: responseNotes.trim(),
+        contactStatus: selectedStatus,
       });
       await fetchMessages();
+      await fetchStatistics();
       toast.success("Message sent successfully");
       setIsStatusUpdateModalOpen(false);
       setSelectedMessageForStatusUpdate(null);
@@ -974,6 +958,7 @@ export function ContactMessageList({
         isOpen={isStatusUpdateModalOpen}
         message={selectedMessageForStatusUpdate}
         selectedAction={selectedActionTaken}
+        selectedStatus={selectedStatus}
         responseNotes={responseNotes}
         isUpdating={isUpdatingStatus}
         onClose={() => {

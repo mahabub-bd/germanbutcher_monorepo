@@ -166,7 +166,11 @@ export class ContactMessageController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: SendContactResponseDto,
   ) {
-    const contactMessage = await this.contactMessageService.sendReply(id, dto.responseNotes);
+    const contactMessage = await this.contactMessageService.sendReply(
+      id,
+      dto.responseNotes,
+      dto.contactStatus,
+    );
     return {
       message: 'Response email sent successfully',
       statusCode: 200,

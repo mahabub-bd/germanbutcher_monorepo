@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
-import { ActionTaken } from 'src/common/enums';
+import { ActionTaken, ContactStatus } from 'src/common/enums';
 import { EmailService } from 'src/email/email.service';
 
 import { CreateContactMessageDto } from './dto/create-contact-message.dto';
@@ -111,23 +111,14 @@ export class ContactMessageService {
     const contactMessage = await this.findOne(id);
 
     Object.assign(contactMessage, updateContactMessageDto);
-    const updatedMessage = await this.contactMessageRepository.save(contactMessage);
-
-    // Send email if action taken is replied_via_email
-    if (updateContactMessageDto.actionTaken === ActionTaken.REPLIED_VIA_EMAIL) {
-      await this.emailService.sendContactResponseEmail({
-        recipientName: contactMessage.name,
-        recipientEmail: contactMessage.email,
-        originalMessage: contactMessage.message,
-        responseNotes: updateContactMessageDto.responseNotes || 'Thank you for your inquiry. We have responded to your message.',
-        ticketId: contactMessage.id,
-      });
-    }
-
-    return updatedMessage;
+    return this.contactMessageRepository.save(contactMessage);
   }
 
-  async sendReply(id: number, responseNotes: string): Promise<ContactMessage> {
+  async sendReply(
+    id: number,
+    responseNotes: string,
+    contactStatus?: ContactStatus,
+  ): Promise<ContactMessage> {
     const contactMessage = await this.findOne(id);
 
     await this.emailService.sendContactResponseEmailOrThrow({
@@ -140,6 +131,7 @@ export class ContactMessageService {
 
     contactMessage.actionTaken = ActionTaken.REPLIED_VIA_EMAIL;
     contactMessage.responseNotes = responseNotes;
+    if (contactStatus) contactMessage.contactStatus = contactStatus;
     return this.contactMessageRepository.save(contactMessage);
   }
 
