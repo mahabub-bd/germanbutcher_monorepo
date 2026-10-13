@@ -50,11 +50,11 @@ import {
   Trash2,
   XCircle,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ProductImage } from "../image-wrapper";
 import DeleteConfirmationDialog from "../delete-confirmation-dialog";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
@@ -312,41 +312,43 @@ export function DiscountList({
   };
 
   const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-      <Tag className="h-10 w-10 text-muted-foreground mb-4" />
-      <h3 className="text-lg font-semibold">No discounted products found</h3>
-      <p className="text-sm text-muted-foreground mt-2">
-        {searchQuery ||
-        categoryFilter ||
-        brandFilter ||
-        statusFilter ||
-        discountTypeFilter
-          ? "No discounted products match your search criteria. Try different filters."
-          : "Get started by adding discounts to your products."}
-      </p>
-      {!(
-        searchQuery ||
-        categoryFilter ||
-        brandFilter ||
-        statusFilter ||
-        discountTypeFilter
-      ) &&
-        can(MENU_URL, "canCreate") && (
-          <Button asChild className="mt-4">
-            <Link href="/admin/marketing/discounts/add">
-              <Plus className="mr-2 h-4 w-4" /> Create Discount
-            </Link>
+    <div className="p-4 pb-6">
+      <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
+        <Tag className="h-10 w-10 text-muted-foreground/50 mb-4" />
+        <h3 className="text-lg font-semibold">No discounted products found</h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          {searchQuery ||
+          categoryFilter ||
+          brandFilter ||
+          statusFilter ||
+          discountTypeFilter
+            ? "No discounted products match your search criteria. Try different filters."
+            : "Get started by adding discounts to your products."}
+        </p>
+        {!(
+          searchQuery ||
+          categoryFilter ||
+          brandFilter ||
+          statusFilter ||
+          discountTypeFilter
+        ) &&
+          can(MENU_URL, "canCreate") && (
+            <Button asChild className="mt-4">
+              <Link href="/admin/marketing/discounts/add">
+                <Plus className="mr-2 h-4 w-4" /> Create Discount
+              </Link>
+            </Button>
+          )}
+        {(searchQuery ||
+          categoryFilter ||
+          brandFilter ||
+          statusFilter ||
+          discountTypeFilter) && (
+          <Button variant="outline" className="mt-4" onClick={clearFilters}>
+            Clear Filters
           </Button>
         )}
-      {(searchQuery ||
-        categoryFilter ||
-        brandFilter ||
-        statusFilter ||
-        discountTypeFilter) && (
-        <Button variant="outline" className="mt-4" onClick={clearFilters}>
-          Clear Filters
-        </Button>
-      )}
+      </div>
     </div>
   );
 
@@ -361,7 +363,7 @@ export function DiscountList({
     if (!hasFilters) return null;
 
     return (
-      <div className="flex flex-wrap gap-2 mt-4">
+      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
         {searchQuery && (
           <Badge
             variant="outline"
@@ -441,8 +443,134 @@ export function DiscountList({
     );
   };
 
+  const renderFiltersMenu = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2 px-3 shrink-0">
+          <Filter className="h-4 w-4" />
+          <span>Filters</span>
+          {(categoryFilter ||
+            brandFilter ||
+            statusFilter ||
+            discountTypeFilter) && (
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-[400px]">
+        <div className="grid grid-cols-2 gap-3 p-3">
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold">Category</h4>
+            <Select
+              value={categoryFilter}
+              onValueChange={(value) => {
+                setCategoryFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem
+                    key={category.id}
+                    value={category.id.toString()}
+                  >
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold">Brand</h4>
+            <Select
+              value={brandFilter}
+              onValueChange={(value) => {
+                setBrandFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="All Brands" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Brands</SelectItem>
+                {brands.map((brand) => (
+                  <SelectItem key={brand.id} value={brand.id.toString()}>
+                    {brand.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold">Status</h4>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold">Discount Type</h4>
+            <Select
+              value={discountTypeFilter}
+              onValueChange={(value) => {
+                setDiscountTypeFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="percentage">Percentage</SelectItem>
+                <SelectItem value="fixed">Fixed Amount</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(categoryFilter ||
+            brandFilter ||
+            statusFilter ||
+            discountTypeFilter) && (
+            <div className="col-span-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="w-full mt-2"
+              >
+                Reset Filters
+              </Button>
+            </div>
+          )}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   const renderTableView = () => (
-    <div className="overflow-auto">
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
@@ -462,22 +590,22 @@ export function DiscountList({
             const discountBadge = getDiscountBadge(product);
 
             return (
-              <TableRow key={product.id}>
+              <TableRow key={product.id} className="hover:bg-muted/50">
                 <TableCell>
-                  <div className="flex items-center gap-3">
-                    <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md border">
-                      <Image
-                        src={product?.attachment?.url || "/placeholder.svg"}
-                        alt={product.name}
-                        fill
-                        className="object-cover"
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="flex aspect-[3/2] h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                      <ProductImage
+                        product={product}
+                        width={96}
+                        height={64}
+                        className="h-full w-full object-cover"
                       />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-medium line-clamp-1">
+                    </span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-medium leading-tight line-clamp-1">
                         {product.name}
                       </span>
-                      <span className="text-xs text-muted-foreground md:hidden">
+                      <span className="text-xs text-muted-foreground font-mono mt-0.5 md:hidden">
                         {product?.productSku}
                       </span>
                     </div>
@@ -567,7 +695,7 @@ export function DiscountList({
 
   return (
     <>
-      <div className="w-full p-2 md:p-6">
+      <div className="w-full p-2 md:p-6 space-y-4">
         <PageHeader
           title="Product Discounts"
           description="Manage your product discounts and promotions"
@@ -579,152 +707,50 @@ export function DiscountList({
             : {})}
         />
 
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search discounted products..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
+        {/* List card: toolbar + table */}
+        <div className="rounded-xl border bg-card">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
+                <Tag className="h-4.5 w-4.5" />
+              </span>
+              <div>
+                <h3 className="font-semibold leading-tight">
+                  Discounted Products
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {totalItems} product{totalItems === 1 ? "" : "s"}
+                </p>
+              </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[200px]">
-                  <div className="grid gap-3 p-2">
-                    <div className="space-y-1">
-                      <h4 className="text-xs font-semibold">Category</h4>
-                      <Select
-                        value={categoryFilter}
-                        onValueChange={(value) => {
-                          setCategoryFilter(value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue placeholder="All Categories" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Categories</SelectItem>
-                          {categories.map((category) => (
-                            <SelectItem
-                              key={category.id}
-                              value={category.id.toString()}
-                            >
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <h4 className="text-xs font-semibold">Brand</h4>
-                      <Select
-                        value={brandFilter}
-                        onValueChange={(value) => {
-                          setBrandFilter(value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue placeholder="All Brands" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Brands</SelectItem>
-                          {brands.map((brand) => (
-                            <SelectItem
-                              key={brand.id}
-                              value={brand.id.toString()}
-                            >
-                              {brand.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <h4 className="text-xs font-semibold">Status</h4>
-                      <Select
-                        value={statusFilter}
-                        onValueChange={(value) => {
-                          setStatusFilter(value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue placeholder="All Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Status</SelectItem>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="upcoming">Upcoming</SelectItem>
-                          <SelectItem value="expired">Expired</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <h4 className="text-xs font-semibold">Discount Type</h4>
-                      <Select
-                        value={discountTypeFilter}
-                        onValueChange={(value) => {
-                          setDiscountTypeFilter(value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue placeholder="All Types" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Types</SelectItem>
-                          <SelectItem value="percentage">Percentage</SelectItem>
-                          <SelectItem value="fixed">Fixed Amount</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {(categoryFilter ||
-                      brandFilter ||
-                      statusFilter ||
-                      discountTypeFilter) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={clearFilters}
-                        className="mt-2"
-                      >
-                        Reset Filters
-                      </Button>
-                    )}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search discounted products..."
+                  className="pl-9"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                />
+              </div>
+              {renderFiltersMenu()}
             </div>
           </div>
 
           {renderActiveFilters()}
 
           {isLoading ? (
-            <LoadingIndicator message=" Loading Discounted Products..." />
+            <LoadingIndicator message="Loading Discounted Products..." />
           ) : products.length === 0 ? (
             renderEmptyState()
           ) : (
-            <div className="mt-6">{renderTableView()}</div>
+            renderTableView()
           )}
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
+        {/* Pagination */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground text-center md:text-left truncate">
               {`Showing ${products.length} of ${totalItems} discounted products`}

@@ -670,7 +670,7 @@ export function ProductList({
 
   return (
     <>
-      <div className="w-full md:p-4 p-2 space-y-4">
+      <div className="w-full p-2 md:p-6 space-y-4">
         <PageHeader
           title="Products"
           description="Manage your product inventory"
