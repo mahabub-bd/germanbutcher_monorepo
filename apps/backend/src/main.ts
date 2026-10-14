@@ -1,4 +1,8 @@
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  ValidationPipe,
+  VersioningType,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -113,7 +117,10 @@ async function bootstrap() {
       },
     }),
   );
+  // Strip @Exclude() fields (User.password, otp, …) from every response,
+  // including nested entities reached via eager relations.
   app.useGlobalInterceptors(
+    new ClassSerializerInterceptor(app.get(Reflector)),
     new AnalyticsInterceptor(app.get(AnalyticsService), app.get(Reflector)),
   );
 
