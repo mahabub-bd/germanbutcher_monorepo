@@ -18,9 +18,9 @@ import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { ApiResponseDto } from 'src/common/types';
 import { CreateFlashSaleCampaignDto } from './dto/create-flash-sale-campaign.dto';
 import { UpdateFlashSaleCampaignDto } from './dto/update-flash-sale-campaign.dto';
-import { FlashSaleCampaign } from './entities/flash-sale-campaign.entity';
 import {
   ActiveCampaignSummary,
+  AdminCampaignSummary,
   FlashSaleCampaignsService,
 } from './flash-sale-campaigns.service';
 
@@ -48,7 +48,7 @@ export class FlashSaleCampaignsController {
   @ModulePermissions('/admin/marketing/flash-sales')
   @ApiBearerAuth('token')
   @Get()
-  async findAll(): Promise<ApiResponseDto<FlashSaleCampaign[]>> {
+  async findAll(): Promise<ApiResponseDto<AdminCampaignSummary[]>> {
     const data = await this.campaignsService.findAll();
     return {
       message: 'Flash sale campaigns retrieved successfully',
@@ -63,7 +63,7 @@ export class FlashSaleCampaignsController {
   @Get(':id')
   async findOne(
     @Param('id', ParseIntPipe) id: number,
-  ): Promise<ApiResponseDto<FlashSaleCampaign>> {
+  ): Promise<ApiResponseDto<AdminCampaignSummary>> {
     const data = await this.campaignsService.findOne(id);
     return {
       message: 'Flash sale campaign retrieved successfully',
@@ -78,7 +78,7 @@ export class FlashSaleCampaignsController {
   @Post()
   async create(
     @Body() dto: CreateFlashSaleCampaignDto,
-  ): Promise<ApiResponseDto<FlashSaleCampaign>> {
+  ): Promise<ApiResponseDto<AdminCampaignSummary>> {
     const data = await this.campaignsService.create(dto);
     return {
       message: 'Flash sale campaign created successfully',
@@ -94,7 +94,7 @@ export class FlashSaleCampaignsController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateFlashSaleCampaignDto,
-  ): Promise<ApiResponseDto<FlashSaleCampaign>> {
+  ): Promise<ApiResponseDto<AdminCampaignSummary>> {
     const data = await this.campaignsService.update(id, dto);
     return {
       message: 'Flash sale campaign updated successfully',

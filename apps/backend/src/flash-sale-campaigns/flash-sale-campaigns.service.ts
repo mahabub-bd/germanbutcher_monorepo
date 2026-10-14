@@ -47,6 +47,25 @@ export type ActiveCampaignSummary = Omit<
   categories: CampaignCategorySummary[];
 };
 
+/** Product fields the admin card/picker needs — never a full entity (full
+ * entities leak supplier/admin data like user password hashes). */
+export type AdminCampaignProduct = Pick<
+  Product,
+  'id' | 'name' | 'slug' | 'sellingPrice' | 'discountType' | 'discountValue'
+> & {
+  category?: { id: number; name: string } | null;
+  attachment?: { id: number | string; url: string } | null;
+};
+
+/** Campaign as returned by the admin CRUD endpoints (trimmed relations). */
+export type AdminCampaignSummary = Omit<
+  FlashSaleCampaign,
+  'products' | 'categories'
+> & {
+  products: AdminCampaignProduct[];
+  categories: { id: number; name: string }[];
+};
+
 /** Compute the flash price for a selling price under a campaign. Pure. */
 export function computeFlashPrice(
   sellingPrice: number,
@@ -73,7 +92,7 @@ export class FlashSaleCampaignsService {
 
   async create(
     dto: CreateFlashSaleCampaignDto,
-  ): Promise<FlashSaleCampaign> {
+  ): Promise<AdminCampaignSummary> {
     this.validateDateRange(dto.validFrom, dto.validUntil);
     this.validateDiscountValue(dto.discountType, dto.discountValue);
     const { productIds, categoryIds, ...rest } = dto;
@@ -87,8 +106,8 @@ export class FlashSaleCampaignsService {
   async update(
     id: number,
     dto: UpdateFlashSaleCampaignDto,
-  ): Promise<FlashSaleCampaign> {
-    const campaign = await this.findOne(id);
+  ): Promise<AdminCampaignSummary> {
+    const campaign = await this.findEntity(id);
     const { validFrom, validUntil, productIds, categoryIds, ...rest } = dto;
 
     this.validateDateRange(
@@ -114,14 +133,16 @@ export class FlashSaleCampaignsService {
     return this.findOne(id);
   }
 
-  findAll(): Promise<FlashSaleCampaign[]> {
-    return this.campaignRepository.find({
-      relations: ['products', 'products.attachment', 'categories'],
-      order: { id: 'ASC' },
-    });
+  findAll(): Promise<AdminCampaignSummary[]> {
+    return this.campaignRepository
+      .find({
+        relations: ['products', 'products.attachment', 'categories'],
+        order: { id: 'ASC' },
+      })
+      .then((campaigns) => campaigns.map((c) => this.toAdminSummary(c)));
   }
 
-  async findOne(id: number): Promise<FlashSaleCampaign> {
+  async findOne(id: number): Promise<AdminCampaignSummary> {
     const campaign = await this.campaignRepository.findOne({
       where: { id },
       relations: ['products', 'products.attachment', 'categories'],
@@ -129,12 +150,54 @@ export class FlashSaleCampaignsService {
     if (!campaign) {
       throw new NotFoundException(`Campaign with ID ${id} not found`);
     }
-    return campaign;
+    return this.toAdminSummary(campaign);
   }
 
   async remove(id: number): Promise<void> {
-    const campaign = await this.findOne(id);
+    const campaign = await this.findEntity(id);
     await this.campaignRepository.remove(campaign);
+  }
+
+  /** Raw entity fetch for the mutation paths — findOne() returns a summary. */
+  private async findEntity(id: number): Promise<FlashSaleCampaign> {
+    const campaign = await this.campaignRepository.findOne({
+      where: { id },
+      relations: ['products', 'categories'],
+    });
+    if (!campaign) {
+      throw new NotFoundException(`Campaign with ID ${id} not found`);
+    }
+    return campaign;
+  }
+
+  /** Trim nested product/category entities to the fields the admin card and
+   * picker need — full entities expose supplier/admin data (incl. password
+   * hashes via createdBy/updatedBy). */
+  private toAdminSummary(
+    campaign: FlashSaleCampaign,
+  ): AdminCampaignSummary {
+    const { products, categories, ...rest } = campaign;
+    return {
+      ...rest,
+      products: (products ?? []).map((product) => ({
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        sellingPrice: product.sellingPrice,
+        discountType: product.discountType,
+        discountValue: product.discountValue,
+        category: product.category
+          ? { id: product.category.id, name: product.category.name }
+          : null,
+        attachment: product.attachment
+          ? { id: product.attachment.id, url: product.attachment.url }
+          : null,
+      })),
+      categories: (categories ?? []).map((category) => ({
+        id: category.id,
+        name: category.name,
+      })),
+    };
   }
 
   private validateDateRange(from?: string, until?: string): void {
