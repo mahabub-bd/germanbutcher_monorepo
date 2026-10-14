@@ -1,8 +1,8 @@
 "use client";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
-import { AddPaymentModal } from "@/components/admin/orders/add-payment-modal";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
+import { AddPaymentModal } from "@/components/admin/orders/add-payment-modal";
 import { Button } from "@/components/ui/button";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { fetchProtectedData } from "@/utils/api-utils";
@@ -40,9 +40,7 @@ function OrderPaymentsListPageContent() {
     }
   }, [orderId]);
 
-  // The list page (order-list.tsx) appends its route/page/filters to detail
-  // links. "Back to Orders" rebuilds that URL so the user returns to the
-  // exact page they left, instead of always landing on page 1.
+
   const buildListUrl = () => {
     const listSlug = searchParams.get("from");
     const from = listSlug ? listSlugToRoute(listSlug) : "/admin/orders";
@@ -76,7 +74,7 @@ function OrderPaymentsListPageContent() {
   const remainingAmount = order.totalValue - order.paidAmount;
 
   return (
-    <div className="space-y-6 p-2 md:p-4">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       {/* Page header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="min-w-0">
@@ -127,7 +125,7 @@ function OrderPaymentsListPageContent() {
       </div>
 
       {/* Payments table */}
-      <section className="rounded-xl border bg-card p-5">
+      <section className="rounded-sm border bg-card p-5">
         <PaymentsTable payments={order.payments ?? []} />
       </section>
 

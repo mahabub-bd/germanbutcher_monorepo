@@ -45,8 +45,7 @@ export default function EditClientPage() {
   }
 
   return (
-    <div className="md:p-6 p:2 space-y-6 border rounded-sm">
-      <div className="md:p-6 p:2">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Client</CardTitle>
@@ -56,7 +55,6 @@ export default function EditClientPage() {
             <Link href="/admin/client/client-list">Back to Clients</Link>
           </Button>
         </div>
-      </div>
 
       <ClientForm mode="edit" client={client} />
     </div>

@@ -1,22 +1,27 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { List, Plus } from "lucide-react";
 
+import { RouteTabs } from "@/components/admin/route-tabs";
 import { PurchaseForm } from "@/components/admin/procurement/purchases/purchase-form";
-import { Button } from "@/components/ui/button";
 
 export default function AddPurchasePage() {
   return (
-    <div className="space-y-6 p-2 md:p-4">
-      <div className="flex justify-end">
-        <Button asChild variant="outline">
-          <Link href="/admin/procurement/purchases">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Purchases
-          </Link>
-        </Button>
-      </div>
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <RouteTabs
+        tabs={[
+          {
+            label: "Purchases",
+            href: "/admin/procurement/purchases",
+            icon: <List className="mr-2 h-4 w-4" />,
+          },
+          {
+            label: "Add Purchase",
+            href: "/admin/procurement/purchases/add",
+            icon: <Plus className="mr-2 h-4 w-4" />,
+          },
+        ]}
+      />
       <PurchaseForm mode="create" />
     </div>
   );

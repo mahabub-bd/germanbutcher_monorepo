@@ -47,7 +47,7 @@ export default function ViewCouponPage() {
 
   if (!coupon) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="text-center">
           <h2 className="text-xl font-semibold">Coupon not found</h2>
           <p className="text-muted-foreground mt-2">
@@ -62,8 +62,7 @@ export default function ViewCouponPage() {
   }
 
   return (
-    <div className="md:p-6 p-2 space-y-6 border rounded-sm">
-      <div className="md:p-6 p-2">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Coupon Information</CardTitle>
@@ -73,7 +72,6 @@ export default function ViewCouponPage() {
             <Link href="/admin/coupons">Back to Coupons</Link>
           </Button>
         </div>
-      </div>
 
       <CouponForm mode="edit" coupon={coupon} onSuccess={handleSuccess} />
     </div>

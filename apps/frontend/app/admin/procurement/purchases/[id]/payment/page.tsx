@@ -39,8 +39,7 @@ export default function AddPaymentPage() {
     parseFloat(purchase.totalValue) - parseFloat(purchase.amountPaid);
 
   return (
-    <div className="md:p-6 p-2 space-y-6 border rounded-sm">
-      <div className="md:p-6 p-2">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Add New Payment</CardTitle>
@@ -54,7 +53,6 @@ export default function AddPaymentPage() {
             </Link>
           </Button>
         </div>
-      </div>
       <div>
         <PaymentForm purchaseId={parseInt(purchaseId)} maxAmount={maxAmount} />
       </div>

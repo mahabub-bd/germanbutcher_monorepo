@@ -28,8 +28,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { PaginationComponent } from "@/components/common/pagination";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { PaginationComponent } from "@/components/common/pagination";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { fetchDataPagination, patchData } from "@/utils/api-utils";
 import {
@@ -54,8 +54,8 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ProductImage } from "../image-wrapper";
 import DeleteConfirmationDialog from "../delete-confirmation-dialog";
+import { ProductImage } from "../image-wrapper";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
@@ -312,16 +312,16 @@ export function DiscountList({
   };
 
   const renderEmptyState = () => (
-    <div className="p-4 pb-6">
+    <div className="pb-6">
       <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
         <Tag className="h-10 w-10 text-muted-foreground/50 mb-4" />
         <h3 className="text-lg font-semibold">No discounted products found</h3>
         <p className="text-sm text-muted-foreground mt-2">
           {searchQuery ||
-          categoryFilter ||
-          brandFilter ||
-          statusFilter ||
-          discountTypeFilter
+            categoryFilter ||
+            brandFilter ||
+            statusFilter ||
+            discountTypeFilter
             ? "No discounted products match your search criteria. Try different filters."
             : "Get started by adding discounts to your products."}
         </p>
@@ -344,10 +344,10 @@ export function DiscountList({
           brandFilter ||
           statusFilter ||
           discountTypeFilter) && (
-          <Button variant="outline" className="mt-4" onClick={clearFilters}>
-            Clear Filters
-          </Button>
-        )}
+            <Button variant="outline" className="mt-4" onClick={clearFilters}>
+              Clear Filters
+            </Button>
+          )}
       </div>
     </div>
   );
@@ -453,11 +453,11 @@ export function DiscountList({
             brandFilter ||
             statusFilter ||
             discountTypeFilter) && (
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          )}
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[400px]">
+      <DropdownMenuContent align="end" className="w-100">
         <div className="grid grid-cols-2 gap-3 p-3">
           <div className="space-y-1">
             <h4 className="text-xs font-semibold">Category</h4>
@@ -553,17 +553,17 @@ export function DiscountList({
             brandFilter ||
             statusFilter ||
             discountTypeFilter) && (
-            <div className="col-span-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="w-full mt-2"
-              >
-                Reset Filters
-              </Button>
-            </div>
-          )}
+              <div className="col-span-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="w-full mt-2"
+                >
+                  Reset Filters
+                </Button>
+              </div>
+            )}
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -593,7 +593,7 @@ export function DiscountList({
               <TableRow key={product.id} className="hover:bg-muted/50">
                 <TableCell>
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="flex aspect-[3/2] h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                    <span className="flex aspect-3/2 h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
                       <ProductImage
                         product={product}
                         width={96}
@@ -647,15 +647,15 @@ export function DiscountList({
                       discountStatus === "active"
                         ? "default"
                         : discountStatus === "upcoming"
-                        ? "outline"
-                        : "secondary"
+                          ? "outline"
+                          : "secondary"
                     }
                   >
                     {discountStatus === "active"
                       ? "Active"
                       : discountStatus === "upcoming"
-                      ? "Upcoming"
-                      : "Expired"}
+                        ? "Upcoming"
+                        : "Expired"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
@@ -695,20 +695,20 @@ export function DiscountList({
 
   return (
     <>
-      <div className="w-full p-2 md:p-6 space-y-4">
+      <div className="w-full space-y-4">
         <PageHeader
           title="Product Discounts"
           description="Manage your product discounts and promotions"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Create Discount",
-                actionHref: "/admin/marketing/discounts/add",
-              }
+              actionLabel: "Create Discount",
+              actionHref: "/admin/marketing/discounts/add",
+            }
             : {})}
         />
 
         {/* List card: toolbar + table */}
-        <div className="rounded-xl border bg-card">
+        <div className="rounded-sm border bg-card">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
             <div className="flex items-center gap-3">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">

@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { Supplier } from "@/utils/types";
 import {
   Filter,
@@ -41,7 +42,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import DeleteConfirmationDialog from "../../delete-confirmation-dialog";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { LoadingIndicator } from "../../loading-indicator";
 import { PageHeader } from "../../page-header";
 
@@ -324,15 +324,15 @@ export function SupplierList({
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full">
         <PageHeader
           title="Suppliers"
           description="Manage your product suppliers"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add Supplier",
-                actionHref: "/admin/procurement/suppliers/add",
-              }
+              actionLabel: "Add Supplier",
+              actionHref: "/admin/procurement/suppliers/add",
+            }
             : {})}
         />
 
@@ -391,11 +391,10 @@ export function SupplierList({
                             setStatusFilter("all");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            statusFilter === "all"
+                          className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all"
                               ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           All
                         </button>
@@ -404,11 +403,10 @@ export function SupplierList({
                             setStatusFilter("active");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "active"
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "active"
                               ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-green-500" />
                           Active
@@ -418,11 +416,10 @@ export function SupplierList({
                             setStatusFilter("inactive");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "inactive"
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "inactive"
                               ? "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-red-500" />
                           Inactive

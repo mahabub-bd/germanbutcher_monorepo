@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +20,6 @@ import {
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { formatDateTime } from "@/lib/utils";
 import { deleteData, fetchData } from "@/utils/api-utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { SalesPartner } from "@/utils/types";
 import {
   ExternalLink,
@@ -137,7 +137,7 @@ export function SalesPartnerList() {
           {salesPartners.map((salesPartner: SalesPartner) => (
             <TableRow key={salesPartner.Id} className="hover:bg-muted/50">
               <TableCell>
-                <span className="flex aspect-[3/2] h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
+                <span className="flex aspect-3/2 h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
                   <Image
                     src={salesPartner?.Image?.url || "/placeholder.svg"}
                     alt={salesPartner.name}
@@ -228,15 +228,15 @@ export function SalesPartnerList() {
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full">
         <PageHeader
           title="Sales Partners"
           description="Manage your sales partners"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add Sales Partner",
-                actionHref: "/admin/sales-partner/add",
-              }
+              actionLabel: "Add Sales Partner",
+              actionHref: "/admin/sales-partner/add",
+            }
             : {})}
         />
         {isLoading ? (

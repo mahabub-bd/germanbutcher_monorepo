@@ -47,7 +47,7 @@ export default function EditUnitPage() {
 
   if (!unit) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="text-center">
           <h2 className="text-xl font-semibold">Unit not found</h2>
           <p className="text-muted-foreground mt-2">
@@ -62,8 +62,7 @@ export default function EditUnitPage() {
   }
 
   return (
-    <div className="md:p-6 p-2 space-y-6 border rounded-sm">
-      <div className="md:p-6 p-2">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Unit Information</CardTitle>
@@ -73,7 +72,6 @@ export default function EditUnitPage() {
             <Link href="/admin/products/units">Back to Units</Link>
           </Button>
         </div>
-      </div>
 
       <UnitForm mode="edit" unit={unit} onSuccess={handleSuccess} />
     </div>

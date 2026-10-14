@@ -94,7 +94,7 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
   }
 
   return (
-    <div className="w-full md:p-6 p-2">
+    <div className="w-full">
       <div className="flex items-center justify-between mb-6">
         <PageHeader
           title={couponCode ? `Usage Logs: ${couponCode}` : "Coupon Usage Logs"}
@@ -160,7 +160,7 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
           </p>
         </div>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-sm border">
           <Table>
             <TableHeader>
               <TableRow>

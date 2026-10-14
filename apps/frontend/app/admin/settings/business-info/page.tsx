@@ -8,7 +8,7 @@ import Link from "next/link";
 
 export default function BusinessInfoSettingsPage() {
   return (
-    <div className="md:p-6 p-2 space-y-6">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-primaryColor dark:bg-red-950/40 dark:text-red-400">

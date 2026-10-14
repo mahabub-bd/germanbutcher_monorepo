@@ -2,6 +2,7 @@
 
 import type React from "react";
 
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,9 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { Banner } from "@/utils/types";
 import { Filter, ImageIcon, Plus, Search, XCircle } from "lucide-react";
 import Link from "next/link";
@@ -263,15 +263,15 @@ export function BannerList({
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full">
         <PageHeader
           title="Banners"
           description="Manage your promotional banners"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add Banner",
-                actionHref: "/admin/banner/add",
-              }
+              actionLabel: "Add Banner",
+              actionHref: "/admin/banner/add",
+            }
             : {})}
         />
 
@@ -330,11 +330,10 @@ export function BannerList({
                             setStatusFilter("all");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            statusFilter === "all"
+                          className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all"
                               ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           All
                         </button>
@@ -343,11 +342,10 @@ export function BannerList({
                             setStatusFilter("active");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "active"
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "active"
                               ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-green-500" />
                           Active
@@ -357,11 +355,10 @@ export function BannerList({
                             setStatusFilter("inactive");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "inactive"
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "inactive"
                               ? "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-red-500" />
                           Inactive
@@ -380,11 +377,10 @@ export function BannerList({
                             setTypeFilter("main");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            typeFilter === "main"
+                          className={`text-xs py-1.5 px-2 rounded-md border ${typeFilter === "main"
                               ? "bg-purple-50 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800 text-purple-600 dark:text-purple-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           Main
                         </button>
@@ -393,11 +389,10 @@ export function BannerList({
                             setTypeFilter("promotional");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            typeFilter === "promotional"
+                          className={`text-xs py-1.5 px-2 rounded-md border ${typeFilter === "promotional"
                               ? "bg-amber-50 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 text-amber-600 dark:text-amber-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           Promotional
                         </button>
@@ -406,11 +401,10 @@ export function BannerList({
                             setTypeFilter("featured");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            typeFilter === "featured"
+                          className={`text-xs py-1.5 px-2 rounded-md border ${typeFilter === "featured"
                               ? "bg-cyan-50 border-cyan-200 dark:bg-cyan-900/30 dark:border-cyan-800 text-cyan-600 dark:text-cyan-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           Featured
                         </button>

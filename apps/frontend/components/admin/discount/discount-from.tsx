@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { type Resolver, useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -39,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { patchData } from "@/utils/api-utils";
 import { discountFormSchema } from "@/utils/form-validation";
 import {
@@ -47,7 +48,6 @@ import {
   type MinimalProduct,
 } from "@/utils/types";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { ProductSelector } from "./product-selector";
 
 type DiscountFormValues = z.output<typeof discountFormSchema>;
@@ -78,7 +78,7 @@ function StepHeader({
       {step !== undefined ? (
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700 text-sm font-semibold">
           {step}
-      </span>
+        </span>
       ) : (
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
           <Icon className="h-4.5 w-4.5" />
@@ -186,7 +186,7 @@ export function DiscountForm({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             {/* 1 — Discount Settings */}
-            <section className="rounded-xl border bg-card p-6 space-y-5">
+            <section className="rounded-sm border bg-card p-6 space-y-5">
               <StepHeader
                 step={1}
                 title="Discount Settings"
@@ -332,7 +332,7 @@ export function DiscountForm({
 
             <div className="space-y-6">
               {/* 2 — Discount Period */}
-              <section className="rounded-xl border bg-card p-6 space-y-5">
+              <section className="rounded-sm border bg-card p-6 space-y-5">
                 <StepHeader
                   step={2}
                   title="Discount Period"
@@ -390,7 +390,7 @@ export function DiscountForm({
               </section>
 
               {/* 3 — Select Products */}
-              <section className="rounded-xl border bg-card p-6 space-y-5">
+              <section className="rounded-sm border bg-card p-6 space-y-5">
                 <StepHeader
                   step={3}
                   title="Select Products"
@@ -428,7 +428,7 @@ export function DiscountForm({
           </div>
 
           {/* Products to Discount */}
-          <section className="rounded-xl border bg-card p-6 space-y-5">
+          <section className="rounded-sm border bg-card p-6 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <StepHeader
                 icon={Package}
@@ -470,7 +470,7 @@ export function DiscountForm({
           </section>
 
           {/* Footer action bar */}
-          <div className="rounded-xl border bg-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="rounded-sm border bg-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-600">
                 <Store className="h-4.5 w-4.5" />

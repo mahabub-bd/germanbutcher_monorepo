@@ -18,7 +18,7 @@ export default async function AdminProfilePage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <AdminProfileView user={userdata} />
     </div>
   );

@@ -46,8 +46,7 @@ export default function EditSalesPartnerPage() {
   }
 
   return (
-    <div className="md:p-6 p-2 space-y-6 border rounded-sm">
-      <div className="md:p-6 p-2">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Sales Partner</CardTitle>
@@ -61,7 +60,6 @@ export default function EditSalesPartnerPage() {
             </Link>
           </Button>
         </div>
-      </div>
       <SalesPartnerForm mode="edit" salesPartner={salesPartner} />
     </div>
   );

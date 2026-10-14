@@ -1,9 +1,9 @@
 "use client";
 
 import { type ReactNode, useState } from "react";
-import { RequirePermission } from "./permissions/require-permission";
-import { PermissionProvider } from "./permissions/permission-provider";
 import { AdminHeader } from "./admin-header";
+import { PermissionProvider } from "./permissions/permission-provider";
+import { RequirePermission } from "./permissions/require-permission";
 import { SidebarMenu } from "./sidebar-menu";
 
 interface UserData {
@@ -72,11 +72,10 @@ export function AdminLayoutClient({
         onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
       <div
-        className={`transition-all duration-300 ease-in-out pt-1 md:pt-0 ${
-          sidebarCollapsed
-            ? "md:pl-[70px]"
-            : "md:pl-[176px] xl:pl-[250px]"
-        }`}
+        className={`transition-all duration-300 ease-in-out pt-1 md:pt-0 ${sidebarCollapsed
+          ? "md:pl-17.5"
+          : "md:pl-44 xl:pl-60 2xl:pl-64.5"
+          }`}
       >
         <main className="md:p-4 p-2">
           <RequirePermission>{children}</RequirePermission>

@@ -1,5 +1,6 @@
 'use client';
 
+import { usePermissions } from '@/components/admin/permissions/use-permissions';
 import { PaginationComponent } from '@/components/common/pagination';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +19,6 @@ import {
 } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/utils';
 import { deleteData, fetchDataPagination } from '@/utils/api-utils';
-import { usePermissions } from '@/components/admin/permissions/use-permissions';
 import type { Subscriber } from '@/utils/types';
 import { Mail, MoreHorizontal, Trash2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -187,7 +187,7 @@ export function SubscriberList({
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full">
         <div className="space-y-4">
           {isLoading ? (
             <LoadingIndicator message="Loading Subscribers..." />

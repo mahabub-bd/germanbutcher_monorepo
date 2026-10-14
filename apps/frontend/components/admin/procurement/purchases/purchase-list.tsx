@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { Purchase } from "@/utils/types";
 import {
@@ -390,7 +390,7 @@ export function PurchaseList({
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full ">
         <PageHeader
           title="Purchases"
           description="Manage your product purchases"

@@ -1,4 +1,6 @@
 "use client";
+import { revalidateProducts } from "@/actions/revalidate";
+import { ProductSelector } from "@/components/admin/discount/product-selector";
 import {
   Accordion,
   AccordionContent,
@@ -27,7 +29,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ProductSelector } from "@/components/admin/discount/product-selector";
 import { cn, formatCurrencyEnglish } from "@/lib/utils";
 import {
   fetchData,
@@ -35,9 +36,8 @@ import {
   patchData,
   postData,
 } from "@/utils/api-utils";
-import { revalidateProducts } from "@/actions/revalidate";
-import type { FlashSaleCampaign, MinimalProduct } from "@/utils/types";
 import { applyTime, toTimeInputValue } from "@/utils/datetime";
+import type { FlashSaleCampaign, MinimalProduct } from "@/utils/types";
 import { DiscountType } from "@/utils/types";
 import {
   Calendar,
@@ -55,8 +55,8 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { LoadingIndicator } from "../../loading-indicator";
 
 const emptyForm = {
@@ -174,8 +174,8 @@ export function FlashSalesCard() {
       ? pickerProducts.filter((p) => form.productIds.includes(p.id))
       : pickerCategoryId
         ? pickerProducts.filter(
-            (p) => p.categoryId === Number(pickerCategoryId)
-          )
+          (p) => p.categoryId === Number(pickerCategoryId)
+        )
         : [];
   const [isLoadingPickerProducts, setIsLoadingPickerProducts] = useState(false);
   const [productSearch, setProductSearch] = useState("");
@@ -230,7 +230,7 @@ export function FlashSalesCard() {
       }
     };
     fetchProducts();
-     
+
   }, [pickerCategoryId]);
 
   const resetForm = () => {
@@ -372,8 +372,7 @@ export function FlashSalesCard() {
     setTogglingId(campaign.id);
     try {
       await patchData(`flash-sale-campaigns/${campaign.id}`, { isActive });
-      // Same revalidation as save: activating/deactivating a campaign must
-      // be visible on the storefront immediately, not after the 300s cache.
+
       await revalidateProducts();
       setCampaigns((prev) =>
         prev.map((c) => (c.id === campaign.id ? { ...c, isActive } : c))
@@ -460,7 +459,7 @@ export function FlashSalesCard() {
             return (
               <div
                 key={campaign.id}
-                className={`rounded-xl border p-5 transition-colors ${campaign.isActive
+                className={`rounded-sm border p-5 transition-colors ${campaign.isActive
                   ? "border-gray-100 bg-white shadow-sm hover:border-primaryColor/30 dark:border-gray-800 dark:bg-gray-900"
                   : "border-dashed border-gray-200 bg-gray-50/60 dark:border-gray-800 dark:bg-gray-900/40"
                   }`}

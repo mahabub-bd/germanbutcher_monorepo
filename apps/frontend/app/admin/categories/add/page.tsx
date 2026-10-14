@@ -1,29 +1,15 @@
 "use client";
 
 import { CategoryForm } from "@/components/admin/category/category-form";
-import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 
 export default function AddCategoryPage() {
   return (
-    <div className="md:p-6 p:2 space-y-6 border rouunded-sm">
-      <div className="md:p-6 p:2">
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>Add New Category</CardTitle>
-            <CardDescription>
-              Create a new category. Fill in all the required information.
-            </CardDescription>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/admin/categories/categories-list">
-              Back to Categories
-            </Link>
-          </Button>
-        </div>
-      </div>
-
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <FormPageHeader
+        backHref="/admin/categories/categories-list"
+        backLabel="Back to Categories"
+      />
       <CategoryForm mode="create" />
     </div>
   );

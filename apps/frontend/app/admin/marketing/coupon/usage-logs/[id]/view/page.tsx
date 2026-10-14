@@ -7,7 +7,7 @@ export default async function CouponUsageLogDetailPage({
 }) {
   const { id } = await params;
   return (
-    <div className="space-y-6 border rounded-sm">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <CouponUsageLogDetail logId={id} />
     </div>
   );

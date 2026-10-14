@@ -51,7 +51,7 @@ export default function EditPaymentMethodPage() {
 
   if (!paymentMethod) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="text-center">
           <h2 className="text-xl font-semibold">Payment method not found</h2>
           <p className="text-muted-foreground mt-2">
@@ -68,8 +68,7 @@ export default function EditPaymentMethodPage() {
   }
 
   return (
-    <div className="md:p-6 p-2 space-y-6 border rounded-sm">
-      <div className="md:p-6 p-2">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Payment Method Information</CardTitle>
@@ -83,7 +82,6 @@ export default function EditPaymentMethodPage() {
             </Link>
           </Button>
         </div>
-      </div>
 
       <PaymentMethodForm
         mode="edit"

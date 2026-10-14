@@ -46,7 +46,7 @@ export default function AnalyticsPage() {
   }, [period]);
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <PageHeader
           title="Analytics Dashboard"
@@ -75,7 +75,7 @@ export default function AnalyticsPage() {
           <p className="text-red-600">{error}</p>
         </div>
       ) : data ? (
-        <div className="space-y-6">
+        <div className="md:p-4 p-2 space-y-6 rounded-sm">
           <AnalyticsOverviewCards data={data.overview} />
 
           <div className="grid gap-6 lg:grid-cols-2">

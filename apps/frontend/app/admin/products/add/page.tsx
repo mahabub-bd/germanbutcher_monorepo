@@ -1,12 +1,10 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { FormPageHeader } from "@/components/admin/form-page-header";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { ProductForm } from "@/components/admin/products/product-form";
-import { Button } from "@/components/ui/button";
 import { fetchData } from "@/utils/api-utils";
 import type { Brand, Category } from "@/utils/types";
 
@@ -51,15 +49,11 @@ export default function AddProductPage() {
     return <LoadingIndicator message="Loading Products" />;
   }
   return (
-    <div className="space-y-6 p-2 md:p-4">
-      <div className="flex justify-end">
-        <Button asChild variant="outline">
-          <Link href="/admin/products/products-list">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Products
-          </Link>
-        </Button>
-      </div>
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <FormPageHeader
+        backHref="/admin/products/products-list"
+        backLabel="Back to Products"
+      />
       <ProductForm mode="create" brands={brands} categories={categories} />
     </div>
   );

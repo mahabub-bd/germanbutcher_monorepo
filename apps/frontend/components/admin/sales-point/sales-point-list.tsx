@@ -2,6 +2,7 @@
 
 import type React from "react";
 
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +24,6 @@ import {
 } from "@/components/ui/table";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { SalesPoint } from "@/utils/types";
 import {
   Filter,
@@ -248,149 +248,149 @@ export function SalesPointList({
   };
 
   const renderTableView = () => (
-    <div className="md:p-4 p-2">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Logo</TableHead>
-            <TableHead>Banner</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead className="hidden md:table-cell">Contact</TableHead>
-            <TableHead className="hidden lg:table-cell">Website</TableHead>
-            <TableHead className="hidden md:table-cell">Shops</TableHead>
 
-            <TableHead className="hidden md:table-cell">
-              Display Order
-            </TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {salesPoints.map((salesPoint) => (
-            <TableRow key={salesPoint.id}>
-              <TableCell>
-                <div className="w-16 h-16  overflow-hidden">
-                  <Image
-                    src={salesPoint?.logoAttachment?.url || "/placeholder.svg"}
-                    alt={salesPoint.name}
-                    width={80}
-                    height={64}
-                    className="object-cover"
-                  />
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="w-24 h-14 overflow-hidden">
-                  <Image
-                    src={
-                      salesPoint?.bannerAttachment?.url || "/placeholder.svg"
-                    }
-                    alt={`${salesPoint.name} banner`}
-                    width={120}
-                    height={70}
-                    className="object-cover"
-                  />
-                </div>
-              </TableCell>
-              <TableCell>
-                <div>
-                  <div className="font-medium">{salesPoint.name}</div>
-                </div>
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1 text-sm">
-                    <Phone className="h-3 w-3" />
-                    {salesPoint.contactNumber}
-                  </div>
-                  <div className="flex items-center gap-1 text-sm">
-                    <Mail className="h-3 w-3" />
-                    {salesPoint.email}
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell className="hidden lg:table-cell">
-                {salesPoint.website ? (
-                  <a
-                    href={salesPoint.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
-                  >
-                    <Globe className="h-3 w-3" />
-                    Visit
-                  </a>
-                ) : (
-                  <span className="text-sm text-muted-foreground">-</span>
-                )}
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  <span className="text-sm">
-                    {salesPoint.shops?.length || 0}
-                  </span>
-                </div>
-              </TableCell>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Logo</TableHead>
+          <TableHead>Banner</TableHead>
+          <TableHead>Name</TableHead>
+          <TableHead className="hidden md:table-cell">Contact</TableHead>
+          <TableHead className="hidden lg:table-cell">Website</TableHead>
+          <TableHead className="hidden md:table-cell">Shops</TableHead>
 
-
-              <TableCell className="hidden md:table-cell">
-                {salesPoint.order}
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <ActiveStatusToggle
-                  isActive={salesPoint.isActive}
-                  disabled={togglingId === salesPoint.id}
-                  onToggle={() => toggleActive(salesPoint)}
-                  label={salesPoint.name}
+          <TableHead className="hidden md:table-cell">
+            Display Order
+          </TableHead>
+          <TableHead className="hidden md:table-cell">Status</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {salesPoints.map((salesPoint) => (
+          <TableRow key={salesPoint.id}>
+            <TableCell>
+              <div className="w-16 h-16  overflow-hidden">
+                <Image
+                  src={salesPoint?.logoAttachment?.url || "/placeholder.svg"}
+                  alt={salesPoint.name}
+                  width={80}
+                  height={64}
+                  className="object-cover"
                 />
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {can(MENU_URL, "canEdit") && (
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/sales-point/${salesPoint.id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    {can(MENU_URL, "canDelete") && (
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDeleteClick(salesPoint)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+              </div>
+            </TableCell>
+            <TableCell>
+              <div className="w-24 h-14 overflow-hidden">
+                <Image
+                  src={
+                    salesPoint?.bannerAttachment?.url || "/placeholder.svg"
+                  }
+                  alt={`${salesPoint.name} banner`}
+                  width={120}
+                  height={70}
+                  className="object-cover"
+                />
+              </div>
+            </TableCell>
+            <TableCell>
+              <div>
+                <div className="font-medium">{salesPoint.name}</div>
+              </div>
+            </TableCell>
+            <TableCell className="hidden md:table-cell">
+              <div className="space-y-1">
+                <div className="flex items-center gap-1 text-sm">
+                  <Phone className="h-3 w-3" />
+                  {salesPoint.contactNumber}
+                </div>
+                <div className="flex items-center gap-1 text-sm">
+                  <Mail className="h-3 w-3" />
+                  {salesPoint.email}
+                </div>
+              </div>
+            </TableCell>
+            <TableCell className="hidden lg:table-cell">
+              {salesPoint.website ? (
+                <a
+                  href={salesPoint.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                >
+                  <Globe className="h-3 w-3" />
+                  Visit
+                </a>
+              ) : (
+                <span className="text-sm text-muted-foreground">-</span>
+              )}
+            </TableCell>
+            <TableCell className="hidden md:table-cell">
+              <div className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                <span className="text-sm">
+                  {salesPoint.shops?.length || 0}
+                </span>
+              </div>
+            </TableCell>
+
+
+            <TableCell className="hidden md:table-cell">
+              {salesPoint.order}
+            </TableCell>
+            <TableCell className="hidden md:table-cell">
+              <ActiveStatusToggle
+                isActive={salesPoint.isActive}
+                disabled={togglingId === salesPoint.id}
+                onToggle={() => toggleActive(salesPoint)}
+                label={salesPoint.name}
+              />
+            </TableCell>
+            <TableCell className="text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {can(MENU_URL, "canEdit") && (
+                    <DropdownMenuItem asChild>
+                      <Link href={`/admin/sales-point/${salesPoint.id}/edit`}>
+                        <Pencil className="mr-2 h-4 w-4" /> Edit
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {can(MENU_URL, "canDelete") && (
+                    <DropdownMenuItem
+                      className="text-red-600"
+                      onClick={() => handleDeleteClick(salesPoint)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+
   );
 
   return (
     <>
-      <div className="w-full md:p-4 p-2">
+      <div className="w-full ">
         <PageHeader
           title="Sales Points"
           description="Manage your sales points and their shops"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add Sales Point",
-                actionHref: "/admin/sales-point/add",
-              }
+              actionLabel: "Add Sales Point",
+              actionHref: "/admin/sales-point/add",
+            }
             : {})}
         />
 
@@ -446,8 +446,8 @@ export function SalesPointList({
                             setCurrentPage(1);
                           }}
                           className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all"
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
                             }`}
                         >
                           All
@@ -458,8 +458,8 @@ export function SalesPointList({
                             setCurrentPage(1);
                           }}
                           className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "active"
-                              ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
                             }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-green-500" />
@@ -471,8 +471,8 @@ export function SalesPointList({
                             setCurrentPage(1);
                           }}
                           className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "inactive"
-                              ? "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            ? "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
                             }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-red-500" />

@@ -1,9 +1,7 @@
 "use client";
 
 import { UserForm } from "@/components/admin/user/user-form";
-import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -17,20 +15,13 @@ export default function AddUserPage() {
   };
 
   return (
-    <div className="md:p-6 p:2 space-y-6 border rouunded-sm">
-      <div className="md:p-6 p:2">
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>User Information</CardTitle>
-            <CardDescription>
-              Enter the details for the new user.
-            </CardDescription>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/admin/user/user-list">Back to User List</Link>
-          </Button>
-        </div>
-      </div>
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+        <FormPageHeader
+        title="User Information"
+        description="Enter the details for the new user."
+        backHref="/admin/user/user-list"
+        backLabel="Back to User List"
+      />
 
       <UserForm mode="create" onSuccess={handleSuccess} />
     </div>

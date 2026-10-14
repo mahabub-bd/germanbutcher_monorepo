@@ -17,7 +17,7 @@ export default async function ReviewsPage({
       : 10;
 
   return (
-    <div className=" border rounded-sm">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <ReviewList
         initialPage={page}
         initialLimit={limit}

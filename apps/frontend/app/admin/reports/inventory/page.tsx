@@ -31,7 +31,7 @@ export default async function InventoryReportPage() {
   }
 
   return (
-    <div className="p-4 md:p-6">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <InventoryList
         summary={reportData?.summary ?? null}
         products={reportData?.products ?? []}

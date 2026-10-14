@@ -45,8 +45,7 @@ export default function EditMenuPage() {
   }
 
   return (
-    <div className="md:p-6 p:2 space-y-6 border rouunded-sm">
-      <div className="md:p-6 p:2">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="flex justify-between items-center">
           <div>
             <CardTitle>Edit Menu Item</CardTitle>
@@ -56,7 +55,6 @@ export default function EditMenuPage() {
             <Link href="/admin/menu/menu-list">Back to Menu</Link>
           </Button>
         </div>
-      </div>
 
       <MenuForm mode="edit" menuItem={menuItem} />
     </div>

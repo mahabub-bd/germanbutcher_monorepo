@@ -196,15 +196,15 @@ export function ShippingMethodList() {
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full">
         <PageHeader
           title="Shipping Methods"
           description="Manage shipping options for your store"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add Shipping Method",
-                actionHref: "/admin/settings/shipping-method/add",
-              }
+              actionLabel: "Add Shipping Method",
+              actionHref: "/admin/settings/shipping-method/add",
+            }
             : {})}
         />
 

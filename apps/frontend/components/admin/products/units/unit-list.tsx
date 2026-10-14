@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +19,6 @@ import {
 } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/utils";
 import { deleteData, fetchData } from "@/utils/api-utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { Unit } from "@/utils/types";
 import { MoreHorizontal, Pencil, Plus, Scale, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -92,7 +92,7 @@ export function UnitList() {
   );
 
   const renderTableView = () => (
-    <div className="md:p-6 p-2">
+    
       <Table>
         <TableHeader>
           <TableRow>
@@ -147,12 +147,12 @@ export function UnitList() {
           ))}
         </TableBody>
       </Table>
-    </div>
+    
   );
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full">
         <PageHeader
           title="Units"
           description="Manage measurement units for products"

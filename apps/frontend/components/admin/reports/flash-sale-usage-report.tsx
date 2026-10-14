@@ -139,7 +139,7 @@ export function FlashSaleUsageReport({
       : "Period: all time";
 
   return (
-    <div className="w-full md:p-6 p-2">
+    <div className="w-full">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <PageHeader
           title="Flash Sale Usage Report"

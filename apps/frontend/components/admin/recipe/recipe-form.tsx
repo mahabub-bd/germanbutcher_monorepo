@@ -163,7 +163,7 @@ export function RecipeForm({ mode, recipe }: RecipeFormProps) {
         onSubmit={form.handleSubmit(handleSubmit)}
         className="space-y-6 w-full"
       >
-        <div className="p-6 space-y-6 w-full  mx-auto">
+        <div className="space-y-6 w-full  mx-auto">
           {/* Basic Information Section */}
           <Section title="Basic Information">
             <div className=" w-full grid md:grid-cols-2 grid-cols-1 gap-6">

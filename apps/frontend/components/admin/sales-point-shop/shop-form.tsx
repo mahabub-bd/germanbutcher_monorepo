@@ -125,8 +125,8 @@ export function ShopForm({ mode, shop }: ShopFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="p-6 space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <div className=" space-y-4">
           {/* Basic Information Section */}
           <Section title="Basic Information">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -279,7 +279,7 @@ export function ShopForm({ mode, shop }: ShopFormProps) {
                       <FormControl>
                         <Textarea
                           placeholder="Enter complete address"
-                          className="min-h-[100px] w-full resize-none"
+                          className="min-h-18 w-full resize-none"
                           {...field}
                         />
                       </FormControl>
@@ -293,25 +293,23 @@ export function ShopForm({ mode, shop }: ShopFormProps) {
 
           {/* Status Section */}
           <Section title="Status">
-            <div className="max-w-md">
-              <FormField
-                control={form.control}
-                name="isActive"
-                render={({ field }) => (
-                  <SwitchCard
-                    label="Active Status"
-                    description="Shop will be visible to customers"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <SwitchCard
+                  label="Active Status"
+                  description="Shop will be visible to customers"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
           </Section>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 bg-gray-50 border-t">
+        <div className="flex flex-col sm:flex-row justify-end items-center gap-3 px-4 py-3 bg-gray-50 border-t">
           <Button
             type="button"
             variant="outline"
@@ -352,10 +350,10 @@ const SwitchCard = ({
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) => (
-  <div className="flex items-center justify-between rounded-lg border p-4 bg-white hover:bg-gray-50 transition-colors">
-    <div className="space-y-0.5">
-      <p className="text-base font-medium">{label}</p>
-      <p className="text-sm text-muted-foreground">{description}</p>
+  <div className="flex items-center justify-between rounded-lg border px-3 py-2 bg-white hover:bg-gray-50 transition-colors">
+    <div>
+      <p className="text-sm font-medium">{label}</p>
+      <p className="text-xs text-muted-foreground">{description}</p>
     </div>
     <Switch checked={checked} onCheckedChange={onCheckedChange} />
   </div>

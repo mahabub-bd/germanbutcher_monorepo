@@ -359,7 +359,7 @@ export function OrderList({
   const renderTableView = () => (
     <div className="">
       <div className="overflow-x-auto">
-        <Table className="min-w-[880px] text-xs [&_td]:text-xs [&_th]:text-xs lg:text-xs lg:[&_td]:text-xs lg:[&_th]:text-xs 2xl:text-sm 2xl:[&_td]:text-sm 2xl:[&_th]:text-sm">
+        <Table className="min-w-220 text-xs [&_td]:text-xs [&_th]:text-xs lg:text-xs lg:[&_td]:text-xs lg:[&_th]:text-xs 2xl:text-sm 2xl:[&_td]:text-sm 2xl:[&_th]:text-sm">
           <TableHeader>
             <TableRow>
               <TableHead>Order ID / Date</TableHead>

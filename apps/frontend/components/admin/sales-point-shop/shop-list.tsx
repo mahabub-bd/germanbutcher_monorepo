@@ -337,103 +337,103 @@ export function ShopList({
   };
 
   const renderTableView = () => (
-    <div className="md:p-6 p-2">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Shop Name</TableHead>
-            <TableHead className="hidden md:table-cell">Sales Point</TableHead>
-            <TableHead className="hidden lg:table-cell">Location</TableHead>
-            <TableHead className="hidden xl:table-cell">Address</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {shops.map((shop) => (
-            <TableRow key={shop.id}>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Building className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">{shop.shopName}</div>
-                    <div className="text-sm text-muted-foreground md:hidden">
-                      {getSalesPointName(shop.salesPointId)}
-                    </div>
+
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Shop Name</TableHead>
+          <TableHead className="hidden md:table-cell">Sales Point</TableHead>
+          <TableHead className="hidden lg:table-cell">Location</TableHead>
+          <TableHead className="hidden xl:table-cell">Address</TableHead>
+          <TableHead className="hidden md:table-cell">Status</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {shops.map((shop) => (
+          <TableRow key={shop.id}>
+            <TableCell>
+              <div className="flex items-center gap-2">
+                <Building className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <div className="font-medium">{shop.shopName}</div>
+                  <div className="text-sm text-muted-foreground md:hidden">
+                    {getSalesPointName(shop.salesPointId)}
                   </div>
                 </div>
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <div className="font-medium">
-                  {getSalesPointName(shop.salesPointId)}
-                </div>
-              </TableCell>
-              <TableCell className="hidden lg:table-cell">
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-sm">
-                    {shop.district}, {shop.division}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell className="hidden xl:table-cell">
-                <div className="text-sm text-muted-foreground max-w-xs truncate">
-                  {shop.address}
-                </div>
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <ActiveStatusToggle
-                  isActive={shop.isActive}
-                  disabled={togglingId === shop.id}
-                  onToggle={() => toggleActive(shop)}
-                  label={shop.shopName}
-                />
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {can(MENU_URL, "canEdit") && (
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/sales-point-shop/${shop.id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    {can(MENU_URL, "canDelete") && (
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDeleteClick(shop)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+              </div>
+            </TableCell>
+            <TableCell className="hidden md:table-cell">
+              <div className="font-medium">
+                {getSalesPointName(shop.salesPointId)}
+              </div>
+            </TableCell>
+            <TableCell className="hidden lg:table-cell">
+              <div className="flex items-center gap-1">
+                <MapPin className="h-3 w-3 text-muted-foreground" />
+                <span className="text-sm">
+                  {shop.district}, {shop.division}
+                </span>
+              </div>
+            </TableCell>
+            <TableCell className="hidden xl:table-cell">
+              <div className="text-sm text-muted-foreground max-w-xs truncate">
+                {shop.address}
+              </div>
+            </TableCell>
+            <TableCell className="hidden md:table-cell">
+              <ActiveStatusToggle
+                isActive={shop.isActive}
+                disabled={togglingId === shop.id}
+                onToggle={() => toggleActive(shop)}
+                label={shop.shopName}
+              />
+            </TableCell>
+            <TableCell className="text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {can(MENU_URL, "canEdit") && (
+                    <DropdownMenuItem asChild>
+                      <Link href={`/admin/sales-point-shop/${shop.id}/edit`}>
+                        <Pencil className="mr-2 h-4 w-4" /> Edit
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {can(MENU_URL, "canDelete") && (
+                    <DropdownMenuItem
+                      className="text-red-600"
+                      onClick={() => handleDeleteClick(shop)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+
   );
 
   return (
     <>
-      <div className="w-full md:p-4 p-2">
+      <div className="w-full ">
         <PageHeader
           title="Sales Point Shops"
           description="Manage shops for your sales points"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add Shop",
-                actionHref: "/admin/sales-point-shop/add",
-              }
+              actionLabel: "Add Shop",
+              actionHref: "/admin/sales-point-shop/add",
+            }
             : {})}
         />
 
@@ -489,11 +489,10 @@ export function ShopList({
                             setStatusFilter("all");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            statusFilter === "all" || !statusFilter
+                          className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all" || !statusFilter
                               ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           All
                         </button>
@@ -502,11 +501,10 @@ export function ShopList({
                             setStatusFilter("active");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "active"
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "active"
                               ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-green-500" />
                           Active
@@ -516,11 +514,10 @@ export function ShopList({
                             setStatusFilter("inactive");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "inactive"
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "inactive"
                               ? "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-red-500" />
                           Inactive

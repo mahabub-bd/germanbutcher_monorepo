@@ -56,7 +56,7 @@ export default function AddDiscountPage() {
   }, [selectedCategoryId]);
 
   return (
-    <div className="md:p-6 p:2 space-y-6">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <DiscountForm
         mode="create"
         initialProducts={products}
