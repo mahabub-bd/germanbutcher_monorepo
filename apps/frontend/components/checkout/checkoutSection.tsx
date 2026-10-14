@@ -14,7 +14,6 @@ import { clearLocalCoupon } from "@/utils/cart-storage";
 import { refreshDashboard, serverRevalidate } from "@/utils/revalidatePath";
 import type {
   Address,
-  CartItem,
   PaymentMethod,
   ShippingMethod,
   User as UserType,
@@ -197,7 +196,7 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
     }
   };
 
-  const handleOtpSuccess = (data?: { userId?: string; user?: { name?: string; email?: string; mobileNumber?: string } }) => {
+  const handleOtpSuccess = (data?: { userId?: string | number; user?: { name?: string; email?: string; mobileNumber?: string } }) => {
     setIsVerified(true);
     setShowOtpModal(false);
 
@@ -342,7 +341,10 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
           userId: user?.id || null,
         };
 
-        const addressResponse = await postData("addresses", addressData);
+        const addressResponse = await postData<{ id: number }>(
+          "addresses",
+          addressData
+        );
 
         if (
           !addressResponse ||
@@ -368,20 +370,20 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
         paymentMethodId: paymentMethods.find(
           (method) => method.code === selectedPaymentMethod
         )?.id,
-        items: cart.items.map((item: CartItem) => ({
+        items: cart.items.map((item) => ({
           productId: item.product.id,
           quantity: item.quantity,
         })),
         couponId: appliedCoupon?.id || null,
       };
 
-      const response = await postData("orders", orderData);
+      const response = await postData<{ id: number }>("orders", orderData);
       clearLocalCoupon();
       await clearCart();
       serverRevalidate(["/", "/checkout"]);
       await refreshDashboard();
       toast.success("Order placed successfully!");
-      router.push(`/order-confirmation/${response.data.id}`);
+      router.push(`/order-confirmation/${response.data!.id}`);
     } catch (error) {
       console.error("Order submission error:", error);
       if (error instanceof Error) {

@@ -1,9 +1,10 @@
 import { CartItemProductPage } from "@/components/cart/cart-item-product-page";
 import type { CartItem } from "@/utils/types";
+import type { LocalCartItem } from "@/utils/cart-storage";
 import { Package } from "lucide-react";
 
 interface OrderItemsProps {
-  items: CartItem[];
+  items: (CartItem | LocalCartItem)[];
   itemCount: number;
 }
 
@@ -23,7 +24,7 @@ export function OrderItems({ items, itemCount }: OrderItemsProps) {
       </div>
 
       <div className="space-y-4">
-        {items.map((item: CartItem) => (
+        {items.map((item) => (
           <div key={item.product.id}>
             <CartItemProductPage item={item} />
           </div>

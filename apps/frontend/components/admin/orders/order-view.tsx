@@ -30,7 +30,7 @@ export default function OrderView({
   onNextOrder,
 }: OrderViewProps) {
   const [currentOrder, setCurrentOrder] = useState<Order>(order);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [, setIsRefreshing] = useState(false);
   const businessSettings = useBusinessSettings();
 
   const handleRefreshOrder = async () => {

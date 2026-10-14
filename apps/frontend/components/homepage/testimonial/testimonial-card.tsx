@@ -1,4 +1,3 @@
-import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { Testimonial } from "@/utils/types";
 import { Quote, Star } from "lucide-react";
 import Image from "next/image";

@@ -125,8 +125,8 @@ export function CategoryForm({ mode, category }: CategoryFormProps) {
       if (file) {
         const formData = new FormData();
         formData.append("file", file);
-        const result = await formPostData("attachment", formData);
-        attachmentId = result.data.id;
+        const result = await formPostData<{ id: number }>("attachment", formData);
+        attachmentId = result.data!.id;
       }
 
       const categoryData = {

@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCartContext } from "@/contexts/cart-context";
 import { formatCurrencyEnglish } from "@/lib/utils";
+import type { LocalCartItem } from "@/utils/cart-storage";
 import { hasActiveDiscount } from "@/utils/product-utils";
 import type { CartItem } from "@/utils/types";
 import type { LucideIcon } from "lucide-react";
@@ -59,7 +60,7 @@ function tagPill(label: string, key: number) {
   );
 }
 
-export function CartItemProductPage({ item }: { item: CartItem }) {
+export function CartItemProductPage({ item }: { item: CartItem | LocalCartItem }) {
   const [isRemoving, setIsRemoving] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [localQuantity, setLocalQuantity] = useState(item.quantity);

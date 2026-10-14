@@ -18,7 +18,7 @@ export default async function ProductHomepageGrid({
   if (!preloaded) {
     try {
       products = await fetchData(endpoint);
-    } catch (error) {
+    } catch {
       // Silently return null for missing similar products
       return null;
     }

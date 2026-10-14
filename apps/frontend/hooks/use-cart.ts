@@ -383,7 +383,7 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
     }
   };
 
-  const applyCoupon = async (code: string, subtotal: number) => {
+  const applyCoupon = async (code: string) => {
     if (!code.trim()) return;
     setIsLoading(true);
 

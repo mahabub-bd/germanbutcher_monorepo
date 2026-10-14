@@ -186,7 +186,7 @@ const MySupport = ({
             No support messages yet
           </h2>
           <p className="mb-6 text-gray-600">
-            Send us a message and we'll get back to you.
+            Send us a message and we&apos;ll get back to you.
           </p>
           <Button onClick={() => setIsFormOpen(true)}>New Message</Button>
         </div>

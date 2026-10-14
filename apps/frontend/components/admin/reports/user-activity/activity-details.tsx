@@ -76,7 +76,7 @@ function InfoRow({
 
 
 
-function JsonViewer({ data }: { data: any }) {
+function JsonViewer({ data }: { data: unknown }) {
 
   if (!data) {
     return (

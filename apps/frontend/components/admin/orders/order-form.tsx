@@ -157,17 +157,6 @@ export function OrderForm({ order, onSuccess, onCancel }: OrderFormProps) {
     }
   };
 
-  const calculateSubtotal = () => {
-    return order.items.reduce((total, item) => {
-      return total + item.product.sellingPrice * item.quantity;
-    }, 0);
-  };
-
-  const subtotal = calculateSubtotal();
-  const shippingCost = Number(order.shippingCost ?? (order.shippingMethod?.cost || 0));
-  const total = order.totalValue;
-  const paidAmount = order.paidAmount || 0;
-
   const generateOrderTimeline = () => {
     const allStatuses = [
       OrderStatus.PENDING,

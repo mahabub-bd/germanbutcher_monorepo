@@ -145,13 +145,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
       // Log all outgoing messages
       const originalEmit = newSocket.emit.bind(newSocket);
-      newSocket.emit = function (event: string, ...args: any[]) {
+      newSocket.emit = function (event: string, ...args: unknown[]) {
         console.log("📤 [WebSocket] Sending:", event, args);
         return originalEmit(event, ...args);
       };
 
       // Log all incoming messages
-      newSocket.onAny((event: string, ...args: any[]) => {
+      newSocket.onAny((event: string, ...args: unknown[]) => {
         console.log("📥 [WebSocket] Received:", event, args);
       });
 

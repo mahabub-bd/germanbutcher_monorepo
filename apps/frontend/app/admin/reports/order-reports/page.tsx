@@ -1,7 +1,17 @@
 export const dynamic = "force-dynamic";
 
-import OrderReportList from "@/components/admin/reports/order-reports/order-report-list";
+import OrderReportList, {
+  type Order,
+} from "@/components/admin/reports/order-reports/order-report-list";
 import { fetchProtectedData } from "@/utils/api-utils";
+
+interface OrderReportData {
+  orders: Order[];
+  totalOrders: number;
+  totalValue: number;
+  totalDiscount: number;
+  totalPaid: number;
+}
 
 interface ResolvedSearchParams {
   [key: string]: string | string[] | undefined;
@@ -31,7 +41,7 @@ export default async function OrderReportPage({ searchParams }: Props) {
       ? resolvedParams.orderStatus
       : undefined;
 
-  let reportData: any = null;
+  let reportData: OrderReportData | null = null;
 
   try {
     const queryParams = new URLSearchParams();
@@ -47,7 +57,7 @@ export default async function OrderReportPage({ searchParams }: Props) {
       queryParams.toString() ? `?${queryParams.toString()}` : ""
     }`;
 
-    const response = await fetchProtectedData(endpoint);
+    const response = await fetchProtectedData<OrderReportData>(endpoint);
 
     reportData = response || null;
   } catch (error) {

@@ -162,8 +162,10 @@ const OrderTable = ({ orders }: MyOrderProps) => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {order.paymentStatus === "pending" && (
+                    {order.paymentStatus === "pending" ? (
                       <PayNow order={order} className="inline-flex" />
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell>

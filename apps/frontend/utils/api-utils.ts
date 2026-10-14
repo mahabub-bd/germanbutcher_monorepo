@@ -1,11 +1,11 @@
-export type ApiResponse<T = any> = {
-  id: any;
+export type ApiResponse<T = unknown> = {
+  id: string | number;
   data?: T;
   message?: string;
   error?: string;
   success: boolean;
   statusCode?: number;
-  otpExpiresAt?: any;
+  otpExpiresAt?: string;
 };
 
 export const apiUrl = process.env.NEXT_PUBLIC_API_URL as string;
@@ -63,7 +63,7 @@ export async function clearAuthCookies(): Promise<void> {
 }
 
 
-const productCache = new Map<string, { data: any; timestamp: number }>();
+const productCache = new Map<string, { data: unknown; timestamp: number }>();
 const PRODUCT_CACHE_TTL = 5000; // 5 seconds cache
 
 const isClient = () => typeof window !== "undefined";
@@ -77,7 +77,7 @@ export async function fetchData<T>(endpoint: string): Promise<T> {
   ) {
     const cached = productCache.get(endpoint);
     if (cached && Date.now() - cached.timestamp < PRODUCT_CACHE_TTL) {
-      return cached.data;
+      return cached.data as T;
     }
   }
 
@@ -250,9 +250,9 @@ export async function fetchPublicData<T>(endpoint: string): Promise<T> {
     throw error;
   }
 }
-export async function postData<T = any>(
+export async function postData<T = unknown>(
   endpoint: string,
-  values?: any
+  values?: unknown
 ): Promise<ApiResponse<T>> {
   const url = `${apiUrl}/${endpoint}`;
   const token = await resolveAuthToken(); // Get the token just like in fetchProtectedData
@@ -293,7 +293,10 @@ export async function postData<T = any>(
   }
 }
 
-export async function logoutPost(endpoint: string, token: any): Promise<void> {
+export async function logoutPost(
+  endpoint: string,
+  token: string
+): Promise<void> {
   const url = `${apiUrl}/${endpoint}`;
 
   try {
@@ -325,9 +328,9 @@ export async function logoutPost(endpoint: string, token: any): Promise<void> {
     throw error;
   }
 }
-export async function formPostData<T = any>(
+export async function formPostData<T = unknown>(
   endpoint: string,
-  formData?: FormData | Record<string, any>
+  formData?: FormData | Record<string, unknown>
 ): Promise<ApiResponse<T>> {
   const url = `${apiUrl}/${endpoint}`;
   const token = await resolveAuthToken();
@@ -372,9 +375,9 @@ export async function formPostData<T = any>(
   }
 }
 
-export async function patchData<T = any>(
+export async function patchData<T = unknown>(
   endpoint: string,
-  values?: any,
+  values?: unknown,
   options?: {
     isMultipart?: boolean;
     headers?: Record<string, string>;
@@ -398,7 +401,7 @@ export async function patchData<T = any>(
     const response = await fetch(url, {
       method: "PATCH",
       headers,
-      body: options?.isMultipart ? values : JSON.stringify(values),
+      body: options?.isMultipart ? (values as BodyInit) : JSON.stringify(values),
     });
 
     if (!response.ok) {
@@ -422,9 +425,9 @@ export async function patchData<T = any>(
   }
 }
 
-export async function putData<T = any>(
+export async function putData<T = unknown>(
   endpoint: string,
-  values?: any,
+  values?: unknown,
   options?: {
     headers?: Record<string, string>;
   }
@@ -526,7 +529,7 @@ export async function cancelOrder(
   orderId: number,
   reason: string,
   notes?: string
-): Promise<ApiResponse> {
+): Promise<ApiResponse<{ orderNo: string }>> {
   return patchData(`orders/${orderId}/cancel`, { reason, notes });
 }
 

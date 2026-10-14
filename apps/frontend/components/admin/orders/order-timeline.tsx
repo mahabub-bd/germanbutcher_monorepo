@@ -15,7 +15,7 @@ import {
 
 import { formatDateTime } from "@/lib/utils";
 import { getStatusDotColor, getStatusIcon } from "@/utils/order-helper";
-import { OrderStatus, type Order } from "@/utils/types";
+import { OrderStatus, type Order, type User } from "@/utils/types";
 
 
 interface OrderTimelineProps {
@@ -64,8 +64,8 @@ const isStatusActive = (status: string, currentStatus: string): boolean => {
     return s === OrderStatus.PENDING || s === OrderStatus.CANCELLED;
   }
 
-  const sIndex = ORDER_FLOW.indexOf(s as any);
-  const cIndex = ORDER_FLOW.indexOf(c as any);
+  const sIndex = ORDER_FLOW.indexOf(s as (typeof ORDER_FLOW)[number]);
+  const cIndex = ORDER_FLOW.indexOf(c as (typeof ORDER_FLOW)[number]);
 
   return sIndex >= 0 && cIndex >= 0 && sIndex <= cIndex;
 };
@@ -178,7 +178,7 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
   const statusTracksMap = useMemo(() => {
     const map = new Map<
       string,
-      { createdAt: string; note: string | null; updatedBy: any }
+      { createdAt: string; note: string | null; updatedBy: User }
     >();
 
     order.statusTracks?.forEach((track) => {

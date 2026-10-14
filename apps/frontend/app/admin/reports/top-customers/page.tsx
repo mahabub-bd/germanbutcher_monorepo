@@ -1,6 +1,8 @@
 export const dynamic = "force-dynamic";
 
-import TopCustomersReport from "@/components/admin/reports/top-customers/top-customers";
+import TopCustomersReport, {
+  type TopCustomer,
+} from "@/components/admin/reports/top-customers/top-customers";
 import { PageHeader } from "@/components/admin/page-header";
 import { fetchProtectedData } from "@/utils/api-utils";
 
@@ -52,13 +54,13 @@ export default async function TopCustomersReportPage({ searchParams }: Props) {
     ? (rawTimeFilter as TimeFilter)
     : "all_time";
 
-  let customers: any[] = [];
+  let customers: TopCustomer[] = [];
 
   try {
     const response = await fetchProtectedData(
       `users/customers/top?limit=${limit}&sortBy=${sortBy}&timeFilter=${timeFilter}`
     );
-    customers = Array.isArray(response) ? response : [];
+    customers = Array.isArray(response) ? (response as TopCustomer[]) : [];
   } catch (error) {
     console.error("❌ Failed to fetch top customers report:", error);
     customers = [];

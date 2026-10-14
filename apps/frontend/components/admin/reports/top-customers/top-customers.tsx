@@ -40,7 +40,7 @@ interface CustomerStatistics {
   pendingOrders: number;
 }
 
-interface TopCustomer {
+export interface TopCustomer {
   id: number;
   name: string;
   email: string;

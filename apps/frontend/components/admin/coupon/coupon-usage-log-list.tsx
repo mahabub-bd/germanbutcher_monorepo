@@ -156,7 +156,7 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
           <Calendar className="h-10 w-10 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold">No usage logs found</h3>
           <p className="text-sm text-muted-foreground mt-2">
-            This coupon hasn't been used yet.
+            This coupon hasn&apos;t been used yet.
           </p>
         </div>
       ) : (

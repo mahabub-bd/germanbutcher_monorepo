@@ -62,7 +62,7 @@ interface UserInfo {
   email: string;
   mobileNumber: string;
 }
-interface PaymentRecord {
+export interface PaymentRecord {
   id: number;
   paymentNumber: string;
   amount: string;

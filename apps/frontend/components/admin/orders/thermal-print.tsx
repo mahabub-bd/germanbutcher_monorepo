@@ -199,7 +199,6 @@ export function printThermalInvoice(
       const unitPrice =
         Number(item.unitPrice) || Number(item.product.sellingPrice) || 0;
       const totalPrice = Number(item.totalPrice) || unitPrice * item.quantity;
-      const unitDiscount = Number(item.unitDiscount) || 0;
       const weight =
         item.product.weight &&
         Number(item.product.weight).toString().replace(/\.0+$/, "");

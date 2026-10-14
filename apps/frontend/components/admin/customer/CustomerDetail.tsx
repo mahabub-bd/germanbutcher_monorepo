@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -110,7 +109,7 @@ export function CustomerDetail() {
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-1">Customer Not Found</h2>
           <p className="text-sm text-muted-foreground mb-3">
-            The customer you're looking for doesn't exist or has been removed.
+            The customer you&apos;re looking for doesn&apos;t exist or has been removed.
           </p>
           <Button asChild size="sm">
             <Link href="/admin/customers">
@@ -360,7 +359,7 @@ export function CustomerDetail() {
                     </div>
                     <h3 className="font-semibold text-sm mb-0.5">No Orders Yet</h3>
                     <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                      This customer hasn't placed any orders.
+                      This customer hasn&apos;t placed any orders.
                     </p>
                   </div>
                 ) : (

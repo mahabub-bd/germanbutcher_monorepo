@@ -19,7 +19,10 @@ export default function PayNow({ order, className }: PayNowProps) {
     setIsProcessing(true);
     setError(null);
 
-    const response = await postData("payment/init", order);
+    const response = await postData<{ redirectUrl: string }>(
+      "payment/init",
+      order
+    );
 
     if (response.data?.redirectUrl) {
       window.location.href = response.data.redirectUrl;

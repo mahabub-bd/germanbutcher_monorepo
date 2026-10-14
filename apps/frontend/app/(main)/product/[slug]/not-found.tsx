@@ -12,7 +12,7 @@ export default function ProductNotFound() {
           Product Not Found
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md">
-          The product you're looking for doesn't exist, has been removed, or is temporarily unavailable.
+          The product you&apos;re looking for doesn&apos;t exist, has been removed, or is temporarily unavailable.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link

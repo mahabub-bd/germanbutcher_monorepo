@@ -312,8 +312,8 @@ export function ProductForm({
       if (file) {
         const formData = new FormData();
         formData.append("file", file);
-        const result = await formPostData("attachment", formData);
-        attachmentId = result.data.id;
+        const result = await formPostData<{ id: number }>("attachment", formData);
+        attachmentId = result.data!.id;
       }
 
       if (newGalleryFiles.length > 0) {
@@ -325,7 +325,7 @@ export function ProductForm({
           formData.append("files", galleryFile);
         });
 
-        const galleryResponse = await formPostData("galleries", formData);
+        const galleryResponse = await formPostData<{ id: number }>("galleries", formData);
 
         if (
           galleryResponse?.statusCode === 200 ||

@@ -37,7 +37,13 @@ export function PiePanel({
   const displayValue = (value: number) =>
     showCurrency ? formatCurrencyEnglish(value) : value.toLocaleString();
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: { payload: PieDataItem }[];
+  }) => {
     if (!active || !payload?.length) return null;
     const item = payload[0].payload as PieDataItem;
     return (

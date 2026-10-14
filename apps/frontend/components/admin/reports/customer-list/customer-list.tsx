@@ -43,7 +43,7 @@ const PDFDownloadLink = dynamic(
   { ssr: false }
 );
 
-interface Customer {
+export interface Customer {
   name: string;
   email: string;
   mobileNumber: string;
@@ -52,7 +52,7 @@ interface Customer {
   totalOrderAmount: number;
 }
 
-interface Summary {
+export interface Summary {
   totalCustomers: number;
   totalOrders: number;
   totalOrderValue: number;

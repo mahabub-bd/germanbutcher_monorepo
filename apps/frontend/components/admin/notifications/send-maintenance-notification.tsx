@@ -207,7 +207,9 @@ export function SendMaintenanceNotification() {
             <Label>Severity</Label>
             <Select
               value={severity}
-              onValueChange={(value: any) => setSeverity(value)}
+              onValueChange={(value) =>
+                setSeverity(value as "info" | "warning" | "critical")
+              }
             >
               <SelectTrigger className="w-full">
                 <SelectValue />

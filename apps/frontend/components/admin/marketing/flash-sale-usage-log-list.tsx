@@ -70,7 +70,7 @@ export function FlashSaleUsageLogList() {
       <Zap className="h-10 w-10 text-muted-foreground mb-4" />
       <h3 className="text-lg font-semibold">No usage logs yet</h3>
       <p className="text-sm text-muted-foreground mt-2">
-        Each time a customer's order is priced by a flash sale campaign, it
+        Each time a customer&apos;s order is priced by a flash sale campaign, it
         will be logged here.
       </p>
     </div>

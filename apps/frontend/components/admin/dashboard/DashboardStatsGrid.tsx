@@ -3,7 +3,7 @@
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { useDashboardMetrics } from "@/hooks/use-dashboard-metrics";
 import { formatCurrencyEnglish } from "@/lib/utils";
-import type { CategorySales, CustomerTypeShare, PaymentDueSummary, PaymentMethodShare, TodaySnapshot } from "@/utils/types";
+import type { CategorySales, CustomerTypeShare, OrderSummary, PaymentDueSummary, PaymentMethodShare, TodaySnapshot } from "@/utils/types";
 import { AlertTriangle, Calendar, CalendarDays, Package, Receipt, TrendingDown, TrendingUp, Users, Wallet, XCircle } from "lucide-react";
 import { PiePanel } from "./pie-panel";
 
@@ -38,7 +38,7 @@ function toSharePieData(rows: { name: string; totalValue: number }[]) {
 }
 
 interface DashboardStatsGridProps {
-  chartData: any[];
+  chartData: OrderSummary[];
   productsCount: number;
   customersCount: number;
   statsData?: {

@@ -1,7 +1,17 @@
 export const dynamic = "force-dynamic";
 
-import CustomerListReport from "@/components/admin/reports/customer-list/customer-list";
+import CustomerListReport, {
+  type Customer,
+  type Summary,
+} from "@/components/admin/reports/customer-list/customer-list";
 import { fetchProtectedData } from "@/utils/api-utils";
+
+interface CustomerListReportData {
+  customers: Customer[];
+  summary: Summary;
+  from?: string;
+  to?: string;
+}
 
 interface ResolvedSearchParams {
   [key: string]: string | string[] | undefined;
@@ -26,7 +36,7 @@ export default async function CustomerListReportPage({ searchParams }: Props) {
       ? resolvedParams.preset
       : "this_month";
 
-  let reportData: any = null;
+  let reportData: CustomerListReportData | null = null;
 
   try {
     const queryParams = new URLSearchParams();
@@ -41,7 +51,7 @@ export default async function CustomerListReportPage({ searchParams }: Props) {
       queryParams.toString() ? `?${queryParams.toString()}` : ""
     }`;
 
-    const response = await fetchProtectedData(endpoint);
+    const response = await fetchProtectedData<CustomerListReportData>(endpoint);
     reportData = response || null;
   } catch (error) {
     console.error("❌ Failed to fetch customer list report:", error);

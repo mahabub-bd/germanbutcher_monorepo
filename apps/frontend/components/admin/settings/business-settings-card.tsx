@@ -1,4 +1,5 @@
 "use client";
+import { revalidatePublic } from "@/actions/revalidate";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchData, formPostData, patchData } from "@/utils/api-utils";
-import { revalidatePublic } from "@/actions/revalidate";
 import type { BusinessSettings } from "@/utils/types";
 import {
   Bell,
@@ -234,16 +234,16 @@ export function BusinessSettingsCard() {
       if (logoFile) {
         const formData = new FormData();
         formData.append("file", logoFile);
-        const result = await formPostData("attachment", formData);
-        logoId = result.data.id;
+        const result = await formPostData<{ id: string }>("attachment", formData);
+        logoId = result.data!.id;
       }
 
       let invoiceLogoId: string | undefined;
       if (invoiceLogoFile) {
         const formData = new FormData();
         formData.append("file", invoiceLogoFile);
-        const result = await formPostData("attachment", formData);
-        invoiceLogoId = result.data.id;
+        const result = await formPostData<{ id: string }>("attachment", formData);
+        invoiceLogoId = result.data!.id;
       }
 
       const response = await patchData<BusinessSettings>("business-settings", {

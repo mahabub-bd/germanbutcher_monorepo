@@ -361,7 +361,7 @@ export default function RoleMenuPermissions() {
     if (dirtyIds.length === 0) return;
     setMenuPermissions((prev) => {
       const next: Record<number, DraftFlags> = {};
-      for (const [id, flags] of Object.entries(prev)) {
+      for (const [id] of Object.entries(prev)) {
         const saved = savedSnapshot[Number(id)];
         next[Number(id)] = saved ? { ...saved } : { ...NO_FLAGS };
       }
@@ -583,7 +583,6 @@ export default function RoleMenuPermissions() {
 
   const renderMatrix = () => {
     const sections = filteredMenus;
-    const disabled = !selectedRoleId || loading || saving;
 
     if (sections.length === 0) {
       return (

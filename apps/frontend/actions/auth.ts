@@ -3,6 +3,7 @@
 import { logoutPost, postData } from "@/utils/api-utils";
 
 import { loginSchema, registerSchema } from "@/utils/form-validation";
+import type { OtpVerificationResponse } from "@/components/auth/otp-verification-modal";
 import { authResponse, UserTypes } from "@/utils/types";
 import { cookies } from "next/headers";
 import { z } from "zod";
@@ -24,7 +25,34 @@ function isAdminRole(roles: unknown): boolean {
   return ADMIN_ROLE_NAMES.includes(roleNameOf(roles));
 }
 
-export async function setUserCookies(userData: any) {
+/** Shape accepted by setUserCookies: an auth API response with the access
+ * token at `data.accessToken` (login / verify-otp) or `token`, plus user
+ * info either at `data.user` or spread at the top level. */
+type AuthCookieUserData = {
+  data?: {
+    accessToken?: string | null;
+    user?: {
+      id?: number | null;
+      name?: string | null;
+      email?: string | null;
+      mobileNumber?: string | null;
+      roles?: unknown;
+      profilePhoto?: UserTypes["profilePhoto"];
+      createdAt?: string | null;
+    } | null;
+  } | null;
+  token?: string | null;
+  id?: number;
+  name?: string;
+  email?: string;
+  mobileNumber?: string;
+  mobileNo?: string;
+  roles?: unknown;
+  profilePhoto?: UserTypes["profilePhoto"];
+  createdAt?: string;
+};
+
+export async function setUserCookies(userData: AuthCookieUserData) {
   const cookieStore = await cookies();
 
   const authToken = userData?.data?.accessToken || userData?.token;
@@ -43,7 +71,16 @@ export async function setUserCookies(userData: any) {
     sameSite: "lax",
   });
 
-  let userInfo = {
+  let userInfo: {
+    id: number;
+    name: string;
+    email: string;
+    mobileNumber: string;
+    roles: unknown;
+    isAdmin: boolean;
+    profilePhoto: UserTypes["profilePhoto"];
+    createdAt: string | undefined;
+  } = {
     id: 0,
     name: "Customer",
     email: "",
@@ -130,7 +167,10 @@ export async function login(formData: LoginFormData) {
   }
 
   try {
-    const response = await postData("auth/login", validatedFields.data);
+    const response = await postData<{ accessToken: string; user: UserTypes }>(
+      "auth/login",
+      validatedFields.data
+    );
 
     if (response?.data?.accessToken) {
       const tokenData = getUserFromToken(response.data.accessToken);
@@ -154,7 +194,7 @@ export async function login(formData: LoginFormData) {
       success: false,
       message: response?.message,
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       message: "Invalid credentials",
@@ -181,25 +221,18 @@ export async function register(formData: RegisterFormData) {
       message: response?.message || "Registration successful. Please login.",
       redirect: "/auth/sign-in",
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Registration error:", error);
 
-    if (error.response) {
-      const errorData = error.response.data;
+    if (error instanceof Error) {
       return {
         success: false,
-        message: errorData.message || "Registration failed",
-        errors: errorData.errors || undefined,
-      };
-    } else if (error.request) {
-      return {
-        success: false,
-        message: "No response from server. Please try again.",
+        message: error.message || "Registration failed",
       };
     } else {
       return {
         success: false,
-        message: error.message || "Registration failed",
+        message: "Registration failed",
       };
     }
   }
@@ -292,7 +325,9 @@ export async function getToken() {
 }
 export async function mobileLogin(mobileNumber: string) {
   try {
-    const response = await postData("auth/mobile-login", { mobileNumber });
+    const response = await postData<
+      NonNullable<OtpVerificationResponse["data"]>
+    >("auth/mobile-login", { mobileNumber });
 
     return response;
   } catch (error) {
@@ -312,7 +347,10 @@ export async function verifyOtp(data: {
 }) {
   try {
     // Don't send auth token for OTP verification (it's a public endpoint)
-    const response = await postData("auth/verify-otp", data);
+    const response = await postData<{ accessToken: string; user: UserTypes }>(
+      "auth/verify-otp",
+      data
+    );
 
     if (response?.data?.accessToken) {
       const tokenData = getUserFromToken(response.data.accessToken);

@@ -162,7 +162,7 @@ export function FreeDeliveryCampaignsCard() {
       }
     };
     fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [pickerCategoryId]);
 
   const resetForm = () => {

@@ -158,7 +158,7 @@ export function CategoryLinks({ onCategoryClick }: CategoryLinksProps) {
 
   useEffect(() => {
     loadCategories();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   if (loading) {
