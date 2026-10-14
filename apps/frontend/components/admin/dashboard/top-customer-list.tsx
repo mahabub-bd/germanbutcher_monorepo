@@ -56,6 +56,7 @@ interface TopCustomer {
 }
 
 type TimeFilter =
+  | "last_month"
   | "this_month"
   | "last_3_months"
   | "last_6_months"
@@ -141,15 +142,15 @@ export function TopCustomersList() {
               value={limit.toString()}
               onValueChange={(value) => setLimit(parseInt(value))}
             >
-              <SelectTrigger className="w-[100px] sm:w-[130px] h-8 sm:h-9 text-xs sm:text-sm">
+              <SelectTrigger className="w-[100px] sm:w-[130px] h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="5">Top 5</SelectItem>
-                <SelectItem value="10">Top 10</SelectItem>
-                <SelectItem value="20">Top 20</SelectItem>
-                <SelectItem value="50">Top 50</SelectItem>
-                <SelectItem value="100">Top 100</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="5">Top 5</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="10">Top 10</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="20">Top 20</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="50">Top 50</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="100">Top 100</SelectItem>
               </SelectContent>
             </Select>
 
@@ -157,12 +158,12 @@ export function TopCustomersList() {
               value={sortBy}
               onValueChange={(value: "orders" | "spending") => setSortBy(value)}
             >
-              <SelectTrigger className="w-[100px] sm:w-[130px] h-8 sm:h-9 text-xs sm:text-sm">
+              <SelectTrigger className="w-[100px] sm:w-[130px] h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="orders">By Orders</SelectItem>
-                <SelectItem value="spending">By Spending</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="orders">By Orders</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="spending">By Spending</SelectItem>
               </SelectContent>
             </Select>
 
@@ -170,16 +171,17 @@ export function TopCustomersList() {
               value={timeFilter}
               onValueChange={(value: TimeFilter) => setTimeFilter(value)}
             >
-              <SelectTrigger className="w-[110px] sm:w-[140px] h-8 sm:h-9 text-xs sm:text-sm">
+              <SelectTrigger className="w-[110px] sm:w-[140px] h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="this_month">This Month</SelectItem>
-                <SelectItem value="last_3_months">Last 3 Months</SelectItem>
-                <SelectItem value="last_6_months">Last 6 Months</SelectItem>
-                <SelectItem value="last_year">Last Year</SelectItem>
-                <SelectItem value="this_year">This Year</SelectItem>
-                <SelectItem value="all_time">All Time</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="last_month">Last Month</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="this_month">This Month</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="last_3_months">Last 3 Months</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="last_6_months">Last 6 Months</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="last_year">Last Year</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="this_year">This Year</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="all_time">All Time</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -3,7 +3,7 @@
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import {
-  getDiscountedPrice,
+  getEffectivePrice,
   getStockStatus,
   hasActiveDiscount,
 } from "@/utils/product-utils";
@@ -21,7 +21,7 @@ export function ProductSearchItem({
   onClose,
 }: ProductSearchItemProps) {
   const isDiscounted = hasActiveDiscount(product);
-  const currentPrice = getDiscountedPrice(product);
+  const currentPrice = getEffectivePrice(product);
   const originalPrice = product.sellingPrice;
   const stockStatus = getStockStatus(product.stock);
 

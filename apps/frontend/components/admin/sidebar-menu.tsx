@@ -183,7 +183,7 @@ export function SidebarMenu({
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-40 pt-4 flex flex-col border-r bg-linear-to-b from-white via-orange-50/30 to-red-50/40 transition-all duration-300 ease-in-out",
-          collapsed ? "w-17.5" : "w-62.5",
+          collapsed ? "w-17.5" : "w-44 xl:w-62.5",
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           className
         )}

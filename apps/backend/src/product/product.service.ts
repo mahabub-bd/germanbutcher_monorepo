@@ -1,26 +1,28 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   ConflictException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Cache } from 'cache-manager';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Attachment } from 'src/attachment/entities/attachment.entity';
+import { Cache } from 'cache-manager';
 import { AttachmentService } from 'src/attachment/attachment.service';
+import { Attachment } from 'src/attachment/entities/attachment.entity';
 import { Brand } from 'src/brand/entities/brand.entity';
 import { Category } from 'src/category/entities/category.entity';
+import { resolveReportRange } from 'src/common/utils/report-date-range.util';
+import { SwrCache } from 'src/common/utils/swr-cache';
+import { FlashSaleCampaignsService } from 'src/flash-sale-campaigns/flash-sale-campaigns.service';
 import { Gallery } from 'src/gallery/entities/gallery.entity';
+import { OrderItem } from 'src/order/entities/order-item.entity';
 import { Unit } from 'src/unit/entities/unit.entity';
 import { User } from 'src/user/entities/user.entity';
-import { resolveReportRange } from 'src/common/utils/report-date-range.util';
 import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
 import { Supplier } from '../supplier/entities/supplier.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
-import { SwrCache } from 'src/common/utils/swr-cache';
 
 interface FindAllOptions {
   page?: number;
@@ -58,9 +60,27 @@ export class ProductService {
     @InjectRepository(Attachment)
     private attachmentRepository: Repository<Attachment>,
     private attachmentService: AttachmentService,
+    private flashSaleCampaignsService: FlashSaleCampaignsService,
     @Inject(CACHE_MANAGER)
     private cacheManager: Cache,
   ) {}
+
+  /** Attach fresh flash-sale info AFTER cache retrieval — cached product
+   * lists must not carry campaign data frozen at cache time. Campaigns are
+   * loaded once per call (30s-cached in FlashSaleCampaignsService). */
+  private async withFlashSale(products: Product[]): Promise<Product[]> {
+    if (!products.length) return products;
+    const campaigns =
+      await this.flashSaleCampaignsService.getActiveCampaigns();
+    if (!campaigns.length) {
+      for (const product of products) {
+        product.flashSale = null;
+        product.effectivePrice = Number(Number(product.salePrice).toFixed(2));
+      }
+      return products;
+    }
+    return this.flashSaleCampaignsService.attachFlashInfo(products, campaigns);
+  }
 
   /**
    * Product-list results: fresh 60s, stale-while-revalidate up to 10min.
@@ -234,7 +254,7 @@ export class ProductService {
       maxPrice ?? ''
     }_${tags ?? ''}`;
 
-    return this.listCache.get(cacheKey, async () => {
+    const [products, total] = await this.listCache.get(cacheKey, async () => {
       const [products, countResult] = await Promise.all([
         query.skip((page - 1) * limit).take(limit).getMany(),
         countQuery.getRawOne<{ count: string }>(),
@@ -244,6 +264,8 @@ export class ProductService {
         number,
       ];
     });
+    await this.withFlashSale(products);
+    return [products, total] as [Product[], number];
   }
 
   /** Shared WHERE clauses for product list queries — usable on joined and
@@ -382,11 +404,45 @@ export class ProductService {
     }));
   }
 
-  async getBestsellingProducts(
-    limit: number = 10,
-    isActive?: boolean,
-  ): Promise<Product[]> {
-    const query = this.productRepository
+  /** Start date for a top-products time filter — mirrors the top-customers
+   * semantics (rolling N-month windows, calendar month/year starts).
+   * Returns an exclusive end bound only for last_month. */
+  private resolveBestsellerStartDate(timeFilter: string): {
+    start: Date;
+    end?: Date;
+  } | null {
+    const now = new Date();
+    switch (timeFilter) {
+      case 'last_month':
+        return {
+          start: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+          end: new Date(now.getFullYear(), now.getMonth(), 1),
+        };
+      case 'this_month':
+        return { start: new Date(now.getFullYear(), now.getMonth(), 1) };
+      case 'last_3_months':
+        return {
+          start: new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()),
+        };
+      case 'last_6_months':
+        return {
+          start: new Date(now.getFullYear(), now.getMonth() - 6, now.getDate()),
+        };
+      case 'last_year':
+        return {
+          start: new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()),
+        };
+      case 'this_year':
+        return { start: new Date(now.getFullYear(), 0, 1) };
+      case 'all_time':
+      default:
+        return null;
+    }
+  }
+
+  /** Relation-rich base query shared by both bestseller paths. */
+  private buildBestsellerQuery(): SelectQueryBuilder<Product> {
+    return this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.attachment', 'attachment')
       .leftJoinAndSelect(
@@ -440,22 +496,76 @@ export class ProductService {
         'parentCategory.slug',
         'unit.id',
         'unit.name',
-      ])
-      .where('product.saleCount > 0');
+      ]);
+  }
 
-    if (isActive !== undefined) {
-      query.andWhere('product.isActive = :isActive', { isActive });
+  async getBestsellingProducts(
+    limit: number = 10,
+    isActive?: boolean,
+    timeFilter: string = 'all_time',
+  ): Promise<Product[]> {
+    const range = this.resolveBestsellerStartDate(timeFilter);
+
+    // All time — keep the cheap cumulative-counter path.
+    if (!range) {
+      const query = this.buildBestsellerQuery().where('product.saleCount > 0');
+      if (isActive !== undefined) {
+        query.andWhere('product.isActive = :isActive', { isActive });
+      }
+      return await query
+        .orderBy('product.saleCount', 'DESC')
+        .addOrderBy('product.name', 'ASC')
+        .take(limit)
+        .cache(
+          `bestselling_products_${limit}_${isActive ?? 'all'}`,
+          30000,
+        )
+        .getMany();
     }
 
-    return await query
-      .orderBy('product.saleCount', 'DESC')
-      .addOrderBy('product.name', 'ASC')
-      .take(limit)
+    // Time-filtered — sold quantity from delivered orders in the window.
+    const salesWindow = this.productRepository.manager
+      .createQueryBuilder(OrderItem, 'orderItem')
+      .select('orderItem.productId', 'productId')
+      .addSelect('SUM(orderItem.quantity)', 'sold')
+      .innerJoin('orderItem.order', 'order')
+      .where('order.orderStatus = :status', { status: 'delivered' })
+      .andWhere('order.createdAt >= :startDate', { startDate: range.start });
+    if (range.end) {
+      salesWindow.andWhere('order.createdAt < :endDate', { endDate: range.end });
+    }
+    const rows = await salesWindow
+      .groupBy('orderItem.productId')
+      .orderBy('sold', 'DESC')
+      .limit(limit)
       .cache(
-        `bestselling_products_${limit}_${isActive ?? 'all'}`,
+        `bestselling_products_${timeFilter}_${limit}_${isActive ?? 'all'}`,
         30000,
       )
-      .getMany();
+      .getRawMany();
+
+    const soldById = new Map(
+      rows.map((row) => [Number(row.productId), Number(row.sold)]),
+    );
+    if (soldById.size === 0) return [];
+
+    const idQuery = this.buildBestsellerQuery().where(
+      'product.id IN (:...ids)',
+      { ids: [...soldById.keys()] },
+    );
+    if (isActive !== undefined) {
+      idQuery.andWhere('product.isActive = :isActive', { isActive });
+    }
+    const products = await idQuery.getMany();
+
+    // Replace the lifetime counter with the in-window sold quantity and
+    // restore the sold-desc order the aggregation produced.
+    for (const product of products) {
+      product.saleCount = soldById.get(product.id) ?? 0;
+    }
+    return products.sort(
+      (a, b) => (soldById.get(b.id) ?? 0) - (soldById.get(a.id) ?? 0),
+    );
   }
 
   async findActiveDiscounted(options: {
@@ -521,7 +631,7 @@ export class ProductService {
       query.andWhere('product.isActive = :isActive', { isActive });
     }
 
-    return query
+    const [products, total] = await query
       .orderBy('product.name', 'ASC')
       .skip((page - 1) * limit)
       .take(limit)
@@ -530,6 +640,107 @@ export class ProductService {
         30000,
       )
       .getManyAndCount();
+    await this.withFlashSale(products);
+    return [products, total] as [Product[], number];
+  }
+
+  /** Storefront flash-sale listing: products covered by an active campaign
+   * directly or through their category. Campaign eligibility is resolved in
+   * memory from the 30s-cached campaign list instead of a JOIN — pagination
+   * and the shared response shape stay identical to findActiveDiscounted. */
+  async findFlashSale(options: {
+    page: number;
+    limit: number;
+    isActive?: boolean;
+  }): Promise<[Product[], number]> {
+    const { page = 1, limit = 50, isActive } = options;
+
+    const campaigns =
+      await this.flashSaleCampaignsService.getActiveCampaigns();
+    const productIds = [
+      ...new Set(campaigns.flatMap((c) => c.products?.map((p) => p.id) ?? [])),
+    ];
+    const categoryIds = [
+      ...new Set(
+        campaigns.flatMap((c) => c.categories?.map((c) => c.id) ?? []),
+      ),
+    ];
+    if (!productIds.length && !categoryIds.length) return [[], 0];
+
+    const query = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect(
+        'product.brand',
+        'brand',
+        'brand.isActive = :isActive',
+        {
+          isActive: true,
+        },
+      )
+      .leftJoinAndSelect(
+        'product.category',
+        'category',
+        'category.isActive = :isActive',
+        {
+          isActive: true,
+        },
+      )
+      .leftJoinAndSelect('category.parent', 'parentCategory')
+      .leftJoinAndSelect('product.unit', 'unit', 'unit.isActive = :isActive', {
+        isActive: true,
+      })
+      .leftJoinAndSelect('product.attachment', 'attachment')
+      .select([
+        'product',
+        'brand.id',
+        'brand.name',
+        'brand.slug',
+        'category.id',
+        'category.name',
+        'category.slug',
+        'parentCategory.id',
+        'parentCategory.name',
+        'parentCategory.slug',
+        'unit.id',
+        'unit.name',
+        'attachment.id',
+        'attachment.url',
+        'attachment.fileName',
+      ])
+      .where(
+        new Brackets((w) => {
+          if (productIds.length) {
+            w.where('product.id IN (:...productIds)', { productIds });
+          }
+          if (categoryIds.length) {
+            if (productIds.length) {
+              w.orWhere('product.categoryId IN (:...categoryIds)', {
+                categoryIds,
+              });
+            } else {
+              w.where('product.categoryId IN (:...categoryIds)', {
+                categoryIds,
+              });
+            }
+          }
+        }),
+      );
+
+    if (isActive !== undefined) {
+      query.andWhere('product.isActive = :isActive', { isActive });
+    }
+
+    const [products, total] = await query
+      .orderBy('product.name', 'ASC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .cache(
+        `flash_sale_products_page_${page}_${limit}_${isActive ?? 'all'}`,
+        30000,
+      )
+      .getManyAndCount();
+    await this.withFlashSale(products);
+    return [products, total] as [Product[], number];
   }
 
   async findOne(id: number): Promise<Product> {
@@ -629,6 +840,7 @@ export class ProductService {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
 
+    await this.withFlashSale([product]);
     return product;
   }
   async findBySlug(slug: string): Promise<Product> {
@@ -728,6 +940,7 @@ export class ProductService {
       throw new NotFoundException(`Product with slug '${slug}' not found`);
     }
 
+    await this.withFlashSale([product]);
     return product;
   }
   async findSimilarBestSelling(options: {

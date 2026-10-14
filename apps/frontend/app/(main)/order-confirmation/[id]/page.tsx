@@ -1,7 +1,6 @@
 import PayNow from "@/components/payment/pay-now";
 import {
   Building,
-  Clock,
   CreditCard,
   FileText,
   Home,
@@ -9,25 +8,24 @@ import {
   MapPin,
   Package,
   Phone,
-  Tag,
   Truck,
   User,
+  Zap,
 } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import { DownloadInvoiceButton } from "@/components/admin/orders/download-invoice-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
-import { hasActiveDiscount } from "@/utils/product-utils";
+import { formatCurrencyEnglish, formatDateTime, formatWeight } from "@/lib/utils";
 import { fetchProtectedData } from "@/utils/api-utils";
 import {
   getOrderStatusColor,
   getPaymentStatusColor,
   getStatusIcon,
 } from "@/utils/order-helper";
+import { getDiscountedPrice } from "@/utils/product-utils";
 import type { Order, OrderItem } from "@/utils/types";
 
 // Payment method constants
@@ -46,19 +44,23 @@ async function fetchOrder(id: string) {
   }
 }
 
-const formatStatus = (status: string) => {
-  return status.charAt(0).toUpperCase() + status.slice(1);
-};
+/** Price actually charged per unit — the order-time snapshot (covers product
+ * discounts AND flash sales). Falls back for old orders without snapshots. */
+const getItemUnitPrice = (item: OrderItem): number =>
+  item.unitPrice ?? item.product.sellingPrice;
 
-const calculateDiscountedPrice = (
-  price: number,
-  discountType: string,
-  discountValue: string
-) => {
-  if (discountType === "percentage") {
-    return price - price * (Number.parseFloat(discountValue) / 100);
-  }
-  return price - Number.parseFloat(discountValue);
+const getItemUnitDiscount = (item: OrderItem): number =>
+  item.unitDiscount ?? 0;
+
+/** The order payload doesn't carry flash-campaign info, so infer it: the
+ * discount came from a flash sale when the charged snapshot doesn't match
+ * the product's own-discount price. */
+const isFlashDiscounted = (item: OrderItem): boolean => {
+  if (getItemUnitDiscount(item) <= 0) return false;
+  if (item.product.flashSale) return true;
+  return (
+    Math.abs(getDiscountedPrice(item.product) - getItemUnitPrice(item)) > 0.01
+  );
 };
 
 // Check if payment method is Cash on Delivery
@@ -78,6 +80,92 @@ const shouldShowPayNow = (order: Order): boolean => {
   return isPending && isNotCancelled && isNotCOD;
 };
 
+/** Card shell with an icon + title header. */
+function InfoCard({
+  icon: Icon,
+  title,
+  children,
+  className = "",
+}: {
+  icon: React.ElementType;
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`rounded-sm border border-gray-200 bg-white p-4 md:p-5 shadow-sm ${className}`}
+    >
+      <div className="flex items-center gap-2 pb-3 mb-1 border-b border-gray-100">
+        <Icon className="size-4.5 text-gray-700" />
+        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Dashed-divider label / value row used across the info cards. */
+function InfoRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-dashed border-gray-100 py-2.5 last:border-0 last:pb-0">
+      <span className="shrink-0 text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-gray-900 text-right">
+        {children}
+      </span>
+    </div>
+  );
+}
+
+/** Iconed address row (mockup style). */
+function AddressRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 py-1.5">
+      <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+      <span className="w-20 shrink-0 text-sm text-muted-foreground">
+        {label}
+      </span>
+      <span className="min-w-0 flex-1 text-right text-sm font-medium text-gray-900 truncate">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/** Amber/colored status pill used in the page header. */
+function StatusPill({
+  label,
+  status,
+  colorClass,
+}: {
+  label: string;
+  status: string;
+  colorClass: string;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium capitalize ${colorClass}`}
+    >
+      {getStatusIcon(status)}
+      {label} &middot; {status}
+    </span>
+  );
+}
+
 export default async function OrderConfirmationPage({
   params,
 }: {
@@ -90,24 +178,18 @@ export default async function OrderConfirmationPage({
     notFound();
   }
 
+  // Defensive: some order payloads omit items — don't crash rendering.
+  const items = order.items ?? [];
+
   const calculateOrderSummary = () => {
     let originalSubtotal = 0;
     let productDiscountTotal = 0;
 
-    order.items.forEach((item) => {
+    items.forEach((item) => {
       const originalItemPrice = item.product.sellingPrice * item.quantity;
       originalSubtotal += originalItemPrice;
-
-      if (item.product.discountValue && hasActiveDiscount(item.product)) {
-        let discountAmount = 0;
-        if (item.product.discountType === "percentage") {
-          discountAmount =
-            originalItemPrice * (Number(item.product.discountValue) / 100);
-        } else if (item.product.discountType === "fixed") {
-          discountAmount = Number(item.product.discountValue) * item.quantity;
-        }
-        productDiscountTotal += discountAmount;
-      }
+      // Snapshot discount per unit (product discount or flash sale)
+      productDiscountTotal += getItemUnitDiscount(item) * item.quantity;
     });
 
     const couponDiscount = order.coupon
@@ -124,416 +206,302 @@ export default async function OrderConfirmationPage({
   };
 
   const orderSummary = calculateOrderSummary();
+  const isCOD = isCashOnDelivery(order.paymentMethod.name);
+  const dueAmount = order.totalValue - (order.paidAmount || 0);
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex flex-col space-y-6">
-        {/* Order Status Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-lg border">
-          <div>
-            <h1 className="text-xl md:text-xl font-bold">
+    <div className="container mx-auto py-6 px-4 space-y-5">
+      {/* Order Status Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-sm border border-gray-200 bg-white p-4 md:p-5 shadow-sm">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-sm bg-red-50">
+            <FileText className="size-6 text-red-500" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-bold text-gray-900">
               Order-{order.orderNo}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Placed on {formatDateTime(order.createdAt)}
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Badge
-              variant="outline"
-              className={getOrderStatusColor(order.orderStatus)}
-            >
-              Order Status: {getStatusIcon(order.orderStatus)}
-              {formatStatus(order.orderStatus)}
-            </Badge>
-            <Badge
-              variant="outline"
-              className={getPaymentStatusColor(order.paymentStatus)}
-            >
-              Payment Status: {getStatusIcon(order.paymentStatus)}
-              {formatStatus(order.paymentStatus)}
-            </Badge>
+        </div>
+        <div className="flex flex-wrap gap-2.5">
+          <StatusPill
+            label="Order Status"
+            status={order.orderStatus}
+            colorClass={getOrderStatusColor(order.orderStatus)}
+          />
+          <StatusPill
+            label="Payment Status"
+            status={order.paymentStatus}
+            colorClass={getPaymentStatusColor(order.paymentStatus)}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Left column: items + payment/shipping info */}
+        <div className="lg:col-span-2 space-y-5">
+          {/* Order Items */}
+          <InfoCard icon={Package} title="Order Items">
+            <div className="space-y-3 pt-2">
+              {items.map((item: OrderItem) => {
+                const unitPrice = getItemUnitPrice(item);
+                const hasDiscount = getItemUnitDiscount(item) > 0;
+                const flash = isFlashDiscounted(item);
+                return (
+                  <div
+                    key={item.id}
+                    className="flex gap-3 md:gap-4 rounded-sm border border-gray-200 p-3 transition-colors hover:border-gray-300"
+                  >
+                    <div className="relative size-20 shrink-0 overflow-hidden rounded-sm bg-muted">
+                      {item.product.attachment ? (
+                        <Image
+                          src={item.product.attachment.url || "/placeholder.svg"}
+                          alt={item.product.name}
+                          fill
+                          className="object-cover"
+                          sizes="80px"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Package className="size-6 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-sm font-semibold text-gray-900">
+                        {item.product.name}
+                      </h4>
+                      {item.product.description && (
+                        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                          {item.product.description}
+                        </p>
+                      )}
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {hasDiscount && flash && (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-0.5 text-[0.7rem] font-medium text-green-800">
+                            <Zap className="size-3 fill-current" />
+                            Flash Sale
+                          </span>
+                        )}
+                        {hasDiscount && !flash && (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-0.5 text-[0.7rem] font-medium text-green-800">
+                            {item.product.discountType === "percentage"
+                              ? `${Number.parseFloat(String(item.product.discountValue))}% OFF`
+                              : `${formatCurrencyEnglish(getItemUnitDiscount(item))} OFF`}
+                          </span>
+                        )}
+                        {item.product.weight && item.product.unit?.name && (
+                          <span className="text-xs text-muted-foreground">
+                            {formatWeight(
+                              item.product.weight,
+                              item.product.unit.name
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 text-right">
+                      <div className="flex items-baseline justify-end gap-2">
+                        {hasDiscount && (
+                          <span className="text-xs text-muted-foreground line-through">
+                            {formatCurrencyEnglish(item.product.sellingPrice)}
+                          </span>
+                        )}
+                        <span
+                          className={`text-base font-bold ${hasDiscount ? "text-red-600" : "text-gray-900"}`}
+                        >
+                          {formatCurrencyEnglish(unitPrice)}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        &times; {item.quantity}{" "}
+                        {item.product.unit?.name || "pc"}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </InfoCard>
+
+          {/* Payment + Shipping info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <InfoCard icon={CreditCard} title="Payment Information">
+              <div className="pt-1">
+                <InfoRow label="Payment Method">
+                  {order.paymentMethod.name}
+                  {isCOD && (
+                    <span className="ml-1.5 rounded-full bg-blue-50 px-2 py-0.5 text-[0.7rem] font-medium text-blue-700">
+                      COD
+                    </span>
+                  )}
+                </InfoRow>
+                <InfoRow label="Payment Status">
+                  <span className="capitalize">{order.paymentStatus}</span>
+                </InfoRow>
+                {order.paidAmount > 0 && (
+                  <InfoRow label="Amount Paid">
+                    <span className="text-green-600">
+                      {formatCurrencyEnglish(order.paidAmount)}
+                    </span>
+                  </InfoRow>
+                )}
+                {isCOD && order.paymentStatus.toLowerCase() === "pending" && (
+                  <p className="pt-2 text-xs text-muted-foreground">
+                    Payment will be collected upon delivery
+                  </p>
+                )}
+              </div>
+            </InfoCard>
+
+            <InfoCard icon={Truck} title="Shipping Information">
+              <div className="pt-1">
+                <InfoRow label="Shipping Method">
+                  {order.shippingMethod.name}
+                </InfoRow>
+                <InfoRow label="Delivery Time">
+                  {order.shippingMethod.deliveryTime}
+                </InfoRow>
+                <InfoRow label="Shipping Cost">
+                  {orderSummary.shippingCost === 0 ? (
+                    <span className="font-semibold text-green-600">FREE</span>
+                  ) : (
+                    formatCurrencyEnglish(orderSummary.shippingCost)
+                  )}
+                </InfoRow>
+              </div>
+            </InfoCard>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Order Items and Timeline */}
-          <div className="md:col-span-2 space-y-6">
-            {/* Order Items */}
-            <div className="border rounded-lg p-4 bg-background">
-              <div className="pb-3">
-                <h3 className="text-base font-medium flex items-center">
-                  <Package className="size-5 mr-2" />
-                  Order Items
-                </h3>
-              </div>
-              <div>
-                <div className="space-y-4">
-                  {order.items.map((item: OrderItem) => {
-                    const hasDiscount =
-                      hasActiveDiscount(item.product) &&
-                      item.product.discountValue &&
-                      item.product.discountValue > 0;
-                    const discountedPrice = hasDiscount
-                      ? calculateDiscountedPrice(
-                          item.product.sellingPrice,
-                          item.product.discountType ?? "",
-                          (item.product.discountValue ?? 0).toString()
-                        )
-                      : item.product.sellingPrice;
-
-                    return (
-                      <div
-                        key={item.id}
-                        className="grid grid-cols-[64px_1fr_auto] gap-4 py-3 border-b last:border-0"
-                      >
-                        {/* Product Image */}
-                        <div className="relative h-16 w-16 rounded-md overflow-hidden bg-muted">
-                          {item.product.attachment ? (
-                            <Image
-                              src={
-                                item.product.attachment.url ||
-                                "/placeholder.svg"
-                              }
-                              alt={item.product.name}
-                              fill
-                              className="object-cover"
-                              sizes="(max-width: 768px) 64px, 96px"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <Package className="size-6 text-muted-foreground" />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Product Details */}
-                        <div className="space-y-1.5">
-                          <h4 className="text-sm font-semibold line-clamp-2">
-                            {item.product.name}
-                          </h4>
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            {item.product.description}
-                          </p>
-                          {hasDiscount && (
-                            <Badge
-                              variant="outline"
-                              className="mt-1 text-[0.7rem] bg-green-100 text-green-800 border-green-200"
-                            >
-                              {item.product.discountType === "percentage"
-                                ? `${item.product.discountValue}% OFF`
-                                : `${item.product.discountValue} OFF`}
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Pricing */}
-                        <div className="flex flex-col items-end space-y-1.5">
-                          <div className="flex items-center gap-2">
-                            {hasDiscount && (
-                              <span className="text-xs text-muted-foreground line-through">
-                                {formatCurrencyEnglish(
-                                  item.product.sellingPrice
-                                )}
-                              </span>
-                            )}
-                            <span
-                              className={`text-sm ${hasDiscount ? "text-green-700 font-semibold" : "font-medium"}`}
-                            >
-                              {formatCurrencyEnglish(discountedPrice)}
-                            </span>
-                          </div>
-                          <div className="text-sm font-medium">
-                            {formatCurrencyEnglish(
-                              discountedPrice * item.quantity
-                            )}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            × {item.quantity} {item.product.unit?.name || "pc"}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+        {/* Right column: customer, address, summary */}
+        <div className="space-y-5">
+          {/* Customer Information */}
+          <InfoCard icon={User} title="Customer Information">
+            <div className="flex items-center gap-3 py-2">
+              <Avatar className="size-11 shrink-0 border border-gray-200">
+                <AvatarImage
+                  src={
+                    order.user.profilePhoto?.url ||
+                    "/placeholder.svg?height=44&width=44"
+                  }
+                  alt={order.user.name}
+                />
+                <AvatarFallback className="bg-gray-100 text-sm font-semibold text-gray-600">
+                  {order.user.name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold text-gray-900">
+                  {order.user.name}
+                </div>
+                <div className="truncate text-xs text-muted-foreground">
+                  {order.user.email}
                 </div>
               </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Payment Information */}
-              <div className="border rounded-lg p-4 bg-background">
-                <div className="pb-3">
-                  <h3 className="text-base font-medium flex items-center">
-                    <CreditCard className="size-5 mr-2" />
-                    Payment Information
-                  </h3>
-                </div>
-                <div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Payment Method
-                      </span>
-                      <span className="text-sm font-medium">
-                        {order.paymentMethod.name}
-                        {isCashOnDelivery(order.paymentMethod.name) && (
-                          <Badge
-                            variant="outline"
-                            className="ml-2 text-xs bg-blue-50 text-blue-700 border-blue-200"
-                          >
-                            COD
-                          </Badge>
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Payment Status
-                      </span>
-                      <Badge
-                        variant="outline"
-                        className={getPaymentStatusColor(order.paymentStatus)}
-                      >
-                        {getStatusIcon(order.paymentStatus)}
-                        {formatStatus(order.paymentStatus)}
-                      </Badge>
-                    </div>
-                    {order.paidAmount > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          Amount Paid
-                        </span>
-                        <span className="text-sm font-medium">
-                          {formatCurrencyEnglish(order.paidAmount)}
-                        </span>
-                      </div>
-                    )}
-                    {isCashOnDelivery(order.paymentMethod.name) && (
-                      <div className="text-xs text-muted-foreground bg-blue-50 p-2 rounded border-l-2 border-blue-200">
-                        💡 Payment will be collected upon delivery
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Shipping Information */}
-              <div className="border rounded-lg p-4 bg-background">
-                <div className="pb-3">
-                  <h3 className="text-base font-medium flex items-center">
-                    <Truck className="size-5 mr-2" />
-                    Shipping Information
-                  </h3>
-                </div>
-                <div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Shipping Method
-                      </span>
-                      <span className="text-sm font-medium">
-                        {order.shippingMethod.name}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Delivery Time
-                      </span>
-                      <span className="text-sm">
-                        {order.shippingMethod.deliveryTime}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Shipping Cost
-                      </span>
-                      {Number(order.shippingCost ?? order.shippingMethod.cost) ===
-                      0 ? (
-                        <span className="text-sm font-medium text-green-600">
-                          FREE
-                        </span>
-                      ) : (
-                        <span className="text-sm font-medium">
-                          {formatCurrencyEnglish(
-                            Number(order.shippingCost ?? order.shippingMethod.cost)
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="mt-1 border-t border-gray-100 pt-2">
+              <InfoRow label="Phone">{order.user.mobileNumber}</InfoRow>
             </div>
-          </div>
+          </InfoCard>
 
-          {/* Customer and Order Summary */}
-          <div className="space-y-6">
-            {/* Customer Information */}
-            <div className="border rounded-lg p-4 bg-background">
-              <div className="pb-3">
-                <h3 className="text-base font-medium flex items-center">
-                  <User className="size-5 mr-2" />
-                  Customer Information
-                </h3>
-              </div>
-              <div>
-                <div className="flex items-center space-x-3 mb-4">
-                  <Avatar className="size-10">
-                    <AvatarImage
-                      src={
-                        order.user.profilePhoto?.url ||
-                        "/placeholder.svg?height=40&width=40&query=user" ||
-                        "/placeholder.svg"
-                      }
-                      alt={order.user.name}
-                    />
-                    <AvatarFallback>{order.user.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h4 className="text-sm font-medium">{order.user.name}</h4>
-                    <p className="text-xs text-muted-foreground">
-                      {order.user.email}
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Phone</span>
-                    <span className="text-sm">{order.user.mobileNumber}</span>
-                  </div>
-                </div>
-              </div>
+          {/* Shipping Address */}
+          <InfoCard icon={MapPin} title="Shipping Address">
+            <div className="pt-1">
+              <AddressRow
+                icon={User}
+                label="Name"
+                value={order.user.name}
+              />
+              <AddressRow
+                icon={Home}
+                label="Address"
+                value={order.address.address}
+              />
+              <AddressRow
+                icon={Building}
+                label="Area / City"
+                value={`${order.address.area}, ${order.address.city}`}
+              />
+              <AddressRow
+                icon={Map}
+                label="Division"
+                value={order.address.division}
+              />
+              <AddressRow
+                icon={Phone}
+                label="Phone"
+                value={order.user.mobileNumber}
+              />
             </div>
+          </InfoCard>
 
-            {/* Shipping Address */}
-            <div className="border rounded-lg p-4 bg-background">
-              <div className="pb-3">
-                <h3 className="text-base font-medium flex items-center">
-                  <MapPin className="size-5 mr-2 text-muted-foreground" />
-                  Shipping Address
-                </h3>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm flex items-center">
-                  <User className="size-4 mr-2 text-muted-foreground" />
-                  <span className="font-medium">Name : </span> {order.user.name}
-                </p>
-                <p className="text-sm flex items-center">
-                  <Home className="size-4 mr-2 text-muted-foreground" />
-                  <span className="font-medium">Address : </span>{" "}
-                  {order.address.address}
-                </p>
-                <p className="text-sm flex items-center">
-                  <Building className="size-4 mr-2 text-muted-foreground" />
-                  <span className="font-medium">Area / City : </span>{" "}
-                  {order.address.area}, {order.address.city}
-                </p>
-                <p className="text-sm flex items-center">
-                  <Map className="size-4 mr-2 text-muted-foreground" />
-                  <span className="font-medium">Division : </span>{" "}
-                  {order.address.division}
-                </p>
-                <p className="text-sm flex items-center">
-                  <Phone className="size-4 mr-2 text-muted-foreground" />
-                  <span className="font-medium">Phone : </span>{" "}
-                  {order.user.mobileNumber}
-                </p>
-              </div>
-            </div>
-
-            {/* Order Summary */}
-            <div className="border rounded-lg p-4 bg-background">
-              <div className="pb-3">
-                <h3 className="text-base font-medium flex items-center">
-                  <FileText className="size-5 mr-2" />
-                  Order Summary
-                </h3>
-              </div>
-              <div>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Subtotal
-                    </span>
-                    <span className="text-sm">
-                      {formatCurrencyEnglish(orderSummary.originalSubtotal)}
-                    </span>
-                  </div>
-                  {orderSummary.productDiscountTotal > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground flex items-center">
-                        <Tag className="size-3 mr-1" />
-                        Product Discounts
-                      </span>
-                      <span className="text-sm text-green-600">
-                        -
-                        {formatCurrencyEnglish(
-                          orderSummary.productDiscountTotal
-                        )}
-                      </span>
-                    </div>
-                  )}
-                  {order.coupon && orderSummary.couponDiscount > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground flex items-center">
-                        <Tag className="size-3 mr-1" />
-                        Coupon Discount ({order.coupon.code})
-                      </span>
-                      <span className="text-sm text-green-600">
-                        -{formatCurrencyEnglish(orderSummary.couponDiscount)}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Shipping
-                    </span>
-                    {orderSummary.shippingCost === 0 ? (
-                      <span className="text-sm font-semibold text-green-600">
-                        FREE
-                      </span>
-                    ) : (
-                      <span className="text-sm">
-                        {formatCurrencyEnglish(orderSummary.shippingCost)}
-                      </span>
-                    )}
-                  </div>
-                  <Separator className="my-2" />
-                  <div className="flex justify-between font-medium text-base">
-                    <span>Total</span>
-                    <span>{formatCurrencyEnglish(orderSummary.total)}</span>
-                  </div>
-                  {order.paymentStatus.toLowerCase() === "pending" &&
-                    !isCashOnDelivery(order.paymentMethod.name) && (
-                      <div className="flex justify-between text-red-600 text-sm">
-                        <span>Due Amount</span>
-                        <span>
-                          {formatCurrencyEnglish(
-                            order.totalValue - order.paidAmount
-                          )}
-                        </span>
-                      </div>
-                    )}
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              {shouldShowPayNow(order) ? (
-                <PayNow order={order} className="w-full" />
-              ) : (
-                <DownloadInvoiceButton order={order} className="w-full" />
+          {/* Order Summary */}
+          <InfoCard icon={FileText} title="Order Summary">
+            <div className="pt-1">
+              <InfoRow label="Subtotal">
+                {formatCurrencyEnglish(orderSummary.originalSubtotal)}
+              </InfoRow>
+              {orderSummary.productDiscountTotal > 0 && (
+                <InfoRow label="Product Discounts">
+                  <span className="text-green-600">
+                    -{formatCurrencyEnglish(orderSummary.productDiscountTotal)}
+                  </span>
+                </InfoRow>
               )}
-              {isCashOnDelivery(order.paymentMethod.name) &&
-                order.paymentStatus.toLowerCase() === "pending" && (
-                  <div className="text-center text-sm text-muted-foreground bg-amber-50 p-3 mt-2 rounded border">
-                    <Clock className="inline-block w-4 h-4 mr-1" />
-                    Payment will be collected when your order is delivered
-                  </div>
+              {order.coupon && orderSummary.couponDiscount > 0 && (
+                <InfoRow label={`Coupon (${order.coupon.code})`}>
+                  <span className="text-green-600">
+                    -{formatCurrencyEnglish(orderSummary.couponDiscount)}
+                  </span>
+                </InfoRow>
+              )}
+              <InfoRow label="Shipping">
+                {orderSummary.shippingCost === 0 ? (
+                  <span className="font-semibold text-green-600">FREE</span>
+                ) : (
+                  formatCurrencyEnglish(orderSummary.shippingCost)
                 )}
+              </InfoRow>
+
+              <Separator className="my-3" />
+
+              <div className="flex items-center justify-between">
+                <span className="text-base font-bold text-gray-900">Total</span>
+                <span className="text-base font-bold text-gray-900">
+                  {formatCurrencyEnglish(orderSummary.total)}
+                </span>
+              </div>
+              {order.paymentStatus.toLowerCase() === "pending" && !isCOD && (
+                <div className="mt-1.5 flex items-center justify-between">
+                  <span className="text-sm font-medium text-red-600">
+                    Due Amount
+                  </span>
+                  <span className="text-sm font-bold text-red-600">
+                    {formatCurrencyEnglish(dueAmount)}
+                  </span>
+                </div>
+              )}
+
+              <div className="mt-4">
+                {shouldShowPayNow(order) ? (
+                  <PayNow order={order} className="w-full" />
+                ) : (
+                  <DownloadInvoiceButton order={order} className="w-full" />
+                )}
+              </div>
+              {isCOD && order.paymentStatus.toLowerCase() === "pending" && (
+                <p className="mt-3 rounded-sm bg-amber-50 p-2.5 text-center text-xs text-muted-foreground">
+                  Payment will be collected when your order is delivered
+                </p>
+              )}
             </div>
-          </div>
+          </InfoCard>
         </div>
       </div>
     </div>

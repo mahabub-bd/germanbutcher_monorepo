@@ -21,6 +21,8 @@ import { ContactMessageModule } from './contact-message/contact-message.module';
 import { CouponUsageLogModule } from './coupon-usage-log/coupon-usage-log.module';
 import { CouponModule } from './coupon/coupon.module';
 import { DeliveryManModule } from './delivery-man/delivery-man.module';
+import { FlashSaleCampaignsModule } from './flash-sale-campaigns/flash-sale-campaigns.module';
+import { FlashSaleUsageLogModule } from './flash-sale-usage-log/flash-sale-usage-log.module';
 import { FreeDeliveryCampaignsModule } from './free-delivery-campaigns/free-delivery-campaigns.module';
 import { FreeDeliveryUsageLogModule } from './free-delivery-usage-log/free-delivery-usage-log.module';
 import { GalleryModule } from './gallery/gallery.module';
@@ -122,6 +124,8 @@ import { WishlistModule } from './wishlist/wishlist.module';
     CouponModule,
     CouponUsageLogModule,
     BusinessSettingsModule,
+    FlashSaleCampaignsModule,
+    FlashSaleUsageLogModule,
     FreeDeliveryCampaignsModule,
     FreeDeliveryUsageLogModule,
     DeliveryManModule,

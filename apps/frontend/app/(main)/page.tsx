@@ -10,6 +10,7 @@ import { SalesPartnersCompact } from "@/components/homepage/sales-partner/sales-
 import { NewsletterSection } from "@/components/homepage/subscriber/newsletter";
 import { TestimonialSection } from "@/components/homepage/testimonial/testimonial-section-server";
 import ProductList from "@/components/products/product-list";
+import FlashSaleSection from "@/components/products/flash-sale-section";
 
 // No `revalidate` segment config here: the root layout reads cookies(), so
 // every route renders dynamically and the config would be inert anyway.
@@ -50,6 +51,7 @@ export default function Home() {
           </ProductList>
         </div>
       </section>
+      <FlashSaleSection />
       <section className="lg:py-10 py-5 bg-gray-50">
         <div className="container mx-auto ">
           <ProductList

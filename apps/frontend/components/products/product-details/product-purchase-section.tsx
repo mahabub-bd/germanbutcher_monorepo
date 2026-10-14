@@ -4,7 +4,7 @@ import { Facebook, Linkedin } from "@/components/icons/brand-icons";
 import { Button } from "@/components/ui/button";
 import { AddToWishlistButton } from "@/components/wishlist/add-to-wishlist-button";
 import { useCartContext } from "@/contexts/cart-context";
-import { hasActiveDiscount } from "@/utils/product-utils";
+import { getEffectivePrice } from "@/utils/product-utils";
 import type { Product, User } from "@/utils/types";
 import { Link2, Loader2, Mail, MessageCircle, Minus, Plus, Share2, ShoppingCart, Zap } from "lucide-react";
 import {
@@ -50,15 +50,8 @@ export function ProductPurchaseSection({
     }
   }, [isInCart, cartQuantity]);
 
-  const discountAmount = hasActiveDiscount(product)
-    ? product.discountType === "fixed"
-      ? Number.parseFloat(String(product.discountValue ?? "0"))
-      : (product.sellingPrice *
-        Number.parseFloat(String(product.discountValue ?? "0"))) /
-      100
-    : 0;
-
-  const finalPrice = product.sellingPrice - discountAmount;
+  // Single client price authority — flash sale > product discount > selling price
+  const finalPrice = getEffectivePrice(product);
 
   const incrementQuantity = async () => {
     if (quantity >= product.stock) {

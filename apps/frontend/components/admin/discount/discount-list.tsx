@@ -298,7 +298,7 @@ export function DiscountList({
       ) : null;
     const value =
       product.discountType === DiscountType.PERCENTAGE
-        ? `${product.discountValue}%`
+        ? `${Number.parseFloat(String(product.discountValue))}%`
         : formatCurrencyEnglish(product.discountValue);
 
     return (

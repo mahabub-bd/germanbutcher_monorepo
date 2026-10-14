@@ -199,6 +199,18 @@ export interface Gallery {
   createdAt: string;
   updatedAt: string;
 }
+
+/** Active flash sale campaign info attached to product responses by the
+ * backend; null/undefined = no flash sale. Display-only — the order service
+ * recomputes authoritatively. */
+export interface FlashSaleInfo {
+  campaignId: number;
+  name: string;
+  discountType: DiscountType;
+  discountValue: number;
+  endsAt: string | null;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -232,6 +244,9 @@ export interface Product {
   discountValue?: number;
   discountStartDate?: string;
   discountEndDate?: string;
+
+  flashSale?: FlashSaleInfo | null;
+  effectivePrice?: number;
 }
 
 export type ProductResponse = SingleOrListResponse<Product>;
@@ -613,6 +628,7 @@ export interface FreeDeliveryCampaign {
     sellingPrice?: number;
     discountType?: DiscountType | null;
     category?: { id: number; name: string };
+    attachment?: { id: number; url: string } | null;
   }[];
   categories: { id: number; name: string }[];
   createdAt: string;
@@ -628,6 +644,31 @@ export interface FreeDeliveryCheckResult {
   minOrderAmount?: number;
   /** Amount still needed to unlock the pending campaign */
   remaining?: number;
+}
+
+/** Admin-facing flash sale campaign (flash-sale-campaigns endpoints). */
+export interface FlashSaleCampaign {
+  id: number;
+  name: string;
+  isActive: boolean;
+  validFrom: string | null;
+  validUntil: string | null;
+  discountType: DiscountType;
+  discountValue: string | number;
+  maxUsage: number;
+  timesUsed: number;
+  products: {
+    id: number;
+    name: string;
+    slug?: string;
+    sellingPrice?: number;
+    discountType?: DiscountType | null;
+    category?: { id: number; name: string };
+    attachment?: { id: number; url: string } | null;
+  }[];
+  categories: { id: number; name: string }[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Address {

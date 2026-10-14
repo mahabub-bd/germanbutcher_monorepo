@@ -84,11 +84,11 @@ export default function StatsCard({
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs sm:text-sm font-semibold text-primaryColor dark:text-white">
+          <p className="text-xs xl:text-xs 2xl:text-sm font-semibold text-primaryColor dark:text-white">
             {title}
           </p>
 
-          <p className="mt-1 text-base sm:text-lg lg:text-xl font-bold text-gray-800 dark:text-gray-300 leading-none">
+          <p className="mt-1 text-base xl:text-sm 2xl:text-xl font-bold text-gray-800 dark:text-gray-300 leading-none">
             {count !== undefined ? `${value} / ${count}` : value}
           </p>
         </div>

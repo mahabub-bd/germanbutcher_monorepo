@@ -30,7 +30,33 @@ export interface RatingSummary {
 export interface ReviewEligibility {
   canReview: boolean;
   status: 'eligible' | 'already_reviewed' | 'not_verified_buyer';
-  review?: ProductReview | null;
+  review?: PublicProductReview | null;
+}
+
+/** Client-safe review shape: reviewer name/photo only — never the full
+ * user row (credentials, contacts) or the full product/user entities. */
+export interface PublicProductReview {
+  id: number;
+  rating: number;
+  title: string | null;
+  comment: string;
+  isApproved: boolean;
+  isRejected: boolean;
+  orderId: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+  attachment: { id: Attachment['id']; url: string } | null;
+  user: {
+    id: number;
+    name: string;
+    profilePhoto: { id: Attachment['id']; url: string } | null;
+  } | null;
+  product: {
+    id: number;
+    name: string;
+    slug: string;
+    attachment: { id: Attachment['id']; url: string } | null;
+  } | null;
 }
 
 @Injectable()
@@ -94,6 +120,49 @@ export class ProductReviewService {
       .then((orderItem) => orderItem?.order ?? null);
   }
 
+  /** Projects a review entity to its client-safe shape. */
+  private toPublicReview(review: ProductReview): PublicProductReview {
+    const attachment = review.attachment;
+    const product = review.product;
+    const user = review.user;
+    return {
+      id: review.id,
+      rating: review.rating,
+      title: review.title,
+      comment: review.comment,
+      isApproved: review.isApproved,
+      isRejected: review.isRejected,
+      orderId: review.orderId,
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt,
+      attachment: attachment
+        ? { id: attachment.id, url: attachment.url }
+        : null,
+      user: user
+        ? {
+            id: user.id,
+            name: user.name,
+            profilePhoto: user.profilePhoto
+              ? {
+                  id: user.profilePhoto.id,
+                  url: user.profilePhoto.url,
+                }
+              : null,
+          }
+        : null,
+      product: product
+        ? {
+            id: product.id,
+            name: product.name,
+            slug: product.slug,
+            attachment: product.attachment
+              ? { id: product.attachment.id, url: product.attachment.url }
+              : null,
+          }
+        : null,
+    };
+  }
+
   async checkEligibility(
     userId: number,
     productId: number,
@@ -113,7 +182,7 @@ export class ProductReviewService {
         data: {
           canReview: false,
           status: 'already_reviewed',
-          review: existing,
+          review: this.toPublicReview(existing),
         },
       };
     }
@@ -133,7 +202,7 @@ export class ProductReviewService {
     productId: number,
     page: number,
     limit: number,
-  ): Promise<ApiResponseDto<ProductReview[]>> {
+  ): Promise<ApiResponseDto<PublicProductReview[]>> {
     const [reviews, total] = await this.reviewRepository
       .createQueryBuilder('review')
       .innerJoinAndSelect('review.user', 'user')
@@ -151,7 +220,7 @@ export class ProductReviewService {
     return {
       message: 'Product reviews retrieved successfully',
       statusCode: 200,
-      data: reviews,
+      data: reviews.map((review) => this.toPublicReview(review)),
       total,
       page,
       limit,
@@ -306,7 +375,7 @@ export class ProductReviewService {
     userId: number,
     page = 1,
     limit = 10,
-  ): Promise<ApiResponseDto<ProductReview[]>> {
+  ): Promise<ApiResponseDto<PublicProductReview[]>> {
     const qb = this.reviewRepository
       .createQueryBuilder('review')
       .innerJoinAndSelect('review.user', 'user')
@@ -324,7 +393,7 @@ export class ProductReviewService {
     return {
       message: 'My reviews retrieved successfully',
       statusCode: 200,
-      data: reviews,
+      data: reviews.map((review) => this.toPublicReview(review)),
       total,
       page,
       limit,
@@ -334,7 +403,7 @@ export class ProductReviewService {
 
   async findForAdmin(
     query: FindReviewsQueryDto,
-  ): Promise<ApiResponseDto<ProductReview[]>> {
+  ): Promise<ApiResponseDto<PublicProductReview[]>> {
     const { page = 1, limit = 10, status = 'all', search } = query;
 
     const qb = this.reviewRepository
@@ -370,7 +439,7 @@ export class ProductReviewService {
     return {
       message: 'Reviews retrieved successfully',
       statusCode: 200,
-      data: reviews,
+      data: reviews.map((review) => this.toPublicReview(review)),
       total,
       page,
       limit,

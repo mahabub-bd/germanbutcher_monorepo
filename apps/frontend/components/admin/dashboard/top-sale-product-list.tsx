@@ -84,17 +84,27 @@ const getDiscountedPrice = (product: BestsellerProduct): number => {
   return product.sellingPrice;
 };
 
+type TimeFilter =
+  | "last_month"
+  | "this_month"
+  | "last_3_months"
+  | "last_6_months"
+  | "last_year"
+  | "this_year"
+  | "all_time";
+
 export default function TopSaleProductsList() {
   const [products, setProducts] = useState<BestsellerProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [limit, setLimit] = useState<number>(5);
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("all_time");
 
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
         const data = await fetchProtectedData<BestsellerProduct[]>(
-          `products/bestsellers?limit=${limit}`
+          `products/bestsellers?limit=${limit}&timeFilter=${timeFilter}`
         );
         setProducts(data || []);
       } catch (error) {
@@ -107,7 +117,7 @@ export default function TopSaleProductsList() {
     };
 
     fetchProducts();
-  }, [limit]);
+  }, [limit, timeFilter]);
 
   if (loading) {
     return (
@@ -128,19 +138,37 @@ export default function TopSaleProductsList() {
             <CardDescription className="text-xs sm:text-sm">Products sorted by sales count</CardDescription>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Select
               value={limit.toString()}
               onValueChange={(v) => setLimit(parseInt(v))}
             >
-              <SelectTrigger className="w-[100px] sm:w-[130px] h-8 sm:h-9 text-xs sm:text-sm">
+              <SelectTrigger className="w-[100px] sm:w-[130px] h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="5">Top 5</SelectItem>
-                <SelectItem value="10">Top 10</SelectItem>
-                <SelectItem value="20">Top 20</SelectItem>
-                <SelectItem value="50">Top 50</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="5">Top 5</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="10">Top 10</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="20">Top 20</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="50">Top 50</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={timeFilter}
+              onValueChange={(value: TimeFilter) => setTimeFilter(value)}
+            >
+              <SelectTrigger className="w-[110px] sm:w-[140px] h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem className="text-xs 2xl:text-sm" value="last_month">Last Month</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="this_month">This Month</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="last_3_months">Last 3 Months</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="last_6_months">Last 6 Months</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="last_year">Last Year</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="this_year">This Year</SelectItem>
+                <SelectItem className="text-xs 2xl:text-sm" value="all_time">All Time</SelectItem>
               </SelectContent>
             </Select>
           </div>

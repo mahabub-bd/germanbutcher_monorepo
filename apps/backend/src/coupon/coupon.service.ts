@@ -54,13 +54,13 @@ export class CouponService {
   }
 
   async getAllCoupons(): Promise<Coupon[]> {
-    return this.couponRepository.find({ relations: ['excludedItems'] });
+    return this.couponRepository.find({ relations: ['excludedItems', 'excludedItems.attachment', 'excludedItems.category'] });
   }
 
   async getCouponByCode(code: string): Promise<Coupon> {
     const coupon = await this.couponRepository.findOne({
       where: { code },
-      relations: ['excludedItems'],
+      relations: ['excludedItems', 'excludedItems.attachment', 'excludedItems.category'],
     });
     if (!coupon) {
       throw new NotFoundException('Coupon not found');
@@ -71,7 +71,7 @@ export class CouponService {
   private async getCouponWithRelations(id: string): Promise<Coupon> {
     const coupon = await this.couponRepository.findOne({
       where: { id },
-      relations: ['excludedItems'],
+      relations: ['excludedItems', 'excludedItems.attachment', 'excludedItems.category'],
     });
     if (!coupon) {
       throw new NotFoundException('Coupon not found');

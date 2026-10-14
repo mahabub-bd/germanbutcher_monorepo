@@ -350,6 +350,31 @@ export class Product extends BaseEntity {
   @ValidateIf((o) => o.discountStartDate)
   discountEndDate?: Date;
 
+  // Display-only fields attached by FlashSaleCampaignsService.attachFlashInfo
+  // on storefront reads. Plain (non-column) props — TypeORM ignores them on
+  // save; never persist an entity that carries them back.
+  @ApiPropertyOptional({
+    description:
+      'Active flash sale campaign covering this product (null = none)',
+    readOnly: true,
+  })
+  flashSale?: {
+    campaignId: number;
+    name: string;
+    discountType: DiscountType;
+    discountValue: number;
+    endsAt: string | null;
+  } | null;
+
+  @ApiPropertyOptional({
+    example: 169.99,
+    description:
+      'Final storefront price: flash sale > product discount > selling price',
+    type: 'number',
+    readOnly: true,
+  })
+  effectivePrice?: number;
+
   @ApiProperty({
     example: 169.99,
     description: 'Calculated price after discount',

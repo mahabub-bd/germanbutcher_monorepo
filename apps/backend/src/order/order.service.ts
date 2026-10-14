@@ -7,6 +7,11 @@ import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { DeliveryMan } from 'src/delivery-man/entities/delivery-man.entity';
 import { FreeDeliveryCampaignsService } from 'src/free-delivery-campaigns/free-delivery-campaigns.service';
 import { FreeDeliveryUsageLogService } from 'src/free-delivery-usage-log/free-delivery-usage-log.service';
+import {
+  computeFlashPrice,
+  FlashSaleCampaignsService,
+} from 'src/flash-sale-campaigns/flash-sale-campaigns.service';
+import { FlashSaleUsageLogService } from 'src/flash-sale-usage-log/flash-sale-usage-log.service';
 
 import { EmailService } from 'src/email/email.service';
 import { NotificationService } from 'src/notification/notification.service';
@@ -74,6 +79,8 @@ export class OrderService {
     private readonly couponUsageLogService: CouponUsageLogService,
     private readonly freeDeliveryCampaignsService: FreeDeliveryCampaignsService,
     private readonly freeDeliveryUsageLogService: FreeDeliveryUsageLogService,
+    private readonly flashSaleCampaignsService: FlashSaleCampaignsService,
+    private readonly flashSaleUsageLogService: FlashSaleUsageLogService,
   ) {}
 
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -153,6 +160,16 @@ export class OrderService {
     // Store item pricing details for later use
     const itemPricingDetails = [];
 
+    // Flash sale resolves once per order: a campaign matching any item
+    // overrides that item's product discount (no stacking).
+    const flashCampaigns =
+      await this.flashSaleCampaignsService.getActiveCampaigns();
+    /** campaignId -> { campaign, discount } for campaigns that priced ≥1 item */
+    const flashUsage = new Map<
+      number,
+      { campaign: (typeof flashCampaigns)[number]; discount: number }
+    >();
+
     for (const item of items) {
       const product = await this.productRepository.findOne({
         where: { id: item.productId },
@@ -173,8 +190,28 @@ export class OrderService {
       let productDiscount = 0;
       const now = new Date().getTime();
 
+      // Flash sale wins over the product's own discount — never stacked
+      const flashCampaign =
+        this.flashSaleCampaignsService.resolveForProductFromList(
+          flashCampaigns,
+          product.id,
+          product.category?.id,
+        );
+      if (flashCampaign) {
+        price = computeFlashPrice(Number(product.sellingPrice), flashCampaign);
+        productDiscount = Number(product.sellingPrice) - price;
+        const entry = flashUsage.get(flashCampaign.id);
+        if (entry) {
+          entry.discount += productDiscount;
+        } else {
+          flashUsage.set(flashCampaign.id, {
+            campaign: flashCampaign,
+            discount: productDiscount,
+          });
+        }
+      }
       // Apply product discount if valid
-      if (product.discountStartDate && product.discountEndDate) {
+      else if (product.discountStartDate && product.discountEndDate) {
         const start = new Date(product.discountStartDate).getTime();
         const end = new Date(product.discountEndDate).getTime();
 
@@ -308,6 +345,18 @@ export class OrderService {
       }
     }
 
+    // Flash sale usage: once per distinct campaign that priced at least one
+    // item. Atomic conditional UPDATE — silently caps at maxUsage.
+    for (const campaignId of flashUsage.keys()) {
+      try {
+        await this.flashSaleCampaignsService.incrementUsage(campaignId);
+      } catch (error) {
+        this.logger.error(
+          `Failed to increment flash sale campaign usage: ${error}`,
+        );
+      }
+    }
+
     totalValue += chargedShipping;
 
     // Round final values
@@ -370,6 +419,26 @@ export class OrderService {
       } catch (error) {
         this.logger.error(
           `Failed to log free delivery usage for order ${orderNo}: ${error}`,
+        );
+      }
+    }
+
+    // Log flash sale usage — one row per campaign that priced at least one
+    // item, with the total discount that campaign gave on this order.
+    for (const [campaignId, usage] of flashUsage) {
+      if (usage.discount <= 0) continue;
+      try {
+        await this.flashSaleUsageLogService.create({
+          campaign: usage.campaign,
+          campaignName: usage.campaign.name,
+          order,
+          user,
+          discountAmount: Math.round(usage.discount * 100) / 100,
+          orderTotal: totalValue,
+        });
+      } catch (error) {
+        this.logger.error(
+          `Failed to log flash sale usage for order ${orderNo} (campaign ${campaignId}): ${error}`,
         );
       }
     }

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { FlashSaleCampaignsModule } from 'src/flash-sale-campaigns/flash-sale-campaigns.module';
 import { Product } from 'src/product/entities/product.entity';
 import { User } from 'src/user/entities/user.entity';
 import { CartController } from './cart.controller';
@@ -8,7 +9,10 @@ import { CartItem } from './entities/cart-item.entity';
 import { Cart } from './entities/cart.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Cart, CartItem, Product, User])],
+  imports: [
+    TypeOrmModule.forFeature([Cart, CartItem, Product, User]),
+    FlashSaleCampaignsModule,
+  ],
   controllers: [CartController],
   providers: [CartService],
   exports: [CartService],

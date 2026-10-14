@@ -37,9 +37,10 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
     data.totalOrders > 0 ? (count / data.totalOrders) * 100 : 0;
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-3 lg:grid-cols-6 2xl:gap-4">
       {/* All Orders */}
       <StatusCard
+        className="lg:gap-1 lg:px-2 lg:py-2"
         title="All Orders"
         value={data.totalOrders}
         icon={ListChecks}
@@ -51,6 +52,7 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
 
       {/* Delivered */}
       <StatusCard
+        className="lg:gap-1 lg:px-2 lg:py-2"
         title="Delivered"
         value={data.delivered}
         icon={CheckCircle2}
@@ -69,6 +71,7 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
 
       {/* Pending */}
       <StatusCard
+        className="lg:gap-1 lg:px-2 lg:py-2"
         title="Pending"
         value={data.pending}
         icon={Clock}
@@ -87,6 +90,7 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
 
       {/* Processing */}
       <StatusCard
+        className="lg:gap-1 lg:px-2 lg:py-2"
         title="Processing"
         value={data.processing}
         icon={Loader2}
@@ -105,6 +109,7 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
 
       {/* Shipped */}
       <StatusCard
+        className="lg:gap-1 lg:px-2 lg:py-2"
         title="Shipped"
         value={data.shipped}
         icon={Truck}
@@ -123,6 +128,7 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
 
       {/* Cancelled */}
       <StatusCard
+        className="lg:gap-1 lg:px-2 lg:py-2"
         title="Cancelled"
         value={data.cancelled}
         icon={Ban}

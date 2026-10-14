@@ -73,7 +73,9 @@ export function AdminLayoutClient({
       />
       <div
         className={`transition-all duration-300 ease-in-out pt-1 md:pt-0 ${
-          sidebarCollapsed ? "md:pl-[70px]" : "md:pl-[250px] lg:pl-[260px]"
+          sidebarCollapsed
+            ? "md:pl-[70px]"
+            : "md:pl-[176px] xl:pl-[250px]"
         }`}
       >
         <main className="md:p-4 p-2">

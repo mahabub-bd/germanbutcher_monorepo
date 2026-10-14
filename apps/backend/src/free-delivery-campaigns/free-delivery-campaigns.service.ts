@@ -349,7 +349,7 @@ export class FreeDeliveryCampaignsService {
 
   async incrementUsage(id: number): Promise<void> {
     await this.campaignRepository.update(id, {
-      usageCount: () => 'usage_count + 1',
+      usageCount: () => '"usageCount" + 1',
     });
   }
 }

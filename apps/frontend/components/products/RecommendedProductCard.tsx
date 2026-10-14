@@ -3,10 +3,15 @@ import { formatCurrencyEnglish, formatWeight } from "@/lib/utils";
 import type { Product } from "@/utils/types";
 import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { DiscountType } from "@/utils/types";
+import {
+  getEffectivePrice,
+  hasProductDiscount,
+  isFlashSaleActive,
+} from "@/utils/product-utils";
 import Image from "next/image";
 import Link from "next/link";
 
-import { Weight } from "lucide-react";
+import { Weight, Zap } from "lucide-react";
 import { AddToCartButton } from "../cart/add-to-cart-button";
 
 export default async function RecommendedProductCard({
@@ -16,21 +21,10 @@ export default async function RecommendedProductCard({
   product: Product;
   className?: string;
 }) {
-  const isDiscountActive =
-    product.discountType &&
-    product.discountValue &&
-    product.discountStartDate &&
-    product.discountEndDate &&
-    new Date() >= new Date(product.discountStartDate) &&
-    new Date() <= new Date(product.discountEndDate);
-
-  const discountedPrice =
-    isDiscountActive && product.discountType && product.discountValue
-      ? product.discountType === DiscountType.PERCENTAGE
-        ? product.sellingPrice -
-          product.sellingPrice * (product.discountValue / 100)
-        : product.sellingPrice - (product.discountValue || 0)
-      : null;
+  const flashActive = isFlashSaleActive(product);
+  const isDiscountActive = hasProductDiscount(product);
+  const effectivePrice = getEffectivePrice(product);
+  const hasPriceDrop = effectivePrice < product.sellingPrice;
 
   return (
     <div
@@ -51,7 +45,13 @@ export default async function RecommendedProductCard({
               loading="lazy"
               sizes="100%"
             />
-            {isDiscountActive &&
+            {flashActive ? (
+              <Badge className="absolute top-2 left-2 bg-red-600 text-white text-[10px] sm:text-xs font-bold uppercase">
+                <Zap className="mr-1 h-3 w-3 fill-current" />
+                Flash Sale
+              </Badge>
+            ) : (
+              isDiscountActive &&
               product.discountType &&
               product.discountValue && (
                 <Badge className="absolute top-2 left-2 bg-red-700 text-white hover:bg-orange-600 text-[10px] sm:text-xs">
@@ -59,7 +59,8 @@ export default async function RecommendedProductCard({
                     ? `${Math.round(product.discountValue)}% Off`
                     : `Save ${formatCurrencyEnglish(product.discountValue)}`}
                 </Badge>
-              )}
+              )
+            )}
           </div>
         </div>
         <div className="p-5 pt-15 space-y-3">
@@ -73,9 +74,9 @@ export default async function RecommendedProductCard({
             {/* Price Section */}
             <div className="flex items-baseline gap-2">
               <span className="text-xl font-bold text-primaryColor">
-                {formatCurrencyEnglish(discountedPrice || product.sellingPrice)}
+                {formatCurrencyEnglish(effectivePrice)}
               </span>
-              {discountedPrice && (
+              {hasPriceDrop && (
                 <span className="text-sm text-gray-600 line-through">
                   {formatCurrencyEnglish(product.sellingPrice)}
                 </span>

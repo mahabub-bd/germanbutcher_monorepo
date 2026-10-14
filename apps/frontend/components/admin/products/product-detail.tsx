@@ -243,7 +243,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               {hasActive && (
                 <Badge className="absolute top-2.5 left-2.5 bg-red-500 hover:bg-red-500 text-white shadow-sm">
                   {product.discountType === "percentage"
-                    ? `${product.discountValue}% OFF`
+                    ? `${Number.parseFloat(String(product.discountValue))}% OFF`
                     : `${formatCurrencyEnglish(savingsAmount)} OFF`}
                 </Badge>
               )}
@@ -566,7 +566,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                           {product.discountType === "percentage" ? (
                             <>
                               <Percent className="size-3" />
-                              {product.discountValue}% OFF
+                              {Number.parseFloat(String(product.discountValue))}% OFF
                             </>
                           ) : (
                             <>

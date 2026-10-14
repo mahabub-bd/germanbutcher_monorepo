@@ -8,7 +8,7 @@ import DashboardClient from "@/components/admin/dashboard/DashboardClient";
 
 import Last30DaysDeliveredChart from "@/components/admin/dashboard/last-30-days-delivered-chart";
 
-import OrdersTable from "@/components/admin/dashboard/orders-table";
+import { OrderList } from "@/components/admin/orders/order-list";
 import { StockReportTabs } from "@/components/admin/dashboard/StockReportTabs";
 import { TopCustomersList } from "@/components/admin/dashboard/top-customer-list";
 import TopSaleProductsList from "@/components/admin/dashboard/top-sale-product-list";
@@ -108,7 +108,7 @@ export default function DashboardPage() {
       <Suspense fallback={null}>
         <AnalyticsSection />
       </Suspense>
-      <OrdersTable />
+      <OrderList initialPage={1} initialLimit={10} />
       <StockReportTabs />
       <TopCustomersList />
       <TopSaleProductsList />
