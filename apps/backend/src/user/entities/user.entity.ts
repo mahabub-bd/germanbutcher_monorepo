@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Exclude } from 'class-transformer';
 import { Address } from 'src/address/entities/address.entity';
 import { Attachment } from 'src/attachment/entities/attachment.entity';
 import { Cart } from 'src/cart/entities/cart.entity';
@@ -46,6 +47,7 @@ export class User {
   email?: string;
 
   @Column({ nullable: true })
+  @Exclude() // never leave the API — also via nested createdBy/updatedBy
   @ApiProperty({
     description: 'The hashed password of the user',
     example: '$argon2id$v=19$m=65536,t=3,p=4$hashsalt$hashedpassword',
@@ -152,6 +154,7 @@ export class User {
   profilePhotoId?: string;
 
   @Column({ nullable: true })
+  @Exclude() // never leave the API
   @ApiProperty({
     description: 'One-time password for mobile verification',
     example: '123456',
@@ -163,6 +166,7 @@ export class User {
   otp: string;
 
   @Column({ nullable: true })
+  @Exclude() // never leave the API
   @ApiProperty({
     description: 'Expiration timestamp for the OTP',
     example: '2023-05-16T15:35:00.000Z',

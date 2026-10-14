@@ -22,8 +22,10 @@ import { ApiResponseDto } from 'src/common/types';
 import { CheckFreeDeliveryDto } from './dto/check-free-delivery.dto';
 import { CreateFreeDeliveryCampaignDto } from './dto/create-free-delivery-campaign.dto';
 import { UpdateFreeDeliveryCampaignDto } from './dto/update-free-delivery-campaign.dto';
-import { FreeDeliveryCampaign } from './entities/free-delivery-campaign.entity';
-import { FreeDeliveryCampaignsService } from './free-delivery-campaigns.service';
+import {
+  AdminCampaignSummary,
+  FreeDeliveryCampaignsService,
+} from './free-delivery-campaigns.service';
 
 @ApiTags('Free Delivery Campaigns')
 @Controller('free-delivery-campaigns')
@@ -72,7 +74,7 @@ export class FreeDeliveryCampaignsController {
   @ModulePermissions('/admin/marketing/free-delivery')
   @ApiBearerAuth('token')
   @Get()
-  async findAll(): Promise<ApiResponseDto<FreeDeliveryCampaign[]>> {
+  async findAll(): Promise<ApiResponseDto<AdminCampaignSummary[]>> {
     const data = await this.campaignsService.findAll();
     return {
       message: 'Free delivery campaigns retrieved successfully',
@@ -87,7 +89,7 @@ export class FreeDeliveryCampaignsController {
   @Get(':id')
   async findOne(
     @Param('id', ParseIntPipe) id: number,
-  ): Promise<ApiResponseDto<FreeDeliveryCampaign>> {
+  ): Promise<ApiResponseDto<AdminCampaignSummary>> {
     const data = await this.campaignsService.findOne(id);
     return {
       message: 'Free delivery campaign retrieved successfully',
@@ -102,7 +104,7 @@ export class FreeDeliveryCampaignsController {
   @Post()
   async create(
     @Body() dto: CreateFreeDeliveryCampaignDto,
-  ): Promise<ApiResponseDto<FreeDeliveryCampaign>> {
+  ): Promise<ApiResponseDto<AdminCampaignSummary>> {
     const data = await this.campaignsService.create(dto);
     return {
       message: 'Free delivery campaign created successfully',
@@ -118,7 +120,7 @@ export class FreeDeliveryCampaignsController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateFreeDeliveryCampaignDto,
-  ): Promise<ApiResponseDto<FreeDeliveryCampaign>> {
+  ): Promise<ApiResponseDto<AdminCampaignSummary>> {
     const data = await this.campaignsService.update(id, dto);
     return {
       message: 'Free delivery campaign updated successfully',

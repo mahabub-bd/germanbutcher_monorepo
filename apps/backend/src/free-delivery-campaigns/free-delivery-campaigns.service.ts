@@ -51,6 +51,25 @@ export type ActiveCampaignSummary = Omit<
   categories: CampaignCategorySummary[];
 };
 
+/** Product fields the admin card/picker needs — never a full entity (full
+ * entities leak supplier/admin data like user password hashes). */
+export type AdminCampaignProduct = Pick<
+  Product,
+  'id' | 'name' | 'slug' | 'sellingPrice' | 'discountType' | 'discountValue'
+> & {
+  category?: { id: number; name: string } | null;
+  attachment?: { id: number | string; url: string } | null;
+};
+
+/** Campaign as returned by the admin CRUD endpoints (trimmed relations). */
+export type AdminCampaignSummary = Omit<
+  FreeDeliveryCampaign,
+  'products' | 'categories'
+> & {
+  products: AdminCampaignProduct[];
+  categories: { id: number; name: string }[];
+};
+
 export interface FreeDeliveryCheckResult {
   freeDelivery: boolean;
   /** 'campaign' — matched; 'pending' — matched except min order amount; 'none' */
@@ -77,7 +96,7 @@ export class FreeDeliveryCampaignsService {
 
   async create(
     dto: CreateFreeDeliveryCampaignDto,
-  ): Promise<FreeDeliveryCampaign> {
+  ): Promise<AdminCampaignSummary> {
     this.validateDateRange(dto.validFrom, dto.validUntil);
     const { productIds, categoryIds, ...rest } = dto;
 
@@ -90,8 +109,8 @@ export class FreeDeliveryCampaignsService {
   async update(
     id: number,
     dto: UpdateFreeDeliveryCampaignDto,
-  ): Promise<FreeDeliveryCampaign> {
-    const campaign = await this.findOne(id);
+  ): Promise<AdminCampaignSummary> {
+    const campaign = await this.findEntity(id);
     const { validFrom, validUntil, productIds, categoryIds, ...rest } = dto;
 
     this.validateDateRange(
@@ -113,14 +132,32 @@ export class FreeDeliveryCampaignsService {
     return this.findOne(id);
   }
 
-  findAll(): Promise<FreeDeliveryCampaign[]> {
-    return this.campaignRepository.find({
-      relations: ['products', 'categories'],
+  async findAll(): Promise<AdminCampaignSummary[]> {
+    const campaigns = await this.campaignRepository.find({
+      relations: ['products', 'products.attachment', 'categories'],
       order: { id: 'ASC' },
     });
+    return campaigns.map((campaign) => this.toAdminSummary(campaign));
   }
 
-  async findOne(id: number): Promise<FreeDeliveryCampaign> {
+  async findOne(id: number): Promise<AdminCampaignSummary> {
+    const campaign = await this.campaignRepository.findOne({
+      where: { id },
+      relations: ['products', 'products.attachment', 'categories'],
+    });
+    if (!campaign) {
+      throw new NotFoundException(`Campaign with ID ${id} not found`);
+    }
+    return this.toAdminSummary(campaign);
+  }
+
+  async remove(id: number): Promise<void> {
+    const campaign = await this.findEntity(id);
+    await this.campaignRepository.remove(campaign);
+  }
+
+  /** Raw entity fetch for the mutation paths — findOne() returns a summary. */
+  private async findEntity(id: number): Promise<FreeDeliveryCampaign> {
     const campaign = await this.campaignRepository.findOne({
       where: { id },
       relations: ['products', 'categories'],
@@ -131,9 +168,34 @@ export class FreeDeliveryCampaignsService {
     return campaign;
   }
 
-  async remove(id: number): Promise<void> {
-    const campaign = await this.findOne(id);
-    await this.campaignRepository.remove(campaign);
+  /** Trim nested product/category entities to the fields the admin card and
+   * picker need — full entities expose supplier/admin data (incl. password
+   * hashes via createdBy/updatedBy). */
+  private toAdminSummary(
+    campaign: FreeDeliveryCampaign,
+  ): AdminCampaignSummary {
+    const { products, categories, ...rest } = campaign;
+    return {
+      ...rest,
+      products: (products ?? []).map((product) => ({
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        sellingPrice: product.sellingPrice,
+        discountType: product.discountType,
+        discountValue: product.discountValue,
+        category: product.category
+          ? { id: product.category.id, name: product.category.name }
+          : null,
+        attachment: product.attachment
+          ? { id: product.attachment.id, url: product.attachment.url }
+          : null,
+      })),
+      categories: (categories ?? []).map((category) => ({
+        id: category.id,
+        name: category.name,
+      })),
+    };
   }
 
   private validateDateRange(from?: string, until?: string): void {
