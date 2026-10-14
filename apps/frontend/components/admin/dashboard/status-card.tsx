@@ -31,6 +31,7 @@ function Badge({ children, color = "default" }: BadgeProps) {
 }
 
 interface StatusCardProps {
+  className?: string;
   title: string;
   value: number | string;
   icon: LucideIcon;
@@ -51,6 +52,7 @@ interface StatusCardProps {
 }
 
 export function StatusCard({
+  className,
   title,
   value,
   icon: Icon,
@@ -64,26 +66,27 @@ export function StatusCard({
     <Link
       href={href}
       className={cn(
-        "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg transition border relative overflow-hidden",
+        "flex flex-col sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start 2xl:flex-row 2xl:items-center gap-2 sm:gap-2 p-2.5 sm:p-3 2xl:p-4 rounded-lg transition border relative overflow-hidden",
         "border-gray-200 dark:border-gray-700",
         "hover:shadow-sm active:scale-[0.98] sm:hover:scale-[1.02]",
         "w-full",
-        gradient || "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
+        gradient || "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700",
+        className
       )}
     >
       {/* Left Section */}
-      <div className="flex items-center gap-2 sm:gap-3 relative z-10 w-full sm:w-auto">
+      <div className="flex items-center gap-2 sm:gap-2 relative z-10 w-full sm:w-auto lg:w-full 2xl:w-auto min-w-0">
         <div className="p-1.5 rounded-md bg-white/50 dark:bg-black/20 shrink-0">
-          <Icon className={cn("w-4 h-4 sm:w-5 sm:h-5 shrink-0", color)} />
+          <Icon className={cn("w-4 h-4 sm:w-4 sm:h-4 2xl:w-5 2xl:h-5 shrink-0", color)} />
         </div>
-        <h4 className="text-xs sm:text-sm md:text-base font-medium text-gray-800 dark:text-gray-200 truncate">
+        <h4 className="min-w-0 text-xs sm:text-xs 2xl:text-xs font-medium text-gray-800 dark:text-gray-200 truncate whitespace-nowrap">
           {title}
         </h4>
       </div>
 
       {/* Right Section */}
-      <div className="flex items-center justify-between sm:justify-end gap-2 relative z-10 w-full sm:w-auto">
-        <span className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white whitespace-nowrap drop-shadow-sm">
+      <div className="flex items-center justify-between sm:justify-end lg:justify-between 2xl:justify-end gap-1 sm:gap-2 relative z-10 w-full sm:w-auto lg:w-full 2xl:w-auto">
+        <span className="text-sm sm:text-base 2xl:text-base font-bold text-gray-900 dark:text-white whitespace-nowrap drop-shadow-sm">
           {value}
         </span>
 

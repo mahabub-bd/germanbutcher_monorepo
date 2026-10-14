@@ -1,42 +1,22 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { CountdownTimer } from "@/components/common/countdown-timer";
 import { formatCurrencyEnglish, formatWeight } from "@/lib/utils";
 import type { Product } from "@/utils/types";
 import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { DiscountType } from "@/utils/types";
-import { Clock, Truck, Weight } from "lucide-react";
+import {
+
+  getEffectivePrice,
+  hasProductDiscount,
+  isFlashSaleActive,
+} from "@/utils/product-utils";
+import { Truck, Weight, Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { AddToCartButton } from "../cart/add-to-cart-button";
 import { useProductFreeDelivery } from "@/hooks/use-product-free-delivery";
-
-interface TimeRemaining {
-  days: number;
-  hours: number;
-  minutes: number;
-  seconds: number;
-  isExpired: boolean;
-}
-
-function calculateTimeRemaining(endDate: Date): TimeRemaining {
-  const now = new Date().getTime();
-  const end = new Date(endDate).getTime();
-  const difference = end - now;
-
-  if (difference <= 0) {
-    return { days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: true };
-  }
-
-  return {
-    days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-    hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-    minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
-    seconds: Math.floor((difference % (1000 * 60)) / 1000),
-    isExpired: false,
-  };
-}
 
 export default function ProductCard({
   product,
@@ -45,47 +25,12 @@ export default function ProductCard({
   product: Product;
   className?: string;
 }) {
-  const isDiscountActive =
-    product.discountType &&
-    product.discountValue &&
-    product.discountStartDate &&
-    product.discountEndDate &&
-    new Date() >= new Date(product.discountStartDate) &&
-    new Date() <= new Date(product.discountEndDate);
+  const isDiscountActive = hasProductDiscount(product);
+  const flashActive = isFlashSaleActive(product);
+  const flash = flashActive ? product.flashSale : null;
 
-  const [timeRemaining, setTimeRemaining] = useState<TimeRemaining | null>(
-    null
-  );
-
-  useEffect(() => {
-    if (!isDiscountActive || !product.discountEndDate) return;
-
-    // Initial calculation
-    setTimeRemaining(calculateTimeRemaining(new Date(product.discountEndDate)));
-
-    // Update every second
-    const interval = setInterval(() => {
-      const remaining = calculateTimeRemaining(
-        new Date(product.discountEndDate!)
-      );
-      setTimeRemaining(remaining);
-
-      // Clear interval if expired
-      if (remaining.isExpired) {
-        clearInterval(interval);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isDiscountActive, product.discountEndDate]);
-
-  const discountedPrice =
-    isDiscountActive && product.discountType && product.discountValue
-      ? product.discountType === DiscountType.PERCENTAGE
-        ? product.sellingPrice -
-          product.sellingPrice * (product.discountValue / 100)
-        : product.sellingPrice - (product.discountValue || 0)
-      : null;
+  const effectivePrice = getEffectivePrice(product);
+  const hasPriceDrop = effectivePrice < product.sellingPrice;
 
   const isOutOfStock = !product?.stock;
   const hasFreeDelivery = useProductFreeDelivery(product);
@@ -121,54 +66,58 @@ export default function ProductCard({
               </Badge>
             </div>
           )}
-          {/* Discount Badge */}
+          {/* Flash Sale Badge — overrides the per-product discount badge */}
+          {flashActive && flash && (
+            <div className="absolute top-1 right-1 z-10">
+              <span className="inline-flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold leading-none text-white shadow-sm">
+                <Zap size={10} className="fill-current" />
+                Flash Sale
+              </span>
+            </div>
+          )}
+          {/* Per-product Discount Badge */}
+          {!flashActive && isDiscountActive && (
+            <div className="absolute top-1 right-1 z-10">
+              <div className="relative w-12 h-12 animate-[spin_3s_linear_infinite]">
+                {/* Outer ring */}
+                <div className="absolute inset-0 rounded-full border-2 border-dashed border-primaryColor/30 animate-[spin_4s_linear_infinite_reverse]"></div>
 
-          {isDiscountActive &&
-            product.discountType &&
-            product.discountValue && (
-              <div className="absolute top-1 right-1 z-10">
-                <div className="relative w-12 h-12 animate-[spin_3s_linear_infinite]">
-                  {/* Outer ring */}
-                  <div className="absolute inset-0 rounded-full border-2 border-dashed border-primaryColor/30 animate-[spin_4s_linear_infinite_reverse]"></div>
+                {/* Main badge with 3D effect */}
+                <div className="absolute inset-1.5 bg-linear-to-br from-red-800/80 via-primaryColor/80 to-orange-800/80 backdrop-blur-sm rounded-full shadow-[0_0_12px_rgba(239,68,68,0.5)] transform hover:scale-110 transition-transform duration-300">
+                  {/* Inner shine effect */}
+                  <div className="absolute inset-0 bg-linear-to-tr from-white/20 to-transparent rounded-full"></div>
+                </div>
 
-                  {/* Main badge with 3D effect */}
-                  <div className="absolute inset-1.5 bg-linear-to-br from-red-800/80 via-primaryColor/80 to-orange-800/80 backdrop-blur-sm rounded-full shadow-[0_0_12px_rgba(239,68,68,0.5)] transform hover:scale-110 transition-transform duration-300">
-                    {/* Inner shine effect */}
-                    <div className="absolute inset-0 bg-linear-to-tr from-white/20 to-transparent rounded-full"></div>
+                {/* Content - counter-rotate to keep text upright */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white animate-[spin_3s_linear_infinite_reverse]">
+                  <div className="text-[10px] leading-none font-black drop-shadow-lg">
+                    {product.discountType === DiscountType.PERCENTAGE
+                      ? `${parseFloat(String(product.discountValue))}%`
+                      : `৳${parseFloat(String(product.discountValue))}`}
                   </div>
-
-                  {/* Content - counter-rotate to keep text upright */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-white animate-[spin_3s_linear_infinite_reverse]">
-                    <div className="text-[10px] leading-none font-black drop-shadow-lg">
-                      {product.discountType === DiscountType.PERCENTAGE
-                        ? `${parseFloat(product.discountValue.toString())}%`
-                        : `৳${parseFloat(product.discountValue.toString())}`}
-                    </div>
-                    <span className="text-[9px] uppercase tracking-wider font-bold mt-0.5">
-                      OFF
-                    </span>
-                  </div>
+                  <span className="text-[9px] uppercase tracking-wider font-bold mt-0.5">
+                    OFF
+                  </span>
                 </div>
               </div>
-            )}
+            </div>
+          )}
           {/* Discount Countdown Timer - Top Left */}
-          {isDiscountActive && timeRemaining && !timeRemaining.isExpired && (
+          {(flashActive || isDiscountActive) && (
             <div className="absolute top-1 left-1 z-10">
-              <div className="bg-black/60 backdrop-blur-sm rounded-sm px-2 py-1 shadow-lg">
-                <div className="flex items-center gap-1 text-white text-xs font-bold">
-                  <Clock size={10} />
-                  {timeRemaining.days > 0 && `${timeRemaining.days}d `}
-                  {String(timeRemaining.hours).padStart(2, "0")}:
-                  {String(timeRemaining.minutes).padStart(2, "0")}:
-                  {String(timeRemaining.seconds).padStart(2, "0")}
-                </div>
-              </div>
+              <CountdownTimer
+                endsAt={
+                  flashActive
+                    ? product.flashSale?.endsAt
+                    : product.discountEndDate
+                }
+              />
             </div>
           )}
           {/* Free Delivery Badge - Bottom Left */}
           {hasFreeDelivery && !isOutOfStock && (
             <div className="absolute bottom-1.5 left-1.5 z-10">
-              <span className="inline-flex items-center gap-1 bg-white text-primaryColor rounded-full px-2 py-0.5 text-[10px] font-semibold shadow-sm">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] font-semibold leading-none text-white shadow-sm">
                 <Truck className="w-3 h-3" />
                 Free Delivery
               </span>
@@ -188,9 +137,9 @@ export default function ProductCard({
             {/* Price Section */}
             <div className="flex items-baseline gap-2">
               <span className="text-xl font-bold text-primaryColor">
-                {formatCurrencyEnglish(discountedPrice || product.sellingPrice)}
+                {formatCurrencyEnglish(effectivePrice)}
               </span>
-              {discountedPrice && (
+              {hasPriceDrop && (
                 <span className="text-sm text-gray-600 line-through">
                   {formatCurrencyEnglish(product.sellingPrice)}
                 </span>

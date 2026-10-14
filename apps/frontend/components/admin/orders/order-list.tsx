@@ -288,7 +288,7 @@ export function OrderList({
     if (!hasFilters) return null;
 
     return (
-      <div className="flex flex-wrap gap-2 mt-4">
+      <div className="flex flex-wrap gap-2 mt-2">
         {searchQuery && (
           <Badge
             variant="outline"
@@ -359,16 +359,13 @@ export function OrderList({
   const renderTableView = () => (
     <div className="">
       <div className="overflow-x-auto">
-        <Table className="min-w-[1040px]">
+        <Table className="min-w-[880px] text-xs [&_td]:text-xs [&_th]:text-xs lg:text-xs lg:[&_td]:text-xs lg:[&_th]:text-xs 2xl:text-sm 2xl:[&_td]:text-sm 2xl:[&_th]:text-sm">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-24">Order ID</TableHead>
+              <TableHead>Order ID / Date</TableHead>
               <TableHead>Customer</TableHead>
-              <TableHead>Mobile</TableHead>
-              <TableHead>Date</TableHead>
               <TableHead>Order Status</TableHead>
               <TableHead>Payment Status</TableHead>
-
               <TableHead>Payment Method</TableHead>
               <TableHead>Shipping Method</TableHead>
               <TableHead>Area</TableHead>
@@ -381,31 +378,31 @@ export function OrderList({
               [...Array(limit)].map((_, i) => (
                 <TableRow key={i}>
                   <TableCell>
-                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                    <div className="space-y-1">
+                      <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                      <div className="h-3 w-28 bg-gray-200 rounded animate-pulse" />
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="h-4 w-28 bg-gray-200 rounded animate-pulse" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
+                    <div className="space-y-1">
+                      <div className="h-4 w-28 bg-gray-200 rounded animate-pulse" />
+                      <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
                   <TableCell>
-                    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-6 w-24 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
                   <TableCell>
                     <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
                   <TableCell>
-                    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-6 w-24 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="h-4 w-20 bg-gray-200 rounded animate-pulse ml-auto" />
@@ -417,7 +414,7 @@ export function OrderList({
               ))
             ) : orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-12">
+                <TableCell colSpan={9} className="text-center py-12">
                   <div className="flex flex-col items-center gap-3">
                     <ShoppingCart className="h-12 w-12 text-muted-foreground" />
                     <div className="space-y-1">
@@ -449,16 +446,18 @@ export function OrderList({
             ) : (
               orders.map((order) => (
                 <TableRow key={order.id} className="hover:bg-muted/50">
-                  <TableCell className="font-mono text-sm">
+                  <TableCell className="align-top">
                     <Link
                       href={buildDetailHref(order.id, "view")}
-                      className="flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      className="font-mono text-sm hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                     >
-
                       {order.orderNo}
                     </Link>
+                    <div className="mt-0.5 text-[11px] text-muted-foreground lg:text-[11px] 2xl:text-xs">
+                      {formatDateTime(order.createdAt)}
+                    </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-top">
                     {order.user?.id ? (
                       <Link
                         href={`/admin/customer/${order.user.id}/view`}
@@ -471,21 +470,18 @@ export function OrderList({
                         {order.user?.name || "N/A"}
                       </div>
                     )}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {order.user?.mobileNumber ? (
-                      <a
-                        href={`tel:${order.user.mobileNumber}`}
-                        className="text-blue-600 hover:underline dark:text-blue-400"
-                      >
-                        {order.user.mobileNumber}
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground">N/A</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {formatDateTime(order.createdAt)}
+                    <div className="mt-0.5 text-[11px] lg:text-[11px] 2xl:text-xs">
+                      {order.user?.mobileNumber ? (
+                        <a
+                          href={`tel:${order.user.mobileNumber}`}
+                          className="text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          {order.user.mobileNumber}
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">N/A</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -538,7 +534,7 @@ export function OrderList({
                   <TableCell>
                     <Badge
                       variant="secondary"
-                      className="max-w-40 truncate border-transparent bg-violet-100 font-normal text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
+                      className="max-w-40 truncate capitalize border-transparent bg-violet-100 font-normal text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
                       title={order.shippingAddress?.area || order.address?.area || undefined}
                     >
                       <span className="flex items-center gap-1">
@@ -549,20 +545,7 @@ export function OrderList({
                   </TableCell>
 
                   <TableCell className="text-right font-medium">
-                    <div className="space-y-0.5">
-                      <div>{formatCurrencyEnglish(order.totalValue || 0)}</div>
-                      <div className="text-xs font-normal">
-                        {(order.totalValue || 0) - (order.paidAmount || 0) > 0 ? (
-                          <span className="text-red-600 dark:text-red-400">
-                            Due {formatCurrencyEnglish((order.totalValue || 0) - (order.paidAmount || 0))}
-                          </span>
-                        ) : (
-                          <span className="text-green-600 dark:text-green-400">
-                            Paid {formatCurrencyEnglish(order.paidAmount || 0)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                    {formatCurrencyEnglish(order.totalValue || 0)}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -630,7 +613,7 @@ export function OrderList({
 
       {/* Pagination Section */}
       {!isLoading && orders.length > 0 && (
-        <div className="flex flex-row justify-between items-center p-4 border-t">
+        <div className="flex flex-row justify-between items-center p-2 border-t">
           <div className="text-sm text-muted-foreground whitespace-nowrap hidden md:flex">
             Showing {Math.min((currentPage - 1) * limit + 1, totalItems)} to{" "}
             {Math.min(currentPage * limit, totalItems)} of {totalItems} orders
@@ -646,7 +629,7 @@ export function OrderList({
 
       {/* Loading Pagination Skeleton */}
       {isLoading && (
-        <div className="flex flex-row justify-between items-center p-4 border-t">
+        <div className="flex flex-row justify-between items-center p-2 border-t">
           <div className="h-5 w-48 bg-gray-200 rounded animate-pulse" />
           <div className="flex gap-2">
             <div className="h-9 w-20 bg-gray-200 rounded animate-pulse" />
@@ -658,8 +641,8 @@ export function OrderList({
   );
 
   return (
-    <div className="w-full space-y-6">
-      <div className="space-y-4">
+    <div className="w-full space-y-2">
+      <div className="space-y-2">
         <div className="flex flex-col sm:flex-row justify-between gap-4">
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />

@@ -1,4 +1,11 @@
 import { Badge } from "@/components/ui/badge";
+import { CountdownTimer } from "@/components/common/countdown-timer";
+import { formatCurrencyEnglish } from "@/lib/utils";
+import {
+  getActiveDiscountLabel,
+  getEffectivePrice,
+  isFlashSaleActive,
+} from "@/utils/product-utils";
 import type { Product } from "@/utils/types";
 import {
   AlertTriangle,
@@ -12,6 +19,7 @@ import {
   Tag,
   Truck,
   XCircle,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { FeatureList, type FeatureItem } from "./feature-list";
@@ -29,36 +37,15 @@ const HIGHLIGHTS: FeatureItem[] = [
 ];
 
 export function ProductInfo({ product }: ProductInfoProps) {
-  const isDiscountValid = () => {
-    if (!product.discountValue) return false;
+  const flashActive = isFlashSaleActive(product);
 
-    const now = new Date();
-    const startDate = product.discountStartDate
-      ? new Date(product.discountStartDate)
-      : null;
-    const endDate = product.discountEndDate
-      ? new Date(product.discountEndDate)
-      : null;
-
-    if (startDate && now < startDate) return false;
-    if (endDate && now > endDate) return false;
-
-    return true;
-  };
-
-  const hasValidDiscount = isDiscountValid();
-
-  const discountAmount = hasValidDiscount
-    ? product.discountType === "fixed"
-      ? Number(product.discountValue ?? 0)
-      : (product.sellingPrice * Number(product.discountValue ?? 0)) / 100
-    : 0;
-
-  const finalPrice = product.sellingPrice - discountAmount;
+  const finalPrice = getEffectivePrice(product);
+  const discountAmount = product.sellingPrice - finalPrice;
   const discountPercentage =
     discountAmount > 0
       ? ((discountAmount / product.sellingPrice) * 100).toFixed(0)
       : "0";
+  const discountLabel = getActiveDiscountLabel(product) || `${discountPercentage}% OFF`;
 
   const stockQuantity = product.stock || 0;
   const isOutOfStock = stockQuantity === 0;
@@ -140,6 +127,24 @@ export function ProductInfo({ product }: ProductInfoProps) {
       {/* Highlight Tiles */}
       <FeatureList items={HIGHLIGHTS} variant="tile" />
 
+      {/* Flash Sale banner */}
+      {flashActive && product.flashSale && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+          <Badge className="bg-red-600 text-white text-xs font-bold uppercase tracking-wide">
+            <Zap className="mr-1 h-3 w-3 fill-current" />
+            Flash Sale
+          </Badge>
+          <span className="text-xs font-medium text-red-700">
+            {product.flashSale.name}
+          </span>
+          <CountdownTimer
+            variant="banner"
+            endsAt={product.flashSale.endsAt}
+            className="ml-auto"
+          />
+        </div>
+      )}
+
       {/* Price + Stock */}
       <div className="flex flex-wrap items-end justify-between gap-3 pt-1">
         <div>
@@ -148,16 +153,16 @@ export function ProductInfo({ product }: ProductInfoProps) {
               className={`text-2xl sm:text-3xl font-bold ${isOutOfStock ? "text-gray-400" : "text-primaryColor"
                 }`}
             >
-              ৳{finalPrice.toFixed(2)}
+              {formatCurrencyEnglish(finalPrice)}
             </span>
             {discountAmount > 0 && (
               <span className="text-gray-400 line-through text-lg">
-                ৳{product.sellingPrice.toFixed(2)}
+                {formatCurrencyEnglish(product.sellingPrice)}
               </span>
             )}
             {discountAmount > 0 && !isOutOfStock && (
               <Badge className="bg-primaryColor text-white text-xs font-semibold px-2 py-0.5">
-                {discountPercentage}% OFF
+                {discountLabel}
               </Badge>
             )}
           </div>

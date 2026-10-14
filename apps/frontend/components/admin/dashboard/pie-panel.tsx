@@ -16,6 +16,7 @@ interface PiePanelProps {
   showCurrency?: boolean;
   size?: "sm" | "md" | "lg";
   donut?: boolean;
+  compactLaptop?: boolean;
 }
 
 const HEIGHTS = { sm: 124, md: 164, lg: 208 };
@@ -29,6 +30,7 @@ export function PiePanel({
   showCurrency = false,
   size = "md",
   donut = false,
+  compactLaptop = false,
 }: PiePanelProps) {
   const total = data.reduce((sum, item) => sum + item.value, 0);
   const chartData = data.filter((item) => item.value > 0);
@@ -45,21 +47,24 @@ export function PiePanel({
           {item.name}
         </div>
         <p className="text-xs text-gray-600 dark:text-gray-300">
-          {item.label || "Value"}: {displayValue(item.value)} · {item.percentage.toFixed(1)}%
+          {item.label || "Value"}: {displayValue(item.value)} · {Math.round(item.percentage)}%
         </p>
       </div>
     );
   };
 
   return (
-    <section className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <section className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 xl:p-3 2xl:p-4">
       <header className="mb-1.5">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
         {subtitle && <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>}
       </header>
 
-      <div className="relative">
-        <ResponsiveContainer width="100%" height={HEIGHTS[size]}>
+      <div className={`relative ${compactLaptop ? "h-[124px] xl:h-[104px] 2xl:h-[124px]" : ""}`}>
+        <ResponsiveContainer
+          width="100%"
+          height={compactLaptop ? "100%" : HEIGHTS[size]}
+        >
           <PieChart>
             <Pie
               data={chartData}
@@ -103,7 +108,7 @@ export function PiePanel({
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
             <span className="truncate text-gray-600 dark:text-gray-300">{item.name}</span>
             <span className="ml-auto shrink-0 tabular-nums text-gray-500 dark:text-gray-400">
-              {item.percentage.toFixed(1)}%
+              {Math.round(item.percentage)}%
             </span>
           </li>
         ))}

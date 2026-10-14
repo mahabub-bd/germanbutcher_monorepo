@@ -9,7 +9,13 @@ export default async function PaymentFailedPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const order = await fetchProtectedData<Order>(`orders/${id}`);
+  let order: Order | null = null;
+  try {
+    order = await fetchProtectedData<Order>(`orders/${id}`);
+  } catch {
+    // Invalid/expired token or missing order -> 404, not a 500
+    order = null;
+  }
 
   if (!order) {
     notFound();

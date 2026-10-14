@@ -32,7 +32,7 @@ interface Last30DaysDeliveredChartProps {
 const ORDERS_COLOR = "#3b82f6";
 const SALES_COLOR = "#059669";
 
-const AXIS_TICK = { fontSize: 11, fill: "#9ca3af" };
+const AXIS_TICK = { fontSize: 11, fill: "#9ca3af", fontWeight: 700 };
 const GRID_WRAPPER = "text-gray-200 dark:text-gray-800";
 
 export default function Last30DaysDeliveredChart({
@@ -96,6 +96,8 @@ export default function Last30DaysDeliveredChart({
   };
 
   const chartMargin = { top: 10, right: 6, left: 0, bottom: 0 };
+  const overviewChartHeight = "h-[300px] lg:h-[240px] 2xl:h-[300px]";
+  const detailChartHeight = "h-[280px] lg:h-[220px] 2xl:h-[280px]";
 
   // Segmented pill tabs: gray track, white active pill
   const tabListClassName =
@@ -132,8 +134,8 @@ export default function Last30DaysDeliveredChart({
           <TabsContent value="overview" className="mt-0">
             {/* Dual axis: Orders (left) vs Sales (right). Each series reads
                 against its own scale — compare shapes, not positions. */}
-            <div className={GRID_WRAPPER}>
-              <ResponsiveContainer width="100%" height={300}>
+            <div className={`${GRID_WRAPPER} ${overviewChartHeight}`}>
+              <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={formattedData} margin={chartMargin}>
                   <defs>
                     <linearGradient id="ordersFill" x1="0" y1="0" x2="0" y2="1">
@@ -213,8 +215,8 @@ export default function Last30DaysDeliveredChart({
           </TabsContent>
 
           <TabsContent value="orders" className="mt-0">
-            <div className={GRID_WRAPPER}>
-              <ResponsiveContainer width="100%" height={280}>
+            <div className={`${GRID_WRAPPER} ${detailChartHeight}`}>
+              <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={formattedData} margin={chartMargin}>
                   <defs>
                     <linearGradient id="ordersSoloFill" x1="0" y1="0" x2="0" y2="1">
@@ -259,8 +261,8 @@ export default function Last30DaysDeliveredChart({
           </TabsContent>
 
           <TabsContent value="sales" className="mt-0">
-            <div className={GRID_WRAPPER}>
-              <ResponsiveContainer width="100%" height={280}>
+            <div className={`${GRID_WRAPPER} ${detailChartHeight}`}>
+              <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={formattedData} margin={chartMargin}>
                   <defs>
                     <linearGradient id="salesSoloFill" x1="0" y1="0" x2="0" y2="1">

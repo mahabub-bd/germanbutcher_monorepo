@@ -1,5 +1,6 @@
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { FALLBACK_IMAGE } from "@/utils/image-fallback";
+import { getEffectivePrice } from "@/utils/product-utils";
 import type { Product } from "@/utils/types";
 import type { Metadata } from "next";
 
@@ -12,24 +13,10 @@ export function generateProductMetadata({
   product,
   baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://yoursite.com",
 }: GenerateProductMetadataProps): Metadata {
-  const now = new Date();
-  const discountStart = new Date(product?.discountStartDate || 0);
-  const discountEnd = new Date(product?.discountEndDate || 0);
-  const hasActiveDiscount =
-    product.discountType &&
-    product.discountValue &&
-    now >= discountStart &&
-    now <= discountEnd;
-
-  let finalPrice = product.sellingPrice;
-  if (hasActiveDiscount) {
-    if (product.discountType?.toUpperCase() === "PERCENTAGE") {
-      finalPrice =
-        product.sellingPrice * (1 - (product.discountValue || 0) / 100);
-    } else if (product.discountType?.toUpperCase() === "FIXED") {
-      finalPrice = product.sellingPrice - (product.discountValue || 0);
-    }
-  }
+  const finalPrice = getEffectivePrice(product);
+  // Countdown hint for Google: when the flash sale ends, else product discount end
+  const priceValidUntil =
+    product.flashSale?.endsAt || product.discountEndDate || undefined;
 
   const productUrl = `${baseUrl}/products/${product.slug || product.id}`;
 
@@ -125,9 +112,7 @@ export function generateProductMetadata({
           url: productUrl,
           priceCurrency: "USD", // Adjust currency
           price: finalPrice,
-          priceValidUntil: hasActiveDiscount
-            ? product.discountEndDate
-            : undefined,
+          priceValidUntil,
           availability: `https://schema.org/${availability}`,
           seller: {
             "@type": "Organization",

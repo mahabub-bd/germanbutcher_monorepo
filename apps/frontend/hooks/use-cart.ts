@@ -18,6 +18,7 @@ import {
   saveCouponToLocalStorage,
 } from "@/utils/cart-storage";
 import { serverRevalidate } from "@/utils/revalidatePath";
+import { getEffectivePrice } from "@/utils/product-utils";
 import type { Cart, CartItem, Product } from "@/utils/types";
 
 type UseCartProps = {
@@ -493,21 +494,9 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
   };
 
   const getDiscountedPrice = (product: Product) => {
-    const now = new Date();
-    const startDate = new Date(product.discountStartDate ?? 0);
-    const endDate = new Date(product.discountEndDate ?? 0);
-
-    if (
-      product.discountType &&
-      product.discountValue &&
-      now >= startDate &&
-      now <= endDate
-    ) {
-      return product.discountType === "fixed"
-        ? product.sellingPrice - product.discountValue
-        : product.sellingPrice * (1 - product.discountValue / 100);
-    }
-    return product.sellingPrice;
+    // Centralized price authority: flash sale > product discount > selling
+    // price (prefers the backend-computed effectivePrice when present)
+    return getEffectivePrice(product);
   };
 
   const refreshCartProductData = async (storedCart: LocalCart) => {

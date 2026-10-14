@@ -293,6 +293,62 @@ export class ProductController {
       },
     );
   }
+  @Get('flash-sale')
+  @HttpCache(15)
+  @ApiOperation({
+    summary: 'Get flash sale products',
+    description:
+      'Retrieves products covered by an active flash sale campaign (directly or via category)',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number for pagination',
+    example: 1,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items per page',
+    example: 10,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    description: 'Filter by active status',
+    type: Boolean,
+  })
+  @ApiOkResponse({
+    description: 'Flash sale products retrieved successfully',
+    type: [ProductResponseDto],
+  })
+  @CacheKey('products_flash_sale')
+  @CacheTTL(60000) // Cache for 1 minute
+  async getFlashSaleProducts(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('isActive') isActive?: boolean,
+  ) {
+    const [products, total] = await this.productService.findFlashSale({
+      page,
+      limit,
+      isActive,
+    });
+
+    return this.formatResponse(
+      'Flash sale products retrieved successfully',
+      HttpStatus.OK,
+      products,
+      {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    );
+  }
   @Get('bestsellers')
   @HttpCache(15)
   @ApiOperation({ summary: 'Get the best-selling products' })
@@ -309,15 +365,24 @@ export class ProductController {
     description: 'Filter by active status',
     type: Boolean,
   })
+  @ApiQuery({
+    name: 'timeFilter',
+    required: false,
+    enum: ['this_month', 'last_3_months', 'last_6_months', 'last_year', 'this_year', 'all_time'],
+    description: 'Sales window for ranking (delivered orders only)',
+    example: 'all_time',
+  })
   @CacheKey('products_bestsellers')
   @CacheTTL(60000) // Cache for 1 minute
   async getBestsellingProducts(
     @Query('limit') limit: number = 10,
     @Query('isActive') isActive?: boolean,
+    @Query('timeFilter') timeFilter: string = 'all_time',
   ) {
     const products = await this.productService.getBestsellingProducts(
       limit,
       isActive,
+      timeFilter,
     );
     return this.formatResponse(
       'Product retrieved successfully',

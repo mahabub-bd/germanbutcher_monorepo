@@ -34,6 +34,7 @@ import { UpdateProductReviewDto } from './dto/update-product-review.dto';
 import { ProductReview } from './entities/product-review.entity';
 import {
   ProductReviewService,
+  PublicProductReview,
   RatingSummary,
   ReviewEligibility,
 } from './product-review.service';
@@ -75,7 +76,7 @@ export class ProductReviewController {
     @Param('productId', ParseIntPipe) productId: number,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
-  ): Promise<ApiResponseDto<ProductReview[]>> {
+  ): Promise<ApiResponseDto<PublicProductReview[]>> {
     return this.reviewService.findApprovedByProduct(
       productId,
       Number(page) || 1,
@@ -142,7 +143,7 @@ export class ProductReviewController {
     @GetUser() user: User,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
-  ): Promise<ApiResponseDto<ProductReview[]>> {
+  ): Promise<ApiResponseDto<PublicProductReview[]>> {
     return this.reviewService.findForUser(
       user.userId,
       Number(page) || 1,
@@ -299,7 +300,7 @@ export class ProductReviewController {
   })
   findForAdmin(
     @Query() query: FindReviewsQueryDto,
-  ): Promise<ApiResponseDto<ProductReview[]>> {
+  ): Promise<ApiResponseDto<PublicProductReview[]>> {
     return this.reviewService.findForAdmin(query);
   }
 

@@ -34,7 +34,7 @@ const iconTileClass =
 
 // Hamburger variant — primary red instead of black.
 const menuTileClass =
-  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primaryColor text-white shadow-sm transition-all duration-150 hover:bg-primaryColor/90 active:scale-90 active:bg-primaryColor/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primaryColor text-white shadow-sm transition-all duration-150 hover:bg-primaryColor/90 hover:text-white active:scale-90 active:bg-primaryColor/90 active:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:text-white";
 
 // Thin separator between header clusters.
 function HeaderDivider() {

@@ -5,17 +5,23 @@ import ProductCard from "./product-card";
 export default async function ProductHomepageGrid({
   endpoint,
   isHomePage,
+  products: preloaded,
 }: {
   endpoint: string;
   isHomePage: boolean;
+  /** Skip the internal fetch and render these instead (flash-sale section
+   * needs the list first to decide whether to render at all). */
+  products?: Product[];
 }) {
-  let products: Product[] = [];
+  let products: Product[] = preloaded ?? [];
 
-  try {
-    products = await fetchData(endpoint);
-  } catch (error) {
-    // Silently return null for missing similar products
-    return null;
+  if (!preloaded) {
+    try {
+      products = await fetchData(endpoint);
+    } catch (error) {
+      // Silently return null for missing similar products
+      return null;
+    }
   }
 
   if (!products?.length) {

@@ -27,11 +27,14 @@ import type { ContactMessage } from "@/utils/types";
 import { ActionTaken } from "@/utils/types";
 import {
   AlertCircle,
+  Ban,
+  Calendar,
   CheckCircle,
   Clock,
   Eye,
   FileText,
   Filter,
+  Info,
   Mail,
   MessageSquare,
   MoreHorizontal,
@@ -41,7 +44,9 @@ import {
   RefreshCw,
   Search,
   Send,
+  Settings,
   ShoppingCart,
+  Tag,
   Trash2,
   XCircle,
 } from "lucide-react";
@@ -74,7 +79,21 @@ interface StatusUpdateModalProps {
   onNotesChange: (notes: string) => void;
   responseNotesRef: React.RefObject<HTMLTextAreaElement | null>;
   formatDate: (date: string) => string;
-  getStatusBadge: (status: string) => React.ReactNode;
+}
+
+// Radio indicator used by the selectable status / action cards
+function RadioDot({ selected }: { selected: boolean }) {
+  return (
+    <span
+      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+        selected
+          ? "border-blue-500"
+          : "border-gray-300 dark:border-neutral-600"
+      }`}
+    >
+      {selected && <span className="h-2 w-2 rounded-full bg-blue-500" />}
+    </span>
+  );
 }
 
 function StatusUpdateModal({
@@ -91,154 +110,237 @@ function StatusUpdateModal({
   onNotesChange,
   responseNotesRef,
   formatDate,
-  getStatusBadge,
 }: StatusUpdateModalProps) {
   if (!isOpen || !message) return null;
 
-  const actionOptions: Array<{ value: ActionTaken; label: string; icon: React.ReactNode; color: string }> = [
-    { value: ActionTaken.REPLIED_VIA_EMAIL, label: "Email", icon: <Send className="h-4 w-4" />, color: "blue" },
-    { value: ActionTaken.CALLED_CUSTOMER, label: "Called", icon: <PhoneCall className="h-4 w-4" />, color: "green" },
-    { value: ActionTaken.PROVIDED_PRODUCT_INFO, label: "Info", icon: <Package className="h-4 w-4" />, color: "purple" },
-    { value: ActionTaken.ISSUE_RESOLVED, label: "Resolved", icon: <CheckCircle className="h-4 w-4" />, color: "emerald" },
-    { value: ActionTaken.ORDER_PLACED, label: "Order", icon: <ShoppingCart className="h-4 w-4" />, color: "orange" },
-    { value: ActionTaken.REFUND_PROCESSED, label: "Refund", icon: <RefreshCw className="h-4 w-4" />, color: "red" },
-    { value: ActionTaken.OTHER, label: "Other", icon: <FileText className="h-4 w-4" />, color: "gray" },
+  const statusOptions: Array<{
+    value: ContactStatus;
+    label: string;
+    description: string;
+    icon: React.ReactNode;
+    iconBg: string;
+    iconColor: string;
+  }> = [
+    {
+      value: ContactStatus.PENDING,
+      label: "Pending",
+      description: "Waiting for response",
+      icon: <Clock className="h-4 w-4" />,
+      iconBg: "bg-amber-100 dark:bg-amber-900/40",
+      iconColor: "text-amber-600 dark:text-amber-400",
+    },
+    {
+      value: ContactStatus.IN_PROGRESS,
+      label: "In Progress",
+      description: "Currently working on it",
+      icon: <AlertCircle className="h-4 w-4" />,
+      iconBg: "bg-blue-100 dark:bg-blue-900/40",
+      iconColor: "text-blue-600 dark:text-blue-400",
+    },
+    {
+      value: ContactStatus.RESOLVED,
+      label: "Resolved",
+      description: "Issue has been resolved",
+      icon: <CheckCircle className="h-4 w-4" />,
+      iconBg: "bg-green-100 dark:bg-green-900/40",
+      iconColor: "text-green-600 dark:text-green-400",
+    },
+    {
+      value: ContactStatus.CLOSED,
+      label: "Closed",
+      description: "Conversation is closed",
+      icon: <XCircle className="h-4 w-4" />,
+      iconBg: "bg-red-100 dark:bg-red-900/40",
+      iconColor: "text-red-600 dark:text-red-400",
+    },
+  ];
+
+  const actionOptions: Array<{
+    value: ActionTaken | "";
+    label: string;
+    description: string;
+    icon: React.ReactNode;
+  }> = [
+    { value: "", label: "None", description: "No action", icon: <Ban className="h-4 w-4" /> },
+    { value: ActionTaken.REPLIED_VIA_EMAIL, label: "Email", description: "Send an email", icon: <Send className="h-4 w-4" /> },
+    { value: ActionTaken.CALLED_CUSTOMER, label: "Called", description: "Made a call", icon: <PhoneCall className="h-4 w-4" /> },
+    { value: ActionTaken.PROVIDED_PRODUCT_INFO, label: "Info", description: "Provide information", icon: <Package className="h-4 w-4" /> },
+    { value: ActionTaken.ISSUE_RESOLVED, label: "Resolved", description: "Mark as resolved", icon: <CheckCircle className="h-4 w-4" /> },
+    { value: ActionTaken.ORDER_PLACED, label: "Order", description: "Create an order", icon: <ShoppingCart className="h-4 w-4" /> },
+    { value: ActionTaken.REFUND_PROCESSED, label: "Refund", description: "Process a refund", icon: <RefreshCw className="h-4 w-4" /> },
+    { value: ActionTaken.OTHER, label: "Other", description: "Other action", icon: <FileText className="h-4 w-4" /> },
   ];
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-200 dark:border-neutral-800 flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Update Status</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{message.name}</p>
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-neutral-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center">
+              <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Update Status</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{message.name}</p>
+            </div>
           </div>
-          <button onClick={onClose} disabled={isUpdating} className="p-1.5 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg transition-colors">
-            <XCircle className="h-5 w-5 text-gray-500" />
+          <button
+            onClick={onClose}
+            disabled={isUpdating}
+            className="p-2 border border-gray-200 dark:border-neutral-700 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+          >
+            <XCircle className="h-4 w-4 text-gray-500" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {/* Customer Info */}
-          <div className="bg-linear-to-br from-slate-50 to-slate-100 dark:from-neutral-800 dark:to-neutral-850 rounded-lg p-4 border border-gray-200 dark:border-neutral-700">
+          <div className="bg-linear-to-br from-blue-50 to-indigo-50 dark:from-neutral-800 dark:to-neutral-850 rounded-xl p-4 border border-blue-100 dark:border-neutral-700">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shrink-0">
-                <span className="text-sm font-bold text-white">{message.name.charAt(0).toUpperCase()}</span>
+              <div className="w-12 h-12 bg-linear-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shrink-0">
+                <span className="text-base font-bold text-white">{message.name.charAt(0).toUpperCase()}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-semibold text-sm text-gray-900 dark:text-white">{message.name}</h4>
-                  <span className="text-xs text-gray-500">{formatDate(message.createdAt)}</span>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-base text-gray-900 dark:text-white">{message.name}</h4>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-0.5 text-xs text-gray-600 dark:text-gray-400">
+                      <a href={`mailto:${message.email}`} className="flex items-center gap-1 hover:text-blue-600">
+                        <Mail className="h-3 w-3" />
+                        <span className="truncate">{message.email}</span>
+                      </a>
+                      {message.mobile && (
+                        <a href={`tel:${message.mobile}`} className="flex items-center gap-1 hover:text-blue-600">
+                          <Phone className="h-3 w-3" />
+                          <span>{message.mobile}</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  <span className="flex items-center gap-1.5 shrink-0 text-xs text-gray-500 dark:text-gray-400">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {formatDate(message.createdAt)}
+                  </span>
                 </div>
-                <div className="flex flex-wrap gap-3 text-xs mb-2">
-                  <a href={`mailto:${message.email}`} className="flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-blue-600">
-                    <Mail className="h-3 w-3" />
-                    <span className="truncate">{message.email}</span>
-                  </a>
-                  {message.mobile && (
-                    <a href={`tel:${message.mobile}`} className="flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-blue-600">
-                      <Phone className="h-3 w-3" />
-                      <span>{message.mobile}</span>
-                    </a>
-                  )}
-                </div>
-                <div className="bg-white dark:bg-neutral-900 rounded p-2.5 border border-gray-200 dark:border-neutral-700">
-                  <p className="text-xs text-gray-700 dark:text-gray-300 italic line-clamp-3">&ldquo;{message.message}&rdquo;</p>
+                <div className="mt-3 bg-white dark:bg-neutral-900 rounded-lg px-3.5 py-3 border border-gray-100 dark:border-neutral-700 flex gap-2.5">
+                  <span className="text-xl leading-none text-gray-300 dark:text-neutral-600 font-serif select-none" aria-hidden>&ldquo;</span>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 italic line-clamp-3">
+                    {message.message}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Current Status */}
-          <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
-            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-            <div className="flex-1">
-              <p className="text-xs text-amber-900 dark:text-amber-100 font-medium">Current: {message.contactStatus.replace("_", " ")}</p>
+          <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
+              <AlertCircle className="h-6 w-6 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-xs text-amber-700 dark:text-amber-400">Current Status</p>
+              <p className="text-base font-bold text-amber-700 dark:text-amber-300">{message.contactStatus.replace("_", " ")}</p>
             </div>
           </div>
 
-          {/* Status & Action Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Status */}
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">New Status</label>
-              <div className="grid grid-cols-2 gap-1.5">
-                {Object.values(ContactStatus).map((status) => {
-                  const isCurrent = selectedStatus === status;
+          {/* Status & Action Cards */}
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* New Status */}
+            <div className="rounded-xl border border-gray-200 dark:border-neutral-700 p-4">
+              <div className="flex items-start gap-2.5 mb-3">
+                <div className="w-7 h-7 bg-blue-100 dark:bg-blue-900/40 rounded-lg flex items-center justify-center shrink-0">
+                  <Tag className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">New Status</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Select a new status for this conversation</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                {statusOptions.map((option) => {
+                  const isSelected = selectedStatus === option.value;
                   return (
                     <button
-                      key={status}
-                      onClick={() => onUpdateStatus(status)}
-                      disabled={isUpdating || message.contactStatus === status}
-                      className={`p-2.5 rounded-lg border text-center transition-all ${isCurrent
-                        ? 'border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 opacity-50 cursor-not-allowed'
-                        : 'border-gray-200 dark:border-neutral-700 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                      key={option.value}
+                      onClick={() => onUpdateStatus(option.value)}
+                      disabled={isUpdating}
+                      className={`flex items-center gap-2 p-3 rounded-xl border text-left transition-all ${isSelected
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-500"
+                        : "border-gray-200 dark:border-neutral-700 hover:border-blue-300 hover:bg-gray-50 dark:hover:bg-neutral-800"
                         }`}
                     >
-                      <div className="flex flex-col items-center gap-1">
-                        {status === ContactStatus.PENDING && <Clock className="h-4 w-4 text-yellow-600" />}
-                        {status === ContactStatus.IN_PROGRESS && <AlertCircle className="h-4 w-4 text-blue-600" />}
-                        {status === ContactStatus.RESOLVED && <CheckCircle className="h-4 w-4 text-green-600" />}
-                        {status === ContactStatus.CLOSED && <XCircle className="h-4 w-4 text-red-600" />}
-                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{status.replace("_", " ")}</span>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${option.iconBg}`}>
+                        <span className={option.iconColor}>{option.icon}</span>
                       </div>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-semibold text-gray-900 dark:text-white truncate">{option.label}</span>
+                        <span className="block text-[11px] text-gray-500 dark:text-gray-400 truncate">{option.description}</span>
+                      </span>
+                      <RadioDot selected={isSelected} />
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Action Taken */}
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Action</label>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  onMouseDown={(e) => { e.preventDefault(); onActionChange(""); }}
-                  className={`p-2 rounded-lg border text-center transition-all text-xs ${!selectedAction
-                    ? 'border-gray-300 bg-white dark:bg-neutral-800 shadow-sm font-semibold'
-                    : 'border-gray-200 dark:border-neutral-700 hover:border-gray-300'
-                    }`}
-                  disabled={isUpdating}
-                >
-                  None
-                </button>
-                {actionOptions.map((action) => (
-                  <button
-                    key={action.value}
-                    onMouseDown={(e) => { e.preventDefault(); onActionChange(action.value); }}
-                    disabled={isUpdating}
-                    title={action.label}
-                    className={`p-2 rounded-lg border text-center transition-all ${selectedAction === action.value
-                      ? `border-${action.color}-400 bg-${action.color}-50 dark:bg-${action.color}-900/20 shadow-sm`
-                      : 'border-gray-200 dark:border-neutral-700 hover:border-gray-300'
-                      }`}
-                  >
-                    <div className="flex flex-col items-center gap-0.5">
-                      <div className={selectedAction === action.value ? `text-${action.color}-600 dark:text-${action.color}-400` : 'text-gray-500'}>
-                        {action.icon}
-                      </div>
-                      <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 leading-tight">{action.label}</span>
-                    </div>
-                  </button>
-                ))}
+            {/* Action */}
+            <div className="rounded-xl border border-gray-200 dark:border-neutral-700 p-4">
+              <div className="flex items-start gap-2.5 mb-3">
+                <div className="w-7 h-7 bg-blue-100 dark:bg-blue-900/40 rounded-lg flex items-center justify-center shrink-0">
+                  <Settings className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">Action</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Choose an action to take</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                {actionOptions.map((option) => {
+                  const isSelected = selectedAction === option.value;
+                  return (
+                    <button
+                      key={option.label}
+                      onMouseDown={(e) => { e.preventDefault(); onActionChange(option.value); }}
+                      disabled={isUpdating}
+                      className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all ${isSelected
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-500"
+                        : "border-gray-200 dark:border-neutral-700 hover:border-blue-300 hover:bg-gray-50 dark:hover:bg-neutral-800"
+                        }`}
+                    >
+                      <span className={`shrink-0 ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"}`}>
+                        {option.icon}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-xs font-semibold text-gray-900 dark:text-white truncate">{option.label}</span>
+                        <span className="block text-[11px] text-gray-500 dark:text-gray-400 truncate">{option.description}</span>
+                      </span>
+                      <RadioDot selected={isSelected} />
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
 
           {/* Notes */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase flex items-center justify-between">
-              <span>Response Notes</span>
-              <span className="text-[10px] text-gray-400 normal-case">{responseNotes.length} chars</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
+                <span className="w-6 h-6 bg-blue-100 dark:bg-blue-900/40 rounded-md flex items-center justify-center">
+                  <FileText className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                </span>
+                Response Notes
+              </label>
+              <span className="text-xs text-gray-400">{responseNotes.length} chars</span>
+            </div>
             <textarea
               ref={responseNotesRef}
               value={responseNotes}
               onChange={(e) => onNotesChange(e.target.value)}
               disabled={isUpdating}
               placeholder="Add details about your response..."
-              rows={4}
+              rows={3}
               className="w-full px-3 py-2.5 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y disabled:opacity-50"
             />
           </div>
@@ -253,14 +355,17 @@ function StatusUpdateModal({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 flex items-center justify-between">
-          <p className="text-[10px] text-gray-500">Click status to save</p>
+        <div className="px-6 py-3 border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 flex items-center justify-between gap-2">
+          <p className="flex items-center gap-1.5 text-xs text-gray-500">
+            <Info className="h-3.5 w-3.5" />
+            Click status to save
+          </p>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={onClose} disabled={isUpdating}>Cancel</Button>
             <Button size="sm" onClick={onSendMessage} disabled={isUpdating || !responseNotes.trim()}>
               <Send className="mr-2 h-4 w-4" />
               Send Message
             </Button>
-            <Button variant="outline" size="sm" onClick={onClose} disabled={isUpdating}>Cancel</Button>
           </div>
         </div>
       </div>
@@ -965,7 +1070,6 @@ export function ContactMessageList({
         onNotesChange={setResponseNotes}
         responseNotesRef={responseNotesRef}
         formatDate={formatDate}
-        getStatusBadge={getStatusBadge}
       />
 
       {/* Message Detail Modal */}

@@ -154,7 +154,7 @@ export class UserController {
   @ApiQuery({
     name: 'timeFilter',
     required: false,
-    enum: ['this_month', 'last_3_months', 'last_6_months', 'last_year', 'this_year', 'all_time'],
+    enum: ['last_month', 'this_month', 'last_3_months', 'last_6_months', 'last_year', 'this_year', 'all_time'],
     description: 'Filter by time period (default: all_time)',
     example: 'this_month',
   })

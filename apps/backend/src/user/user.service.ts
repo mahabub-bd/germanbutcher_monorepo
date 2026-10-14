@@ -360,8 +360,14 @@ export class UserService {
     // Calculate date range based on time filter
     const now = new Date();
     let startDate: Date | null = null;
+    let endDate: Date | null = null;
 
     switch (timeFilter) {
+      case 'last_month':
+        // Previous calendar month
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
       case 'this_month':
         // First day of current month
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -388,18 +394,22 @@ export class UserService {
         break;
     }
 
+    const orderJoinCondition = endDate
+      ? "orders.orderStatus = 'delivered' AND orders.createdAt >= :startDate AND orders.createdAt < :endDate"
+      : startDate
+        ? "orders.orderStatus = 'delivered' AND orders.createdAt >= :startDate"
+        : "orders.orderStatus = 'delivered'";
+    const orderJoinParams = startDate
+      ? endDate
+        ? { startDate, endDate }
+        : { startDate }
+      : undefined;
+
     // Build the base query
     const baseQuery = this.userRepository
       .createQueryBuilder('user')
       .leftJoin('user.role', 'role')
-      .leftJoin(
-        'user.orders',
-        'orders',
-        startDate
-          ? "orders.orderStatus = 'delivered' AND orders.createdAt >= :startDate"
-          : "orders.orderStatus = 'delivered'",
-        startDate ? { startDate } : undefined,
-      )
+      .leftJoin('user.orders', 'orders', orderJoinCondition, orderJoinParams)
       .leftJoin('user.profilePhoto', 'profilePhoto')
       .select('user.id', 'id')
       .addSelect('user.name', 'name')

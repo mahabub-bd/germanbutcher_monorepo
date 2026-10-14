@@ -130,7 +130,7 @@ export default function DashboardStatsGrid({
   return (
     <div className="space-y-3">
       {/* KPI Grid */}
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 2xl:grid-cols-6 lg:[&>div]:min-h-0 lg:[&>div]:p-2 2xl:[&>div]:min-h-[100px] 2xl:[&>div]:p-4">
 
         {/* Today */}
         <StatsCard
@@ -251,7 +251,7 @@ export default function DashboardStatsGrid({
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4">
         {/* New vs Returning Customers - Pie */}
         {customerTypeData.length > 0 && (
           <PiePanel
@@ -259,6 +259,7 @@ export default function DashboardStatsGrid({
             subtitle="New vs returning · this month"
             data={customerTypeData}
             size="sm"
+            compactLaptop
           />
         )}
 
@@ -271,6 +272,7 @@ export default function DashboardStatsGrid({
             size="sm"
             donut={true}
             showCurrency
+            compactLaptop
           />
         )}
 
@@ -282,6 +284,7 @@ export default function DashboardStatsGrid({
             data={categoryData}
             size="sm"
             showCurrency
+            compactLaptop
           />
         )}
 
@@ -339,6 +342,7 @@ export default function DashboardStatsGrid({
             ]}
             size="sm"
             donut={true}
+            compactLaptop
           />
         )}
       </div>

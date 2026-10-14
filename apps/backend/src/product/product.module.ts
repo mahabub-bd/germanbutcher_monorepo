@@ -9,6 +9,8 @@ import { CategoryController } from 'src/category/category.controller';
 import { CategoryService } from 'src/category/category.service';
 import { Category } from 'src/category/entities/category.entity';
 
+import { FlashSaleCampaignsModule } from 'src/flash-sale-campaigns/flash-sale-campaigns.module';
+
 import { AttachmentService } from 'src/attachment/attachment.service';
 import { Attachment } from 'src/attachment/entities/attachment.entity';
 import { Coupon } from 'src/coupon/entities/coupon.entity';
@@ -36,6 +38,7 @@ import { ProductService } from './product.service';
       Coupon,
     ]),
     CacheModule.register(),
+    FlashSaleCampaignsModule,
   ],
   controllers: [ProductController, CategoryController, BrandController],
   providers: [

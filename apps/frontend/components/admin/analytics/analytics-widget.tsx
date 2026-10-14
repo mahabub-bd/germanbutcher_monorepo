@@ -100,7 +100,7 @@ export function AnalyticsWidget({ data }: AnalyticsWidgetProps) {
         </Link>
       </CardHeader>
       <CardContent className="p-3 sm:p-4">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 lg:gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-3 2xl:grid-cols-6 lg:gap-3">
           <StatsCard
             icon={Users}
             title="Online Now"

@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Address } from 'src/address/entities/address.entity';
 import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { DeliveryMan } from 'src/delivery-man/entities/delivery-man.entity';
+import { FlashSaleCampaignsModule } from 'src/flash-sale-campaigns/flash-sale-campaigns.module';
+import { FlashSaleUsageLogModule } from 'src/flash-sale-usage-log/flash-sale-usage-log.module';
 import { FreeDeliveryCampaignsModule } from 'src/free-delivery-campaigns/free-delivery-campaigns.module';
 import { FreeDeliveryUsageLogModule } from 'src/free-delivery-usage-log/free-delivery-usage-log.module';
 import { OrderPaymentMethod } from 'src/order-payment-method/entities/order-payment-method.entity';
@@ -43,6 +45,8 @@ import { CouponUsageLogModule } from 'src/coupon-usage-log/coupon-usage-log.modu
     SmsModule,
     DeliveryManModule,
     CouponUsageLogModule,
+    FlashSaleCampaignsModule,
+    FlashSaleUsageLogModule,
     FreeDeliveryCampaignsModule,
     FreeDeliveryUsageLogModule,
   ],

@@ -97,7 +97,7 @@ export default function CombinedOrdersSalesChart({
     return null;
   };
 
-  const chartHeightClass = "h-[280px] w-full sm:h-[320px] md:h-[350px] lg:h-[400px]";
+  const chartHeightClass = "h-[280px] w-full sm:h-[320px] md:h-[350px] lg:h-[300px] 2xl:h-[400px]";
 
   // Vertical (rotated) month labels on mobile so all 12 fit without crowding
   const xAxisProps = {
@@ -109,7 +109,13 @@ export default function CombinedOrdersSalesChart({
     angle: isMobile ? -90 : 0,
     textAnchor: (isMobile ? "end" : "middle") as "end" | "middle",
     height: isMobile ? 55 : 30,
-    tick: { fontSize: isMobile ? 10 : 12 },
+    tick: { fontSize: isMobile ? 10 : 12, fontWeight: 700 },
+    // "November" + 2026 -> "NOV 26"
+    tickFormatter: (month: string, index: number) => {
+      const year = visibleData[index]?.year;
+      const shortYear = year !== undefined ? ` ${year.toString().slice(-2)}` : "";
+      return `${month.slice(0, 3).toUpperCase()}${shortYear}`;
+    },
   };
 
   return (
@@ -145,6 +151,7 @@ export default function CombinedOrdersSalesChart({
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={visibleData}
+                  barGap={2}
                   margin={{ top: isMobile ? 10 : 20, right: isMobile ? 0 : 10, left: isMobile ? -10 : 0, bottom: 5 }}
                 >
                   <CartesianGrid
@@ -187,7 +194,7 @@ export default function CombinedOrdersSalesChart({
                     name="Orders"
                     fill={ORDERS_COLOR}
                     radius={[4, 4, 0, 0]}
-                    maxBarSize={isMobile ? 12 : 20}
+                    barSize={isMobile ? 12 : 20}
                   />
                   <Bar
                     yAxisId="right"
@@ -195,7 +202,7 @@ export default function CombinedOrdersSalesChart({
                     name="Sales"
                     fill={SALES_COLOR}
                     radius={[4, 4, 0, 0]}
-                    maxBarSize={isMobile ? 12 : 20}
+                    barSize={isMobile ? 12 : 20}
                   />
                 </BarChart>
               </ResponsiveContainer>
