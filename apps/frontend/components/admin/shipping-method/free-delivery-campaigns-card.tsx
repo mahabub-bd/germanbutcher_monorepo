@@ -537,17 +537,19 @@ export function FreeDeliveryCampaignsCard() {
               </h4>
               <div className="grid gap-4 lg:grid-cols-2">
                 {/* Schedule card */}
-                <div className="space-y-3 rounded-xl border border-gray-100 p-4 dark:border-gray-800">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
-                      <CalendarClock className="h-3.5 w-3.5" />
+                <div className="space-y-4 rounded-xl border border-gray-100 p-4 dark:border-gray-800">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                      <CalendarClock className="h-4 w-4" />
                     </span>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">
-                      Schedule
-                    </p>
-                    <span className="truncate text-xs text-muted-foreground">
-                      Asia/Dhaka time
-                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">
+                        Schedule
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        Asia/Dhaka time
+                      </p>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
