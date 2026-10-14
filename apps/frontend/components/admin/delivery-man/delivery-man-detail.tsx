@@ -81,7 +81,7 @@ export function DeliveryManDetail() {
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-1">Delivery Man Not Found</h2>
           <p className="text-sm text-muted-foreground mb-3">
-            The delivery man you're looking for doesn't exist or has been removed.
+            The delivery man you&apos;re looking for doesn&apos;t exist or has been removed.
           </p>
           <Button asChild size="sm">
             <Link href="/admin/delivery-man">
@@ -279,7 +279,7 @@ export function DeliveryManDetail() {
                     </div>
                     <h3 className="font-semibold text-base mb-1">No Orders Assigned</h3>
                     <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                      This delivery man hasn't been assigned any orders yet.
+                      This delivery man hasn&apos;t been assigned any orders yet.
                     </p>
                   </div>
                 ) : (

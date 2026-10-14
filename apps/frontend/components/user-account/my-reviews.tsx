@@ -1,6 +1,6 @@
 "use client";
 
-import { AccountPageHeader } from "@/components/user-account/account-page-header";
+import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,11 +11,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PaginationComponent } from "@/components/common/pagination";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { formPostData } from "@/utils/api-utils";
+import { AccountPageHeader } from "@/components/user-account/account-page-header";
 import { formatDateTime } from "@/lib/utils";
+import { formPostData } from "@/utils/api-utils";
 import { PaginatedEnvelope, ProductReview } from "@/utils/types";
 import { Calendar, ImagePlus, Loader2, PencilLine, Star } from "lucide-react";
 import Image from "next/image";
@@ -81,7 +81,6 @@ const RatingStars = ({
 
 const MyReviews = ({
   reviewsData,
-  userId,
   currentPage,
   onEditReview,
 }: MyReviewsProps) => {
@@ -168,8 +167,8 @@ const MyReviews = ({
       if (editFile) {
         const formData = new FormData();
         formData.append("file", editFile);
-        const uploadResult = await formPostData("attachment", formData);
-        attachmentId = uploadResult.data.id;
+        const uploadResult = await formPostData<{ id: string }>("attachment", formData);
+        attachmentId = uploadResult.data!.id;
       }
 
       await onEditReview(editingReview.id, {

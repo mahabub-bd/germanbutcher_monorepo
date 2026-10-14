@@ -14,13 +14,13 @@ export type OtpVerificationResponse = {
   success: boolean;
   message?: string;
   data?: {
-    userId: string;
+    userId?: string | number;
     user?: {
       id: number | string;
       name?: string;
       email?: string;
       mobileNumber?: string;
-      roles?: string;
+      roles?: string | string[];
     };
     [key: string]: unknown;
   };

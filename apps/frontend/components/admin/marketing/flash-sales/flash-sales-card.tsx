@@ -35,6 +35,7 @@ import {
   patchData,
   postData,
 } from "@/utils/api-utils";
+import { revalidateProducts } from "@/actions/revalidate";
 import type { FlashSaleCampaign, MinimalProduct } from "@/utils/types";
 import { applyTime, toTimeInputValue } from "@/utils/datetime";
 import { DiscountType } from "@/utils/types";
@@ -229,7 +230,7 @@ export function FlashSalesCard() {
       }
     };
     fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [pickerCategoryId]);
 
   const resetForm = () => {
@@ -348,6 +349,9 @@ export function FlashSalesCard() {
       }
       setIsEditOpen(false);
       resetForm();
+      // Bust the "products" tag so the storefront flash-sale strip (cached
+      // up to 300s) shows the campaign change on the next render.
+      await revalidateProducts();
       const data = await fetchProtectedData<FlashSaleCampaign[]>(
         "flash-sale-campaigns"
       );
@@ -368,6 +372,9 @@ export function FlashSalesCard() {
     setTogglingId(campaign.id);
     try {
       await patchData(`flash-sale-campaigns/${campaign.id}`, { isActive });
+      // Same revalidation as save: activating/deactivating a campaign must
+      // be visible on the storefront immediately, not after the 300s cache.
+      await revalidateProducts();
       setCampaigns((prev) =>
         prev.map((c) => (c.id === campaign.id ? { ...c, isActive } : c))
       );
@@ -489,7 +496,7 @@ export function FlashSalesCard() {
                         <CampaignTimeBadge campaign={campaign} now={now} />
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Flash prices override each product's own discount while active
+                        Flash prices override each product&apos;s own discount while active
                       </p>
                     </div>
                   </div>
@@ -542,7 +549,7 @@ export function FlashSalesCard() {
               {editingId ? "Edit Flash Sale" : "New Flash Sale Campaign"}
             </DialogTitle>
             <DialogDescription>
-              While active, the flash price overrides each selected product's
+              While active, the flash price overrides each selected product&apos;s
               own discount (never stacked). When several campaigns overlap, the
               oldest wins.
             </DialogDescription>

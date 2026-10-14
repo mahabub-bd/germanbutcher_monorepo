@@ -123,8 +123,8 @@ export function ReviewForm({ product, user }: ReviewFormProps) {
       if (file) {
         const formData = new FormData();
         formData.append("file", file);
-        const uploadResult = await formPostData("attachment", formData);
-        attachmentId = uploadResult.data.id;
+        const uploadResult = await formPostData<{ id: string }>("attachment", formData);
+        attachmentId = uploadResult.data!.id;
       }
 
       const reviewPayload = {

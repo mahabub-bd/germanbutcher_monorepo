@@ -18,12 +18,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { fetchProtectedData, patchData, postData } from "@/utils/api-utils";
+import { patchData, postData } from "@/utils/api-utils";
 import { deliveryManSchema } from "@/utils/form-validation";
 import type { DeliveryMan } from "@/utils/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -61,10 +61,10 @@ export function DeliveryManForm({
         toast.success("Delivery man updated successfully");
       }
       onSuccess();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error submitting form:", error);
       toast.error(
-        error.message ||
+        (error instanceof Error ? error.message : String(error)) ||
           (mode === "create"
             ? "Failed to create delivery man. Please try again."
             : "Failed to update delivery man. Please try again.")

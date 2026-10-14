@@ -198,16 +198,6 @@ export function CategoryFilters({
     setIsSheetOpen(false);
   };
 
-  const handleTagsClear = () => {
-    router.push(
-      `${pathname}?${createQueryString({
-        tags: null,
-        page: "1",
-      })}`
-    );
-    setIsSheetOpen(false);
-  };
-
   const handleSliderPriceChangeCommitted = (values: number[]) => {
     const min = values[0];
     const max = values[1];

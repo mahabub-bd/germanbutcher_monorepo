@@ -1,5 +1,6 @@
 "use client";
 
+import { revalidatePublic } from "@/actions/revalidate";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -13,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { formPostData, patchData, postData } from "@/utils/api-utils";
-import { revalidatePublic } from "@/actions/revalidate";
 import type { SalesPartner } from "@/utils/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Upload } from "lucide-react";
@@ -87,8 +87,8 @@ export function SalesPartnerForm({
       if (file) {
         const formData = new FormData();
         formData.append("file", file);
-        const result = await formPostData("attachment", formData);
-        imageId = result.data.id;
+        const result = await formPostData<{ id: number }>("attachment", formData);
+        imageId = result.data!.id;
       }
 
       const salesPartnerData = {

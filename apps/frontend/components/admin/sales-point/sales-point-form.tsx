@@ -100,8 +100,8 @@ export function SalesPointForm({ mode, salesPoint }: SalesPointFormProps) {
       if (file) {
         const formData = new FormData();
         formData.append("file", file);
-        const result = await formPostData("attachment", formData);
-        logoAttachmentId = result.data.id;
+        const result = await formPostData<{ id: number }>("attachment", formData);
+        logoAttachmentId = result.data!.id;
       }
 
       let bannerAttachmentId = salesPoint?.bannerAttachmentId;
@@ -109,8 +109,8 @@ export function SalesPointForm({ mode, salesPoint }: SalesPointFormProps) {
       if (bannerFile) {
         const formData = new FormData();
         formData.append("file", bannerFile);
-        const result = await formPostData("attachment", formData);
-        bannerAttachmentId = result.data.id;
+        const result = await formPostData<{ id: number }>("attachment", formData);
+        bannerAttachmentId = result.data!.id;
       }
 
       const salesPointData = {

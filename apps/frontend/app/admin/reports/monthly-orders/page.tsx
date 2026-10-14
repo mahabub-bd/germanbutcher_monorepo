@@ -1,6 +1,8 @@
 export const dynamic = "force-dynamic";
 
-import MonthlyOrderReportList from "@/components/admin/reports/monthly-orders/monthly-order-list";
+import MonthlyOrderReportList, {
+  type MonthlyData,
+} from "@/components/admin/reports/monthly-orders/monthly-order-list";
 import { fetchProtectedData } from "@/utils/api-utils";
 
 export default async function MonthlyOrderReportPage({
@@ -13,7 +15,7 @@ export default async function MonthlyOrderReportPage({
     typeof resolvedParams.year === "string" ? resolvedParams.year : "";
   const year = /^\d{4}$/.test(yearParam) ? Number(yearParam) : undefined;
 
-  let monthlyData: any[] = [];
+  let monthlyData: MonthlyData[] = [];
   let availableYears: number[] = [];
 
   try {
@@ -21,7 +23,7 @@ export default async function MonthlyOrderReportPage({
       ? `orders/reports/monthly?year=${year}`
       : `orders/reports/monthly`;
     const response = await fetchProtectedData(endpoint);
-    monthlyData = Array.isArray(response) ? response : [];
+    monthlyData = Array.isArray(response) ? (response as MonthlyData[]) : [];
   } catch (error) {
     console.error("❌ Failed to fetch monthly order report:", error);
     monthlyData = [];

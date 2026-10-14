@@ -9,8 +9,8 @@ import CustomerLoveSection from "@/components/homepage/customer-love/customer-lo
 import { SalesPartnersCompact } from "@/components/homepage/sales-partner/sales-partners";
 import { NewsletterSection } from "@/components/homepage/subscriber/newsletter";
 import { TestimonialSection } from "@/components/homepage/testimonial/testimonial-section-server";
-import ProductList from "@/components/products/product-list";
 import FlashSaleSection from "@/components/products/flash-sale-section";
+import ProductList from "@/components/products/product-list";
 
 // No `revalidate` segment config here: the root layout reads cookies(), so
 // every route renders dynamically and the config would be inert anyway.

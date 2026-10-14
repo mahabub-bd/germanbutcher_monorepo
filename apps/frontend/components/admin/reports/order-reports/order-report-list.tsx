@@ -61,7 +61,7 @@ interface OrderItem {
   unitPrice: number;
   totalPrice: number;
 }
-interface Order {
+export interface Order {
   id: number;
   orderNo: string;
   orderStatus: string;

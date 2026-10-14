@@ -195,7 +195,7 @@ function EditDetailsModal({
       if (photoFile) {
         const formData = new FormData();
         formData.append("file", photoFile);
-        const uploadResult = await formPostData("attachment", formData);
+        const uploadResult = await formPostData<{ id: string }>("attachment", formData);
         attachmentId = uploadResult?.data?.id;
         if (!attachmentId) {
           throw new Error("Image upload failed");

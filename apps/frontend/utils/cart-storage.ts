@@ -1,6 +1,8 @@
 import type { Cart, Product } from "@/utils/types";
 
 export type LocalCartItem = {
+  /** Absent for local (guest) items — only server-synced carts assign ids. */
+  id?: number;
   productId: number;
   quantity: number;
   product: Product;

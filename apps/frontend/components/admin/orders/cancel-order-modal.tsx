@@ -87,7 +87,7 @@ export function CancelOrderModal({
 
       if (response?.statusCode === 200) {
         toast.success(
-          `Order ${response.data.orderNo} cancelled successfully${isPaidOrder
+          `Order ${response.data!.orderNo} cancelled successfully${isPaidOrder
             ? ". You can process a refund using the Refund button."
             : ""
           }`

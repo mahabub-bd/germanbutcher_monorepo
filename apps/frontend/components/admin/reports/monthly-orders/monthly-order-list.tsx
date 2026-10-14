@@ -31,7 +31,7 @@ const PDFDownloadLink = dynamic(
   { ssr: false }
 );
 
-interface MonthlyData {
+export interface MonthlyData {
   year: number;
   month: string;
   allOrderCount: number;

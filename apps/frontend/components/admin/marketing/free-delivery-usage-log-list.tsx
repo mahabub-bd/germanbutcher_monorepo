@@ -69,7 +69,7 @@ export function FreeDeliveryUsageLogList() {
       <Truck className="h-10 w-10 text-muted-foreground mb-4" />
       <h3 className="text-lg font-semibold">No usage logs yet</h3>
       <p className="text-sm text-muted-foreground mt-2">
-        Each time a customer's order gets free delivery from a campaign, it
+        Each time a customer&apos;s order gets free delivery from a campaign, it
         will be logged here.
       </p>
     </div>

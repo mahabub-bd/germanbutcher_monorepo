@@ -1,16 +1,25 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+// eslint-config-next v16 ships native flat configs, so no FlatCompat
+// translation is needed (and it would fail with ESLint 10 anyway).
+import coreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...coreWebVitals,
+  ...nextTypescript,
+  {
+    // React-compiler rules new in eslint-config-next v16. The codebase
+    // predates them (~130 files use the fetch-in-effect pattern, chart
+    // components declared during render, RSC try/catch JSX, …). Each needs
+    // an individual refactor, so they warn until that happens instead of
+    // drowning lint output in errors.
+    rules: {
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/static-components": "warn",
+      "react-hooks/immutability": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/error-boundaries": "warn",
+    },
+  },
 ];
 
 export default eslintConfig;

@@ -4,7 +4,6 @@ import { DeliveryManForm } from "@/components/admin/delivery-man/delivery-man-fo
 import { Button } from "@/components/ui/button";
 import { CardDescription, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
 export default function CreateDeliveryManPage() {
   const router = useRouter();

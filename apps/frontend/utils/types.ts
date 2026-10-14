@@ -1,3 +1,5 @@
+import type { Socket } from "socket.io-client";
+
 type UserRole = "superadmin" | "admin" | "modaretor" | "user";
 
 /** Common envelope shared by every API response type. */
@@ -765,8 +767,8 @@ export interface UserActivity {
   action: string;
   entityType: string;
   entityId: number | null;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   ipAddress: string;
   userAgent: string;
   requestId: string;
@@ -819,7 +821,8 @@ export interface ContactMessage {
   createdAt: string;
   updatedAt: string;
   handledById?: number | null;
-  handledBy?: any | null;
+  /** Handler name as rendered in the admin inbox detail view. */
+  handledBy?: string | null;
 }
 
 export interface Shop {
@@ -944,20 +947,20 @@ export enum PaymentStatus {
 // WebSocket Notification Types
 export interface NotificationData {
   // Optional: broadcasts and seeded DB rows may not carry order fields.
-  orderId?: string;
+  orderId?: string | number;
   orderNo?: string;
   userId?: string;
   orderStatus?: OrderStatus | string;
   paymentStatus?: PaymentStatus | string;
   totalValue?: number;
-  items?: any[];
+  items?: unknown[];
   user?: {
     id: number;
     name: string;
     email: string;
     mobileNumber: string;
   };
-  address?: any;
+  address?: unknown;
   createdAt?: Date;
   updatedAt?: Date;
   title?: string;
@@ -994,7 +997,10 @@ export interface PersistedNotification {
     | string;
   title: string;
   message: string;
-  data: Record<string, any> | null;
+  data: (Record<string, unknown> & {
+    orderNo?: string;
+    orderId?: number;
+  }) | null;
   isRead: boolean;
   createdAt: string;
 }
@@ -1008,7 +1014,7 @@ export interface PaginatedEnvelope<T> {
 }
 
 export interface NotificationContextType {
-  socket: any | null;
+  socket: Socket | null;
   notifications: Notification[];
   isConnected: boolean;
   clearNotifications: () => void;

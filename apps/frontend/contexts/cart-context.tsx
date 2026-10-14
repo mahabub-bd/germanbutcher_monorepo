@@ -1,11 +1,11 @@
 "use client";
 
-import type { LocalCoupon } from "@/utils/cart-storage";
+import type { LocalCartItem, LocalCoupon } from "@/utils/cart-storage";
 import type { Cart, Product } from "@/utils/types";
 import { createContext, useContext } from "react";
 
 type CartContextType = {
-  cart: Cart | { items: any[] };
+  cart: Cart | { items: LocalCartItem[] };
   isLoading: boolean;
   appliedCoupon: LocalCoupon | null;
   addItem: (

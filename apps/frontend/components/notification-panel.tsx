@@ -136,7 +136,7 @@ export function NotificationPanel() {
                 No notifications yet
               </h3>
               <p className="text-xs text-muted-foreground max-w-xs">
-                You'll be notified about order updates here
+                You&apos;ll be notified about order updates here
               </p>
             </div>
           ) : (

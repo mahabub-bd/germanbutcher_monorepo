@@ -72,8 +72,8 @@ export function ClientForm({ mode, client }: ClientFormProps) {
       if (file) {
         const formData = new FormData()
         formData.append("file", file)
-        const result = await formPostData("attachment", formData)
-        imageId = result.data.id
+        const result = await formPostData<{ id: number }>("attachment", formData)
+        imageId = result.data!.id
       }
 
       const clientData = {

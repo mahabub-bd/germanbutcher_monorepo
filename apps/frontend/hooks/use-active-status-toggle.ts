@@ -57,8 +57,10 @@ export function useActiveStatusToggle<T>(
     try {
       const response =
         options.includeBody === false
-          ? await patchData(options.buildEndpoint(id))
-          : await patchData(
+          ? await patchData<{ isActive?: boolean; isPublished?: boolean }>(
+              options.buildEndpoint(id)
+            )
+          : await patchData<{ isActive?: boolean; isPublished?: boolean }>(
               options.buildEndpoint(id),
               options.buildBody
                 ? options.buildBody(nextActive)

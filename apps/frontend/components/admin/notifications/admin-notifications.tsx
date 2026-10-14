@@ -107,9 +107,9 @@ const AdminNotifications = ({
         <div className="space-y-3">
           {notifications.map((notification) => {
             const Icon = TYPE_ICONS[notification.type] ?? Bell;
-            const order = notification.data?.orderNo
-              ? notification.data
-              : null;
+            const orderNo = notification.data?.orderNo;
+            const orderId = notification.data?.orderId;
+            const order = orderNo ? { orderNo, orderId } : null;
 
             return (
               <div

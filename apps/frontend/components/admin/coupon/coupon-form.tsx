@@ -507,7 +507,7 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                A coupon picked to end "today" runs through 23:59 of that day
+                A coupon picked to end &quot;today&quot; runs through 23:59 of that day
                 unless you set an earlier time.
               </p>
             </section>
@@ -608,7 +608,7 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
                         </FormControl>
                         <FormMessage />
                         <p className="text-xs text-muted-foreground">
-                          Selected products will not receive this coupon's
+                          Selected products will not receive this coupon&apos;s
                           discount
                         </p>
                       </FormItem>

@@ -1,6 +1,8 @@
 export const dynamic = "force-dynamic";
 
-import OrderPaymentList from "@/components/admin/reports/order-payments/order-payment-list";
+import OrderPaymentList, {
+  type PaymentRecord,
+} from "@/components/admin/reports/order-payments/order-payment-list";
 import { fetchProtectedData } from "@/utils/api-utils";
 
 interface ResolvedSearchParams {
@@ -30,7 +32,7 @@ export default async function PaymentsPage({ searchParams }: Props) {
       ? resolvedParams.orderStatus
       : undefined;
 
-  let payments: any[] = [];
+  let payments: PaymentRecord[] = [];
 
   try {
     const queryParams = new URLSearchParams();
@@ -46,7 +48,7 @@ export default async function PaymentsPage({ searchParams }: Props) {
       queryParams.toString() ? `?${queryParams.toString()}` : ""
     }`;
 
-    payments = (await fetchProtectedData(endpoint)) as any[];
+    payments = (await fetchProtectedData(endpoint)) as PaymentRecord[];
   } catch (error) {
     console.error("Failed to fetch payments:", error);
     payments = [];
