@@ -1,4 +1,10 @@
 "use client";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -33,6 +39,7 @@ import type { FreeDeliveryCampaign, MinimalProduct } from "@/utils/types";
 import {
   Banknote,
   Calendar,
+  CalendarClock,
   CalendarDays,
   Clock,
   Package,
@@ -91,6 +98,17 @@ export function FreeDeliveryCampaignsCard() {
   // Category-first product picker (products/all endpoint)
   const [pickerProducts, setPickerProducts] = useState<MinimalProduct[]>([]);
   const [pickerCategoryId, setPickerCategoryId] = useState("");
+
+  /** Pseudo-category showing only the products picked for this campaign. */
+  const SELECTED_KEY = "selected";
+  const displayProducts =
+    pickerCategoryId === SELECTED_KEY
+      ? pickerProducts.filter((p) => form.productIds.includes(p.id))
+      : pickerCategoryId
+        ? pickerProducts.filter(
+            (p) => p.categoryId === Number(pickerCategoryId)
+          )
+        : [];
   const [isLoadingPickerProducts, setIsLoadingPickerProducts] = useState(false);
   const [productSearch, setProductSearch] = useState("");
 
@@ -118,7 +136,7 @@ export function FreeDeliveryCampaignsCard() {
 
   // Load the chosen category's products via the minimal products/all endpoint
   useEffect(() => {
-    if (!pickerCategoryId) return;
+    if (!pickerCategoryId || pickerCategoryId === SELECTED_KEY) return;
 
     const fetchProducts = async () => {
       setIsLoadingPickerProducts(true);
@@ -144,6 +162,7 @@ export function FreeDeliveryCampaignsCard() {
       }
     };
     fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickerCategoryId]);
 
   const resetForm = () => {
@@ -181,6 +200,8 @@ export function FreeDeliveryCampaignsCard() {
     setEditingId(campaign.id);
     setErrors({});
     setProductSearch("");
+    // Open on the selected-products view so existing picks are visible
+    setPickerCategoryId(SELECTED_KEY);
     // Seed already-selected products so their selections render in the grid
     if (campaign.products?.length) {
       setPickerProducts((prev) => {
@@ -193,6 +214,7 @@ export function FreeDeliveryCampaignsCard() {
             discountType: p.discountType ?? null,
             categoryId: p.category?.id ?? 0,
             categoryName: p.category?.name ?? "",
+            attachmentUrl: p.attachment?.url ?? null,
           })
         );
         return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
@@ -508,246 +530,313 @@ export function FreeDeliveryCampaignsCard() {
               </div>
             </section>
 
-            {/* Schedule */}
+            {/* Schedule & Conditions */}
             <section className="space-y-4 border-t border-gray-100 pt-4 dark:border-gray-800">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Schedule
+                Schedule &amp; Conditions
               </h4>
-              <div className="space-y-2">
-                <Label>Days of Week</Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {DAY_LABELS.map((label, day) => (
-                    <button
-                      key={label}
-                      type="button"
-                      onClick={() => toggleDay(day)}
-                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${form.daysOfWeek.includes(day)
-                        ? "border-primaryColor bg-primaryColor text-white"
-                        : "border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400"
-                        }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Leave all unchecked for every day.
-                </p>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-2">
-                  <Label>Start Date</Label>
-                  <DatePicker
-                    value={form.validFrom ?? undefined}
-                    onChange={(date) =>
-                      setForm((prev) => ({ ...prev, validFrom: date }))
-                    }
-                    placeholder="Always active"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>End Date</Label>
-                  <DatePicker
-                    value={form.validUntil ?? undefined}
-                    onChange={(date) =>
-                      setForm((prev) => ({ ...prev, validUntil: date }))
-                    }
-                    placeholder="No end date"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="campaign-start-time">Start Time</Label>
-                  <Input
-                    id="campaign-start-time"
-                    type="time"
-                    value={form.startTime}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        startTime: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="campaign-end-time">End Time</Label>
-                  <Input
-                    id="campaign-end-time"
-                    type="time"
-                    value={form.endTime}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, endTime: e.target.value }))
-                    }
-                  />
-                  {errors.endTime && (
-                    <p className="text-xs text-red-600">{errors.endTime}</p>
-                  )}
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Times follow Asia/Dhaka. Leave both empty to run all day —
-                windows may cross midnight.
-              </p>
-            </section>
-
-            {/* Conditions */}
-            <section className="space-y-4 border-t border-gray-100 pt-4 dark:border-gray-800">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Conditions
-              </h4>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="campaign-min-amount">
-                    Minimum Order Amount (৳)
-                  </Label>
-                  <Input
-                    id="campaign-min-amount"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={form.minOrderAmount}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        minOrderAmount: e.target.value,
-                      }))
-                    }
-                    placeholder="0 = no minimum"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="campaign-min-qty">Minimum Quantity</Label>
-                  <Input
-                    id="campaign-min-qty"
-                    type="number"
-                    min="1"
-                    value={form.minQuantity}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        minQuantity: e.target.value,
-                      }))
-                    }
-                    placeholder="No minimum"
-                  />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>Included Categories</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map((category) => {
-                      const checked = form.categoryIds.includes(
-                        category.value
-                      );
-                      return (
-                        <label
-                          key={category.value}
-                          className={cn(
-                            "flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
-                            checked
-                              ? "border-primaryColor bg-primaryColor/10 font-medium text-primaryColor"
-                              : "border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400"
-                          )}
-                        >
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={() =>
-                              toggleCategory(category.value)
-                            }
-                          />
-                          {category.label}
-                        </label>
-                      );
-                    })}
+              <div className="grid gap-4 lg:grid-cols-2">
+                {/* Schedule card */}
+                <div className="space-y-3 rounded-xl border border-gray-100 p-4 dark:border-gray-800">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                      <CalendarClock className="h-3.5 w-3.5" />
+                    </span>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">
+                      Schedule
+                    </p>
+                    <span className="truncate text-xs text-muted-foreground">
+                      Asia/Dhaka time
+                    </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Orders containing items from these categories qualify for
-                    the campaign. Leave empty for any category.
-                  </p>
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>Products</Label>
+
+                  <div className="space-y-2">
+                    <Label>Days of Week</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {DAY_LABELS.map((label, day) => (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => toggleDay(day)}
+                          className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${form.daysOfWeek.includes(day)
+                            ? "border-primaryColor bg-primaryColor text-white"
+                            : "border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400"
+                            }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Leave all unchecked for every day.
+                    </p>
+                  </div>
+
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Select
-                        value={pickerCategoryId}
-                        onValueChange={setPickerCategoryId}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Product category..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem
-                              key={category.value}
-                              value={String(category.value)}
-                            >
-                              {category.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="space-y-2">
+                      <Label>Start Date</Label>
+                      <DatePicker
+                        value={form.validFrom ?? undefined}
+                        onChange={(date) =>
+                          setForm((prev) => ({ ...prev, validFrom: date }))
+                        }
+                        placeholder="Always active"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>End Date</Label>
+                      <DatePicker
+                        value={form.validUntil ?? undefined}
+                        onChange={(date) =>
+                          setForm((prev) => ({ ...prev, validUntil: date }))
+                        }
+                        placeholder="No end date"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="campaign-start-time">Start Time</Label>
+                      <Input
+                        id="campaign-start-time"
+                        type="time"
+                        value={form.startTime}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            startTime: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="campaign-end-time">End Time</Label>
+                      <Input
+                        id="campaign-end-time"
+                        type="time"
+                        value={form.endTime}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            endTime: e.target.value,
+                          }))
+                        }
+                      />
+                      {errors.endTime && (
+                        <p className="text-xs text-red-600">{errors.endTime}</p>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground sm:col-span-2">
+                      Leave both times empty to run all day — windows may cross
+                      midnight.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Conditions card */}
+                <div className="space-y-4 rounded-xl border border-gray-100 p-4 dark:border-gray-800">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400">
+                      <Banknote className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">
+                        Conditions
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        Only filters the product list — selecting here does
-                        not include the category in the campaign
+                        All conditions must match for free delivery
                       </p>
                     </div>
-                    <div className="relative self-start">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="campaign-min-amount">
+                        Minimum Order Amount (৳)
+                      </Label>
                       <Input
-                        value={productSearch}
-                        onChange={(e) => setProductSearch(e.target.value)}
-                        placeholder="Search products..."
-                        className="pl-9"
+                        id="campaign-min-amount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={form.minOrderAmount}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            minOrderAmount: e.target.value,
+                          }))
+                        }
+                        placeholder="0 = no minimum"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="campaign-min-qty">Minimum Quantity</Label>
+                      <Input
+                        id="campaign-min-qty"
+                        type="number"
+                        min="1"
+                        value={form.minQuantity}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            minQuantity: e.target.value,
+                          }))
+                        }
+                        placeholder="No minimum"
                       />
                     </div>
                   </div>
-                  <ProductSelector
-                    products={pickerProducts}
-                    selectedProductIds={form.productIds}
-                    onChange={(selected) =>
-                      setForm((prev) => ({ ...prev, productIds: selected }))
-                    }
-                    searchQuery={productSearch}
-                    isLoading={isLoadingPickerProducts}
-                    disabled={!pickerCategoryId}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Leave empty to allow any product
-                  </p>
+
+                  <div className="flex items-center justify-between gap-4 rounded-lg border border-gray-100 p-3 dark:border-gray-800">
+                    <div>
+                      <Label
+                        htmlFor="campaign-new-customers"
+                        className="font-medium"
+                      >
+                        New Customers Only
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Only customers with zero previous orders qualify
+                        (guests never match).
+                      </p>
+                    </div>
+                    <Switch
+                      id="campaign-new-customers"
+                      checked={form.newCustomersOnly}
+                      onCheckedChange={(checked) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          newCustomersOnly: checked,
+                        }))
+                      }
+                    />
+                  </div>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                With products/categories selected, the order qualifies when it
-                contains at least one matching item.
-              </p>
             </section>
 
-            {/* Audience */}
-            <section className="space-y-4 border-t border-gray-100 pt-4 dark:border-gray-800">
+            {/* Scope */}
+            <section className="space-y-2 border-t border-gray-100 pt-4 dark:border-gray-800">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Audience
+                Scope
               </h4>
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <Label
-                    htmlFor="campaign-new-customers"
-                    className="font-medium"
-                  >
-                    New Customers Only
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Only customers with zero previous orders qualify (guests
-                    never match).
-                  </p>
-                </div>
-                <Switch
-                  id="campaign-new-customers"
-                  checked={form.newCustomersOnly}
-                  onCheckedChange={(checked) =>
-                    setForm((prev) => ({ ...prev, newCustomersOnly: checked }))
-                  }
-                />
-              </div>
+              <Accordion
+                type="multiple"
+                defaultValue={editingId ? ["products"] : []}
+              >
+                <AccordionItem value="categories" className="border-none">
+                  <AccordionTrigger className="py-3 hover:no-underline">
+                    <span className="flex items-center gap-2">
+                      <Tags className="h-4 w-4 text-muted-foreground" />
+                      Included Categories
+                      {form.categoryIds.length > 0 && (
+                        <span className="rounded-full bg-primaryColor/10 px-2 py-0.5 text-xs font-semibold text-primaryColor">
+                          {form.categoryIds.length}
+                        </span>
+                      )}
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-2 pb-4">
+                    <div className="flex flex-wrap gap-2">
+                      {categories.map((category) => {
+                        const checked = form.categoryIds.includes(
+                          category.value
+                        );
+                        return (
+                          <label
+                            key={category.value}
+                            className={cn(
+                              "flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
+                              checked
+                                ? "border-primaryColor bg-primaryColor/10 font-medium text-primaryColor"
+                                : "border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400"
+                            )}
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() =>
+                                toggleCategory(category.value)
+                              }
+                            />
+                            {category.label}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Orders containing items from these categories qualify for
+                      the campaign. Leave empty for any category.
+                    </p>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="products" className="border-none">
+                  <AccordionTrigger className="py-3 hover:no-underline">
+                    <span className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                      Products
+                      {form.productIds.length > 0 && (
+                        <span className="rounded-full bg-primaryColor/10 px-2 py-0.5 text-xs font-semibold text-primaryColor">
+                          {form.productIds.length}
+                        </span>
+                      )}
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pb-4">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Select
+                          value={pickerCategoryId}
+                          onValueChange={setPickerCategoryId}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Product category..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={SELECTED_KEY}>
+                              {`Selected (${form.productIds.length})`}
+                            </SelectItem>
+                            {categories.map((category) => (
+                              <SelectItem
+                                key={category.value}
+                                value={String(category.value)}
+                              >
+                                {category.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Only filters the product list — selecting here does
+                          not include the category in the campaign
+                        </p>
+                      </div>
+                      <div className="relative self-start">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={productSearch}
+                          onChange={(e) => setProductSearch(e.target.value)}
+                          placeholder="Search products..."
+                          className="pl-9"
+                        />
+                      </div>
+                    </div>
+                    <ProductSelector
+                      products={displayProducts}
+                      selectedProductIds={form.productIds}
+                      onChange={(selected) =>
+                        setForm((prev) => ({ ...prev, productIds: selected }))
+                      }
+                      searchQuery={productSearch}
+                      isLoading={isLoadingPickerProducts}
+                      disabled={!pickerCategoryId}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Leave empty to allow any product. With products or
+                      categories selected, the order qualifies when it contains
+                      at least one matching item.
+                    </p>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </section>
           </div>
 
