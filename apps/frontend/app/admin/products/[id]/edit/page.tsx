@@ -73,7 +73,7 @@ export default function EditProductPage() {
   }
 
   return (
-    <div className="space-y-6 p-2 md:p-6">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <div className="flex justify-end">
         <Button asChild variant="outline">
           <Link href="/admin/products/products-list">

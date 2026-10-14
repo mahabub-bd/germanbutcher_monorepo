@@ -77,7 +77,7 @@ export function FlashSaleUsageLogList() {
   );
 
   return (
-    <div className="w-full md:p-6 p-2">
+    <div className="w-full">
       <PageHeader
         title="Flash Sale Usage Logs"
         description="Which customer got which flash sale discount"

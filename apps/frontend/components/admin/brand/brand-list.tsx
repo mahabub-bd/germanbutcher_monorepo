@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { Brand } from "@/utils/types";
 import {
   Filter,
@@ -230,91 +230,91 @@ export function BrandList({
   };
 
   const renderTableView = () => (
-    <div className=" md:p-6 p-2">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Logo</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
-            <TableHead className="hidden md:table-cell text-center">
-              Products
-            </TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Logo</TableHead>
+          <TableHead>Name</TableHead>
+          <TableHead>Description</TableHead>
+          <TableHead className="hidden md:table-cell">Status</TableHead>
+          <TableHead className="hidden md:table-cell text-center">
+            Products
+          </TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {brands.map((brand) => (
+          <TableRow key={brand.id}>
+            <TableCell>
+              <div className="rounded-md overflow-hidden">
+                <Image
+                  src={brand?.attachment?.url || "/placeholder.svg"}
+                  alt={brand.name}
+                  width={64}
+                  height={64}
+                  className="object-contain"
+                />
+              </div>
+            </TableCell>
+            <TableCell className="font-medium">{brand.name}</TableCell>
+            <TableCell className="text-wrap">
+              {brand.description || "No description"}
+            </TableCell>
+            <TableCell className="hidden md:table-cell">
+              <Badge variant={brand.isActive ? "default" : "destructive"}>
+                {brand.isActive ? "Active" : "Inactive"}
+              </Badge>
+            </TableCell>
+            <TableCell className="hidden md:table-cell text-center">
+              {brand.products?.length || 0}
+            </TableCell>
+            <TableCell className="text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {can(MENU_URL, "canEdit") && (
+                    <DropdownMenuItem asChild>
+                      <Link href={`/admin/brand/${brand.id}/edit`}>
+                        <Pencil className="mr-2 h-4 w-4" /> Edit
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {can(MENU_URL, "canDelete") && (
+                    <DropdownMenuItem
+                      className="text-red-600"
+                      onClick={() => handleDeleteClick(brand)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {brands.map((brand) => (
-            <TableRow key={brand.id}>
-              <TableCell>
-                <div className="rounded-md overflow-hidden">
-                  <Image
-                    src={brand?.attachment?.url || "/placeholder.svg"}
-                    alt={brand.name}
-                    width={64}
-                    height={64}
-                    className="object-contain"
-                  />
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{brand.name}</TableCell>
-              <TableCell className="text-wrap">
-                {brand.description || "No description"}
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <Badge variant={brand.isActive ? "default" : "destructive"}>
-                  {brand.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </TableCell>
-              <TableCell className="hidden md:table-cell text-center">
-                {brand.products?.length || 0}
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {can(MENU_URL, "canEdit") && (
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/brand/${brand.id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    {can(MENU_URL, "canDelete") && (
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDeleteClick(brand)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+        ))}
+      </TableBody>
+    </Table>
+
   );
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full">
         <PageHeader
           title="Brands"
           description="Manage your product brands"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add Brand",
-                actionHref: "/admin/brand/add",
-              }
+              actionLabel: "Add Brand",
+              actionHref: "/admin/brand/add",
+            }
             : {})}
         />
 
@@ -373,11 +373,10 @@ export function BrandList({
                             setStatusFilter("all");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            statusFilter === "all"
+                          className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all"
                               ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           All
                         </button>
@@ -386,11 +385,10 @@ export function BrandList({
                             setStatusFilter("active");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "active"
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "active"
                               ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-green-500" />
                           Active
@@ -400,11 +398,10 @@ export function BrandList({
                             setStatusFilter("inactive");
                             setCurrentPage(1);
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "inactive"
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "inactive"
                               ? "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-red-500" />
                           Inactive

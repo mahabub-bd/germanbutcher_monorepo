@@ -1,9 +1,7 @@
 "use client";
 
 import { TestimonialForm } from "@/components/admin/testimonial/testimonial-form";
-import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 import { useRouter } from "next/navigation";
 
 export default function AddTestimonialPage() {
@@ -13,23 +11,13 @@ export default function AddTestimonialPage() {
     router.back();
   };
   return (
-    <div className="md:p-6 p-2 space-y-6 border rounded-sm">
-      <div className="md:p-6 p-2">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <CardTitle>Add New Testimonial</CardTitle>
-            <CardDescription>
-              Create a new customer testimonial. Fill in all the required
-              information.
-            </CardDescription>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/admin/testimonial/testimonial-list">
-              Back to Testimonials
-            </Link>
-          </Button>
-        </div>
-      </div>
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+        <FormPageHeader
+        title="Add New Testimonial"
+        description="Create a new customer testimonial. Fill in all the required information."
+        backHref="/admin/testimonial/testimonial-list"
+        backLabel="Back to Testimonials"
+      />
       <div>
         <TestimonialForm mode="create" onSuccess={handleSuccess} />
       </div>

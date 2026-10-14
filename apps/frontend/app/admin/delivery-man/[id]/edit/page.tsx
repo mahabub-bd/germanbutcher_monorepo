@@ -45,7 +45,7 @@ export default function EditDeliveryManPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-6 flex justify-center items-center min-h-[60vh]">
+      <div className="md:p-4 p-2 space-y-6 rounded-sm flex justify-center items-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Loading delivery man data...</p>
@@ -56,7 +56,7 @@ export default function EditDeliveryManPage() {
 
   if (!deliveryMan) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="text-center">
           <h2 className="text-xl font-semibold">Delivery man not found</h2>
           <p className="text-muted-foreground mt-2">
@@ -71,8 +71,7 @@ export default function EditDeliveryManPage() {
   }
 
   return (
-    <div className="md:p-6 p:2 space-y-6 border rouunded-sm">
-      <div className="md:p-6 p:2">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Delivery Man Information</CardTitle>
@@ -82,7 +81,6 @@ export default function EditDeliveryManPage() {
             <Link href="/admin/delivery-man">Back to Delivery Men</Link>
           </Button>
         </div>
-      </div>
 
       <DeliveryManForm
         mode="edit"

@@ -17,7 +17,7 @@ export default async function BrandsPage({
       : 10;
 
   return (
-    <div className="space-y-6 border rounded-sm">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <BrandList
         initialPage={page}
         initialLimit={limit}

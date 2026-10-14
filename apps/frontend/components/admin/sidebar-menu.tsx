@@ -147,7 +147,7 @@ export function SidebarMenu({
 
   // Generate skeleton menu items for loading state
   const renderSkeletonMenu = () => {
-    return Array(20)
+    return Array(14)
       .fill(0)
       .map((_, index) => (
         <div key={index} className="px-2 py-1">
@@ -182,12 +182,12 @@ export function SidebarMenu({
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-40 pt-4 flex flex-col border-r bg-linear-to-b from-white via-orange-50/30 to-red-50/40 transition-all duration-300 ease-in-out",
-          collapsed ? "w-17.5" : "w-44 xl:w-62.5",
+          collapsed ? "w-17.5" : "w-60 md:w-40 xl:w-60 2xl:w-64.5",
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           className
         )}
       >
-        <div className="flex min-h-[44px] items-center justify-between gap-2 overflow-hidden px-4">
+        <div className="flex min-h-11 items-center justify-between gap-2 overflow-hidden px-4">
           <div
             className={cn(
               "flex min-w-0 items-center gap-2",
@@ -232,146 +232,146 @@ export function SidebarMenu({
               collapsed && "pt-3"
             )}
           >
-                  {isLoading
-                    ? renderSkeletonMenu()
-                    : menuData?.map((item: MenuItem) => {
-                        const isActive =
-                          pathname === item?.url ||
-                          pathname.startsWith(`${item?.url}/`);
-                        const hasSubMenu =
-                          item?.children && item?.children?.length > 0;
-                        const isSubActive = isSubMenuActive(item);
-                        const isOpen = openSubMenus[item?.name] || false;
+            {isLoading
+              ? renderSkeletonMenu()
+              : menuData?.map((item: MenuItem) => {
+                const isActive =
+                  pathname === item?.url ||
+                  pathname.startsWith(`${item?.url}/`);
+                const hasSubMenu =
+                  item?.children && item?.children?.length > 0;
+                const isSubActive = isSubMenuActive(item);
+                const isOpen = openSubMenus[item?.name] || false;
 
-                        return (
-                          <div key={item.name} className="flex flex-col">
-                            {hasSubMenu ? (
-                              <button
-                                onClick={() => toggleSubMenu(item.name)}
-                                className={cn(
-                                  "group flex h-10 items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                                  isActive || isSubActive
-                                    ? "bg-linear-to-r from-primaryColor to-secondaryColor text-white font-semibold shadow-sm"
-                                    : "text-gray-700 hover:bg-primaryColor/10 hover:text-primaryColor",
-                                  collapsed
-                                    ? "justify-center"
-                                    : "justify-between"
-                                )}
-                              >
-                                <div className="flex items-center">
-                                  {item.icon && (
-                                    <IconRenderer
-                                      name={item.icon}
-                                      className={cn(
-                                        "h-5 w-5 shrink-0",
-                                        collapsed ? "mr-0" : "mr-2"
-                                      )}
-                                    />
-                                  )}
-                                  {!collapsed && <span>{item.name}</span>}
-                                </div>
-                                {!collapsed && (
-                                  <ChevronDown
-                                    className={cn(
-                                      "h-4 w-4 transition-transform",
-                                      isOpen ? "rotate-180" : ""
-                                    )}
-                                  />
-                                )}
-                                {collapsed && (
-                                  <div className="absolute left-full ml-6 hidden rounded-md border bg-popover px-3 py-2 text-popover-foreground shadow-md group-hover:flex">
-                                    {item.name}
-                                  </div>
-                                )}
-                              </button>
-                            ) : (
-                              <Link
-                                href={item?.url}
-                                className={cn(
-                                  "group flex h-10 items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                                  isActive
-                                    ? "bg-linear-to-r from-primaryColor to-secondaryColor text-white font-semibold shadow-sm"
-                                    : "text-gray-700 hover:bg-primaryColor/10 hover:text-primaryColor",
-                                  collapsed ? "justify-center" : "justify-start"
-                                )}
-                              >
-                                {item.icon && (
-                                  <IconRenderer
-                                    name={item.icon}
-                                    className={cn(
-                                      "h-5 w-5 shrink-0",
-                                      collapsed ? "mr-0" : "mr-2"
-                                    )}
-                                  />
-                                )}
-
-                                {!collapsed && <span>{item.name}</span>}
-                                {collapsed && (
-                                  <div className="absolute left-full ml-6 hidden rounded-md border bg-popover px-3 py-2 text-popover-foreground shadow-md group-hover:flex">
-                                    {item.name}
-                                  </div>
-                                )}
-                              </Link>
+                return (
+                  <div key={item.name} className="flex flex-col">
+                    {hasSubMenu ? (
+                      <button
+                        onClick={() => toggleSubMenu(item.name)}
+                        className={cn(
+                          "group flex h-10 items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          isActive || isSubActive
+                            ? "bg-linear-to-r from-primaryColor to-secondaryColor text-white font-semibold shadow-sm"
+                            : "text-gray-700 hover:bg-primaryColor/10 hover:text-primaryColor",
+                          collapsed
+                            ? "justify-center"
+                            : "justify-between"
+                        )}
+                      >
+                        <div className="flex items-center">
+                          {item.icon && (
+                            <IconRenderer
+                              name={item.icon}
+                              className={cn(
+                                "h-5 w-5 shrink-0",
+                                collapsed ? "mr-0" : "mr-2"
+                              )}
+                            />
+                          )}
+                          {!collapsed && <span>{item.name}</span>}
+                        </div>
+                        {!collapsed && (
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 transition-transform",
+                              isOpen ? "rotate-180" : ""
                             )}
-
-                            {hasSubMenu && !collapsed && isOpen && (
-                              <div className="ml-6 mt-1 border-l border-primaryColor/20 pl-3 space-y-1">
-                                {item?.children.map((subItem) => {
-                                  const isSubItemActive =
-                                    pathname === subItem.url ||
-                                    pathname.startsWith(`${subItem.url}/`);
-
-                                  return (
-                                    <Link
-                                      key={subItem.name}
-                                      href={subItem.url}
-                                      className={cn(
-                                        "flex h-8 items-center rounded-md px-3 py-1 text-sm transition-colors hover:bg-primaryColor/10 hover:text-primaryColor",
-                                        isSubItemActive
-                                          ? "bg-primaryColor/10 text-primaryColor font-medium"
-                                          : "text-gray-600"
-                                      )}
-                                    >
-                                      {subItem.name}
-                                    </Link>
-                                  );
-                                })}
-                              </div>
-                            )}
-
-                            {hasSubMenu && collapsed && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="hidden absolute left-full ml-6 rounded-md border bg-popover px-3 py-2 text-popover-foreground shadow-md group-hover:flex"
-                                  >
-                                    <ChevronDown className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                  side="right"
-                                  align="start"
-                                  className="w-48"
-                                >
-                                  {item?.children?.map((subItem) => (
-                                    <DropdownMenuItem
-                                      key={subItem.name}
-                                      asChild
-                                    >
-                                      <Link href={subItem.url}>
-                                        {subItem.name}
-                                      </Link>
-                                    </DropdownMenuItem>
-                                  ))}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
+                          />
+                        )}
+                        {collapsed && (
+                          <div className="absolute left-full ml-6 hidden rounded-md border bg-popover px-3 py-2 text-popover-foreground shadow-md group-hover:flex">
+                            {item.name}
                           </div>
-                        );
-                      })}
-                </nav>
+                        )}
+                      </button>
+                    ) : (
+                      <Link
+                        href={item?.url}
+                        className={cn(
+                          "group flex h-10 items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          isActive
+                            ? "bg-linear-to-r from-primaryColor to-secondaryColor text-white font-semibold shadow-sm"
+                            : "text-gray-700 hover:bg-primaryColor/10 hover:text-primaryColor",
+                          collapsed ? "justify-center" : "justify-start"
+                        )}
+                      >
+                        {item.icon && (
+                          <IconRenderer
+                            name={item.icon}
+                            className={cn(
+                              "h-5 w-5 shrink-0",
+                              collapsed ? "mr-0" : "mr-2"
+                            )}
+                          />
+                        )}
+
+                        {!collapsed && <span>{item.name}</span>}
+                        {collapsed && (
+                          <div className="absolute left-full ml-6 hidden rounded-md border bg-popover px-3 py-2 text-popover-foreground shadow-md group-hover:flex">
+                            {item.name}
+                          </div>
+                        )}
+                      </Link>
+                    )}
+
+                    {hasSubMenu && !collapsed && isOpen && (
+                      <div className="ml-6 mt-1 border-l border-primaryColor/20 pl-3 space-y-1">
+                        {item?.children.map((subItem) => {
+                          const isSubItemActive =
+                            pathname === subItem.url ||
+                            pathname.startsWith(`${subItem.url}/`);
+
+                          return (
+                            <Link
+                              key={subItem.name}
+                              href={subItem.url}
+                              className={cn(
+                                "flex h-8 items-center rounded-md px-3 py-1 text-sm transition-colors hover:bg-primaryColor/10 hover:text-primaryColor",
+                                isSubItemActive
+                                  ? "bg-primaryColor/10 text-primaryColor font-medium"
+                                  : "text-gray-600"
+                              )}
+                            >
+                              {subItem.name}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {hasSubMenu && collapsed && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="hidden absolute left-full ml-6 rounded-md border bg-popover px-3 py-2 text-popover-foreground shadow-md group-hover:flex"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          side="right"
+                          align="start"
+                          className="w-48"
+                        >
+                          {item?.children?.map((subItem) => (
+                            <DropdownMenuItem
+                              key={subItem.name}
+                              asChild
+                            >
+                              <Link href={subItem.url}>
+                                {subItem.name}
+                              </Link>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
+                );
+              })}
+          </nav>
         </div>
 
         <div className="border-t border-primaryColor/20 p-2">

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,6 @@ import {
 } from "@/components/ui/table";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { Category } from "@/utils/types";
 import {
   Filter,
@@ -179,7 +179,7 @@ export function CategoryList({
   };
 
   const renderEmptyState = () => (
-    <div className="p-4 pb-6">
+    <div >
       <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
         <LayoutGrid className="h-10 w-10 text-muted-foreground/50 mb-4" />
         <h3 className="text-lg font-semibold">No categories found</h3>
@@ -258,11 +258,10 @@ export function CategoryList({
         setStatusFilter(value === "all" ? "" : value);
         setCurrentPage(1);
       }}
-      className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-        (value === "all" ? "" : statusFilter) === value
-          ? activeClasses
-          : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-      }`}
+      className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${(value === "all" ? "" : statusFilter) === value
+        ? activeClasses
+        : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+        }`}
     >
       {dot && <span className={`h-2 w-2 rounded-full ${dot}`} />}
       {label}
@@ -350,7 +349,7 @@ export function CategoryList({
             <TableRow key={category.id} className="hover:bg-muted/50">
               <TableCell>
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex aspect-[3/2] h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
+                  <span className="flex aspect-3/2 h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
                     <Image
                       src={category?.attachment?.url || "/placeholder.svg"}
                       alt={category.name}
@@ -363,7 +362,7 @@ export function CategoryList({
                     <p className="font-medium leading-tight">
                       {category.name}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate max-w-[220px] mt-0.5">
+                    <p className="text-xs text-muted-foreground truncate max-w-55 mt-0.5">
                       {category.description || "No description"}
                     </p>
                   </div>
@@ -431,20 +430,20 @@ export function CategoryList({
 
   return (
     <>
-      <div className="w-full md:p-6 p-2 space-y-4">
+      <div className="w-full space-y-4">
         <PageHeader
           title="Categories"
           description="Manage your product categories"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add Category",
-                actionHref: "/admin/categories/add",
-              }
+              actionLabel: "Add Category",
+              actionHref: "/admin/categories/add",
+            }
             : {})}
         />
 
         {/* List card: toolbar + table */}
-        <div className="rounded-xl border bg-card">
+        <div className="rounded-sm border bg-card">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
             <div className="flex items-center gap-3">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">

@@ -76,7 +76,7 @@ export function FreeDeliveryUsageLogList() {
   );
 
   return (
-    <div className="w-full md:p-6 p-2">
+    <div className="w-full">
       <PageHeader
         title="Free Delivery Usage Logs"
         description="Which customer used which free delivery campaign"

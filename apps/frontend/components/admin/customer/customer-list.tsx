@@ -238,8 +238,8 @@ export function CustomerList({
               <TableCell className="hidden md:table-cell">
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${customer.isVerified
-                      ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
-                      : "bg-gray-100 text-gray-600 dark:bg-gray-900/40 dark:text-gray-400"
+                    ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
+                    : "bg-gray-100 text-gray-600 dark:bg-gray-900/40 dark:text-gray-400"
                     }`}
                 >
                   {customer.isVerified ? (
@@ -292,7 +292,7 @@ export function CustomerList({
   );
 
   return (
-    <div className="w-full md:p-6 p-2">
+    <div className="w-full">
       <PageHeader
         title="Customers"
         description="View and manage registered customers"

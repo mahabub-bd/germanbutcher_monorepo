@@ -47,8 +47,7 @@ export default function EditSupplierPage() {
   }
 
   return (
-    <div className="md:p-6 p:2 space-y-6 border rouunded-sm">
-      <div className="md:p-6 p:2">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Supplier</CardTitle>
@@ -58,7 +57,6 @@ export default function EditSupplierPage() {
             <Link href="/admin/procurement/suppliers">Back to Suppliers</Link>
           </Button>
         </div>
-      </div>
 
       <SupplierForm mode="edit" supplier={supplier} />
     </div>

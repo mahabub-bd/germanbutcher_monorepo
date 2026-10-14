@@ -70,8 +70,8 @@ export default function StatsCard({
     <div
       className={cn(
         "relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800",
-        "p-3 sm:p-4 bg-gradient-to-br transition hover:shadow-sm",
-        "flex flex-col w-full min-h-[100px]",
+        "p-3 sm:p-4 bg-linear-to-br transition hover:shadow-sm",
+        "flex flex-col w-full min-h-25",
         bgColorClasses[bgColor],
         className
       )}

@@ -22,9 +22,7 @@ function OrderPageContent() {
   const [neighbors, setNeighbors] = useState<OrderNeighbors | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // The list page (order-list.tsx) appends its route/page/filters to detail
-  // links. "Back to Order List" rebuilds that URL so the user returns to the
-  // exact page they left, instead of always landing on page 1.
+
   const buildListUrl = () => {
     const listSlug = searchParams.get("from");
     const from = listSlug ? listSlugToRoute(listSlug) : "/admin/orders";
@@ -77,9 +75,11 @@ function OrderPageContent() {
 
   if (!order) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold">Order Not Found</h2>
+      <div className="md:p-4 p-2 space-y-6 rounded-sm">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold">Order Not Found</h2>
+          </div>
         </div>
       </div>
     );

@@ -146,9 +146,8 @@ export default function RefundsList({
                 settings={settings}
               />
             }
-            fileName={`refund-report-${
-              new Date().toISOString().split("T")[0]
-            }.pdf`}
+            fileName={`refund-report-${new Date().toISOString().split("T")[0]
+              }.pdf`}
           >
             {({ loading, error }) => (
               <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0 w-full sm:w-auto">
@@ -202,7 +201,7 @@ export default function RefundsList({
           </div>
         ) : (
           orders.map((o) => (
-            <div key={o.id} className="rounded-xl border bg-card p-3">
+            <div key={o.id} className="rounded-sm border bg-card p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium leading-tight">{o.orderNo}</p>

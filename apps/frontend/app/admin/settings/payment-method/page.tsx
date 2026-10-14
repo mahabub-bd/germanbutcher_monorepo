@@ -2,7 +2,7 @@ import { PaymentMethodList } from "@/components/admin/payment-method/payment-met
 
 export default async function ShippingMethodPage() {
   return (
-    <div className=" space-y-6 border rounded-sm">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <PaymentMethodList />
     </div>
   );

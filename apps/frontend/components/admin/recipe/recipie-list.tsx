@@ -298,7 +298,7 @@ export function RecipeList({
         {recipes?.map((recipe) => (
           <TableRow key={recipe.id} className="hover:bg-muted/50">
             <TableCell>
-              <span className="flex aspect-[3/2] h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
+              <span className="flex aspect-3/2 h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
                 <Image
                   src={recipe?.attachment?.url || "/placeholder.svg"}
                   alt={recipe.title}
@@ -373,7 +373,7 @@ export function RecipeList({
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full">
         <PageHeader
           title="Recipes"
           description="Manage your recipes"

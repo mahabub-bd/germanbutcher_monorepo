@@ -56,8 +56,7 @@ export default function PaymentsListPage() {
     parseFloat(purchase.totalValue) - parseFloat(purchase.amountPaid);
 
   return (
-    <div className="w-full md:p-6 p-2 border rounded-sm">
-      <div className="md:p-6 p-2">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm w-full">
         <div className="flex justify-between items-center mb-6">
           <PageHeader
             title={`Payments for Purchase # ${purchase.purchaseNumber}`}
@@ -75,10 +74,7 @@ export default function PaymentsListPage() {
             </Button>
           )}
         </div>
-      </div>
-      <div className="md:p-6 p-2">
         <PaymentsTable payments={purchase?.payments} />
-      </div>
     </div>
   );
 }

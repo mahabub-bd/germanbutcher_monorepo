@@ -15,7 +15,7 @@ export function ShippingAddress({
   userMobileNumber,
 }: ShippingAddressProps) {
   return (
-    <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+    <div className="overflow-hidden rounded-sm border bg-card shadow-sm">
       <div className="flex items-center border-b bg-muted/30 px-3 py-2.5">
         <h3 className="flex items-center text-sm font-semibold">
           <MapPin className="mr-1.5 size-4 text-primary" />

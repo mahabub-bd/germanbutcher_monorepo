@@ -1,7 +1,7 @@
 "use client";
 
-import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -191,15 +191,15 @@ export function PaymentMethodList() {
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full">
         <PageHeader
           title="Payment Methods"
           description="Manage payment options for your store"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add Payment Method",
-                actionHref: "/admin/settings/payment-method/add",
-              }
+              actionLabel: "Add Payment Method",
+              actionHref: "/admin/settings/payment-method/add",
+            }
             : {})}
         />
 

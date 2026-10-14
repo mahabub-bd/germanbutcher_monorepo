@@ -18,7 +18,7 @@ export default async function FlashSaleUsageReportPage({ searchParams }: Props) 
     typeof resolvedParams.toDate === "string" ? resolvedParams.toDate : undefined;
 
   return (
-    <div className="border rounded-sm">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <FlashSaleUsageReport
         initialPreset={preset}
         initialFromDate={fromDate}

@@ -12,7 +12,7 @@ export default async function ProductPage({
   const productData = await fetchData<Product>(`products/${id}`);
 
   return (
-    <div>
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <ProductDetail product={productData} />
     </div>
   );

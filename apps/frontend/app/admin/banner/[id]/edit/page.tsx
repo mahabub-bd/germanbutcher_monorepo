@@ -1,6 +1,7 @@
 "use client";
 
 import { BannerForm } from "@/components/admin/banner/banner-form";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { fetchData } from "@/utils/api-utils";
 import type { Banner } from "@/utils/types";
@@ -41,5 +42,15 @@ export default function EditBannerPage() {
     );
   }
 
-  return <BannerForm mode="edit" banner={banner} />;
+  return (
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <FormPageHeader
+        title="Edit Banner"
+        description="Update this banner content and settings"
+        backHref="/admin/banner/banner-list"
+        backLabel="Back to Banners"
+      />
+      <BannerForm mode="edit" banner={banner} />
+    </div>
+  );
 }

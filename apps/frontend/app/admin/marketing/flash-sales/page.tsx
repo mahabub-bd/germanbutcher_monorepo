@@ -4,7 +4,7 @@ import { FlashSalesCard } from "@/components/admin/marketing/flash-sales/flash-s
 
 export default function FlashSalesPage() {
   return (
-    <div className="md:p-4 p-2 border rounded-sm">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <FlashSalesCard />
     </div>
   );

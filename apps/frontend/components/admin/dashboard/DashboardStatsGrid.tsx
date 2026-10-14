@@ -130,7 +130,7 @@ export default function DashboardStatsGrid({
   return (
     <div className="space-y-3">
       {/* KPI Grid */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 2xl:grid-cols-6 lg:[&>div]:min-h-0 lg:[&>div]:p-2 2xl:[&>div]:min-h-[100px] 2xl:[&>div]:p-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 2xl:grid-cols-6 lg:[&>div]:min-h-0 lg:[&>div]:p-2 2xl:[&>div]:min-h-25 2xl:[&>div]:p-4">
 
         {/* Today */}
         <StatsCard
@@ -260,6 +260,8 @@ export default function DashboardStatsGrid({
             data={customerTypeData}
             size="sm"
             compactLaptop
+            icon={Users}
+            bgColor="blue"
           />
         )}
 
@@ -273,6 +275,8 @@ export default function DashboardStatsGrid({
             donut={true}
             showCurrency
             compactLaptop
+            icon={Wallet}
+            bgColor="green"
           />
         )}
 
@@ -285,6 +289,8 @@ export default function DashboardStatsGrid({
             size="sm"
             showCurrency
             compactLaptop
+            icon={Package}
+            bgColor="purple"
           />
         )}
 
@@ -293,6 +299,8 @@ export default function DashboardStatsGrid({
           <PiePanel
             title="Order Distribution"
             subtitle="Order status · all time"
+            icon={Receipt}
+            bgColor="orange"
             data={[
               {
                 name: "Delivered",

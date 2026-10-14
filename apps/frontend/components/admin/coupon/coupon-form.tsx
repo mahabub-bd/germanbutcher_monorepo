@@ -247,7 +247,7 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             {/* Basic Info */}
-            <section className="rounded-xl border bg-card p-5 space-y-4">
+            <section className="rounded-sm border bg-card p-5 space-y-4">
               <SectionTitle icon={Tag} title="Basic Info" />
 
               <FormField
@@ -293,7 +293,7 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
             </section>
 
             {/* Discount */}
-            <section className="rounded-xl border bg-card p-5 space-y-4">
+            <section className="rounded-sm border bg-card p-5 space-y-4">
               <SectionTitle icon={DollarSign} title="Discount" />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -441,7 +441,7 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
             </section>
 
             {/* Schedule */}
-            <section className="rounded-xl border bg-card p-4 space-y-3 lg:col-span-2">
+            <section className="rounded-sm border bg-card p-4 space-y-3 lg:col-span-2">
               <div className="flex items-center gap-2">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
                   <CalendarClock className="h-3.5 w-3.5" />
@@ -514,7 +514,7 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
           </div>
 
           {/* Excluded Products */}
-          <section className="rounded-xl border bg-card p-5 space-y-2">
+          <section className="rounded-sm border bg-card p-5 space-y-2">
             <Accordion
               type="multiple"
               defaultValue={mode === "edit" ? ["products"] : []}
@@ -544,9 +544,8 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value={SELECTED_KEY}>
-                            {`Selected (${
-                              (form.watch("excludedItemIds") || []).length
-                            })`}
+                            {`Selected (${(form.watch("excludedItemIds") || []).length
+                              })`}
                           </SelectItem>
                           {categories.map((category) => (
                             <SelectItem
@@ -589,14 +588,14 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
                             products={
                               selectedCategoryId === SELECTED_KEY
                                 ? products.filter((p) =>
-                                    (field.value || []).includes(p.id)
-                                  )
+                                  (field.value || []).includes(p.id)
+                                )
                                 : selectedCategoryId
                                   ? products.filter(
-                                      (p) =>
-                                        p.categoryId ===
-                                        Number(selectedCategoryId)
-                                    )
+                                    (p) =>
+                                      p.categoryId ===
+                                      Number(selectedCategoryId)
+                                  )
                                   : []
                             }
                             selectedProductIds={field.value || []}
@@ -620,7 +619,7 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
           </section>
 
           {/* Footer action bar */}
-          <div className="rounded-xl border bg-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="rounded-sm border bg-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">
               {(form.watch("excludedItemIds") || []).length} product
               {(form.watch("excludedItemIds") || []).length !== 1

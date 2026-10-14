@@ -1,7 +1,7 @@
 "use client";
 
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import StatsCard from "@/components/admin/dashboard/stats-card";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import { cn, formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { deleteData, fetchProtectedData } from "@/utils/api-utils";
 import { Coupon } from "@/utils/types";
 import {
@@ -42,7 +42,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import DeleteConfirmationDialog from "../delete-confirmation-dialog";
 import { LoadingIndicator } from "../loading-indicator";
-import { cn } from "@/lib/utils";
+import { PageHeader } from "../page-header";
 
 export function CouponList() {
   const MENU_URL = "/admin/marketing/coupon/coupon-list";
@@ -207,38 +207,24 @@ export function CouponList() {
     <>
       <div className="w-full space-y-6">
         {/* Page header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100 text-red-600">
-              <Tag className="h-6 w-6" />
-            </span>
-            <div>
-              <h2 className="text-2xl font-bold">Coupons</h2>
-              <p className="text-sm text-muted-foreground">
-                Manage discount coupons and promotions
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" asChild>
-              <Link href="/admin/marketing/coupon/usage-logs">
-                <Eye className="h-4 w-4 mr-1" />
-                Usage Logs
-              </Link>
-            </Button>
-            {can(MENU_URL, "canCreate") && (
-              <Button
-                asChild
-                className="bg-primaryColor hover:bg-primaryColor/90 text-white"
-              >
-                <Link href="/admin/marketing/coupon/add">
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Coupon
-                </Link>
-              </Button>
-            )}
-          </div>
-        </div>
+        <PageHeader
+          title="Coupons"
+          description="Manage discount coupons and promotions"
+          actionIcon={<Plus className="mr-2 h-4 w-4" />}
+          {...(can(MENU_URL, "canCreate")
+            ? {
+              actionLabel: "Add Coupon",
+              actionHref: "/admin/marketing/coupon/add",
+            }
+            : {})}
+        >
+          <Button variant="outline" asChild>
+            <Link href="/admin/marketing/coupon/usage-logs">
+              <Eye className="h-4 w-4 mr-1" />
+              Usage Logs
+            </Link>
+          </Button>
+        </PageHeader>
 
         {/* Summary tiles */}
         {coupons.length > 0 && (
@@ -256,7 +242,7 @@ export function CouponList() {
         )}
 
         {/* Coupon table */}
-        <div className="rounded-xl border bg-card">
+        <div className="rounded-sm border bg-card">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b">
             <div className="flex items-center gap-3">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
@@ -309,9 +295,9 @@ export function CouponList() {
                   const usagePercent =
                     coupon.maxUsage > 0
                       ? Math.min(
-                          100,
-                          (coupon.timesUsed / coupon.maxUsage) * 100
-                        )
+                        100,
+                        (coupon.timesUsed / coupon.maxUsage) * 100
+                      )
                       : 0;
 
                   return (

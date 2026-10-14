@@ -6,13 +6,13 @@ import { IconRenderer } from "@/components/common/IconRenderer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -88,31 +88,31 @@ const ACTIONS: {
   icon: typeof Eye;
   hint: string;
 }[] = [
-  {
-    key: "canView",
-    label: "View",
-    icon: Eye,
-    hint: "Menu is visible in the sidebar and the page can be opened",
-  },
-  {
-    key: "canCreate",
-    label: "Create",
-    icon: FilePlus2,
-    hint: "Can add new records in this module (also covers payments and similar create actions)",
-  },
-  {
-    key: "canEdit",
-    label: "Edit",
-    icon: Pencil,
-    hint: "Can update existing records in this module",
-  },
-  {
-    key: "canDelete",
-    label: "Delete",
-    icon: Trash2,
-    hint: "Can permanently remove records in this module",
-  },
-];
+    {
+      key: "canView",
+      label: "View",
+      icon: Eye,
+      hint: "Menu is visible in the sidebar and the page can be opened",
+    },
+    {
+      key: "canCreate",
+      label: "Create",
+      icon: FilePlus2,
+      hint: "Can add new records in this module (also covers payments and similar create actions)",
+    },
+    {
+      key: "canEdit",
+      label: "Edit",
+      icon: Pencil,
+      hint: "Can update existing records in this module",
+    },
+    {
+      key: "canDelete",
+      label: "Delete",
+      icon: Trash2,
+      hint: "Can permanently remove records in this module",
+    },
+  ];
 
 /** Shared grid template so header and rows line up perfectly. */
 const GRID_COLS = "grid grid-cols-[minmax(0,1fr)_repeat(4,72px)] items-center";
@@ -598,7 +598,7 @@ export default function RoleMenuPermissions() {
     }
 
     return (
-      <div className="overflow-hidden rounded-xl border bg-card">
+      <div className="overflow-hidden rounded-sm border bg-card">
         {/* Sticky column headers */}
         <div
           className={cn(
@@ -635,14 +635,14 @@ export default function RoleMenuPermissions() {
   const canManage = Boolean(selectedRoleId) && !loading;
 
   return (
-    <div className="w-full p-2 md:p-6">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm w-full">
       <PageHeader
         title="Role Permissions"
         description="Pick a role, then set what it can do in each module. View controls sidebar visibility; Create, Edit and Delete are enforced on the API."
       />
 
       {/* Sticky toolbar */}
-      <div className="sticky top-2 z-20 mb-4 rounded-xl border bg-card/95 p-3 shadow-sm backdrop-blur md:p-4">
+      <div className="sticky top-2 z-20 mb-4 rounded-sm border bg-card/95 p-3 shadow-sm backdrop-blur md:p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <label className="text-sm font-medium text-primaryColor">Role</label>

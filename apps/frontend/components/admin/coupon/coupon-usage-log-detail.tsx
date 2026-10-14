@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { getCouponUsageLogById } from "@/lib/coupon-usage-log-service";
 import { formatDateTime } from "@/lib/utils";
 import {
   getOrderStatusColor,
@@ -11,19 +12,18 @@ import {
   getStatusIcon,
 } from "@/utils/order-helper";
 import { CouponUsageLog } from "@/utils/types";
-import { getCouponUsageLogById } from "@/lib/coupon-usage-log-service";
 import {
   ArrowLeft,
   Calendar,
   DollarSign,
+  FileText,
+  Mail,
   Package,
+  Percent,
+  Phone,
+  ShoppingCart,
   Tag,
   User,
-  FileText,
-  ShoppingCart,
-  Percent,
-  Mail,
-  Phone,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -63,7 +63,7 @@ export function CouponUsageLogDetail({ logId }: { logId: string | number }) {
 
   if (!log) {
     return (
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full">
         <div className="flex flex-col items-center justify-center p-8 text-center">
           <FileText className="h-10 w-10 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold">Usage log not found</h3>
@@ -81,7 +81,7 @@ export function CouponUsageLogDetail({ logId }: { logId: string | number }) {
   }
 
   return (
-    <div className="w-full md:p-6 p-2">
+    <div className="w-full">
       <div className="flex items-center justify-between mb-6">
         <PageHeader
           title={`Usage Log #${log.id}`}

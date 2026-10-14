@@ -20,7 +20,7 @@ export default async function OrdersPage({
     orderStatus: "pending",
   };
   return (
-    <div className="p-6 space-y-6 border rounded-sm">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <OrderList
         initialPage={page}
         initialLimit={limit}

@@ -85,11 +85,10 @@ interface StatusUpdateModalProps {
 function RadioDot({ selected }: { selected: boolean }) {
   return (
     <span
-      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-        selected
+      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${selected
           ? "border-blue-500"
           : "border-gray-300 dark:border-neutral-600"
-      }`}
+        }`}
     >
       {selected && <span className="h-2 w-2 rounded-full bg-blue-500" />}
     </span>
@@ -121,39 +120,39 @@ function StatusUpdateModal({
     iconBg: string;
     iconColor: string;
   }> = [
-    {
-      value: ContactStatus.PENDING,
-      label: "Pending",
-      description: "Waiting for response",
-      icon: <Clock className="h-4 w-4" />,
-      iconBg: "bg-amber-100 dark:bg-amber-900/40",
-      iconColor: "text-amber-600 dark:text-amber-400",
-    },
-    {
-      value: ContactStatus.IN_PROGRESS,
-      label: "In Progress",
-      description: "Currently working on it",
-      icon: <AlertCircle className="h-4 w-4" />,
-      iconBg: "bg-blue-100 dark:bg-blue-900/40",
-      iconColor: "text-blue-600 dark:text-blue-400",
-    },
-    {
-      value: ContactStatus.RESOLVED,
-      label: "Resolved",
-      description: "Issue has been resolved",
-      icon: <CheckCircle className="h-4 w-4" />,
-      iconBg: "bg-green-100 dark:bg-green-900/40",
-      iconColor: "text-green-600 dark:text-green-400",
-    },
-    {
-      value: ContactStatus.CLOSED,
-      label: "Closed",
-      description: "Conversation is closed",
-      icon: <XCircle className="h-4 w-4" />,
-      iconBg: "bg-red-100 dark:bg-red-900/40",
-      iconColor: "text-red-600 dark:text-red-400",
-    },
-  ];
+      {
+        value: ContactStatus.PENDING,
+        label: "Pending",
+        description: "Waiting for response",
+        icon: <Clock className="h-4 w-4" />,
+        iconBg: "bg-amber-100 dark:bg-amber-900/40",
+        iconColor: "text-amber-600 dark:text-amber-400",
+      },
+      {
+        value: ContactStatus.IN_PROGRESS,
+        label: "In Progress",
+        description: "Currently working on it",
+        icon: <AlertCircle className="h-4 w-4" />,
+        iconBg: "bg-blue-100 dark:bg-blue-900/40",
+        iconColor: "text-blue-600 dark:text-blue-400",
+      },
+      {
+        value: ContactStatus.RESOLVED,
+        label: "Resolved",
+        description: "Issue has been resolved",
+        icon: <CheckCircle className="h-4 w-4" />,
+        iconBg: "bg-green-100 dark:bg-green-900/40",
+        iconColor: "text-green-600 dark:text-green-400",
+      },
+      {
+        value: ContactStatus.CLOSED,
+        label: "Closed",
+        description: "Conversation is closed",
+        icon: <XCircle className="h-4 w-4" />,
+        iconBg: "bg-red-100 dark:bg-red-900/40",
+        iconColor: "text-red-600 dark:text-red-400",
+      },
+    ];
 
   const actionOptions: Array<{
     value: ActionTaken | "";
@@ -161,15 +160,15 @@ function StatusUpdateModal({
     description: string;
     icon: React.ReactNode;
   }> = [
-    { value: "", label: "None", description: "No action", icon: <Ban className="h-4 w-4" /> },
-    { value: ActionTaken.REPLIED_VIA_EMAIL, label: "Email", description: "Send an email", icon: <Send className="h-4 w-4" /> },
-    { value: ActionTaken.CALLED_CUSTOMER, label: "Called", description: "Made a call", icon: <PhoneCall className="h-4 w-4" /> },
-    { value: ActionTaken.PROVIDED_PRODUCT_INFO, label: "Info", description: "Provide information", icon: <Package className="h-4 w-4" /> },
-    { value: ActionTaken.ISSUE_RESOLVED, label: "Resolved", description: "Mark as resolved", icon: <CheckCircle className="h-4 w-4" /> },
-    { value: ActionTaken.ORDER_PLACED, label: "Order", description: "Create an order", icon: <ShoppingCart className="h-4 w-4" /> },
-    { value: ActionTaken.REFUND_PROCESSED, label: "Refund", description: "Process a refund", icon: <RefreshCw className="h-4 w-4" /> },
-    { value: ActionTaken.OTHER, label: "Other", description: "Other action", icon: <FileText className="h-4 w-4" /> },
-  ];
+      { value: "", label: "None", description: "No action", icon: <Ban className="h-4 w-4" /> },
+      { value: ActionTaken.REPLIED_VIA_EMAIL, label: "Email", description: "Send an email", icon: <Send className="h-4 w-4" /> },
+      { value: ActionTaken.CALLED_CUSTOMER, label: "Called", description: "Made a call", icon: <PhoneCall className="h-4 w-4" /> },
+      { value: ActionTaken.PROVIDED_PRODUCT_INFO, label: "Info", description: "Provide information", icon: <Package className="h-4 w-4" /> },
+      { value: ActionTaken.ISSUE_RESOLVED, label: "Resolved", description: "Mark as resolved", icon: <CheckCircle className="h-4 w-4" /> },
+      { value: ActionTaken.ORDER_PLACED, label: "Order", description: "Create an order", icon: <ShoppingCart className="h-4 w-4" /> },
+      { value: ActionTaken.REFUND_PROCESSED, label: "Refund", description: "Process a refund", icon: <RefreshCw className="h-4 w-4" /> },
+      { value: ActionTaken.OTHER, label: "Other", description: "Other action", icon: <FileText className="h-4 w-4" /> },
+    ];
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -819,94 +818,94 @@ export function ContactMessageList({
   };
 
   const renderTableView = () => (
-    <div className="md:p-6 p-2">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead className="hidden md:table-cell">Contact Info</TableHead>
-            <TableHead>Message</TableHead>
-            <TableHead className="hidden lg:table-cell">Status</TableHead>
-            <TableHead className="hidden lg:table-cell">Date</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {messages.map((message) => (
-            <TableRow key={message.id}>
-              <TableCell className="font-medium">
-                <div>
-                  <div className="font-semibold">{message.name}</div>
-                  <div className="text-xs text-muted-foreground md:hidden">
-                    {message.email}
-                  </div>
+
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead className="hidden md:table-cell">Contact Info</TableHead>
+          <TableHead>Message</TableHead>
+          <TableHead className="hidden lg:table-cell">Status</TableHead>
+          <TableHead className="hidden lg:table-cell">Date</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {messages.map((message) => (
+          <TableRow key={message.id}>
+            <TableCell className="font-medium">
+              <div>
+                <div className="font-semibold">{message.name}</div>
+                <div className="text-xs text-muted-foreground md:hidden">
+                  {message.email}
                 </div>
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <div className="space-y-1">
+              </div>
+            </TableCell>
+            <TableCell className="hidden md:table-cell">
+              <div className="space-y-1">
+                <div className="flex items-center gap-1 text-sm">
+                  <Mail className="h-3 w-3" />
+                  {message.email}
+                </div>
+                {message.mobile && (
                   <div className="flex items-center gap-1 text-sm">
-                    <Mail className="h-3 w-3" />
-                    {message.email}
+                    <Phone className="h-3 w-3" />
+                    {message.mobile}
                   </div>
-                  {message.mobile && (
-                    <div className="flex items-center gap-1 text-sm">
-                      <Phone className="h-3 w-3" />
-                      {message.mobile}
-                    </div>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="max-w-xs truncate" title={message.message}>
-                  {message.message}
-                </div>
-              </TableCell>
-              <TableCell className="hidden lg:table-cell">
-                {getStatusBadge(message.contactStatus)}
-              </TableCell>
-              <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
-                {formatDate(message.createdAt)}
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleViewDetails(message)}>
-                      <Eye className="mr-2 h-4 w-4" /> View Details
+                )}
+              </div>
+            </TableCell>
+            <TableCell>
+              <div className="max-w-xs truncate" title={message.message}>
+                {message.message}
+              </div>
+            </TableCell>
+            <TableCell className="hidden lg:table-cell">
+              {getStatusBadge(message.contactStatus)}
+            </TableCell>
+            <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+              {formatDate(message.createdAt)}
+            </TableCell>
+            <TableCell className="text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleViewDetails(message)}>
+                    <Eye className="mr-2 h-4 w-4" /> View Details
+                  </DropdownMenuItem>
+                  {can(MENU_URL, "canEdit") && (
+                    <DropdownMenuItem
+                      onClick={() => handleStatusUpdateClick(message)}
+                    >
+                      <CheckCircle className="mr-2 h-4 w-4" /> Update Status
                     </DropdownMenuItem>
-                    {can(MENU_URL, "canEdit") && (
-                      <DropdownMenuItem
-                        onClick={() => handleStatusUpdateClick(message)}
-                      >
-                        <CheckCircle className="mr-2 h-4 w-4" /> Update Status
-                      </DropdownMenuItem>
-                    )}
-                    {can(MENU_URL, "canDelete") && (
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDeleteClick(message)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+                  )}
+                  {can(MENU_URL, "canDelete") && (
+                    <DropdownMenuItem
+                      className="text-red-600"
+                      onClick={() => handleDeleteClick(message)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+
   );
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full ">
         <PageHeader
           title="Contact Messages"
           description="Manage customer inquiries and messages"
@@ -1095,7 +1094,7 @@ export function ContactMessageList({
                 </h4>
                 <div className="space-y-2">
                   <div className="flex items-start gap-3">
-                    <span className="text-sm font-medium min-w-[100px]">Name:</span>
+                    <span className="text-sm font-medium min-w-25">Name:</span>
                     <span className="text-sm">{selectedMessageForDetail.name}</span>
                   </div>
                   <div className="flex items-start gap-3">

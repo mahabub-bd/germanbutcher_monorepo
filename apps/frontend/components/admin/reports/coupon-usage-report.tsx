@@ -12,8 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { fetchDataPagination } from "@/utils/api-utils";
 import { formatDateTime } from "@/lib/utils";
+import { fetchDataPagination } from "@/utils/api-utils";
 import { Tag, Ticket, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -137,7 +137,7 @@ export function CouponUsageReport({
       : "Period: all time";
 
   return (
-    <div className="w-full md:p-6 p-2">
+    <div className="w-full">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <PageHeader
           title="Coupon Usage Report"
@@ -166,10 +166,10 @@ export function CouponUsageReport({
           summary={
             stats
               ? [
-                  { label: "Total Uses", value: String(stats.totalUses) },
-                  { label: "Total Discount", value: formatMoneyPdf(stats.totalDiscountGiven) },
-                  { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
-                ]
+                { label: "Total Uses", value: String(stats.totalUses) },
+                { label: "Total Discount", value: formatMoneyPdf(stats.totalDiscountGiven) },
+                { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
+              ]
               : undefined
           }
         />

@@ -22,6 +22,7 @@ import { type Resolver, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { SectionCard } from "@/components/admin/products/form/section-card";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -38,7 +39,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SectionCard } from "@/components/admin/products/form/section-card";
 
 import { DatePicker } from "@/components/ui/date-picker";
 import { fetchProtectedData, patchData, postData } from "@/utils/api-utils";
@@ -449,7 +449,7 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
           </SectionCard>
         </div>
 
-        <div className="sticky bottom-0 z-10 mt-6 border-t bg-background/95 px-2 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="sticky bottom-0 z-10 mt-6 border-t bg-background/95 px-2 py-4 backdrop-blur supports-backdrop-filter:bg-background/80">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Button
               type="button"

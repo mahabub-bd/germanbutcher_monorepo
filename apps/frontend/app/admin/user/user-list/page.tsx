@@ -16,7 +16,7 @@ export default async function UsersPage({
       : 30;
 
   return (
-    <div className="p-6 space-y-6 border rounded-sm">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <UserList
         initialPage={page}
         initialLimit={limit}

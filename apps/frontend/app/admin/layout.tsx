@@ -8,7 +8,7 @@ function AdminLayoutSkeleton() {
   return (
     <>
       {/* Sidebar Skeleton */}
-      <div className="fixed left-0 top-0 z-50 hidden h-full w-[250px] border-r bg-background md:block lg:w-[260px]">
+      <div className="fixed left-0 top-0 z-50 hidden h-full w-62.5 border-r bg-background md:block lg:w-65">
         <div className="flex h-16 items-center border-b px-6">
           <Skeleton className="h-10 w-32" />
         </div>

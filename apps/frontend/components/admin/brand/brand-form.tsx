@@ -118,7 +118,7 @@ export function BrandForm({ mode, brand }: BrandFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="p-2 md:p-4 space-y-6">
+        <div className=" space-y-6">
           {/* Basic Information Section */}
           <Section title="Basic Information">
             <FormField
@@ -144,7 +144,7 @@ export function BrandForm({ mode, brand }: BrandFormProps) {
                   <FormControl>
                     <Textarea
                       placeholder="Enter brand description"
-                      className="min-h-[100px]"
+                      className="min-h-25"
                       {...field}
                     />
                   </FormControl>

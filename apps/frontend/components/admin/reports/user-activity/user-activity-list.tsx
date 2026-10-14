@@ -345,7 +345,7 @@ export function UserActivityList({
   );
 
   return (
-    <div className="w-full md:p-6 p-2">
+    <div className="w-full">
       <PageHeader
         title="User Activity"
         description="Monitor and track user activities across the system"
@@ -398,11 +398,10 @@ export function UserActivityList({
                               setActionFilter(action);
                               setCurrentPage(1);
                             }}
-                            className={`text-xs py-1.5 px-2 rounded-md border ${
-                              actionFilter === action
+                            className={`text-xs py-1.5 px-2 rounded-md border ${actionFilter === action
                                 ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                                 : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
+                              }`}
                           >
                             {action === "all" ? "All" : action}
                           </button>

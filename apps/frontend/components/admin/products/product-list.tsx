@@ -292,10 +292,10 @@ export function ProductList({
   const hasActiveFilters = () =>
     Boolean(
       searchQuery ||
-        categoryFilter ||
-        brandFilter ||
-        statusFilter ||
-        featuredFilter
+      categoryFilter ||
+      brandFilter ||
+      statusFilter ||
+      featuredFilter
     );
 
   const renderEmptyState = () => (
@@ -415,11 +415,11 @@ export function ProductList({
             brandFilter ||
             statusFilter ||
             featuredFilter) && (
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          )}
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[400px]">
+      <DropdownMenuContent align="end" className="w-100">
         <div className="grid grid-cols-2 gap-3 p-3">
           <div className="space-y-1">
             <h4 className="text-xs font-semibold">Category</h4>
@@ -556,7 +556,7 @@ export function ProductList({
             <TableRow key={product.id} className="hover:bg-muted/50">
               <TableCell>
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex aspect-[3/2] h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                  <span className="flex aspect-3/2 h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
                     <ProductImage product={product} width={96} height={64} />
                   </span>
                   <div className="min-w-0">
@@ -604,11 +604,10 @@ export function ProductList({
               </TableCell>
               <TableCell className="hidden md:table-cell text-center">
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    product.stock === 0
-                      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                      : "bg-muted"
-                  }`}
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${product.stock === 0
+                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    : "bg-muted"
+                    }`}
                 >
                   <Boxes className="h-3 w-3" />
                   {product.stock}
@@ -670,15 +669,15 @@ export function ProductList({
 
   return (
     <>
-      <div className="w-full p-2 md:p-6 space-y-4">
+      <div className="w-full  space-y-4">
         <PageHeader
           title="Products"
           description="Manage your product inventory"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add Product",
-                actionHref: "/admin/products/add",
-              }
+              actionLabel: "Add Product",
+              actionHref: "/admin/products/add",
+            }
             : {})}
         />
 
@@ -705,7 +704,7 @@ export function ProductList({
         </div>
 
         {/* List card: toolbar + table */}
-        <div className="rounded-xl border bg-card">
+        <div className="rounded-sm border bg-card">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
             <div className="flex items-center gap-3">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
