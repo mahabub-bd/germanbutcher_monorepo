@@ -22,7 +22,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoadingIndicator } from "../loading-indicator";
 
-export function ActivityLog() {
+export function ActivityLog({ userId }: { userId: number | string }) {
   const [activities, setActivities] = useState<UserActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -31,7 +31,7 @@ export function ActivityLog() {
     try {
       const response = await fetchDataPagination<{
         data: UserActivity[];
-      }>(`user-activities?limit=5`);
+      }>(`user-activities?limit=5&userId=${userId}`);
       setActivities(response.data);
     } catch (error) {
       console.error("Error fetching user activities:", error);

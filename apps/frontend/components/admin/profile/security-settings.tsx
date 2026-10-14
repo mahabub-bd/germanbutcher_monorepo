@@ -13,22 +13,38 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { patchData } from "@/utils/api-utils";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export function SecuritySettings() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
     try {
       setIsChangingPassword(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await patchData("users/password/change", { currentPassword, newPassword });
       toast.success("Password updated successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to update password");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update password"
+      );
     } finally {
       setIsChangingPassword(false);
     }
@@ -51,16 +67,36 @@ export function SecuritySettings() {
           >
             <div className="space-y-2">
               <Label htmlFor="current-password">Current Password</Label>
-              <Input id="current-password" type="password" required />
+              <Input
+                id="current-password"
+                type="password"
+                required
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+              />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="new-password">New Password</Label>
-                <Input id="new-password" type="password" required />
+                <Input
+                  id="new-password"
+                  type="password"
+                  required
+                  minLength={8}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm-password">Confirm New Password</Label>
-                <Input id="confirm-password" type="password" required />
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  required
+                  minLength={8}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
               </div>
             </div>
           </form>
