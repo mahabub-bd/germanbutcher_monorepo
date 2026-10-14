@@ -699,71 +699,65 @@ export function FlashSalesCard() {
                 </div>
 
                 {/* Schedule card */}
-                <div className="space-y-3 rounded-xl border border-gray-100 p-4 dark:border-gray-800">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
-                      <CalendarClock className="h-3.5 w-3.5" />
+                <div className="space-y-4 rounded-xl border border-gray-100 p-4 dark:border-gray-800">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                      <CalendarClock className="h-4 w-4" />
                     </span>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">
-                      Schedule
-                    </p>
-                    <span className="text-xs text-muted-foreground truncate">
-                      Exact start and end, down to the minute
-                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">
+                        Schedule
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        Exact start and end, down to the minute
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label>Starts</Label>
-                      <div className="flex gap-2">
-                        <DatePicker
-                          value={form.validFrom ?? undefined}
-                          onChange={(date) =>
-                            setForm((prev) => ({ ...prev, validFrom: date }))
-                          }
-                          placeholder="Immediately"
-                          className="flex-1"
-                        />
-                        <Input
-                          type="time"
-                          value={form.validFromTime}
-                          onChange={(e) =>
-                            setForm((prev) => ({
-                              ...prev,
-                              validFromTime: e.target.value,
-                            }))
-                          }
-                          className="flex-1"
-                          aria-label="Start time"
-                        />
-                      </div>
+                      <DatePicker
+                        value={form.validFrom ?? undefined}
+                        onChange={(date) =>
+                          setForm((prev) => ({ ...prev, validFrom: date }))
+                        }
+                        placeholder="Immediately"
+                      />
+                      <Input
+                        type="time"
+                        value={form.validFromTime}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            validFromTime: e.target.value,
+                          }))
+                        }
+                        aria-label="Start time"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>Ends</Label>
-                      <div className="flex gap-2">
-                        <DatePicker
-                          value={form.validUntil ?? undefined}
-                          onChange={(date) =>
-                            setForm((prev) => ({ ...prev, validUntil: date }))
-                          }
-                          placeholder="No end date"
-                          className="flex-1"
-                        />
-                        <Input
-                          type="time"
-                          value={form.validUntilTime}
-                          onChange={(e) =>
-                            setForm((prev) => ({
-                              ...prev,
-                              validUntilTime: e.target.value,
-                            }))
-                          }
-                          className="flex-1"
-                          aria-label="End time"
-                        />
-                      </div>
+                      <DatePicker
+                        value={form.validUntil ?? undefined}
+                        onChange={(date) =>
+                          setForm((prev) => ({ ...prev, validUntil: date }))
+                        }
+                        placeholder="No end date"
+                      />
+                      <Input
+                        type="time"
+                        value={form.validUntilTime}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            validUntilTime: e.target.value,
+                          }))
+                        }
+                        aria-label="End time"
+                      />
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground sm:col-span-2">
                       Leave a date empty for no limit — e.g. start immediately
                       or run until you stop it.
                     </p>
