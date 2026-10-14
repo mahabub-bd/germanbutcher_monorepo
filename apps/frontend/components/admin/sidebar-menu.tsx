@@ -21,7 +21,6 @@ import {
   ChevronLeft,
   LogOut,
   Package,
-  Settings,
   User,
   UserCircle,
 } from "lucide-react";
@@ -444,12 +443,6 @@ export function SidebarMenu({
                 <Link href="/admin/profile" className="cursor-pointer">
                   <UserCircle className="mr-2 h-4 w-4" />
                   <span>Profile</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings" className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

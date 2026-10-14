@@ -239,7 +239,7 @@ export default function AdminProfileView({ user }: AdminProfileViewProps) {
 
             {/* Activity Tab */}
             <TabsContent value="activity" className="pt-4">
-              <ActivityLog />
+              <ActivityLog userId={user.id} />
             </TabsContent>
           </Tabs>
         </div>
