@@ -31,6 +31,7 @@ function Badge({ children, color = "default" }: BadgeProps) {
 }
 
 interface StatusCardProps {
+  className?: string;
   title: string;
   value: number | string;
   icon: LucideIcon;
@@ -51,6 +52,7 @@ interface StatusCardProps {
 }
 
 export function StatusCard({
+  className,
   title,
   value,
   icon: Icon,
@@ -68,7 +70,8 @@ export function StatusCard({
         "border-gray-200 dark:border-gray-700",
         "hover:shadow-sm active:scale-[0.98] sm:hover:scale-[1.02]",
         "w-full",
-        gradient || "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
+        gradient || "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700",
+        className
       )}
     >
       {/* Left Section */}
