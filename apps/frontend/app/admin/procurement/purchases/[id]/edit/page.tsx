@@ -55,7 +55,7 @@ export default function EditPurchasePage() {
             <CardDescription>Update the purchase information.</CardDescription>
           </div>
           <Button asChild variant="outline">
-            <Link href="/admin/procurement/purchases">Back to Purchases</Link>
+            <Link href="/admin/procurement/purchases/purchases-list">Back to Purchases</Link>
           </Button>
         </div>
 

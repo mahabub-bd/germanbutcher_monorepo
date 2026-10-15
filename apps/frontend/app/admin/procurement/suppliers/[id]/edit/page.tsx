@@ -54,7 +54,7 @@ export default function EditSupplierPage() {
             <CardDescription>Update the supplier information.</CardDescription>
           </div>
           <Button asChild variant="outline">
-            <Link href="/admin/procurement/suppliers">Back to Suppliers</Link>
+            <Link href="/admin/procurement/suppliers/suppliers-list">Back to Suppliers</Link>
           </Button>
         </div>
 

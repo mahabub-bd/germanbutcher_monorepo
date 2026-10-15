@@ -9,7 +9,7 @@ export default function AddSupplierPage() {
       <FormPageHeader
         title="Add New Supplier"
         description="Create a new supplier. Fill in all the required information."
-        backHref="/admin/procurement/suppliers"
+        backHref="/admin/procurement/suppliers/suppliers-list"
         backLabel="Back to Suppliers"
       />
       <SupplierForm mode="create" />
