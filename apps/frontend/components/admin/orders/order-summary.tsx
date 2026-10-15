@@ -71,7 +71,7 @@ export function OrderSummary({
   const orderSummary = calculateOrderSummary();
 
   return (
-    <div className="border rounded-lg p-4 bg-background">
+    <div className="rounded-sm border p-4 bg-background">
       <div className="pb-3">
         <h3 className="text-base font-medium flex items-center">
           <FileText className="size-5 mr-2" />

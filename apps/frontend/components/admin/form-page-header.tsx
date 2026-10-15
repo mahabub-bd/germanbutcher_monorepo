@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { CardDescription, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { List } from "lucide-react";
 import Link from "next/link";
 
 interface FormPageHeaderProps {
@@ -35,8 +36,14 @@ export function FormPageHeader({
           {description && <CardDescription>{description}</CardDescription>}
         </div>
       )}
-      <Button asChild variant="default">
-        <Link href={backHref}>{backLabel}</Link>
+      <Button
+        asChild
+        className="bg-primaryColor text-white hover:bg-primaryColor/90"
+      >
+        <Link href={backHref}>
+          <List className="mr-2 h-4 w-4" />
+          {backLabel}
+        </Link>
       </Button>
     </div>
   );

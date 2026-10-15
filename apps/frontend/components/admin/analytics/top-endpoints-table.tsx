@@ -60,7 +60,7 @@ export function TopEndpointsTable({ data }: TopEndpointsTableProps) {
           <TableBody>
             {data.map((endpoint, index) => (
               <TableRow key={`${endpoint.endpoint}-${index}`}>
-                <TableCell className="font-mono text-sm max-w-[200px] truncate">
+                <TableCell className="font-mono text-sm max-w-50 truncate">
                   {endpoint.endpoint}
                 </TableCell>
                 <TableCell>

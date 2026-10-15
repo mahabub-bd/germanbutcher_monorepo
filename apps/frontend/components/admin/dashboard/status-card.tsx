@@ -79,7 +79,7 @@ export function StatusCard({
         <div className="p-1.5 rounded-md bg-white/50 dark:bg-black/20 shrink-0">
           <Icon className={cn("w-4 h-4 sm:w-4 sm:h-4 2xl:w-5 2xl:h-5 shrink-0", color)} />
         </div>
-        <h4 className="min-w-0 text-xs sm:text-xs 2xl:text-xs font-medium text-gray-800 dark:text-gray-200 truncate whitespace-nowrap">
+        <h4 className="min-w-0 text-xs sm:text-xs 2xl:text-base font-medium text-gray-800 dark:text-gray-200 truncate whitespace-nowrap">
           {title}
         </h4>
       </div>

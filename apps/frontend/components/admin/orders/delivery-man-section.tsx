@@ -2,9 +2,9 @@
 
 import { AssignDeliveryMan } from "@/components/admin/delivery-man/assign-delivery-man";
 import { Badge } from "@/components/ui/badge";
+import type { DeliveryMan, Order } from "@/utils/types";
 import { CheckCircle2, Truck } from "lucide-react";
 import { useState } from "react";
-import type { DeliveryMan, Order } from "@/utils/types";
 
 interface DeliveryManSectionProps {
   order: Order;
@@ -23,7 +23,7 @@ export function DeliveryManSection({
   };
 
   return (
-    <div className="border rounded-lg bg-card shadow-sm">
+    <div className="rounded-sm border bg-card shadow-sm">
       <div className="px-4 py-3 border-b">
         <h3 className="text-sm font-semibold flex items-center">
           <Truck className="size-4 mr-1.5 text-primary" />
@@ -35,7 +35,7 @@ export function DeliveryManSection({
         {currentOrder.deliveryMan ? (
           <div className="flex items-center justify-between p-3 rounded-lg border border-green-500/30 bg-green-50 dark:bg-green-950/20">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
               <div>
                 <p className="text-sm font-semibold">
                   {currentOrder.deliveryMan.name}

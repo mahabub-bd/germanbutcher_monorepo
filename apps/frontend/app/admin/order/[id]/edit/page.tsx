@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CardDescription, CardTitle } from "@/components/ui/card";
 import { fetchProtectedData } from "@/utils/api-utils";
 import type { Order } from "@/utils/types";
-import { ArrowLeft } from "lucide-react";
+import { List } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -52,9 +52,9 @@ export default function EditOrderPage() {
             <CardTitle>Edit Order</CardTitle>
             <CardDescription>Update the order information.</CardDescription>
           </div>
-          <Button variant="default" asChild>
+          <Button className="bg-primaryColor text-white hover:bg-primaryColor/90" asChild>
             <Link href={`/admin/orders`}>
-              <ArrowLeft className="h-4 w-4" />
+              <List className="h-4 w-4" />
               <span className="sr-only">Back</span>
               Back To Orders
             </Link>

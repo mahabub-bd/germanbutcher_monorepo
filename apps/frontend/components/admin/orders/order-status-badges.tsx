@@ -13,29 +13,25 @@ export function OrderStatusBadges({
   paymentStatus,
 }: OrderStatusBadgesProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 justify-between">
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Order:</span>
-        <Badge
-          className={`${getOrderStatusColor(orderStatus)} px-2.5 py-1 text-xs font-medium`}
-        >
-          <span className="mr-1">
-            {getStatusIcon(orderStatus)}
-          </span>
-          <span className="capitalize">{orderStatus}</span>
-        </Badge>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Payment :</span>
-        <Badge
-          className={`${getPaymentStatusColor(paymentStatus)} px-2.5 py-1 text-xs font-medium`}
-        >
-          <span className="mr-1">
-            {getStatusIcon(paymentStatus)}
-          </span>
-          <span className="capitalize">{paymentStatus}</span>
-        </Badge>
-      </div>
+    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+      <span className="text-[11px] text-muted-foreground">Order Status</span>
+      <Badge
+        className={`${getOrderStatusColor(orderStatus)} max-w-full px-2 py-0.5 text-[11px] font-medium`}
+      >
+        <span className="mr-1">
+          {getStatusIcon(orderStatus)}
+        </span>
+        <span className="truncate capitalize">{orderStatus}</span>
+      </Badge>
+      <span className="ml-1 text-[11px] text-muted-foreground">Payment</span>
+      <Badge
+        className={`${getPaymentStatusColor(paymentStatus)} max-w-full px-2 py-0.5 text-[11px] font-medium`}
+      >
+        <span className="mr-1">
+          {getStatusIcon(paymentStatus)}
+        </span>
+        <span className="truncate capitalize">{paymentStatus}</span>
+      </Badge>
     </div>
   );
 }

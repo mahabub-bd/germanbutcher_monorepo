@@ -375,8 +375,7 @@ export function FreeDeliveryCampaignsCard() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-
+      <div className="mb-4 flex justify-end">
         {can(MENU_URL, "canCreate") && (
           <Button size="sm" onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" />
@@ -414,9 +413,9 @@ export function FreeDeliveryCampaignsCard() {
                       <Truck className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <h4
-                          className={`truncate text-base font-semibold ${campaign.isActive
+                          className={`text-base font-semibold leading-snug ${campaign.isActive
                             ? "text-gray-900 dark:text-gray-50"
                             : "text-gray-500 dark:text-gray-400"
                             }`}
@@ -460,8 +459,8 @@ export function FreeDeliveryCampaignsCard() {
                   </div>
                 </div>
 
-                {/* Condition chips — single line, scroll horizontally */}
-                <div className="mt-4 flex flex-nowrap gap-2 overflow-x-auto border-t border-gray-100 pt-4 dark:border-gray-800">
+                {/* Condition chips — wrap on mobile, single scrollable line from sm up */}
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-100 pt-4 sm:flex-nowrap sm:overflow-x-auto dark:border-gray-800">
                   {chips.map((chip, index) => (
                     <span
                       key={index}

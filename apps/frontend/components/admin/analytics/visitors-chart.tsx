@@ -84,7 +84,7 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
 
   if (!data || data.length === 0) {
     return (
-      <Card>
+      <Card className="h-full rounded-sm">
         <CardHeader>
           <CardTitle className="text-lg font-bold">Visitors Overview</CardTitle>
           <CardDescription>No data available</CardDescription>
@@ -94,7 +94,7 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
   }
 
   return (
-    <Card>
+    <Card className="h-full rounded-sm">
       <CardHeader>
         <CardTitle className="text-lg font-bold">Visitors Overview</CardTitle>
         <CardDescription>
@@ -102,15 +102,18 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={220}>
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
             <XAxis
               dataKey="date"
               axisLine={false}
               tickLine={false}
-              tickMargin={10}
+              tickMargin={5}
               interval={getXAxisInterval()}
+              angle={-45}
+              textAnchor="end"
+              height={55}
               tick={{ fontSize: 11, fill: "currentColor" }}
             />
             <YAxis

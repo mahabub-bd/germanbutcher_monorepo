@@ -524,6 +524,13 @@ export class OrderService {
       customerName: user.name,
       totalAmount: Number(completeOrder.totalValue).toFixed(2),
       itemCount: completeOrder.items?.length ?? 0,
+      items: completeOrder.items?.map((item) => ({
+        productName: item.product?.name || 'Product',
+        quantity: item.quantity,
+        price: Number(item.unitPrice),
+        unitDiscount: Number(item.unitDiscount) || 0,
+        productImage: item.product?.attachment?.url ?? null,
+      })),
     });
 
     // Send order confirmation SMS

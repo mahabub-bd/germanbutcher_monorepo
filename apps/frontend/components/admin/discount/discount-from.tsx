@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  ArrowLeft,
+  List,
   BadgeDollarSign,
   CalendarClock,
   Info,
@@ -174,9 +174,9 @@ export function DiscountForm({
             </p>
           </div>
         </div>
-        <Button asChild variant="outline">
+        <Button asChild className="bg-primaryColor text-white hover:bg-primaryColor/90">
           <Link href="/admin/marketing/discounts/discount-list">
-            <ArrowLeft className="h-4 w-4 mr-1" />
+            <List className="h-4 w-4 mr-1" />
             Back to Discounts
           </Link>
         </Button>

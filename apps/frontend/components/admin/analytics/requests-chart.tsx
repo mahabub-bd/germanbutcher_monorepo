@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { AnalyticsRequests } from "@/utils/types";
+import type { AnalyticsPeriod, AnalyticsRequests } from "@/utils/types";
 import {
   Area,
   AreaChart,
@@ -20,6 +20,8 @@ import {
 
 interface RequestsChartProps {
   data: AnalyticsRequests[];
+  /** Kept for API symmetry; buckets are always hour-wise from the backend. */
+  period?: AnalyticsPeriod;
 }
 
 const REQUESTS_COLOR = "#6366f1"; // Indigo-500
@@ -27,6 +29,8 @@ const REQUESTS_COLOR = "#6366f1"; // Indigo-500
 export function RequestsChart({ data }: RequestsChartProps) {
   const totalRequests = data.reduce((sum, item) => sum + item.count, 0);
   const avgRequests = data.length > 0 ? Math.round(totalRequests / data.length) : 0;
+  // Backend always buckets hour-wise
+  const avgUnit = "hr";
 
   const CustomTooltip = ({
     active,
@@ -56,7 +60,7 @@ export function RequestsChart({ data }: RequestsChartProps) {
 
   if (!data || data.length === 0) {
     return (
-      <Card>
+      <Card className="h-full rounded-sm">
         <CardHeader>
           <CardTitle className="text-lg font-bold">Request Traffic</CardTitle>
           <CardDescription>No data available</CardDescription>
@@ -66,15 +70,15 @@ export function RequestsChart({ data }: RequestsChartProps) {
   }
 
   return (
-    <Card>
+    <Card className="h-full rounded-sm">
       <CardHeader>
         <CardTitle className="text-lg font-bold">Request Traffic</CardTitle>
         <CardDescription>
-          {totalRequests.toLocaleString()} total requests (avg: {avgRequests.toLocaleString()}/period)
+          {totalRequests.toLocaleString()} total requests (avg: {avgRequests.toLocaleString()}/{avgUnit})
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="requestsGradient" x1="0" y1="0" x2="0" y2="1">

@@ -75,6 +75,8 @@ export class AnalyticsInterceptor implements NestInterceptor {
               userId,
               ipAddress,
               userAgent,
+              referer: req.headers['referer'],
+              requestPath: req.originalUrl?.split('?')[0],
               isAuthenticated: !!req.user,
             })
             .catch((error) => {
@@ -99,6 +101,8 @@ export class AnalyticsInterceptor implements NestInterceptor {
               userId,
               ipAddress,
               userAgent,
+              referer: req.headers['referer'],
+              requestPath: req.originalUrl?.split('?')[0],
               isAuthenticated: !!req.user,
             })
             .catch((err) => {

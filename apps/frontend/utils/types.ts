@@ -1052,7 +1052,34 @@ export type DeliveryManDetailResponse = ApiEnvelope & {
 };
 
 // Analytics Types
-export type AnalyticsPeriod = "1h" | "24h" | "7d" | "30d";
+export type AnalyticsPeriod = "1h" | "24h" | "7d" | "15d" | "30d";
+
+export interface NamedCount {
+  name: string;
+  count: number;
+}
+
+export interface DeviceBreakdownData {
+  devices: NamedCount[];
+  browsers: NamedCount[];
+}
+
+export interface TopProductPage {
+  path: string;
+  productName: string;
+  count: number;
+}
+
+export interface TrafficSource {
+  source: string;
+  count: number;
+}
+
+export interface ConversionData {
+  orders: number;
+  visitors: number;
+  conversionRate: number;
+}
 
 export interface AnalyticsOverview {
   totalRequests: number;
@@ -1106,6 +1133,10 @@ export interface AnalyticsDashboardData {
   visitors: VisitorsData[];
   topEndpoints: TopEndpoint[];
   responseTimes: ResponseTimes;
+  devices: DeviceBreakdownData;
+  topPages: TopProductPage[];
+  trafficSources: TrafficSource[];
+  conversion: ConversionData;
 }
 
 export interface ProductReview {

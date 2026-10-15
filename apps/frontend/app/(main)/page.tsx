@@ -1,4 +1,4 @@
-import { HeadingPrimary } from "@/components/common/heading-primary";
+import { Section, SectionTitle } from "@/components/common/section";
 import { PromotionalCarousel } from "@/components/homepage/banner/hero/add/promotional-banner-server";
 import { CarouselBanner } from "@/components/homepage/banner/hero/carousel-banner-server";
 import BrandList from "@/components/homepage/brands/brand-list";
@@ -15,7 +15,7 @@ import ProductList from "@/components/products/product-list";
 // No `revalidate` segment config here: the root layout reads cookies(), so
 // every route renders dynamically and the config would be inert anyway.
 export const metadata = {
-  title: "German Butcher - Premium Quality Meat Products",
+  title: "German Butcher - Premium German Sausages & Meat Products in Bangladesh",
   description: "Discover premium quality meat products at German Butcher. Fresh cuts, sausages, and more delivered to your doorstep.",
   keywords: "german butcher, meat products, fresh meat, sausages, premium quality",
   alternates: {
@@ -23,6 +23,8 @@ export const metadata = {
   },
 };
 
+// Section components (ProductList, BrandList, Client, ...) each render their
+// own `container mx-auto`, so <Section> only handles rhythm/background here.
 export default function Home() {
   return (
     <main className="min-h-screen">
@@ -32,76 +34,68 @@ export default function Home() {
       <div className="md:py-10 py-4 pb-8 promotional-banner-bg">
         <PromotionalCarousel />
       </div>
-      {/* Categories Section */}
+      {/* Categories Section: CategoryList owns its padding, so no <Section> */}
       <section>
         <CategoryList endpoint="categories?isMainCategory=true">
-          <HeadingPrimary title="All Category" />
+          <SectionTitle title="Shop by Category" />
         </CategoryList>
       </section>
 
       {/* Features Products Section */}
-      <section className="md:py-10 py-5 product-bg">
-        <div className="container mx-auto ">
-          <ProductList
-            endpoint="products?featured=true&isActive=true&limit=10&page=1"
-            isHomePage
-            href="products/featured/"
-          >
-            <HeadingPrimary title="Featured Products" className="mb-8" />
-          </ProductList>
-        </div>
-      </section>
+      <Section className="product-bg">
+        <ProductList
+          endpoint="products?featured=true&isActive=true&limit=10&page=1"
+          isHomePage
+          href="products/featured/"
+        >
+          <SectionTitle title="Featured Products" className="mb-8" />
+        </ProductList>
+      </Section>
       <FlashSaleSection />
-      <section className="lg:py-10 py-5 bg-gray-50">
-        <div className="container mx-auto ">
-          <ProductList
-            endpoint="products/discounted?page=1&limit=10&isActive=true"
-            isHomePage
-            href="products/special-offers"
-          >
-            <HeadingPrimary title="SPECIAL OFFERS" className="mb-10" />
-          </ProductList>
-        </div>
-      </section>
+      <Section className="bg-gray-50">
+        <ProductList
+          endpoint="products/discounted?page=1&limit=10&isActive=true"
+          isHomePage
+          href="products/special-offers"
+        >
+          <SectionTitle title="SPECIAL OFFERS" />
+        </ProductList>
+      </Section>
       {/* Popular Products Section */}
-      <section className="md:py-10 py-5 ">
-        <div className="container mx-auto ">
-          <ProductList
-            endpoint="products/bestsellers?limit=10&isActive=true"
-            isHomePage
-            href="products/popular"
-          >
-            <HeadingPrimary title="Popular Products" className="mb-10" />
-          </ProductList>
-        </div>
-      </section>
+      <Section>
+        <ProductList
+          endpoint="products/bestsellers?limit=10&isActive=true"
+          isHomePage
+          href="products/popular"
+        >
+          <SectionTitle title="Popular Products" />
+        </ProductList>
+      </Section>
 
       {/* Brands Section */}
-      <section className="lg:py-10 py-5 product-bg">
-        <div className="container mx-auto ">
-          <BrandList endpoint="products?isActive=true&limit=10&page=1">
-            <HeadingPrimary title="Recommended for you" className="mb-10" />
-          </BrandList>
-        </div>
-      </section>
+      <Section className="product-bg">
+        <BrandList endpoint="products?isActive=true&limit=10&page=1">
+          <SectionTitle title="Recommended for you" />
+        </BrandList>
+      </Section>
 
-      <section className="md:py-10 lg:py-10 py-5  ">
+      <Section>
         <SalesPartnersCompact>
-          <HeadingPrimary title="Our Sales Partner" className="mb-10" />
+          <SectionTitle title="Our Sales Partner" />
         </SalesPartnersCompact>
-      </section>
+      </Section>
       {/* Subscribe Section */}
-      <section className="md:py-10 lg:py-10 py-5 product-bg ">
+      <Section className="product-bg">
         <Client>
-          <HeadingPrimary title="Our Prominent Clients" className="mb-10" />
+          <SectionTitle title="Our Prominent Clients" />
         </Client>
-      </section>
+      </Section>
 
-      <section className="md:py-10 lg:py-10 py-5 ">
+      <Section>
         <CustomerLoveSection>
-          <HeadingPrimary title="Why Our Customer Love Us" className="mb-10" />
+          <SectionTitle title="Why Our Customer Love Us" />
         </CustomerLoveSection>
-      </section>
+      </Section>
       <NewsletterSection />
 
       <TestimonialSection />

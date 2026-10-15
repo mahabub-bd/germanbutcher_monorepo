@@ -37,7 +37,7 @@ import { couponSchema } from "@/utils/form-validation";
 import type { Category, Coupon, MinimalProduct } from "@/utils/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  ArrowLeft,
+  List,
   Box,
   CalendarClock,
   DollarSign,
@@ -235,9 +235,9 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
             </p>
           </div>
         </div>
-        <Button variant="outline" asChild>
+        <Button className="bg-primaryColor text-white hover:bg-primaryColor/90" asChild>
           <Link href="/admin/marketing/coupon/coupon-list">
-            <ArrowLeft className="h-4 w-4 mr-1" />
+            <List className="h-4 w-4 mr-1" />
             Back to Coupons
           </Link>
         </Button>

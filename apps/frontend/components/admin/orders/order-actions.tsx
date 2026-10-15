@@ -17,22 +17,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn, formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import type { Order } from "@/utils/types";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
+  ArrowRight,
+  Check,
+  ClipboardList,
+  Copy,
   CreditCard,
   Download,
   FileEdit,
+  List,
   Loader2,
   MoreHorizontal,
   Printer,
   RefreshCw,
   X
 } from "lucide-react";
+import { toast } from "sonner";
 import { Fragment, useState } from "react";
 
 /**
@@ -60,54 +64,40 @@ interface OrderActionsProps {
   onPaymentSuccess?: () => void;
 }
 
-// Compact on mobile (single-line header, tight buttons), relaxed from sm up.
+// Compact on mobile, relaxed from sm up.
 const btnClass = "h-9 text-xs sm:h-8";
 
-// Prev/next/back nav buttons each get their own background hue so the three
-// controls are distinguishable at a glance.
-const navButtonClasses = {
-  // hover:text-white overrides the outline variant's hover:text-accent-foreground,
-  // which would otherwise wash the label out against the solid background.
-  prev: "bg-violet-600 text-white hover:bg-violet-700 hover:text-white dark:bg-violet-600 dark:text-white dark:hover:bg-violet-700",
-  next: "bg-sky-600 text-white hover:bg-sky-700 hover:text-white dark:bg-sky-600 dark:text-white dark:hover:bg-sky-700",
-  back: "bg-orange-500 text-white hover:bg-orange-600 hover:text-white dark:bg-orange-500 dark:text-white dark:hover:bg-orange-600",
-};
-
-// Per-action color coding, aligned with the status hues in order-helper:
-// green=payment, blue=edit, orange=refund, violet=print, sky=export.
-type Accent = "green" | "blue" | "orange" | "violet" | "sky";
+// Color is reserved for the actions that need it: solid green/blue for the
+// two CTAs, orange outline for the money-sensitive refund, neutral outline
+// for utility actions, destructive for cancel.
+type Accent = "green" | "blue" | "orange";
 
 const accentButtonClasses: Record<Accent, string> = {
   green: "bg-green-600 text-white hover:bg-green-700",
   blue: "bg-blue-600 text-white hover:bg-blue-700",
   orange:
     "border-orange-500 text-orange-600 hover:bg-orange-50 hover:text-orange-700 dark:border-orange-500/60 dark:text-orange-400 dark:hover:bg-orange-950/40 dark:hover:text-orange-300",
-  violet:
-    "text-violet-600 hover:bg-violet-50 hover:text-violet-700 dark:text-violet-400 dark:hover:bg-violet-950/40 dark:hover:text-violet-300",
-  sky: "text-sky-600 hover:bg-sky-50 hover:text-sky-700 dark:text-sky-400 dark:hover:bg-sky-950/40 dark:hover:text-sky-300",
 };
 
 const accentMenuClasses: Record<Accent, string> = {
   green: "text-green-600 dark:text-green-400",
   blue: "text-blue-600 dark:text-blue-400",
   orange: "text-orange-600 dark:text-orange-400",
-  violet: "text-violet-600 dark:text-violet-400",
-  sky: "text-sky-600 dark:text-sky-400",
 };
 
-// Single source of truth for every action; rendered as buttons on sm+ and as
-// primary buttons + an overflow menu on mobile.
+// Single source of truth for every action; rendered as labeled buttons on
+// md+, as icon-only CTAs + an overflow menu on smaller screens.
 interface ActionConfig {
   id: string;
   label: string;
   loadingLabel?: string;
   icon: LucideIcon;
   variant: "default" | "outline" | "secondary" | "destructive";
-  /** Optional color coding, applied to buttons (sm+ and mobile) and menu items. */
+  /** Optional color coding, applied to buttons (md+ and mobile) and menu items. */
   accent?: Accent;
   onClick: () => void;
   visible: boolean;
-  /** Destructive actions render separated on sm+ and as a red menu item on mobile. */
+  /** Destructive actions render separated on md+ and as a red menu item on mobile. */
   danger?: boolean;
   /** Stays visible as a tappable CTA on mobile instead of moving into the menu. */
   mobilePrimary?: boolean;
@@ -135,6 +125,18 @@ export function OrderActions({
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyOrderId = async () => {
+    try {
+      await navigator.clipboard.writeText(order.orderNo);
+      setCopied(true);
+      toast.success("Order ID copied");
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Failed to copy order ID");
+    }
+  };
 
   // canRefundOrder only passes for need_refund orders
   const canCancel = canCancelOrder(order);
@@ -206,7 +208,6 @@ export function OrderActions({
       loadingLabel: "Printing...",
       icon: Printer,
       variant: "outline",
-      accent: "violet",
       onClick: handleThermalPrint,
       visible: !isNeedRefundOnly && !!onThermalPrint,
       disabled: isPrinting,
@@ -218,7 +219,6 @@ export function OrderActions({
       loadingLabel: "Generating...",
       icon: Download,
       variant: "outline",
-      accent: "sky",
       onClick: handleGeneratePDF,
       visible: !isNeedRefundOnly,
       disabled: isGeneratingPDF,
@@ -238,180 +238,202 @@ export function OrderActions({
   const visibleActions = actions.filter((a) => a.visible);
   const primaryActions = visibleActions.filter((a) => a.mobilePrimary);
   const overflowActions = visibleActions.filter((a) => !a.mobilePrimary);
+  const hasNav = !!(onPrevOrder || onNextOrder || onBack);
+
+  const actionIcon = (action: ActionConfig, className?: string) =>
+    action.loading ? (
+      <Loader2 className={cn("animate-spin", className)} />
+    ) : (
+      <action.icon className={className} />
+    );
+
+  const actionLabel = (action: ActionConfig) =>
+    action.loading ? action.loadingLabel ?? action.label : action.label;
 
   return (
-    <div className="w-full rounded-lg border bg-card p-2 sm:p-4">
-      {/* Line 1: back on the far left (mobile convention), order context,
-          prev/next grouped on the right. Icon-only nav on mobile keeps it to one line. */}
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 border-b pb-2 sm:flex-nowrap sm:gap-3 sm:pb-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-
-          <h1 className="whitespace-nowrap text-base font-bold sm:text-lg">
-            {order.orderNo}
-          </h1>
-          <OrderStatusBadges
-            orderStatus={order.orderStatus}
-            paymentStatus={order.paymentStatus}
-          />
-        </div>
-
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          {(onPrevOrder || onNextOrder) && (
-            <div className="flex shrink-0 items-center gap-1">
+    <section className="w-full overflow-hidden rounded-sm border bg-card shadow-sm">
+      {/* Compact single-row header: identity + actions + navigation */}
+      <div className="flex flex-col gap-3 p-3 sm:p-4 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-5">
+        {/* Identity: order no, status badges, inline meta */}
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="shrink-0 rounded-md bg-primary/10 p-1.5 text-primary"
+          >
+            <ClipboardList className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <h1 className="truncate text-sm font-bold tracking-tight sm:text-base">
+                {order.orderNo}
+              </h1>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                onClick={onPrevOrder}
-                disabled={!onPrevOrder}
-                className={cn(btnClass, navButtonClasses.prev)}
-                aria-label="Previous order"
-                title="Previous order"
+                onClick={handleCopyOrderId}
+                className="h-6 w-6 shrink-0 p-0 text-muted-foreground hover:text-foreground"
+                aria-label="Copy order ID"
+                title="Copy order ID"
               >
-                <ChevronLeft className="size-3.5" />
-                <span className="hidden sm:inline">Previous</span>
+                {copied ? (
+                  <Check className="size-3 text-green-600" />
+                ) : (
+                  <Copy className="size-3" />
+                )}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onNextOrder}
-                disabled={!onNextOrder}
-                className={cn(btnClass, navButtonClasses.next)}
-                aria-label="Next order"
-                title="Next order"
-              >
-                <span className="hidden sm:inline">Next </span>
-                <ChevronRight className="size-3.5" />
-              </Button>
+              <OrderStatusBadges
+                orderStatus={order.orderStatus}
+                paymentStatus={order.paymentStatus}
+              />
+              {order.createdAt && (
+                <span className="hidden text-[11px] text-muted-foreground sm:inline">
+                  Placed {formatDateTime(order.createdAt)}
+                </span>
+              )}
             </div>
-          )}
-          {onBack && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onBack}
-              className={cn(btnClass, navButtonClasses.back)}
-              aria-label="Back to Order List"
-              title="Back to Order List"
-            >
-              <ArrowLeft className="size-3.5" />
-              <span className="hidden sm:inline">Order List</span>
-            </Button>
-          )}
+          </div>
         </div>
 
-
-      </div>
-
-      {/* Line 2: order meta on the left, actions on the right. Mobile shows
-          1-2 primary CTAs plus an overflow menu instead of six icon buttons. */}
-      {(visibleActions.length > 0 || order.createdAt) && (
-        <div className="flex flex-wrap items-center justify-end gap-2 pt-2 sm:justify-between sm:pt-3">
-          <div className="hidden min-w-0 items-center gap-2 text-xs text-muted-foreground sm:flex">
-            <span>{formatDateTime(order.createdAt)}</span>
-            <span aria-hidden="true" className="size-1 rounded-full bg-muted-foreground/40" />
-            <span>{order.items?.length ?? 0} items</span>
-            <span aria-hidden="true" className="size-1 rounded-full bg-muted-foreground/40" />
-            <span className="font-semibold text-foreground">
-              {formatCurrencyEnglish(order.totalValue || 0)}
-            </span>
-          </div>
-
-          {/* sm+: full action row, destructive separated at the far end */}
+        {/* Actions + navigation, centered on mobile, right-aligned on lg */}
+        <div className="flex shrink-0 flex-wrap items-center justify-center gap-1.5 sm:gap-2 lg:justify-end">
           {visibleActions.length > 0 && (
-            <div className="hidden items-center gap-1.5 sm:flex">
-              {visibleActions.map((action) => (
-                <Fragment key={action.id}>
-                  {action.danger && (
-                    <div
-                      aria-hidden="true"
-                      className="mx-1 h-6 w-px bg-border"
-                    />
-                  )}
+            <>
+              {/* md+: labeled buttons, destructive visually separated */}
+              <div className="hidden flex-wrap items-center gap-1.5 md:flex">
+                {visibleActions.map((action) => (
+                  <Fragment key={action.id}>
+                    {action.danger && (
+                      <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
+                    )}
+                    <Button
+                      variant={action.variant}
+                      size="sm"
+                      onClick={action.onClick}
+                      disabled={action.disabled}
+                      className={cn(
+                        btnClass,
+                        action.accent && accentButtonClasses[action.accent]
+                      )}
+                      aria-label={action.label}
+                      title={action.label}
+                    >
+                      {actionIcon(action, "size-3.5")}
+                      <span>{actionLabel(action)}</span>
+                    </Button>
+                  </Fragment>
+                ))}
+              </div>
+
+              {/* Mobile: icon-only CTAs + overflow menu */}
+              <div className="flex items-center gap-1.5 md:hidden">
+                {primaryActions.map((action) => (
                   <Button
+                    key={action.id}
                     variant={action.variant}
                     size="sm"
                     onClick={action.onClick}
                     disabled={action.disabled}
                     className={cn(
-                      btnClass,
+                      "size-9 rounded-md p-0",
                       action.accent && accentButtonClasses[action.accent]
                     )}
-                    aria-label={action.label}
-                    title={action.label}
+                    aria-label={actionLabel(action)}
+                    title={actionLabel(action)}
                   >
-                    {action.loading ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <action.icon className="size-3.5" />
-                    )}
-                    <span>
-                      {action.loading ? action.loadingLabel : action.label}
-                    </span>
+                    {actionIcon(action, "size-4")}
                   </Button>
-                </Fragment>
-              ))}
-            </div>
+                ))}
+
+                {overflowActions.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="size-9 p-0"
+                        aria-label="More actions"
+                        title="More actions"
+                      >
+                        <MoreHorizontal className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      {overflowActions.map((action) => (
+                        <Fragment key={action.id}>
+                          {action.danger && <DropdownMenuSeparator />}
+                          <DropdownMenuItem
+                            variant={action.danger ? "destructive" : "default"}
+                            onClick={action.onClick}
+                            className={
+                              action.accent
+                                ? accentMenuClasses[action.accent]
+                                : undefined
+                            }
+                          >
+                            <action.icon className="size-3.5" />
+                            {action.label}
+                          </DropdownMenuItem>
+                        </Fragment>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            </>
           )}
 
-          {/* Mobile: primary CTAs + overflow menu */}
-          {visibleActions.length > 0 && (
-            <div className="flex items-center gap-1.5 sm:hidden">
-              {primaryActions.map((action) => (
+          {hasNav && (
+            <div
+              className={cn(
+                "flex items-center gap-1 sm:gap-1.5",
+                visibleActions.length > 0 &&
+                  "border-border/70 pl-1.5 sm:border-l sm:pl-2"
+              )}
+            >
+              {(onPrevOrder || onNextOrder) && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onPrevOrder}
+                    disabled={!onPrevOrder}
+                    className="h-9 bg-primaryColor/10 px-2.5 text-xs text-primaryColor hover:bg-primaryColor/20 hover:text-primaryColor sm:px-3"
+                    aria-label="Previous order"
+                    title="Previous order"
+                  >
+                    <ArrowLeft className="size-3.5" />
+                    <span className="hidden sm:inline">Previous</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onNextOrder}
+                    disabled={!onNextOrder}
+                    className="h-9 bg-primaryColor/10 px-2.5 text-xs text-primaryColor hover:bg-primaryColor/20 hover:text-primaryColor sm:px-3"
+                    aria-label="Next order"
+                    title="Next order"
+                  >
+                    <span className="hidden sm:inline">Next </span>
+                    <ArrowRight className="size-3.5" />
+                  </Button>
+                </>
+              )}
+              {onBack && (
                 <Button
-                  key={action.id}
-                  variant={action.variant}
                   size="sm"
-                  onClick={action.onClick}
-                  className={cn(
-                    "h-9 px-3 text-xs",
-                    action.accent && accentButtonClasses[action.accent]
-                  )}
-                  aria-label={action.label}
-                  title={action.label}
+                  onClick={onBack}
+                  className="h-9 bg-primaryColor px-2.5 text-xs text-white hover:bg-primaryColor/90 sm:px-3"
+                  aria-label="Back to Order List"
+                  title="Back to Order List"
                 >
-                  <action.icon className="size-3.5" />
-                  <span>{action.label}</span>
+                  <List className="size-3.5" />
+                  <span className="hidden sm:inline">Order List</span>
                 </Button>
-              ))}
-
-              {overflowActions.length > 0 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-9 w-9 p-0"
-                      aria-label="More actions"
-                      title="More actions"
-                    >
-                      <MoreHorizontal className="size-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44">
-                    {overflowActions.map((action) => (
-                      <Fragment key={action.id}>
-                        {action.danger && <DropdownMenuSeparator />}
-                        <DropdownMenuItem
-                          variant={action.danger ? "destructive" : "default"}
-                          onClick={action.onClick}
-                          className={
-                            action.accent
-                              ? accentMenuClasses[action.accent]
-                              : undefined
-                          }
-                        >
-                          <action.icon className="size-3.5" />
-                          {action.label}
-                        </DropdownMenuItem>
-                      </Fragment>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
               )}
             </div>
           )}
         </div>
-      )}
+      </div>
 
       <CancelOrderModal
         order={order}
@@ -446,6 +468,6 @@ export function OrderActions({
         onOpenChange={setShowPaymentModal}
         onUpdated={() => onPaymentSuccess?.()}
       />
-    </div>
+    </section>
   );
 }
