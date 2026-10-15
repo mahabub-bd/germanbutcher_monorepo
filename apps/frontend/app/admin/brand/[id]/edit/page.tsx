@@ -45,8 +45,7 @@ export default function EditBrandPage() {
   }
 
   return (
-    <div className="md:p-6 p:2 space-y-6 border rouunded-sm">
-      <div className="md:p-6 p:2">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Brand</CardTitle>
@@ -56,7 +55,6 @@ export default function EditBrandPage() {
             <Link href="/admin/brand/brand-list">Back to Brands</Link>
           </Button>
         </div>
-      </div>
 
       <BrandForm mode="edit" brand={brand} />
     </div>

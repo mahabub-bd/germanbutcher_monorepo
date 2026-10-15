@@ -61,7 +61,7 @@ export default function OrderView({
   };
 
   return (
-    <div className="container mx-auto py-3 space-y-4">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <OrderActions
         order={currentOrder}
         onGeneratePDF={handleGeneratePDF}

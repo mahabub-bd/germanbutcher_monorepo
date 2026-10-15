@@ -1,29 +1,18 @@
 "use client";
 
 import { SupplierForm } from "@/components/admin/procurement/suppliers/supplier-form";
-import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 
 export default function AddSupplierPage() {
   return (
-    <div className="md:p-6 p:2 space-y-6 border rouunded-sm">
-      <div className="md:p-6 p:2">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <CardTitle>Add New Supplier</CardTitle>
-            <CardDescription>
-              Create a new supplier. Fill in all the required information.
-            </CardDescription>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/admin/procurement/suppliers">Back to Suppliers</Link>
-          </Button>
-        </div>
-      </div>
-      <div>
-        <SupplierForm mode="create" />
-      </div>
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <FormPageHeader
+        title="Add New Supplier"
+        description="Create a new supplier. Fill in all the required information."
+        backHref="/admin/procurement/suppliers"
+        backLabel="Back to Suppliers"
+      />
+      <SupplierForm mode="create" />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import type React from "react";
 
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
@@ -15,6 +16,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -24,9 +32,11 @@ import {
 } from "@/components/ui/table";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { formatDateTime } from "@/lib/utils";
-import { deleteData, fetchDataPagination } from "@/utils/api-utils";
-import type { Recipe } from "@/utils/types";
+import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
+import type { Category, Recipe } from "@/utils/types";
 import {
+  CheckCircle,
+  FileEdit,
   Filter,
   MoreHorizontal,
   Pencil,
@@ -39,7 +49,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import DeleteConfirmationDialog from "../delete-confirmation-dialog";
 import { LoadingIndicator } from "../loading-indicator";
@@ -68,7 +78,13 @@ export function RecipeList({
   };
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState(
+    getInitialParam("search") as string
+  );
+  // Applied 400ms after typing stops — the input stays instant, the API call
+  // doesn't fire per keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState(
     getInitialParam("search") as string
   );
   const [statusFilter, setStatusFilter] = useState(
@@ -105,7 +121,7 @@ export function RecipeList({
     params.set("page", currentPage.toString());
     params.set("limit", limit.toString());
 
-    if (searchQuery) params.set("search", searchQuery);
+    if (debouncedSearch) params.set("search", debouncedSearch);
     if (statusFilter && statusFilter !== "all")
       params.set("status", statusFilter);
     if (categoryFilter && categoryFilter !== "all")
@@ -117,7 +133,7 @@ export function RecipeList({
     pathname,
     currentPage,
     limit,
-    searchQuery,
+    debouncedSearch,
     statusFilter,
     categoryFilter,
   ]);
@@ -129,7 +145,7 @@ export function RecipeList({
       params.append("page", currentPage.toString());
       params.append("limit", limit.toString());
 
-      if (searchQuery) params.append("recipesearch", searchQuery);
+      if (debouncedSearch) params.append("recipesearch", debouncedSearch);
       if (statusFilter && statusFilter !== "all")
         params.append(
           "isPublished",
@@ -155,14 +171,43 @@ export function RecipeList({
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const response = await fetchData<Category[]>(
+        "categories?isMainCategory=true"
+      );
+      if (Array.isArray(response)) {
+        setCategories(response);
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  // Debounce the search box so typing doesn't fire a request per keystroke.
   useEffect(() => {
-    fetchRecipes();
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Filter dropdown data loads once; recipes fetch on the applied filters.
+  useEffect(() => {
+    fetchCategories();
   }, []);
 
   useEffect(() => {
     fetchRecipes();
+  }, [currentPage, limit, debouncedSearch, statusFilter, categoryFilter]);
+
+  // Sync the URL only for user-driven changes, not on first paint.
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     updateUrl();
-  }, [currentPage, limit, searchQuery, statusFilter, categoryFilter]);
+  }, [updateUrl]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -200,38 +245,40 @@ export function RecipeList({
     setCurrentPage(1);
   };
 
+  const hasActiveFilters = () =>
+    Boolean(searchQuery || statusFilter || categoryFilter);
+
   const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-      <Utensils className="h-10 w-10 text-muted-foreground mb-4" />
-      <h3 className="text-lg font-semibold">No recipes found</h3>
-      <p className="text-sm text-muted-foreground mt-2">
-        {searchQuery || statusFilter || categoryFilter
-          ? "No recipes match your search criteria. Try different filters."
-          : "Get started by adding your first recipe."}
-      </p>
-      {!(searchQuery || statusFilter || categoryFilter) &&
-        can(MENU_URL, "canCreate") && (
+    <div className="p-4 pb-6">
+      <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
+        <Utensils className="h-10 w-10 text-muted-foreground/50 mb-4" />
+        <h3 className="text-lg font-semibold">No recipes found</h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          {hasActiveFilters()
+            ? "No recipes match your search criteria. Try different filters."
+            : "Get started by adding your first recipe."}
+        </p>
+        {!hasActiveFilters() && can(MENU_URL, "canCreate") && (
           <Button asChild className="mt-4">
             <Link href="/admin/recipe/add">
               <Plus className="mr-2 h-4 w-4" /> Add Recipe
             </Link>
           </Button>
         )}
-      {(searchQuery || statusFilter || categoryFilter) && (
-        <Button variant="outline" className="mt-4" onClick={clearFilters}>
-          Clear Filters
-        </Button>
-      )}
+        {hasActiveFilters() && (
+          <Button variant="outline" className="mt-4" onClick={clearFilters}>
+            Clear Filters
+          </Button>
+        )}
+      </div>
     </div>
   );
 
   const renderActiveFilters = () => {
-    const hasFilters = searchQuery || statusFilter || categoryFilter;
-
-    if (!hasFilters) return null;
+    if (!hasActiveFilters()) return null;
 
     return (
-      <div className="flex flex-wrap gap-2 mt-4">
+      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
         {searchQuery && (
           <Badge
             variant="outline"
@@ -261,7 +308,9 @@ export function RecipeList({
             variant="outline"
             className="flex items-center gap-1 px-3 py-1"
           >
-            Category: {categoryFilter}
+            Category:{" "}
+            {categories.find((c) => c.slug === categoryFilter)?.name ||
+              categoryFilter}
             <button onClick={() => setCategoryFilter("")} className="ml-1">
               <XCircle className="h-3 w-3" />
             </button>
@@ -280,100 +329,177 @@ export function RecipeList({
     );
   };
 
-  const renderTableView = () => (
-    <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
-      <TableHeader>
-        <TableRow>
-          <TableHead>Image</TableHead>
-          <TableHead>Title</TableHead>
-          <TableHead>Category</TableHead>
+  const renderFiltersMenu = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2 px-3 shrink-0">
+          <Filter className="h-4 w-4" />
+          <span>Filters</span>
+          {(statusFilter || categoryFilter) && (
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-100">
+        <div className="grid grid-cols-2 gap-3 p-3">
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold">Status</h4>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="published">Published</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <TableHead className="hidden md:table-cell">Created By</TableHead>
-          <TableHead className="hidden md:table-cell">Created At</TableHead>
-          <TableHead className="hidden md:table-cell">Status</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {recipes?.map((recipe) => (
-          <TableRow key={recipe.id} className="hover:bg-muted/50">
-            <TableCell>
-              <span className="flex aspect-[3/2] h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
-                <Image
-                  src={recipe?.attachment?.url || "/placeholder.svg"}
-                  alt={recipe.title}
-                  width={96}
-                  height={64}
-                  className="h-full w-full object-contain"
-                />
-              </span>
-            </TableCell>
-            <TableCell>
-              <Link
-                href={`/admin/recipe/${recipe.id}/edit`}
-                className="font-medium leading-tight hover:underline"
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold">Category</h4>
+            <Select
+              value={categoryFilter}
+              onValueChange={(value) => {
+                setCategoryFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem
+                    key={category.id}
+                    value={category.slug || String(category.id)}
+                  >
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(statusFilter || categoryFilter) && (
+            <div className="col-span-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="w-full mt-2"
               >
-                {recipe.title}
-              </Link>
-              <p className="mt-0.5 line-clamp-1 max-w-64 text-xs text-muted-foreground">
-                {recipe.details?.replace(/<[^>]*>/g, "") || ""}
-              </p>
-            </TableCell>
-            <TableCell className="capitalize">
-              {recipe.category?.name || "Uncategorized"}
-            </TableCell>
+                Reset Filters
+              </Button>
+            </div>
+          )}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
-            <TableCell className="hidden md:table-cell">
-              {recipe.createdBy?.name || "Unknown"}
-            </TableCell>
-            <TableCell className="hidden md:table-cell">
-              {formatDateTime(recipe.createdAt)}
-            </TableCell>
-            <TableCell className="hidden md:table-cell">
-              <ActiveStatusToggle
-                isActive={recipe.isPublished}
-                disabled={togglingId === recipe.id}
-                onToggle={() => toggleActive(recipe)}
-                label={recipe.title}
-                labels={{ on: "Published", off: "Draft" }}
-              />
-            </TableCell>
-            <TableCell className="text-right">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Open menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {can(MENU_URL, "canEdit") && (
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/recipe/${recipe.id}/edit`}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  {can(MENU_URL, "canDelete") && (
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(recipe)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
+  const renderTableView = () => (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Recipe</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead className="hidden md:table-cell">Created By</TableHead>
+            <TableHead className="hidden lg:table-cell">Created At</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {recipes?.map((recipe) => (
+            <TableRow key={recipe.id} className="hover:bg-muted/50">
+              <TableCell>
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="flex aspect-3/2 h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
+                    <Image
+                      src={recipe?.attachment?.url || "/placeholder.svg"}
+                      alt={recipe.title}
+                      width={96}
+                      height={64}
+                      className="h-full w-full object-contain"
+                    />
+                  </span>
+                  <div className="min-w-0">
+                    <Link
+                      href={`/admin/recipe/${recipe.id}/edit`}
+                      className="font-medium leading-tight hover:underline"
+                    >
+                      {recipe.title}
+                    </Link>
+                    <p className="mt-0.5 line-clamp-1 max-w-64 text-xs text-muted-foreground">
+                      {recipe.details?.replace(/<[^>]*>/g, "") || ""}
+                    </p>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell className="capitalize">
+                {recipe.category?.name || "Uncategorized"}
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                {recipe.createdBy?.name || "Unknown"}
+              </TableCell>
+              <TableCell className="hidden lg:table-cell">
+                {formatDateTime(recipe.createdAt)}
+              </TableCell>
+              <TableCell>
+                <ActiveStatusToggle
+                  isActive={recipe.isPublished}
+                  disabled={togglingId === recipe.id}
+                  onToggle={() => toggleActive(recipe)}
+                  label={recipe.title}
+                  labels={{ on: "Published", off: "Draft" }}
+                />
+              </TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span className="sr-only">Open menu</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {can(MENU_URL, "canEdit") && (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/recipe/${recipe.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {can(MENU_URL, "canDelete") && (
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(recipe)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full space-y-4">
         <PageHeader
           title="Recipes"
           description="Manage your recipes"
@@ -385,121 +511,54 @@ export function RecipeList({
             : {})}
         />
 
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search recipes..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
+        {/* Summary tiles */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <StatsCard
+            icon={Utensils}
+            title="Total Recipes"
+            value={totalItems}
+            bgColor="blue"
+          />
+          <StatsCard
+            icon={CheckCircle}
+            title="Published"
+            value={recipes.filter((r) => r.isPublished).length}
+            bgColor="green"
+          />
+          <StatsCard
+            icon={FileEdit}
+            title="Drafts"
+            value={recipes.filter((r) => !r.isPublished).length}
+            bgColor="orange"
+          />
+        </div>
+
+        {/* List card: toolbar + table */}
+        <div className="rounded-sm border bg-card">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
+                <Utensils className="h-4.5 w-4.5" />
+              </span>
+              <div>
+                <h3 className="font-semibold leading-tight">All Recipes</h3>
+                <p className="text-sm text-muted-foreground">
+                  {totalItems} recipe{totalItems === 1 ? "" : "s"}
+                </p>
+              </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2 px-3"
-                  >
-                    <Filter className="h-4 w-4" />
-                    <span>Filters</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-64 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
-                  sideOffset={8}
-                >
-                  <div className="space-y-3">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium">Filters</h4>
-                      {(statusFilter || categoryFilter) && (
-                        <button
-                          onClick={clearFilters}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Clear all
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Status Filter */}
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">
-                        Status
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          onClick={() => {
-                            setStatusFilter("all");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all"
-                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          All
-                        </button>
-                        <button
-                          onClick={() => {
-                            setStatusFilter("published");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "published"
-                            ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
-                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          <span className="h-2 w-2 rounded-full bg-green-500" />
-                          Published
-                        </button>
-                        <button
-                          onClick={() => {
-                            setStatusFilter("draft");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "draft"
-                            ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/30 dark:border-yellow-800 text-yellow-600 dark:text-yellow-400"
-                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          <span className="h-2 w-2 rounded-full bg-yellow-500" />
-                          Draft
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Category Filter - This would need to be populated from your API */}
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">
-                        Category
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => {
-                            setCategoryFilter("all");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${categoryFilter === "all"
-                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          All Categories
-                        </button>
-                        {/* You would map through your categories here */}
-                      </div>
-                    </div>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search recipes..."
+                  className="pl-9"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                />
+              </div>
+              {renderFiltersMenu()}
             </div>
           </div>
 
@@ -510,11 +569,12 @@ export function RecipeList({
           ) : recipes.length === 0 ? (
             renderEmptyState()
           ) : (
-            <div className="mt-6">{renderTableView()}</div>
+            renderTableView()
           )}
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
+        {/* Pagination */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground text-center md:text-left truncate">
               {`Showing ${recipes.length} of ${totalItems} recipes`}

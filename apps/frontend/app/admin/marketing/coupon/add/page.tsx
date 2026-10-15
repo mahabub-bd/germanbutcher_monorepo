@@ -12,5 +12,9 @@ export default function AddCouponPage() {
     router.push("/admin/marketing/coupon/coupon-list");
   };
 
-  return <CouponForm mode="create" onSuccess={handleSuccess} />;
+  return (
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <CouponForm mode="create" onSuccess={handleSuccess} />
+    </div>
+  );
 }

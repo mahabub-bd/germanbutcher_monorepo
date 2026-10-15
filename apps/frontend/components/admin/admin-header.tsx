@@ -12,11 +12,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { NotificationBell } from "@/components/notification-bell";
 import { InboxModal } from "@/components/admin/inbox/inbox-modal";
+import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
-import { fetchProtectedData } from "@/utils/api-utils";
 import { AdminHeaderBg, GermanbutcherLogo } from "@/public/images";
+import { fetchProtectedData } from "@/utils/api-utils";
 
 import {
   Breadcrumb,
@@ -122,7 +122,7 @@ export function AdminHeader({
       {/* Decorative diagonal wedge behind the logo/menu cluster */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-0 hidden w-[380px] bg-black/5 [clip-path:polygon(0_0,100%_0,72%_100%,0_100%)] lg:block"
+        className="pointer-events-none absolute inset-y-0 left-0 hidden w-95 bg-black/5 [clip-path:polygon(0_0,100%_0,72%_100%,0_100%)] lg:block"
       />
 
       <div className="relative flex h-16 items-center gap-3 px-4  md:px-6">

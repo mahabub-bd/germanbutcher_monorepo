@@ -20,7 +20,7 @@ export default async function CouponUsageReportPage({ searchParams }: Props) {
     typeof resolvedParams.toDate === "string" ? resolvedParams.toDate : undefined;
 
   return (
-    <div className="border rounded-sm">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <CouponUsageReport
         initialPreset={preset}
         initialFromDate={fromDate}

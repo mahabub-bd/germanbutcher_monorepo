@@ -2,6 +2,9 @@
 
 import type React from "react";
 
+import StatsCard from "@/components/admin/dashboard/stats-card";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,8 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
-import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import {
   Table,
   TableBody,
@@ -29,10 +30,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import StatsCard from "@/components/admin/dashboard/stats-card";
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { DeliveryMan, DeliveryManResponse } from "@/utils/types";
 import {
   CheckCircle2,
@@ -336,7 +336,7 @@ export function DeliveryManList({
   );
 
   return (
-    <div className="w-full md:p-6 p-2">
+    <div className="w-full">
       <PageHeader
         title="Delivery Men"
         description="View and manage delivery personnel"

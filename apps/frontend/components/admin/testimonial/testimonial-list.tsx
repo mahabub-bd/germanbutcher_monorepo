@@ -123,7 +123,7 @@ export function TestimonialList() {
 
   // Main responsive table
   const renderTableView = () => (
-    <div className="md:p-2 p-1">
+    
       <Table>
         <TableHeader>
           <TableRow>
@@ -216,7 +216,6 @@ export function TestimonialList() {
           ))}
         </TableBody>
       </Table>
-    </div>
   );
 
   const publishedCount = testimonials.filter((t) => t.isPublish).length;
@@ -231,7 +230,7 @@ export function TestimonialList() {
 
   return (
     <>
-      <div className="w-full mx-auto md:p-4 p-2">
+      <div className="w-full mx-auto">
         <PageHeader
           title="Testimonials"
           description="Manage customer testimonials and reviews"

@@ -124,147 +124,147 @@ export function SupplierForm({ mode, supplier }: SupplierFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="p-6 space-y-6">
-          {/* Basic Information Section */}
-          <Section title="Basic Information">
+
+        {/* Basic Information Section */}
+        <Section title="Basic Information">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Supplier Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter supplier name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="name"
+              name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Supplier Name</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter supplier name" {...field} />
+                    <Input placeholder="Enter email address" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter email address" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter phone number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
             <FormField
               control={form.control}
-              name="address"
+              name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address</FormLabel>
+                  <FormLabel>Phone</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Enter supplier address"
-                      className="min-h-[100px]"
-                      {...field}
-                    />
+                    <Input placeholder="Enter phone number" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Address</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Enter supplier address"
+                    className="min-h-25"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </Section>
+
+        {/* Media & Status Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Section title="Media">
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={() => (
+                <FormItem>
+                  <FormLabel>Supplier Logo</FormLabel>
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-4">
+                      {imagePreview ? (
+                        <div className="relative w-32 h-32 border rounded-md overflow-hidden bg-gray-50">
+                          <Image
+                            src={imagePreview || "/placeholder.svg"}
+                            alt="Supplier preview"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center w-32 h-32 border rounded-md bg-muted/20">
+                          <Upload className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() =>
+                            document
+                              .getElementById("supplier-upload")
+                              ?.click()
+                          }
+                        >
+                          <Upload className="mr-2 h-4 w-4" />
+                          Choose File
+                        </Button>
+                        <span className="text-sm text-muted-foreground">
+                          {fileName || "No file chosen"}
+                        </span>
+                      </div>
+                    </div>
+                    <Input
+                      id="supplier-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </Section>
 
-          {/* Media & Status Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Section title="Media">
+          <Section title="Status">
+            <div className="grid grid-cols-1 gap-4">
               <FormField
                 control={form.control}
-                name="imageUrl"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Supplier Logo</FormLabel>
-                    <div className="flex flex-col gap-4">
-                      <div className="flex items-center gap-4">
-                        {imagePreview ? (
-                          <div className="relative w-32 h-32 border rounded-md overflow-hidden bg-gray-50">
-                            <Image
-                              src={imagePreview || "/placeholder.svg"}
-                              alt="Supplier preview"
-                              fill
-                              className="object-contain"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center w-32 h-32 border rounded-md bg-muted/20">
-                            <Upload className="h-8 w-8 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() =>
-                              document
-                                .getElementById("supplier-upload")
-                                ?.click()
-                            }
-                          >
-                            <Upload className="mr-2 h-4 w-4" />
-                            Choose File
-                          </Button>
-                          <span className="text-sm text-muted-foreground">
-                            {fileName || "No file chosen"}
-                          </span>
-                        </div>
-                      </div>
-                      <Input
-                        id="supplier-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleFileChange}
-                      />
-                    </div>
-                    <FormMessage />
-                  </FormItem>
+                name="isActive"
+                render={({ field }) => (
+                  <SwitchCard
+                    label="Active Status"
+                    description="Supplier will be available for product assignments"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
                 )}
               />
-            </Section>
-
-            <Section title="Status">
-              <div className="grid grid-cols-1 gap-4">
-                <FormField
-                  control={form.control}
-                  name="isActive"
-                  render={({ field }) => (
-                    <SwitchCard
-                      label="Active Status"
-                      description="Supplier will be available for product assignments"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-              </div>
-            </Section>
-          </div>
+            </div>
+          </Section>
         </div>
+
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>

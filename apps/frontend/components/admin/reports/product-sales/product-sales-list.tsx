@@ -1,7 +1,7 @@
 "use client";
 
-import { PageHeader } from "@/components/admin/page-header";
 import StatsCard from "@/components/admin/dashboard/stats-card";
+import { PageHeader } from "@/components/admin/page-header";
 import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import { Button } from "@/components/ui/button";
@@ -116,9 +116,8 @@ export default function ProductSalesList({
                 settings={settings}
               />
             }
-            fileName={`product-sales-report-${
-              new Date().toISOString().split("T")[0]
-            }.pdf`}
+            fileName={`product-sales-report-${new Date().toISOString().split("T")[0]
+              }.pdf`}
           >
             {({ loading, error }) => (
               <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0 w-full sm:w-auto">
@@ -170,7 +169,7 @@ export default function ProductSalesList({
           </div>
         ) : (
           products.map((p, i) => (
-            <div key={p.id} className="rounded-xl border bg-card p-3">
+            <div key={p.id} className="rounded-sm border bg-card p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-2.5">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
@@ -191,11 +190,10 @@ export default function ProductSalesList({
                     {formatCurrencyEnglish(p.revenue)}
                   </p>
                   <p
-                    className={`text-xs mt-0.5 ${
-                      p.stock < 5
+                    className={`text-xs mt-0.5 ${p.stock < 5
                         ? "text-red-600 dark:text-red-400"
                         : "text-muted-foreground"
-                    }`}
+                      }`}
                   >
                     Stock {p.stock}
                   </p>

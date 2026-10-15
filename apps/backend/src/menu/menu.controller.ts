@@ -50,13 +50,13 @@ export class MenuController {
   async create(@Body() createMenuDto: CreateMenuDto, @Res() res: Response) {
     try {
       const createdMenu = await this.menuService.create(createMenuDto);
-      return res.status(HttpStatus.CREATED).json({
+      res.status(HttpStatus.CREATED).json({
         message: 'Menu item created successfully',
         statusCode: HttpStatus.CREATED,
         data: createdMenu,
       });
     } catch (error) {
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'Failed to create menu item',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         data: null,
@@ -151,7 +151,7 @@ export class MenuController {
         limitNum,
       );
 
-      return res.status(HttpStatus.OK).json({
+      res.status(HttpStatus.OK).json({
         message: 'Menu items retrieved successfully',
         statusCode: HttpStatus.OK,
         data,
@@ -161,7 +161,7 @@ export class MenuController {
         totalPages: Math.ceil(total / limitNum),
       });
     } catch (error) {
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'Failed to retrieve menu items',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         data: null,
@@ -233,10 +233,11 @@ export class MenuController {
       let isAdminMenuBool: boolean | undefined;
       if (isAdminMenu !== undefined) {
         if (isAdminMenu !== 'true' && isAdminMenu !== 'false') {
-          return res.status(HttpStatus.BAD_REQUEST).json({
+          res.status(HttpStatus.BAD_REQUEST).json({
             message: 'isAdminMenu must be either "true" or "false"',
             statusCode: HttpStatus.BAD_REQUEST,
           });
+          return;
         }
         isAdminMenuBool = isAdminMenu === 'true';
       }
@@ -251,13 +252,14 @@ export class MenuController {
       );
 
       if (!tree || tree.length === 0) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        res.status(HttpStatus.NOT_FOUND).json({
           message: 'No menu items found matching criteria',
           statusCode: HttpStatus.NOT_FOUND,
         });
+        return;
       }
 
-      return res.status(HttpStatus.OK).json({
+      res.status(HttpStatus.OK).json({
         message: 'Menu tree retrieved successfully',
         statusCode: HttpStatus.OK,
         data: tree,
@@ -268,7 +270,7 @@ export class MenuController {
       });
     } catch (error) {
       const err = error as Error;
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'Failed to retrieve menu tree',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         error:
@@ -277,12 +279,6 @@ export class MenuController {
     }
   }
 
-  @Get('main')
-  @ApiOperation({ summary: 'Get all main menu items' })
-  @ApiOkResponse({
-    description: 'List of main menu items',
-    type: [Menu],
-  })
   @Get('main')
   @ApiOperation({ summary: 'Get all main menu items' })
   @ApiQuery({
@@ -309,13 +305,13 @@ export class MenuController {
 
       const mainMenus = await this.menuService.findMainMenus(isAdminMenuBool);
 
-      return res.status(HttpStatus.OK).json({
+      res.status(HttpStatus.OK).json({
         message: 'Main menu items retrieved successfully',
         statusCode: HttpStatus.OK,
         data: mainMenus,
       });
     } catch (error) {
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'Failed to retrieve main menu items',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         data: null,
@@ -337,20 +333,20 @@ export class MenuController {
   async findOne(@Param('id') id: string, @Res() res: Response) {
     try {
       const menu = await this.menuService.findOne(+id);
-      return res.status(HttpStatus.OK).json({
+      res.status(HttpStatus.OK).json({
         message: 'Menu item retrieved successfully',
         statusCode: HttpStatus.OK,
         data: menu,
       });
     } catch (error) {
       if (error instanceof NotFoundException) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        res.status(HttpStatus.NOT_FOUND).json({
           message: error.message,
           statusCode: HttpStatus.NOT_FOUND,
           data: null,
         });
       }
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'Failed to retrieve menu item',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         data: null,
@@ -379,20 +375,20 @@ export class MenuController {
   ) {
     try {
       const updatedMenu = await this.menuService.update(+id, updateMenuDto);
-      return res.status(HttpStatus.OK).json({
+      res.status(HttpStatus.OK).json({
         message: 'Menu item updated successfully',
         statusCode: HttpStatus.OK,
         data: updatedMenu,
       });
     } catch (error) {
       if (error instanceof NotFoundException) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        res.status(HttpStatus.NOT_FOUND).json({
           message: error.message,
           statusCode: HttpStatus.NOT_FOUND,
           data: null,
         });
       }
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'Failed to update menu item',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         data: null,
@@ -413,20 +409,20 @@ export class MenuController {
   async remove(@Param('id') id: string, @Res() res: Response) {
     try {
       await this.menuService.remove(+id);
-      return res.status(HttpStatus.OK).json({
+      res.status(HttpStatus.OK).json({
         message: 'Menu item deleted successfully',
         statusCode: HttpStatus.OK,
         data: null,
       });
     } catch (error) {
       if (error instanceof NotFoundException) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        res.status(HttpStatus.NOT_FOUND).json({
           message: error.message,
           statusCode: HttpStatus.NOT_FOUND,
           data: null,
         });
       }
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'Failed to delete menu item',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         data: null,

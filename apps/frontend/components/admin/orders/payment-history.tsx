@@ -13,7 +13,7 @@ export function PaymentHistory({ payments }: PaymentHistoryProps) {
   if (!payments.length) return null;
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
+    <section className="overflow-hidden rounded-sm border bg-card shadow-sm">
       <div className="flex items-center justify-between border-b bg-muted/30 px-3 py-2.5">
         <div className="flex items-center gap-2">
           <span className="rounded-md bg-primary/10 p-1.5 text-primary">

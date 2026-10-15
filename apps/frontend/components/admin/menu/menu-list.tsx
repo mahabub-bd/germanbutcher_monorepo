@@ -2,6 +2,7 @@
 
 import type React from "react";
 
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { MenuItem } from "@/utils/types";
 import {
   Copy,
@@ -297,7 +297,7 @@ export function MenuList({
   };
 
   const renderTableView = () => (
-    <div className="md:p-6 p-2">
+  
       <Table>
         <TableHeader>
           <TableRow>
@@ -394,20 +394,20 @@ export function MenuList({
           ))}
         </TableBody>
       </Table>
-    </div>
+    
   );
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full">
         <PageHeader
           title="Menus"
           description="Manage your website menu items"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add Menu",
-                actionHref: "/admin/menu/add",
-              }
+              actionLabel: "Add Menu",
+              actionHref: "/admin/menu/add",
+            }
             : {})}
         />
 
@@ -438,7 +438,7 @@ export function MenuList({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-64 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
+                  className="w-64 p-3 rounded-sm shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
                   sideOffset={8}
                 >
                   <div className="space-y-3">
@@ -465,11 +465,10 @@ export function MenuList({
                           onClick={() => {
                             setStatusFilter("all");
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            statusFilter === "all"
+                          className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all"
                               ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           All
                         </button>
@@ -477,11 +476,10 @@ export function MenuList({
                           onClick={() => {
                             setStatusFilter("active");
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "active"
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "active"
                               ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-green-500" />
                           Active
@@ -490,11 +488,10 @@ export function MenuList({
                           onClick={() => {
                             setStatusFilter("inactive");
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${
-                            statusFilter === "inactive"
+                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "inactive"
                               ? "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           <span className="h-2 w-2 rounded-full bg-red-500" />
                           Inactive
@@ -512,11 +509,10 @@ export function MenuList({
                           onClick={() => {
                             setIsMainMenuFilter("all");
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            isMainMenuFilter === "all"
+                          className={`text-xs py-1.5 px-2 rounded-md border ${isMainMenuFilter === "all"
                               ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           All
                         </button>
@@ -524,11 +520,10 @@ export function MenuList({
                           onClick={() => {
                             setIsMainMenuFilter("true");
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            isMainMenuFilter === "true"
+                          className={`text-xs py-1.5 px-2 rounded-md border ${isMainMenuFilter === "true"
                               ? "bg-purple-50 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800 text-purple-600 dark:text-purple-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           Main Menu
                         </button>
@@ -536,11 +531,10 @@ export function MenuList({
                           onClick={() => {
                             setIsMainMenuFilter("false");
                           }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${
-                            isMainMenuFilter === "false"
+                          className={`text-xs py-1.5 px-2 rounded-md border ${isMainMenuFilter === "false"
                               ? "bg-orange-50 border-orange-200 dark:bg-orange-900/30 dark:border-orange-800 text-orange-600 dark:text-orange-400"
                               : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
+                            }`}
                         >
                           Sub Menu
                         </button>

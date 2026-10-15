@@ -35,7 +35,7 @@ export default function CouponUsageLogsPage() {
 
   if (!coupon) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="text-center">
           <h2 className="text-xl font-semibold">Coupon not found</h2>
           <p className="text-muted-foreground mt-2">
@@ -47,7 +47,7 @@ export default function CouponUsageLogsPage() {
   }
 
   return (
-    <div className="space-y-6 border rounded-sm">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <CouponUsageLogList couponCode={code} />
     </div>
   );

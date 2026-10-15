@@ -1,9 +1,7 @@
 "use client";
 
 import { PaymentMethodForm } from "@/components/admin/payment-method/payment-method-form";
-import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -16,22 +14,13 @@ export default function AddPaymentMethodPage() {
   };
 
   return (
-    <div className="md:p-6 p-2 space-y-6 border rounded-sm">
-      <div className="md:p-6 p-2">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <CardTitle>Payment Method Information</CardTitle>
-            <CardDescription>
-              Enter the details for the new payment method.
-            </CardDescription>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/admin/settings/payment-method">
-              Back to Payment Methods
-            </Link>
-          </Button>
-        </div>
-      </div>
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+        <FormPageHeader
+        title="Payment Method Information"
+        description="Enter the details for the new payment method."
+        backHref="/admin/settings/payment-method"
+        backLabel="Back to Payment Methods"
+      />
 
       <PaymentMethodForm mode="create" onSuccess={handleSuccess} />
     </div>

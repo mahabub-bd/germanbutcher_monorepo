@@ -44,19 +44,17 @@ export default function EditShopPage() {
   }
 
   return (
-    <div className="md:p-6 p-2 space-y-6 border rounded-sm">
-      <div className="md:p-6 p-2">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <CardTitle>Edit Shop</CardTitle>
-            <CardDescription>Update the shop information.</CardDescription>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/admin/sales-point-shop/sales-point-shop-list">
-              Back to Shops
-            </Link>
-          </Button>
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <div className="flex justify-between items-center">
+        <div>
+          <CardTitle>Edit Shop</CardTitle>
+          <CardDescription>Update the shop information.</CardDescription>
         </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/admin/sales-point-shop/sales-point-shop-list">
+            Back to Shops
+          </Link>
+        </Button>
       </div>
       <ShopForm mode="edit" shop={shop} />
     </div>

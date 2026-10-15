@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  ArrowLeft,
   Image as ImageIcon,
   Layers,
   Loader2,
@@ -11,7 +10,6 @@ import {
   Upload,
 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -270,29 +268,9 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        {/* Page header */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">
-              {mode === "create" ? "Add Banner" : "Edit Banner"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {mode === "create"
-                ? "Create a promotional banner for the storefront"
-                : "Update this banner content and settings"}
-            </p>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/admin/banner/banner-list">
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              Back to Banners
-            </Link>
-          </Button>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Basic Information */}
-          <section className="h-full rounded-xl border bg-card p-5 space-y-4">
+          <section className="h-full rounded-sm border bg-card p-5 space-y-4">
             <SectionTitle icon={ImageIcon} title="Basic Information" />
 
             <FormField
@@ -318,7 +296,7 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
                   <FormControl>
                     <Textarea
                       placeholder="Enter banner description"
-                      className="min-h-[80px] resize-none"
+                      className="min-h-20 resize-none"
                       {...field}
                     />
                   </FormControl>
@@ -330,7 +308,7 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
           </section>
 
           {/* Banner Settings */}
-          <section className="h-full rounded-xl border bg-card p-5 space-y-4">
+          <section className="h-full rounded-sm border bg-card p-5 space-y-4">
             <SectionTitle icon={Settings} title="Banner Settings" />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -435,7 +413,7 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
           </section>
 
           {/* Link To — full width so the product grid has room */}
-          <section className="rounded-xl border bg-card p-5 space-y-4 lg:col-span-2">
+          <section className="rounded-sm border bg-card p-5 space-y-4 lg:col-span-2">
             <SectionTitle icon={Layers} title="Link To" />
 
             <FormField
@@ -602,7 +580,7 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
           </section>
 
           {/* Media */}
-          <section className="rounded-xl border bg-card p-5 space-y-4 lg:col-span-2">
+          <section className="rounded-sm border bg-card p-5 space-y-4 lg:col-span-2">
             <SectionTitle icon={Upload} title="Media" />
 
             <FormField
@@ -659,7 +637,7 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
         </div>
 
         {/* Footer action bar */}
-        <div className="rounded-xl border bg-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="rounded-sm border bg-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
             {form.watch("isActive")
               ? "This banner will be live immediately after saving"

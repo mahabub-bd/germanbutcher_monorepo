@@ -52,7 +52,7 @@ const Section = ({
   }
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
+    <section className="overflow-hidden rounded-sm border bg-card shadow-sm">
       <div
         className={cn(
           "flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-5 py-3.5",

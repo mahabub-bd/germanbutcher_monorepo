@@ -73,7 +73,7 @@ export default async function CustomerListReportPage({ searchParams }: Props) {
   };
 
   return (
-    <div className="p-4 md:p-6">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <CustomerListReport
         customers={customers}
         fromDate={fromDate}

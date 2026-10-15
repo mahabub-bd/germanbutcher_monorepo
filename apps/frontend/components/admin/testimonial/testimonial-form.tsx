@@ -155,63 +155,65 @@ export function TestimonialForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 gap-4 w-full mx-auto">
           {/* Customer Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Customer Information</h3>
+          <div className="space-y-3">
+            <h3 className="text-base font-semibold">Customer Information</h3>
 
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <FormLabel>Name *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter customer's name"
-                      {...field}
-                      className="w-full"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel>Name *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter customer's name"
+                        {...field}
+                        className="w-full"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <FormLabel>Role *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Loyal Customer, CEO, Manager, etc."
-                      {...field}
-                      className="w-full"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel>Role *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Loyal Customer, CEO, Manager, etc."
+                        {...field}
+                        className="w-full"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
 
           {/* Testimonial Content */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Testimonial Content</h3>
+          <div className="space-y-3">
+            <h3 className="text-base font-semibold">Testimonial Content</h3>
 
             <FormField
               control={form.control}
               name="text"
               render={({ field }) => (
-                <FormItem className="space-y-2">
+                <FormItem className="space-y-1.5">
                   <FormLabel>Testimonial Text *</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Enter the customer's testimonial..."
-                      rows={6}
+                      rows={4}
                       {...field}
                       className="w-full resize-none"
                     />
@@ -229,7 +231,7 @@ export function TestimonialForm({
               control={form.control}
               name="rating"
               render={({ field }) => (
-                <FormItem className="space-y-2">
+                <FormItem className="space-y-1.5">
                   <FormLabel>Rating *</FormLabel>
                   <FormControl>
                     <div className="flex flex-col gap-2">
@@ -237,23 +239,20 @@ export function TestimonialForm({
                     </div>
                   </FormControl>
                   <FormMessage />
-                  <p className="text-xs text-muted-foreground">
-                    Click on the stars to set the rating (1-5 stars)
-                  </p>
                 </FormItem>
               )}
             />
           </div>
 
           {/* Attachment Upload */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Attachment (Optional)</h3>
+          <div className="space-y-3">
+            <h3 className="text-base font-semibold">Attachment (Optional)</h3>
 
             <FormField
               control={form.control}
               name="imageUrl"
               render={() => (
-                <FormItem className="space-y-2">
+                <FormItem className="space-y-1.5">
                   <FormLabel>Customer Photo or Document</FormLabel>
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-4">
@@ -299,9 +298,6 @@ export function TestimonialForm({
                     />
                   </div>
                   <FormMessage />
-                  <p className="text-xs text-muted-foreground">
-                    Optional: Upload a customer photo or related document
-                  </p>
                 </FormItem>
               )}
             />
@@ -312,10 +308,10 @@ export function TestimonialForm({
             control={form.control}
             name="isPublish"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 space-y-0">
-                <div className="space-y-0.5">
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border px-3 py-2 space-y-0">
+                <div>
                   <FormLabel>Publish Status</FormLabel>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {field.value
                       ? "This testimonial will be visible to the public"
                       : "This testimonial will be saved as a draft"}
@@ -332,7 +328,7 @@ export function TestimonialForm({
           />
         </div>
 
-        <div className="flex justify-end space-x-4 pt-2 mx-auto">
+        <div className="flex justify-end gap-3 pt-1 mx-auto">
           <Button
             type="button"
             variant="outline"

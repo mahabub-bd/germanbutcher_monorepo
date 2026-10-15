@@ -26,10 +26,10 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { fetchData, patchData, postData } from "@/utils/api-utils";
+import { menuSchema } from "@/utils/form-validation";
 import type { MenuItem } from "@/utils/types";
 import { useRouter } from "next/navigation";
 import { Section } from "../helper";
-import { menuSchema } from "@/utils/form-validation";
 
 
 
@@ -120,7 +120,7 @@ export function MenuForm({ mode, menuItem }: MenuFormProps) {
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
           {/* Left Column - Basic Information */}
-          <div className="p-6 space-y-6">
+          <div className=" space-y-6">
             <Section title="Basic Information">
               <FormField
                 control={form.control}
@@ -309,7 +309,7 @@ export function MenuForm({ mode, menuItem }: MenuFormProps) {
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="min-w-[150px]"
+            className="min-w-37.5"
           >
             {isSubmitting ? (
               <>

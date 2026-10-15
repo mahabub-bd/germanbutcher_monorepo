@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,7 +17,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { deleteData, fetchProtectedData } from "@/utils/api-utils";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { Role } from "@/utils/types";
 import {
   Briefcase,
@@ -152,11 +152,10 @@ export function RoleList() {
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                    role.isActive
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${role.isActive
                       ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
                       : "bg-gray-100 text-gray-600 dark:bg-gray-900/40 dark:text-gray-400"
-                  }`}
+                    }`}
                 >
                   {role.isActive ? (
                     <CheckCircle2 className="h-3 w-3" />
@@ -205,15 +204,15 @@ export function RoleList() {
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full">
         <PageHeader
           title="Roles"
           description="Manage system roles and permissions"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add Role",
-                actionHref: "/admin/user/role/add",
-              }
+              actionLabel: "Add Role",
+              actionHref: "/admin/user/role/add",
+            }
             : {})}
         />
 

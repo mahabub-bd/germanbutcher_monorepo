@@ -1,7 +1,7 @@
 "use client";
 
-import { SendOfferNotification } from "@/components/admin/notifications/send-offer-notification";
 import { SendMaintenanceNotification } from "@/components/admin/notifications/send-maintenance-notification";
+import { SendOfferNotification } from "@/components/admin/notifications/send-offer-notification";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell } from "lucide-react";
@@ -9,7 +9,7 @@ import Link from "next/link";
 
 export default function NotificationsPage() {
   return (
-    <div className="space-y-6 p-2 md:p-4">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <Bell className="h-7 w-7 shrink-0" />

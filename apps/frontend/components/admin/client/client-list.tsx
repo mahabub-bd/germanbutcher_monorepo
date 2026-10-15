@@ -1,14 +1,14 @@
 "use client"
 
-import { PaginationComponent } from "@/components/common/pagination"
+import { usePermissions } from "@/components/admin/permissions/use-permissions"
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle"
+import { PaginationComponent } from "@/components/common/pagination"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle"
 import { formatDateTime } from "@/lib/utils"
 import { deleteData, fetchDataPagination } from "@/utils/api-utils"
-import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle"
-import { usePermissions } from "@/components/admin/permissions/use-permissions"
 import type { Client, PaginatedResponse } from "@/utils/types"
 import { MoreHorizontal, Pencil, Plus, Trash2, Users } from "lucide-react"
 import Image from "next/image"
@@ -183,15 +183,15 @@ export function ClientList() {
 
   return (
     <>
-      <div className="w-full md:p-6 p-2">
+      <div className="w-full">
         <PageHeader
           title="Clients"
           description="Manage your clients"
           {...(can(MENU_URL, "canCreate")
             ? {
-                actionLabel: "Add Client",
-                actionHref: "/admin/client/add",
-              }
+              actionLabel: "Add Client",
+              actionHref: "/admin/client/add",
+            }
             : {})}
         />
 

@@ -1,22 +1,17 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-
 import { PurchaseForm } from "@/components/admin/procurement/purchases/purchase-form";
-import { Button } from "@/components/ui/button";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 
 export default function AddPurchasePage() {
   return (
-    <div className="space-y-6 p-2 md:p-4">
-      <div className="flex justify-end">
-        <Button asChild variant="outline">
-          <Link href="/admin/procurement/purchases">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Purchases
-          </Link>
-        </Button>
-      </div>
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <FormPageHeader
+        title="Add New Purchase"
+        description="Create a new purchase. Fill in all the required information."
+        backHref="/admin/procurement/purchases"
+        backLabel="Back to Purchases"
+      />
       <PurchaseForm mode="create" />
     </div>
   );

@@ -47,7 +47,7 @@ export default function EditShippingMethodPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-6 flex justify-center items-center min-h-[60vh]">
+      <div className="md:p-4 p-2 space-y-6 rounded-sm flex justify-center items-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">
@@ -60,7 +60,7 @@ export default function EditShippingMethodPage() {
 
   if (!shippingMethod) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="text-center">
           <h2 className="text-xl font-semibold">Shipping method not found</h2>
           <p className="text-muted-foreground mt-2">
@@ -77,8 +77,7 @@ export default function EditShippingMethodPage() {
   }
 
   return (
-    <div className="md:p-6 p-2 space-y-6 border rounded-sm">
-      <div className="md:p-6 p-2">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Shipping Method Information</CardTitle>
@@ -92,7 +91,6 @@ export default function EditShippingMethodPage() {
             </Link>
           </Button>
         </div>
-      </div>
 
       <ShippingMethodForm
         mode="edit"

@@ -8,10 +8,10 @@ import DashboardClient from "@/components/admin/dashboard/DashboardClient";
 
 import Last30DaysDeliveredChart from "@/components/admin/dashboard/last-30-days-delivered-chart";
 
-import { OrderList } from "@/components/admin/orders/order-list";
 import { StockReportTabs } from "@/components/admin/dashboard/StockReportTabs";
 import { TopCustomersList } from "@/components/admin/dashboard/top-customer-list";
 import TopSaleProductsList from "@/components/admin/dashboard/top-sale-product-list";
+import { OrderList } from "@/components/admin/orders/order-list";
 
 import { fetchAnalyticsOverview } from "@/utils/analytics-utils";
 import {
@@ -44,7 +44,7 @@ async function DashboardReportsSection() {
   ]);
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
       <DashboardClient
         initialChartData={reports.monthly}
         initialStatsData={reports.statistics}
@@ -62,7 +62,7 @@ async function DashboardReportsSection() {
       />
       <CombinedOrdersSalesChart chartData={reports.monthly} />
       <Last30DaysDeliveredChart chartData={reports.last30DaysDelivered} />
-    </>
+    </div>
   );
 }
 
@@ -87,21 +87,21 @@ async function AnalyticsSection() {
 // in as its data resolves.
 function ReportsSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="h-[110px] animate-pulse rounded-lg bg-muted" />
+          <div key={i} className="h-27.5 animate-pulse rounded-lg bg-muted" />
         ))}
       </div>
-      <div className="h-[350px] animate-pulse rounded-lg bg-muted" />
-      <div className="h-[350px] animate-pulse rounded-lg bg-muted" />
+      <div className="h-87.5 animate-pulse rounded-lg bg-muted" />
+      <div className="h-87.5 animate-pulse rounded-lg bg-muted" />
     </div>
   );
 }
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-6">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm flex flex-col gap-4">
       <Suspense fallback={<ReportsSkeleton />}>
         <DashboardReportsSection />
       </Suspense>

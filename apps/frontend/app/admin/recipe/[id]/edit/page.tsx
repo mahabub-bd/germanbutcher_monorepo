@@ -46,8 +46,7 @@ export default function EditRecipePage() {
   }
 
   return (
-    <div className="md:p-6 p:2 space-y-6 border rounded-sm">
-      <div className="md:p-6 p:2">
+    <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Recipe</CardTitle>
@@ -57,7 +56,6 @@ export default function EditRecipePage() {
             <Link href="/admin/recipe/recipe-list">Back to Recipes</Link>
           </Button>
         </div>
-      </div>
 
       <RecipeForm mode="edit" recipe={recipe} />
     </div>
