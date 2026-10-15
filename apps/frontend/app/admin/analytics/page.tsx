@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { fetchAllAnalyticsData } from "@/utils/analytics-utils";
 import type { AnalyticsDashboardData, AnalyticsPeriod } from "@/utils/types";
+import { BarChart3 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function AnalyticsPage() {
@@ -53,6 +54,7 @@ export default function AnalyticsPage() {
         <PageHeader
           title="Analytics Dashboard"
           description="Monitor your API performance and traffic"
+          titleIcon={<BarChart3 className="size-6 text-primaryColor" />}
         />
         <Select
           value={period}

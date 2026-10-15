@@ -5,6 +5,8 @@ import { Button } from "../ui/button";
 interface PageHeaderProps {
   title: string;
   description: string;
+  /** Optional icon rendered beside the title. */
+  titleIcon?: React.ReactNode;
   actionLabel?: string;
   actionHref?: string;
   actionIcon?: React.ReactNode;
@@ -14,6 +16,7 @@ interface PageHeaderProps {
 export function PageHeader({
   title,
   description,
+  titleIcon,
   actionLabel,
   actionHref,
   actionIcon = <Plus className="mr-2 h-4 w-4" />,
@@ -22,7 +25,10 @@ export function PageHeader({
   return (
     <div className="flex flex-row items-center justify-between mb-6">
       <div>
-        <h2 className="text-2xl font-bold">{title}</h2>
+        <h2 className="flex items-center gap-2 text-2xl font-bold">
+          {titleIcon}
+          {title}
+        </h2>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
 
