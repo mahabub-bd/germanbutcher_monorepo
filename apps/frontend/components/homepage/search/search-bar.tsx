@@ -17,7 +17,7 @@ export function SearchBar({
   className = "",
   disabled = false,
 }: SearchBarProps) {
-  const { searchQuery, setSearchQuery, handleSearch, clearSearch } =
+  const { searchQuery, setSearchQuery, setIsOpen, handleSearch, clearSearch } =
     useGlobalSearch();
   const searchId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -28,8 +28,11 @@ export function SearchBar({
       const value = e.target.value;
 
       setSearchQuery(value);
+      if (value.trim()) {
+        setIsOpen(true);
+      }
     },
-    [setSearchQuery]
+    [setSearchQuery, setIsOpen]
   );
 
   const handleKeyDown = useCallback(
