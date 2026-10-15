@@ -151,7 +151,7 @@ export function SearchModal() {
                   <Link
                     href={`/products/search/${encodeURIComponent(searchQuery)}`}
                     onClick={handleClose}
-                    className="flex items-center justify-center w-full py-2 px-4 bg-gradient-to-r from-primaryColor to-secondaryColor hover:from-secondaryColor hover:to-primaryColor text-white font-medium rounded-lg transition-all duration-200 hover:shadow-lg group"
+                    className="flex items-center justify-center w-full py-2 px-4 bg-linear-to-r from-primaryColor to-secondaryColor hover:from-secondaryColor hover:to-primaryColor text-white font-medium rounded-lg transition-all duration-200 hover:shadow-lg group"
                   >
                     <span>View All {products.length} Results</span>
                     <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
