@@ -9,7 +9,7 @@ export default function AddPurchasePage() {
       <FormPageHeader
         title="Add New Purchase"
         description="Create a new purchase. Fill in all the required information."
-        backHref="/admin/procurement/purchases"
+        backHref="/admin/procurement/purchases/purchases-list"
         backLabel="Back to Purchases"
       />
       <PurchaseForm mode="create" />

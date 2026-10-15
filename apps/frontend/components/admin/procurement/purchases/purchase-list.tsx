@@ -192,6 +192,7 @@ export function PurchaseList({
     try {
       await deleteData("purchases", selectedPurchase.id);
       fetchPurchases();
+      toast.success("Purchase deleted successfully");
     } catch (error) {
       console.error("Error deleting purchase:", error);
       toast.error("Failed to delete purchase. Please try again.");
