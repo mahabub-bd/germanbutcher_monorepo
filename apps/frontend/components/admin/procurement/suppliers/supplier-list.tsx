@@ -2,7 +2,8 @@
 
 import type React from "react";
 
-import { PaginationComponent } from "@/components/common/pagination";
+import StatsCard from "@/components/admin/dashboard/stats-card";
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -20,11 +28,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { deleteData, fetchDataPagination } from "@/utils/api-utils";
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { PaginationComponent } from "@/components/common/pagination";
+import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import { Supplier } from "@/utils/types";
 import {
+  Ban,
+  Boxes,
+  CheckCircle,
   Filter,
   Mail,
   MoreHorizontal,
@@ -39,7 +52,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import DeleteConfirmationDialog from "../../delete-confirmation-dialog";
 import { LoadingIndicator } from "../../loading-indicator";
@@ -71,8 +84,13 @@ export function SupplierList({
   const [searchQuery, setSearchQuery] = useState(
     getInitialParam("search") as string
   );
+  // Applied 400ms after typing stops — the input stays instant, the API call
+  // doesn't fire per keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState(
+    getInitialParam("search") as string
+  );
   const [statusFilter, setStatusFilter] = useState(
-    getInitialParam("status") as string
+    getInitialParam("isActive") as string
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -90,12 +108,12 @@ export function SupplierList({
     params.set("page", currentPage.toString());
     params.set("limit", limit.toString());
 
-    if (searchQuery) params.set("search", searchQuery);
+    if (debouncedSearch) params.set("search", debouncedSearch);
     if (statusFilter && statusFilter !== "all")
-      params.set("status", statusFilter);
+      params.set("isActive", statusFilter);
 
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname, currentPage, limit, searchQuery, statusFilter]);
+  }, [router, pathname, currentPage, limit, debouncedSearch, statusFilter]);
 
   const fetchSuppliers = async () => {
     setIsLoading(true);
@@ -104,9 +122,9 @@ export function SupplierList({
       params.append("page", currentPage.toString());
       params.append("limit", limit.toString());
 
-      if (searchQuery) params.append("search", searchQuery);
+      if (debouncedSearch) params.append("search", debouncedSearch);
       if (statusFilter && statusFilter !== "all")
-        params.append("status", statusFilter);
+        params.append("isActive", statusFilter);
 
       const response = await fetchDataPagination<{
         data: Supplier[];
@@ -125,14 +143,25 @@ export function SupplierList({
     }
   };
 
+  // Debounce the search box so typing doesn't fire a request per keystroke.
   useEffect(() => {
-    fetchSuppliers();
-  }, []);
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     fetchSuppliers();
+  }, [currentPage, limit, debouncedSearch, statusFilter]);
+
+  // Sync the URL only for user-driven changes, not on first paint.
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     updateUrl();
-  }, [currentPage, limit, searchQuery, statusFilter]);
+  }, [updateUrl]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -158,6 +187,17 @@ export function SupplierList({
     }
   };
 
+  const { togglingId, toggleActive } = useActiveStatusToggle<Supplier>({
+    getId: (supplier) => supplier.id,
+    getName: (supplier) => supplier.name,
+    buildEndpoint: (id) => `suppliers/${id}`,
+    setStatusLocally: (id, isActive) =>
+      setSuppliers((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, isActive } : s))
+      ),
+    errorLabel: "supplier status",
+  });
+
   const clearFilters = () => {
     setSearchQuery("");
     setStatusFilter("");
@@ -169,37 +209,39 @@ export function SupplierList({
     setCurrentPage(1);
   };
 
+  const hasActiveFilters = () => Boolean(searchQuery || statusFilter);
+
   const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-      <Truck className="h-10 w-10 text-muted-foreground mb-4" />
-      <h3 className="text-lg font-semibold">No suppliers found</h3>
-      <p className="text-sm text-muted-foreground mt-2">
-        {searchQuery || statusFilter
-          ? "No suppliers match your search criteria. Try different filters."
-          : "Get started by adding your first supplier."}
-      </p>
-      {!(searchQuery || statusFilter) && can(MENU_URL, "canCreate") && (
-        <Button asChild className="mt-4">
-          <Link href="/admin/procurement/suppliers/add">
-            <Plus className="mr-2 h-4 w-4" /> Add Supplier
-          </Link>
-        </Button>
-      )}
-      {(searchQuery || statusFilter) && (
-        <Button variant="outline" className="mt-4" onClick={clearFilters}>
-          Clear Filters
-        </Button>
-      )}
+    <div className="p-4 pb-6">
+      <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
+        <Truck className="h-10 w-10 text-muted-foreground/50 mb-4" />
+        <h3 className="text-lg font-semibold">No suppliers found</h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          {hasActiveFilters()
+            ? "No suppliers match your search criteria. Try different filters."
+            : "Get started by adding your first supplier."}
+        </p>
+        {!hasActiveFilters() && can(MENU_URL, "canCreate") && (
+          <Button asChild className="mt-4">
+            <Link href="/admin/procurement/suppliers/add">
+              <Plus className="mr-2 h-4 w-4" /> Add Supplier
+            </Link>
+          </Button>
+        )}
+        {hasActiveFilters() && (
+          <Button variant="outline" className="mt-4" onClick={clearFilters}>
+            Clear Filters
+          </Button>
+        )}
+      </div>
     </div>
   );
 
   const renderActiveFilters = () => {
-    const hasFilters = searchQuery || statusFilter;
-
-    if (!hasFilters) return null;
+    if (!hasActiveFilters()) return null;
 
     return (
-      <div className="flex flex-wrap gap-2 mt-4">
+      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
         {searchQuery && (
           <Badge
             variant="outline"
@@ -217,7 +259,7 @@ export function SupplierList({
             variant="outline"
             className="flex items-center gap-1 px-3 py-1"
           >
-            Status: {statusFilter}
+            Status: {statusFilter === "true" ? "Active" : "Inactive"}
             <button onClick={() => setStatusFilter("")} className="ml-1">
               <XCircle className="h-3 w-3" />
             </button>
@@ -236,57 +278,123 @@ export function SupplierList({
     );
   };
 
+  const renderFiltersMenu = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2 px-3 shrink-0">
+          <Filter className="h-4 w-4" />
+          <span>Filters</span>
+          {statusFilter && statusFilter !== "all" && (
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-100">
+        <div className="grid grid-cols-2 gap-3 p-3">
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold">Status</h4>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="true">Active</SelectItem>
+                <SelectItem value="false">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {statusFilter && statusFilter !== "all" && (
+            <div className="col-span-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="w-full mt-2"
+              >
+                Reset Filters
+              </Button>
+            </div>
+          )}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   const renderTableView = () => (
-    <div className="md:p-6 p-2">
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Logo</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead className="hidden md:table-cell">Contact</TableHead>
-            <TableHead className="hidden md:table-cell">Address</TableHead>
-            <TableHead className="hidden md:table-cell">Products</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
+            <TableHead>Supplier</TableHead>
+            <TableHead className="hidden lg:table-cell">Contact</TableHead>
+            <TableHead className="hidden xl:table-cell">Address</TableHead>
+            <TableHead className="hidden md:table-cell text-center">
+              Products
+            </TableHead>
+            <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {suppliers.map((supplier) => (
-            <TableRow key={supplier.id}>
+            <TableRow key={supplier.id} className="hover:bg-muted/50">
               <TableCell>
-                <div className="rounded-md overflow-hidden">
-                  <Image
-                    src={supplier?.attachment?.url || "/placeholder.svg"}
-                    alt={supplier.name}
-                    width={64}
-                    height={64}
-                    className="object-contain"
-                  />
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="flex  h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                    <Image
+                      src={supplier?.attachment?.url || "/placeholder.svg"}
+                      alt={supplier.name}
+                      width={96}
+                      height={96}
+                      className="object-contain p-1"
+                    />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-medium leading-tight">{supplier.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 lg:hidden">
+                      {supplier.email}
+                    </p>
+                  </div>
                 </div>
               </TableCell>
-              <TableCell className="font-medium">{supplier.name}</TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell className="hidden lg:table-cell">
                 <div className="flex flex-col space-y-1">
                   <div className="flex items-center text-sm">
-                    <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground/70" />
                     {supplier.email}
                   </div>
                   <div className="flex items-center text-sm">
-                    <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground/70" />
                     {supplier.phone}
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
-                {supplier.address || "No address provided"}
+              <TableCell className="hidden xl:table-cell max-w-xs">
+                <span className="line-clamp-2 text-sm text-muted-foreground">
+                  {supplier.address || "No address provided"}
+                </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell text-left ">
-                {supplier.products?.length || 0}
+              <TableCell className="hidden md:table-cell text-center">
+                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted">
+                  <Boxes className="h-3 w-3" />
+                  {supplier.products?.length || 0}
+                </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
-                <Badge variant={supplier.isActive ? "default" : "destructive"}>
-                  {supplier.isActive ? "Active" : "Inactive"}
-                </Badge>
+              <TableCell>
+                <ActiveStatusToggle
+                  isActive={supplier.isActive}
+                  disabled={togglingId === supplier.id}
+                  onToggle={() => toggleActive(supplier)}
+                  label={supplier.name}
+                />
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
@@ -324,7 +432,7 @@ export function SupplierList({
 
   return (
     <>
-      <div className="w-full">
+      <div className="w-full space-y-4">
         <PageHeader
           title="Suppliers"
           description="Manage your product suppliers"
@@ -336,99 +444,54 @@ export function SupplierList({
             : {})}
         />
 
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search suppliers..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
+        {/* Summary tiles */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <StatsCard
+            icon={Truck}
+            title="Total Suppliers"
+            value={totalItems}
+            bgColor="blue"
+          />
+          <StatsCard
+            icon={CheckCircle}
+            title="Active"
+            value={suppliers.filter((s) => s.isActive).length}
+            bgColor="green"
+          />
+          <StatsCard
+            icon={Ban}
+            title="Inactive"
+            value={suppliers.filter((s) => !s.isActive).length}
+            bgColor="orange"
+          />
+        </div>
+
+        {/* List card: toolbar + table */}
+        <div className="rounded-sm border bg-card">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
+                <Truck className="h-4.5 w-4.5" />
+              </span>
+              <div>
+                <h3 className="font-semibold leading-tight">All Suppliers</h3>
+                <p className="text-sm text-muted-foreground">
+                  {totalItems} supplier{totalItems === 1 ? "" : "s"}
+                </p>
+              </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2 px-3"
-                  >
-                    <Filter className="h-4 w-4" />
-                    <span>Filters</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-64 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
-                  sideOffset={8}
-                >
-                  <div className="space-y-3">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium">Filters</h4>
-                      {statusFilter && statusFilter !== "all" && (
-                        <button
-                          onClick={clearFilters}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Clear all
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Status Filter */}
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">
-                        Status
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          onClick={() => {
-                            setStatusFilter("all");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all"
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          All
-                        </button>
-                        <button
-                          onClick={() => {
-                            setStatusFilter("active");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "active"
-                              ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          <span className="h-2 w-2 rounded-full bg-green-500" />
-                          Active
-                        </button>
-                        <button
-                          onClick={() => {
-                            setStatusFilter("inactive");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "inactive"
-                              ? "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          <span className="h-2 w-2 rounded-full bg-red-500" />
-                          Inactive
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search suppliers..."
+                  className="pl-9"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                />
+              </div>
+              {renderFiltersMenu()}
             </div>
           </div>
 
@@ -439,11 +502,12 @@ export function SupplierList({
           ) : suppliers.length === 0 ? (
             renderEmptyState()
           ) : (
-            <div className="mt-6">{renderTableView()}</div>
+            renderTableView()
           )}
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
+        {/* Pagination */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground text-center md:text-left truncate">
               {`Showing ${suppliers.length} of ${totalItems} suppliers`}

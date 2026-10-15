@@ -1,29 +1,17 @@
 "use client";
 
-import { List, Plus } from "lucide-react";
-
-import { RouteTabs } from "@/components/admin/route-tabs";
 import { SupplierForm } from "@/components/admin/procurement/suppliers/supplier-form";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 
 export default function AddSupplierPage() {
   return (
     <div className="md:p-4 p-2 space-y-6 rounded-sm">
-      <div className="flex justify-end">
-        <RouteTabs
-          tabs={[
-            {
-              label: "Suppliers",
-              href: "/admin/procurement/suppliers",
-              icon: <List className="mr-2 h-4 w-4" />,
-            },
-            {
-              label: "Add Supplier",
-              href: "/admin/procurement/suppliers/add",
-              icon: <Plus className="mr-2 h-4 w-4" />,
-            },
-          ]}
-        />
-      </div>
+      <FormPageHeader
+        title="Add New Supplier"
+        description="Create a new supplier. Fill in all the required information."
+        backHref="/admin/procurement/suppliers"
+        backLabel="Back to Suppliers"
+      />
       <SupplierForm mode="create" />
     </div>
   );
