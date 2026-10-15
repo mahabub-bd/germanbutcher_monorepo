@@ -96,6 +96,8 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
       userId: data.userId,
       ipAddress: data.ipAddress,
       userAgent: data.userAgent,
+      referer: data.referer ?? null,
+      requestPath: data.requestPath ?? null,
       isAuthenticated: data.isAuthenticated,
     });
     this.buffer.push(analytics);
@@ -385,7 +387,7 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
       .where('analytics.timestamp >= :startDate', { startDate })
       .andWhere("analytics.method = 'GET'")
       .andWhere(
-        "analytics.requestPath ~ '^/products/([0-9]+|slug/[^/]+)$'",
+        "analytics.requestPath ~ '^(/v1)?/products/([0-9]+|slug/[^/]+)$'",
       )
       .groupBy('analytics.requestPath')
       .orderBy('COUNT(*)', 'DESC')

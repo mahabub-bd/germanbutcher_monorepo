@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, Clock } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Bar,
   BarChart,
@@ -26,6 +26,32 @@ interface PeakTrafficResponseCardProps {
 }
 
 const BAR_COLOR = "#8b5cf6"; // Violet-500
+
+function ResponseTimeTile({
+  label,
+  value,
+  icon,
+  className,
+}: {
+  label: string;
+  value: string;
+  icon: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`flex items-center gap-2 rounded-lg p-2 ${className ?? ""}`}>
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/70 dark:bg-white/10">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <div className="truncate text-sm font-bold leading-tight">{value}</div>
+        <div className="text-[11px] leading-tight text-muted-foreground">
+          {label}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function PeakTrafficResponseCard({
   traffic,
@@ -103,39 +129,26 @@ export function PeakTrafficResponseCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-3 gap-2">
-          <div className="flex items-center gap-2.5 rounded-lg bg-blue-50 p-2.5 dark:bg-blue-950/20">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40">
-              <Clock className="size-4 text-blue-600 dark:text-blue-400" />
-            </span>
-            <div className="min-w-0">
-              <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                {responseTimes.avg}ms
-              </div>
-              <div className="text-[11px] text-muted-foreground">Average</div>
-            </div>
-          </div>
-          <div className="flex items-center rounded-lg bg-green-50 p-2.5 dark:bg-green-950/20">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
-              <ArrowDown className="size-4 text-green-600 dark:text-green-400" />
-            </span>
-            <div className="min-w-0">
-              <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                {responseTimes.min}ms
-              </div>
-              <div className="text-[11px] text-muted-foreground">Minimum</div>
-            </div>
-          </div>
-          <div className="flex items-center rounded-lg bg-red-50 p-2.5 dark:bg-red-950/20">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/40">
-              <ArrowUp className="size-4 text-red-600 dark:text-red-400" />
-            </span>
-            <div className="min-w-0">
-              <div className="text-sm font-bold text-red-600 dark:text-red-400">
-                {responseTimes.max}ms
-              </div>
-              <div className="text-[11px] text-muted-foreground">Maximum</div>
-            </div>
-          </div>
+          <ResponseTimeTile
+            label="Average"
+            value={`${responseTimes.avg}ms`}
+            icon={<Clock className="size-3.5 text-blue-600 dark:text-blue-400" />}
+            className="bg-blue-50 dark:bg-blue-950/20"
+          />
+          <ResponseTimeTile
+            label="Minimum"
+            value={`${responseTimes.min}ms`}
+            icon={
+              <ArrowDown className="size-3.5 text-green-600 dark:text-green-400" />
+            }
+            className="bg-green-50 dark:bg-green-950/20"
+          />
+          <ResponseTimeTile
+            label="Maximum"
+            value={`${responseTimes.max}ms`}
+            icon={<ArrowUp className="size-3.5 text-red-600 dark:text-red-400" />}
+            className="bg-red-50 dark:bg-red-950/20"
+          />
         </div>
 
         {traffic.length === 0 ? (
