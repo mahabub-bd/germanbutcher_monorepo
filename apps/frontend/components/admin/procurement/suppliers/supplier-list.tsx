@@ -348,12 +348,12 @@ export function SupplierList({
             <TableRow key={supplier.id} className="hover:bg-muted/50">
               <TableCell>
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex aspect-3/2 h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                  <span className="flex  h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
                     <Image
                       src={supplier?.attachment?.url || "/placeholder.svg"}
                       alt={supplier.name}
                       width={96}
-                      height={64}
+                      height={96}
                       className="object-contain p-1"
                     />
                   </span>
