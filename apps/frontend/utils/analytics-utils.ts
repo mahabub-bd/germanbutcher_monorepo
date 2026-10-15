@@ -3,10 +3,14 @@ import type {
   AnalyticsOverview,
   AnalyticsPeriod,
   AnalyticsRequests,
+  ConversionData,
+  DeviceBreakdownData,
   OnlineUsers,
   PeakTraffic,
   ResponseTimes,
   TopEndpoint,
+  TopProductPage,
+  TrafficSource,
   VisitorsData,
 } from "./types";
 
@@ -93,15 +97,29 @@ export async function fetchOnlineUsers(): Promise<OnlineUsers> {
 }
 
 export async function fetchAllAnalyticsData(period: AnalyticsPeriod = "24h") {
-  const [overview, requests, peakTraffic, visitors, topEndpoints, responseTimes] =
-    await Promise.all([
-      fetchAnalyticsOverview(period),
-      fetchAnalyticsRequests(period),
-      fetchPeakTraffic("7d"),
-      fetchVisitors("7d"),
-      fetchTopEndpoints(10),
-      fetchResponseTimes(period),
-    ]);
+  const [
+    overview,
+    requests,
+    peakTraffic,
+    visitors,
+    topEndpoints,
+    responseTimes,
+    devices,
+    topPages,
+    trafficSources,
+    conversion,
+  ] = await Promise.all([
+    fetchAnalyticsOverview(period),
+    fetchAnalyticsRequests(period),
+    fetchPeakTraffic("7d"),
+    fetchVisitors("30d"),
+    fetchTopEndpoints(10),
+    fetchResponseTimes(period),
+    fetchDeviceBreakdown(period),
+    fetchTopProductPages("7d"),
+    fetchTrafficSources("30d"),
+    fetchConversion("30d"),
+  ]);
 
   return {
     overview,
@@ -110,5 +128,78 @@ export async function fetchAllAnalyticsData(period: AnalyticsPeriod = "24h") {
     visitors,
     topEndpoints,
     responseTimes,
+    devices,
+    topPages,
+    trafficSources,
+    conversion,
   };
+}
+
+export async function fetchDeviceBreakdown(
+  period: AnalyticsPeriod = "7d"
+): Promise<DeviceBreakdownData> {
+  const result = await fetchProtectedData<
+    DeviceBreakdownData | { data: DeviceBreakdownData }
+  >(`${ANALYTICS_BASE}/devices?period=${period}`);
+  if (
+    result &&
+    typeof result === "object" &&
+    "data" in result &&
+    typeof result.data === "object"
+  ) {
+    return result.data;
+  }
+  return result as DeviceBreakdownData;
+}
+
+export async function fetchTopProductPages(
+  period: AnalyticsPeriod = "7d",
+  limit = 8
+): Promise<TopProductPage[]> {
+  const result = await fetchProtectedData<
+    TopProductPage[] | { data: TopProductPage[] }
+  >(`${ANALYTICS_BASE}/top-pages?period=${period}&limit=${limit}`);
+  if (
+    result &&
+    typeof result === "object" &&
+    "data" in result &&
+    Array.isArray(result.data)
+  ) {
+    return result.data;
+  }
+  return result as TopProductPage[];
+}
+
+export async function fetchTrafficSources(
+  period: AnalyticsPeriod = "30d"
+): Promise<TrafficSource[]> {
+  const result = await fetchProtectedData<
+    TrafficSource[] | { data: TrafficSource[] }
+  >(`${ANALYTICS_BASE}/traffic-sources?period=${period}`);
+  if (
+    result &&
+    typeof result === "object" &&
+    "data" in result &&
+    Array.isArray(result.data)
+  ) {
+    return result.data;
+  }
+  return result as TrafficSource[];
+}
+
+export async function fetchConversion(
+  period: AnalyticsPeriod = "30d"
+): Promise<ConversionData> {
+  const result = await fetchProtectedData<
+    ConversionData | { data: ConversionData }
+  >(`${ANALYTICS_BASE}/conversion?period=${period}`);
+  if (
+    result &&
+    typeof result === "object" &&
+    "data" in result &&
+    typeof result.data === "object"
+  ) {
+    return result.data;
+  }
+  return result as ConversionData;
 }

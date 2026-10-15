@@ -9,7 +9,7 @@ import { fetchProtectedData } from "@/utils/api-utils";
 import { listSlugToRoute } from "@/utils/order-list-routes";
 import { Order } from "@/utils/types";
 import {
-  ArrowLeft,
+  List,
   CheckCircle2,
   Clock,
   DollarSign,
@@ -86,9 +86,9 @@ function OrderPaymentsListPageContent() {
           </p>
         </div>
         <div className="flex shrink-0 gap-3">
-          <Button variant="outline" asChild>
+          <Button className="bg-primaryColor text-white hover:bg-primaryColor/90" asChild>
             <Link href={buildListUrl()}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
+              <List className="mr-2 h-4 w-4" />
               Back to Orders
             </Link>
           </Button>

@@ -42,9 +42,9 @@ export class AnalyticsController {
   @ApiQuery({
     name: 'period',
     required: false,
-    description: 'Time period (1h, 24h, 7d, 30d)',
+    description: 'Time period (1h, 24h, 7d, 15d, 30d)',
     example: '24h',
-    enum: ['1h', '24h', '7d', '30d'],
+    enum: ['1h', '24h', '7d', '15d', '30d'],
   })
   @ApiOkResponse({
     description: 'Analytics overview retrieved successfully',
@@ -70,9 +70,9 @@ export class AnalyticsController {
   @ApiQuery({
     name: 'period',
     required: false,
-    description: 'Time period (1h, 24h, 7d, 30d)',
+    description: 'Time period (1h, 24h, 7d, 15d, 30d)',
     example: '24h',
-    enum: ['1h', '24h', '7d', '30d'],
+    enum: ['1h', '24h', '7d', '15d', '30d'],
   })
   @ApiOkResponse({
     description: 'Request metrics retrieved successfully',
@@ -104,9 +104,9 @@ export class AnalyticsController {
   @ApiQuery({
     name: 'period',
     required: false,
-    description: 'Time period (1h, 24h, 7d, 30d)',
+    description: 'Time period (1h, 24h, 7d, 15d, 30d)',
     example: '7d',
-    enum: ['1h', '24h', '7d', '30d'],
+    enum: ['1h', '24h', '7d', '15d', '30d'],
   })
   @ApiOkResponse({
     description: 'Peak traffic data retrieved successfully',
@@ -129,9 +129,9 @@ export class AnalyticsController {
   @ApiQuery({
     name: 'period',
     required: false,
-    description: 'Time period (1h, 24h, 7d, 30d)',
+    description: 'Time period (1h, 24h, 7d, 15d, 30d)',
     example: '7d',
-    enum: ['1h', '24h', '7d', '30d'],
+    enum: ['1h', '24h', '7d', '15d', '30d'],
   })
   @ApiOkResponse({
     description: 'Unique visitors data retrieved successfully',
@@ -189,9 +189,9 @@ export class AnalyticsController {
   @ApiQuery({
     name: 'period',
     required: false,
-    description: 'Time period (1h, 24h, 7d, 30d)',
+    description: 'Time period (1h, 24h, 7d, 15d, 30d)',
     example: '24h',
-    enum: ['1h', '24h', '7d', '30d'],
+    enum: ['1h', '24h', '7d', '15d', '30d'],
   })
   @ApiOkResponse({
     description: 'Response time metrics retrieved successfully',
@@ -201,6 +201,101 @@ export class AnalyticsController {
     const data = await this.analyticsService.getResponseTimeMetrics(period);
     return this.formatResponse(
       'Response time metrics retrieved successfully',
+      HttpStatus.OK,
+      data,
+    );
+  }
+
+  @Get('devices')
+  @ApiOperation({
+    summary: 'Get device and browser breakdown',
+    description:
+      'Aggregates stored user-agent strings into mobile/tablet/desktop counts and a browser split',
+  })
+  @ApiQuery({
+    name: 'period',
+    required: false,
+    description: 'Time period (1h, 24h, 7d, 15d, 30d)',
+    example: '7d',
+    enum: ['1h', '24h', '7d', '15d', '30d'],
+  })
+  async getDeviceBreakdown(@Query('period') period: string = '7d') {
+    const data = await this.analyticsService.getDeviceBreakdown(period);
+    return this.formatResponse(
+      'Device breakdown retrieved successfully',
+      HttpStatus.OK,
+      data,
+    );
+  }
+
+  @Get('top-pages')
+  @ApiOperation({
+    summary: 'Get most viewed product pages',
+    description:
+      'Aggregates concrete product detail paths (/products/{id} or /products/slug/{slug}) and resolves product names',
+  })
+  @ApiQuery({
+    name: 'period',
+    required: false,
+    description: 'Time period (1h, 24h, 7d, 15d, 30d)',
+    example: '7d',
+    enum: ['1h', '24h', '7d', '15d', '30d'],
+  })
+  @ApiQuery({ name: 'limit', required: false, example: 8 })
+  async getTopProductPages(
+    @Query('period') period: string = '7d',
+    @Query('limit') limit: string = '8',
+  ) {
+    const data = await this.analyticsService.getTopProductPages(
+      period,
+      Math.min(parseInt(limit) || 8, 25),
+    );
+    return this.formatResponse(
+      'Top product pages retrieved successfully',
+      HttpStatus.OK,
+      data,
+    );
+  }
+
+  @Get('traffic-sources')
+  @ApiOperation({
+    summary: 'Get traffic sources by referer host',
+    description:
+      'Groups requests by referer host; requests without a referer count as Direct',
+  })
+  @ApiQuery({
+    name: 'period',
+    required: false,
+    description: 'Time period (1h, 24h, 7d, 15d, 30d)',
+    example: '30d',
+    enum: ['1h', '24h', '7d', '15d', '30d'],
+  })
+  async getTrafficSources(@Query('period') period: string = '30d') {
+    const data = await this.analyticsService.getTrafficSources(period);
+    return this.formatResponse(
+      'Traffic sources retrieved successfully',
+      HttpStatus.OK,
+      data,
+    );
+  }
+
+  @Get('conversion')
+  @ApiOperation({
+    summary: 'Get visitor-to-order conversion',
+    description:
+      'Counts placed orders vs unique visitors in the period and returns the rate',
+  })
+  @ApiQuery({
+    name: 'period',
+    required: false,
+    description: 'Time period (1h, 24h, 7d, 15d, 30d)',
+    example: '30d',
+    enum: ['1h', '24h', '7d', '15d', '30d'],
+  })
+  async getConversion(@Query('period') period: string = '30d') {
+    const data = await this.analyticsService.getConversion(period);
+    return this.formatResponse(
+      'Conversion metrics retrieved successfully',
       HttpStatus.OK,
       data,
     );

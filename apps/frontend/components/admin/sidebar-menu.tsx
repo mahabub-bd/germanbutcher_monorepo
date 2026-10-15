@@ -40,6 +40,11 @@ interface UserTypes {
   };
 }
 
+// Fallback for the first-ever load; afterwards the skeleton reuses the menu
+// size seen on the previous visit so it tracks menu changes automatically.
+const MENU_SKELETON_FALLBACK_COUNT = 14;
+const MENU_COUNT_STORAGE_KEY = "gb:sidebar-menu-count";
+
 interface SidebarProps {
   className?: string;
   user: UserTypes;
@@ -66,6 +71,14 @@ export function SidebarMenu({
   const setCollapsed = setCollapsedProp ?? setInternalCollapsed;
   const [menuData, setMenuData] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Starts from the persisted count so the skeleton height matches the menu
+  const [skeletonCount, setSkeletonCount] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const stored = Number(
+      window.sessionStorage.getItem(MENU_COUNT_STORAGE_KEY)
+    );
+    return Number.isFinite(stored) && stored > 0 ? stored : null;
+  });
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
 
@@ -82,6 +95,14 @@ export function SidebarMenu({
 
         const response: MenuItem[] = await fetchProtectedData(endpoint);
         setMenuData(response);
+        // Remember the menu size so the next skeleton matches it
+        if (response.length > 0) {
+          window.sessionStorage.setItem(
+            MENU_COUNT_STORAGE_KEY,
+            String(response.length)
+          );
+          setSkeletonCount(response.length);
+        }
       } catch (error) {
         console.error("Error fetching menu data:", error);
       } finally {
@@ -145,29 +166,17 @@ export function SidebarMenu({
     );
   };
 
-  // Generate skeleton menu items for loading state
+  // Generate skeleton menu items for loading state (top-level rows only)
   const renderSkeletonMenu = () => {
-    return Array(14)
-      .fill(0)
-      .map((_, index) => (
-        <div key={index} className="px-2 py-1">
-          <div className="flex items-center gap-2 px-3 py-2">
-            <Skeleton className="h-5 w-5 rounded-md bg-primaryColor/20" />
-            {!collapsed && <Skeleton className="h-4 w-28 bg-primaryColor/20" />}
-          </div>
-          {!collapsed && index % 2 === 0 && (
-            <div className="ml-6 mt-1 border-l border-primaryColor/20 pl-3 space-y-1">
-              {Array((index % 3) + 1)
-                .fill(0)
-                .map((_, subIndex) => (
-                  <div key={`sub-${index}-${subIndex}`} className="px-3 py-1">
-                    <Skeleton className="h-4 w-20 bg-primaryColor/20" />
-                  </div>
-                ))}
-            </div>
-          )}
+    const count = skeletonCount ?? MENU_SKELETON_FALLBACK_COUNT;
+    return Array.from({ length: count }, (_, index) => (
+      <div key={index} className="px-2 py-1">
+        <div className="flex items-center gap-2 px-3 py-2">
+          <Skeleton className="h-5 w-5 rounded-md bg-primaryColor/20" />
+          {!collapsed && <Skeleton className="h-4 w-28 bg-primaryColor/20" />}
         </div>
-      ));
+      </div>
+    ));
   };
 
   return (

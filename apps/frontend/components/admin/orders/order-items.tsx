@@ -14,7 +14,7 @@ interface OrderItemsProps {
 
 export function OrderItems({ items }: OrderItemsProps) {
   return (
-    <div className="border rounded-lg bg-card shadow-sm">
+    <div className="rounded-sm border bg-card shadow-sm">
       <div className="px-4 py-3 border-b">
           <h3 className="text-base font-semibold flex items-center">
           <Package className="size-4 mr-1.5 text-primary" />
@@ -36,9 +36,9 @@ export function OrderItems({ items }: OrderItemsProps) {
           return (
             <div
               key={item.id}
-              className="group flex items-center gap-3 p-2 rounded-lg border bg-card hover:border-primary/30 transition-colors"
+              className="group flex items-center gap-3 p-2 rounded-sm border bg-card hover:border-primary/30 transition-colors"
             >
-              <div className="relative size-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+              <div className="relative size-12 rounded-lg overflow-hidden bg-muted shrink-0">
                 <Image
                   src={item.product.attachment?.url || FALLBACK_IMAGE}
                   alt={item.product.name}
@@ -76,7 +76,7 @@ export function OrderItems({ items }: OrderItemsProps) {
                     )}
                   </div>
 
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-right shrink-0">
                     <p className="text-sm font-semibold">
                       {formatCurrencyEnglish(totalPrice)}
                     </p>

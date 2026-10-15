@@ -32,6 +32,14 @@ export class LogRequestDto {
   @IsString()
   userAgent?: string;
 
+  @IsOptional()
+  @IsString()
+  referer?: string;
+
+  @IsOptional()
+  @IsString()
+  requestPath?: string;
+
   @IsDefined()
   isAuthenticated: boolean;
 }

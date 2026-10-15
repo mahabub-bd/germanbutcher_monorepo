@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { List } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -75,9 +75,9 @@ export default function EditProductPage() {
   return (
     <div className="md:p-4 p-2 space-y-6 rounded-sm">
       <div className="flex justify-end">
-        <Button asChild variant="outline">
+        <Button asChild className="bg-primaryColor text-white hover:bg-primaryColor/90">
           <Link href="/admin/products/products-list">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <List className="mr-2 h-4 w-4" />
             Back to Products
           </Link>
         </Button>

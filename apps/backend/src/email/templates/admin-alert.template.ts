@@ -17,6 +17,14 @@ export interface NewOrderAlertData {
   customerName: string;
   totalAmount: number | string;
   itemCount: number;
+  /** Same item shape as the customer confirmation email (invoice-style table). */
+  items?: Array<{
+    productName: string;
+    quantity: number;
+    price: number;
+    unitDiscount?: number;
+    productImage?: string | null;
+  }>;
 }
 
 const wrap = (rightTitle: string, bodyHtml: string) => `
@@ -60,12 +68,65 @@ export const generateNewReviewAlertHTML = (data: NewReviewAlertData) =>
     `,
   );
 
-export const generateNewOrderAlertHTML = (data: NewOrderAlertData) =>
-  wrap(
+export const generateNewOrderAlertHTML = (data: NewOrderAlertData) => {
+  // Invoice-style items table, matching the customer confirmation email
+  const itemsHTML = (data.items ?? [])
+    .map(
+      (item, index) => `
+      <tr style="border-bottom: 1px solid #e5e7eb;">
+        <td style="padding: 12px; text-align: left; background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
+          <table cellpadding="0" cellspacing="0">
+            <tr>
+              ${item.productImage ? `
+              <td style="padding-right: 10px; vertical-align: middle;">
+                <img src="${item.productImage}"
+                     alt="${item.productName}"
+                     width="40"
+                     height="40"
+                     style="display: block; border-radius: 4px; border: 1px solid #e5e7eb; object-fit: cover;" />
+              </td>
+              ` : ''}
+              <td style="vertical-align: middle;">
+                <strong style="color: #1f2937;">${item.productName}</strong>
+              </td>
+            </tr>
+          </table>
+        </td>
+        <td style="padding: 12px; text-align: center; color: #374151; background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">${item.quantity}</td>
+        <td style="padding: 12px; text-align: right; color: #374151; background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'}; white-space: nowrap;">
+          ${(item.unitDiscount ?? 0) > 0
+            ? `<span style="text-decoration: line-through; color: #9ca3af; margin-right: 6px;">৳${(item.price + Number(item.unitDiscount)).toFixed(2)}</span>৳${item.price.toFixed(2)}`
+            : `৳${item.price.toFixed(2)}`}
+        </td>
+        <td style="padding: 12px; text-align: right; font-weight: bold; color: #374151; background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">৳${(item.quantity * item.price).toFixed(2)}</td>
+      </tr>
+    `,
+    )
+    .join('');
+
+  return wrap(
     'New Order Received',
     `
     <p>New order <strong>${data.orderNo}</strong> was placed by <strong>${data.customerName}</strong>.</p>
     <p><strong>Items:</strong> ${data.itemCount} &nbsp;•&nbsp; <strong>Total:</strong> ৳${data.totalAmount}</p>
+    ${itemsHTML ? `
+    <div style="margin-bottom: 24px;">
+      <table class="em-items" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #d1d5db; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #8B0000;">
+            <th style="padding: 12px; text-align: left; font-size: 11px; font-weight: bold; color: #ffffff; text-transform: uppercase;">Product Details</th>
+            <th style="padding: 12px; text-align: center; font-size: 11px; font-weight: bold; color: #ffffff; text-transform: uppercase;">Quantity</th>
+            <th style="padding: 12px; text-align: center; font-size: 11px; font-weight: bold; color: #ffffff; text-transform: uppercase;">Unit Price</th>
+            <th style="padding: 12px; text-align: center; font-size: 11px; font-weight: bold; color: #ffffff; text-transform: uppercase;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHTML}
+        </tbody>
+      </table>
+    </div>
+    ` : ''}
     <p>Manage it in the admin panel: <a href="https://germanbutcherbd.com/admin/orders" style="color:#8B0000;">Orders</a></p>
     `,
   );
+};

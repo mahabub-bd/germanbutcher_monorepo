@@ -7,7 +7,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, MoreThanOrEqual, Repository } from 'typeorm';
+import { In, LessThan, MoreThanOrEqual, Repository } from 'typeorm';
+import { Order } from 'src/order/entities/order.entity';
+import { Product } from 'src/product/entities/product.entity';
 import { LogRequestDto } from './dto/log-request.dto';
 import { Analytics } from './entities/analytics.entity';
 
@@ -34,6 +36,10 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectRepository(Analytics)
     private analyticsRepository: Repository<Analytics>,
+    @InjectRepository(Order)
+    private orderRepository: Repository<Order>,
+    @InjectRepository(Product)
+    private productRepository: Repository<Product>,
     private configService: ConfigService,
   ) {}
 
@@ -72,6 +78,8 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
         return new Date(now.getTime() - 24 * 60 * 60 * 1000);
       case '7d':
         return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      case '15d':
+        return new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000);
       case '30d':
         return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       default:
@@ -192,28 +200,35 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
   async getRequestMetrics(period: string = '24h') {
     const startDate = this.getDateFromPeriod(period);
 
-    const isShortPeriod = period === '1h' || period === '24h';
-
+    // Always bucket hour-wise so the traffic chart reads consistently
     const results = await this.analyticsRepository
       .createQueryBuilder('analytics')
-      .select(
-        isShortPeriod
-          ? "DATE_TRUNC('minute', analytics.timestamp)"
-          : "DATE_TRUNC('hour', analytics.timestamp)",
-        'time',
-      )
+      .select("DATE_TRUNC('hour', analytics.timestamp)", 'time')
       .addSelect('COUNT(*)', 'count')
       .where('analytics.timestamp >= :startDate', { startDate })
-      .groupBy(isShortPeriod ? '1' : "DATE_TRUNC('hour', analytics.timestamp)")
+      .groupBy("DATE_TRUNC('hour', analytics.timestamp)")
       .orderBy('time', 'ASC')
       .getRawMany();
 
-    return results.map((r) => ({
-      time: isShortPeriod
-        ? this.formatMinute(r.time)
-        : this.formatHour(r.time),
-      count: parseInt(r.count),
-    }));
+    // GROUP BY drops hours with no requests — fill the gaps with zeros so
+    // the chart always spans the full period
+    const countsByHour = new Map<number, number>(
+      results.map((r) => [new Date(r.time).getTime(), parseInt(r.count)] as const),
+    );
+    const points: Array<{ time: string; count: number }> = [];
+    const cursor = new Date(startDate);
+    // Truncate in UTC to match the DB's hour buckets (BDT is a whole-hour
+    // offset, so bucket boundaries are identical in both)
+    cursor.setUTCMinutes(0, 0, 0);
+    const now = new Date();
+    while (cursor <= now) {
+      points.push({
+        time: this.formatHour(cursor.toISOString()),
+        count: countsByHour.get(cursor.getTime()) ?? 0,
+      });
+      cursor.setUTCHours(cursor.getUTCHours() + 1);
+    }
+    return points;
   }
 
   async getPeakTraffic(period: string = '7d') {
@@ -238,13 +253,18 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
   async getUniqueVisitors(period: string = '7d') {
     const startDate = this.getDateFromPeriod(period);
 
+    // Shift +6h before truncating so day buckets align to BDT midnight
+    // (Asia/Dhaka is UTC+6 with no DST), not the DB's UTC days
     const results = await this.analyticsRepository
       .createQueryBuilder('analytics')
-      .select("DATE_TRUNC('day', analytics.timestamp)", 'date')
+      .select(
+        "DATE_TRUNC('day', analytics.timestamp + INTERVAL '6 hours')",
+        'date',
+      )
       .addSelect('COUNT(DISTINCT COALESCE("analytics"."userId"::text, "analytics"."ipAddress"))', 'count')
       .where('analytics.timestamp >= :startDate', { startDate })
-      .groupBy("DATE_TRUNC('day', analytics.timestamp)")
-      .orderBy("DATE_TRUNC('day', analytics.timestamp)", 'ASC')
+      .groupBy("DATE_TRUNC('day', analytics.timestamp + INTERVAL '6 hours')")
+      .orderBy("DATE_TRUNC('day', analytics.timestamp + INTERVAL '6 hours')", 'ASC')
       .getRawMany();
 
     return results.map((r) => ({
@@ -291,6 +311,174 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  /** Device + browser mix from stored user-agent strings (GDPR-free fingerprinting). */
+  async getDeviceBreakdown(period: string = '7d') {
+    const startDate = this.getDateFromPeriod(period);
+    const ua = "COALESCE(analytics.userAgent, '')";
+
+    const row = await this.analyticsRepository
+      .createQueryBuilder('analytics')
+      .select(
+        `SUM(CASE WHEN ${ua} ILIKE '%mobile%' OR ${ua} ILIKE '%iphone%' OR ${ua} ILIKE '%android%' THEN 1 ELSE 0 END)`,
+        'mobile',
+      )
+      .addSelect(
+        `SUM(CASE WHEN ${ua} ILIKE '%ipad%' OR (${ua} ILIKE '%tablet%' AND ${ua} NOT ILIKE '%mobile%') THEN 1 ELSE 0 END)`,
+        'tablet',
+      )
+      .addSelect(`SUM(CASE WHEN ${ua} ILIKE '%edg/%' THEN 1 ELSE 0 END)`, 'edge')
+      .addSelect(
+        `SUM(CASE WHEN ${ua} ILIKE '%opr/%' OR ${ua} ILIKE '%opera%' THEN 1 ELSE 0 END)`,
+        'opera',
+      )
+      .addSelect(
+        `SUM(CASE WHEN ${ua} ILIKE '%chrome%' AND ${ua} NOT ILIKE '%edg/%' AND ${ua} NOT ILIKE '%opr/%' THEN 1 ELSE 0 END)`,
+        'chrome',
+      )
+      .addSelect(
+        `SUM(CASE WHEN ${ua} ILIKE '%firefox%' THEN 1 ELSE 0 END)`,
+        'firefox',
+      )
+      .addSelect(
+        `SUM(CASE WHEN ${ua} ILIKE '%safari%' AND ${ua} NOT ILIKE '%chrome%' AND ${ua} NOT ILIKE '%edg/%' AND ${ua} NOT ILIKE '%opr/%' THEN 1 ELSE 0 END)`,
+        'safari',
+      )
+      .where('analytics.timestamp >= :startDate', { startDate })
+      .getRawOne();
+
+    // Desktop is what's left after mobile/tablet — avoids a fourth CASE
+    const desktop =
+      Number(row?.chrome ?? 0) +
+      Number(row?.safari ?? 0) +
+      Number(row?.firefox ?? 0) +
+      Number(row?.edge ?? 0) +
+      Number(row?.opera ?? 0) -
+      (Number(row?.mobile ?? 0) + Number(row?.tablet ?? 0));
+
+    return {
+      devices: [
+        { name: 'Mobile', count: Number(row?.mobile ?? 0) },
+        { name: 'Tablet', count: Number(row?.tablet ?? 0) },
+        { name: 'Desktop', count: Math.max(desktop, 0) },
+      ],
+      browsers: [
+        { name: 'Chrome', count: Number(row?.chrome ?? 0) },
+        { name: 'Safari', count: Number(row?.safari ?? 0) },
+        { name: 'Firefox', count: Number(row?.firefox ?? 0) },
+        { name: 'Edge', count: Number(row?.edge ?? 0) },
+        { name: 'Opera', count: Number(row?.opera ?? 0) },
+      ].filter((b) => b.count > 0),
+    };
+  }
+
+  /**
+   * Most-viewed product detail pages. Uses the concrete requestPath (product
+   * id or slug) rather than the route pattern, then resolves product names.
+   */
+  async getTopProductPages(period: string = '7d', limit: number = 8) {
+    const startDate = this.getDateFromPeriod(period);
+
+    const results = await this.analyticsRepository
+      .createQueryBuilder('analytics')
+      .select('analytics.requestPath', 'path')
+      .addSelect('COUNT(*)', 'count')
+      .where('analytics.timestamp >= :startDate', { startDate })
+      .andWhere("analytics.method = 'GET'")
+      .andWhere(
+        "analytics.requestPath ~ '^/products/([0-9]+|slug/[^/]+)$'",
+      )
+      .groupBy('analytics.requestPath')
+      .orderBy('COUNT(*)', 'DESC')
+      .limit(limit)
+      .getRawMany();
+
+    // Resolve product names from the paths (numeric id or slug segment)
+    const ids: number[] = [];
+    const slugs: string[] = [];
+    for (const r of results) {
+      const match = /\/products\/(?:slug\/)?([^/]+)$/.exec(r.path);
+      if (!match) continue;
+      if (/^\d+$/.test(match[1])) ids.push(Number(match[1]));
+      else slugs.push(decodeURIComponent(match[1]));
+    }
+
+    const [idProducts, slugProducts] = await Promise.all([
+      ids.length
+        ? this.productRepository.find({
+            where: { id: In(ids) },
+            select: ['id', 'name'],
+          })
+        : Promise.resolve([]),
+      slugs.length
+        ? this.productRepository.find({
+            where: { slug: In(slugs) },
+            select: ['id', 'name', 'slug'],
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const nameById = new Map(idProducts.map((p) => [p.id, p.name]));
+    const nameBySlug = new Map(slugProducts.map((p) => [p.slug, p.name]));
+
+    return results.map((r) => {
+      const match = /\/products\/(?:slug\/)?([^/]+)$/.exec(r.path);
+      const key = match?.[1] ?? '';
+      const name =
+        (/^\d+$/.test(key) ? nameById.get(Number(key)) : null) ??
+        nameBySlug.get(decodeURIComponent(key)) ??
+        key;
+      return { path: r.path, productName: name, count: parseInt(r.count) };
+    });
+  }
+
+  /** Traffic sources by referer host; missing referer counts as Direct. */
+  async getTrafficSources(period: string = '30d') {
+    const startDate = this.getDateFromPeriod(period);
+
+    const results = await this.analyticsRepository
+      .createQueryBuilder('analytics')
+      .select(
+        `CASE WHEN COALESCE(analytics.referer, '') = '' THEN 'Direct' ELSE substring(analytics.referer from '//([^/]+)') END`,
+        'source',
+      )
+      .addSelect('COUNT(*)', 'count')
+      .where('analytics.timestamp >= :startDate', { startDate })
+      .groupBy('1')
+      .orderBy('COUNT(*)', 'DESC')
+      .limit(8)
+      .getRawMany();
+
+    return results.map((r) => ({
+      source: r.source,
+      count: parseInt(r.count),
+    }));
+  }
+
+  /** Conversion proxy: placed orders vs unique visitors in the period. */
+  async getConversion(period: string = '30d') {
+    const startDate = this.getDateFromPeriod(period);
+
+    const [orderCount, visitorsRow] = await Promise.all([
+      this.orderRepository.count({
+        where: { createdAt: MoreThanOrEqual(startDate) },
+      }),
+      this.analyticsRepository
+        .createQueryBuilder('analytics')
+        .select(
+          'COUNT(DISTINCT COALESCE("analytics"."userId"::text, "analytics"."ipAddress"))',
+          'count',
+        )
+        .where('analytics.timestamp >= :startDate', { startDate })
+        .getRawOne(),
+    ]);
+
+    const visitors = parseInt(visitorsRow?.count ?? 0);
+    const conversionRate =
+      visitors > 0 ? Math.round((orderCount / visitors) * 10000) / 100 : 0;
+
+    return { orders: orderCount, visitors, conversionRate };
+  }
+
   private getHoursFromPeriod(period: string): number {
     switch (period) {
       case '1h':
@@ -299,6 +487,8 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
         return 24;
       case '7d':
         return 24 * 7;
+      case '15d':
+        return 24 * 15;
       case '30d':
         return 24 * 30;
       default:
@@ -306,21 +496,14 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /** All chart labels are rendered in Bangladesh time (GMT+6). */
   private formatHour(date: string): string {
     const d = new Date(date);
     return d.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
-    });
-  }
-
-  private formatMinute(date: string): string {
-    const d = new Date(date);
-    return d.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
+      timeZone: 'Asia/Dhaka',
     });
   }
 
@@ -329,6 +512,7 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     return d.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
+      timeZone: 'Asia/Dhaka',
     });
   }
 

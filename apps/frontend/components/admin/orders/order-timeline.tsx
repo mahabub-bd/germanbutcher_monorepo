@@ -107,9 +107,9 @@ const TimelineItemComponent = memo<TimelineItemProps>(
 
         <TimelineContent>
           <div
-            className={`ml-1.5 rounded-lg border px-3 py-2 transition-colors ${
+            className={`ml-1.5 rounded-sm border px-3 py-2 transition-colors ${
               isCurrent
-                ? "border-primary/25 bg-primary/[0.045] shadow-sm"
+                ? "border-primary/25 bg-primary/4.5 shadow-sm"
                 : item.isActive
                   ? "border-border/70 bg-card"
                   : "border-transparent bg-muted/30 opacity-70"
@@ -162,7 +162,7 @@ TimelineItemComponent.displayName = "TimelineItemComponent";
 
 
 const EmptyTimelineState = () => (
-  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-7 text-center">
+  <div className="flex flex-col items-center justify-center rounded-sm border border-dashed py-7 text-center">
     <div className="mb-2 rounded-full bg-muted p-2">
       <Clock className="h-4 w-4 text-muted-foreground" />
     </div>
@@ -210,9 +210,9 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
   const hasData = order.statusTracks && order.statusTracks.length > 0;
 
   return (
-    <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <section className="overflow-hidden rounded-sm border bg-card shadow-sm">
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 border-b bg-gradient-to-r from-primary/[0.07] via-primary/[0.02] to-transparent px-4 py-2.5">
+      <div className="flex items-center justify-between gap-2 border-b bg-linear-to-r from-primary/[0.07] via-primary/2 to-transparent px-4 py-2.5">
         <h3 className="flex items-center gap-2 text-base font-semibold">
           <span className="rounded-md bg-primary/10 p-1 text-primary">
             <Clock className="h-3.5 w-3.5" />
@@ -228,7 +228,7 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
       </div>
 
       {/* Content */}
-      <div className="min-h-[80px] p-3">
+      <div className="min-h-20 p-3">
         {hasData ? (
           <Timeline className="space-y-2">
             {timelineItems.map((item, index) => (

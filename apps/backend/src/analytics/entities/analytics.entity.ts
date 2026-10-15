@@ -41,6 +41,14 @@ export class Analytics {
   @Column({ type: 'text', nullable: true })
   userAgent: string;
 
+  /** Full referer URL for traffic-source attribution (null = direct). */
+  @Column({ type: 'text', nullable: true })
+  referer: string | null;
+
+  /** Concrete request path without query string (e.g. /products/42). */
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  requestPath: string | null;
+
   @Index()
   @CreateDateColumn({ type: 'timestamp' })
   timestamp: Date;

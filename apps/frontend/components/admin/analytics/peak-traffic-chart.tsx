@@ -85,7 +85,7 @@ export function PeakTrafficChart({ data }: PeakTrafficChartProps) {
 
   if (!data || data.length === 0) {
     return (
-      <Card>
+      <Card className="h-full rounded-sm">
         <CardHeader>
           <CardTitle className="text-lg font-bold">Peak Traffic Hours</CardTitle>
           <CardDescription>No data available</CardDescription>
@@ -95,7 +95,7 @@ export function PeakTrafficChart({ data }: PeakTrafficChartProps) {
   }
 
   return (
-    <Card>
+    <Card className="h-full rounded-sm">
       <CardHeader>
         <CardTitle className="text-lg font-bold">Peak Traffic Hours</CardTitle>
         <CardDescription>

@@ -2,11 +2,12 @@
 
 import { OnlineNowCard } from "@/components/admin/analytics/online-now-card";
 import StatsCard from "@/components/admin/dashboard/stats-card";
-import type { AnalyticsOverview } from "@/utils/types";
+import type { AnalyticsOverview, ConversionData } from "@/utils/types";
 import {
   Activity,
   Clock,
   Globe,
+  Percent,
   TrendingUp,
   Users,
   Zap,
@@ -14,23 +15,35 @@ import {
 
 interface AnalyticsOverviewCardsProps {
   data: AnalyticsOverview;
+  conversion?: ConversionData;
+  /** Hourly request counts — drives the sparklines that have real data. */
+  requestsSeries?: number[];
+  /** Daily visitor counts — drives the visitors/conversion sparklines. */
+  visitorsSeries?: number[];
 }
 
-export function AnalyticsOverviewCards({ data }: AnalyticsOverviewCardsProps) {
+export function AnalyticsOverviewCards({
+  data,
+  conversion,
+  requestsSeries,
+  visitorsSeries,
+}: AnalyticsOverviewCardsProps) {
   return (
-    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
+    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8">
       <OnlineNowCard />
       <StatsCard
         title="Total Requests"
         value={data.totalRequests.toLocaleString()}
         icon={Activity}
         bgColor="blue"
+        sparklineData={requestsSeries}
       />
       <StatsCard
         title="Unique Visitors"
         value={data.uniqueVisitors.toLocaleString()}
         icon={Users}
         bgColor="green"
+        sparklineData={visitorsSeries}
       />
       <StatsCard
         title="Avg Response Time"
@@ -43,6 +56,7 @@ export function AnalyticsOverviewCards({ data }: AnalyticsOverviewCardsProps) {
         value={data.requestsPerMinute.toFixed(1)}
         icon={Zap}
         bgColor="amber"
+        sparklineData={requestsSeries}
       />
       <StatsCard
         title="Peak Hour"
@@ -58,6 +72,16 @@ export function AnalyticsOverviewCards({ data }: AnalyticsOverviewCardsProps) {
         description="Most accessed"
         bgColor="violet"
       />
+      {conversion && (
+        <StatsCard
+          title="Conversion"
+          value={`${conversion.conversionRate.toFixed(2)}%`}
+          icon={Percent}
+          bgColor="green"
+          description={`${conversion.orders.toLocaleString()} orders / ${conversion.visitors.toLocaleString()} visitors`}
+          sparklineData={visitorsSeries}
+        />
+      )}
     </div>
   );
 }
