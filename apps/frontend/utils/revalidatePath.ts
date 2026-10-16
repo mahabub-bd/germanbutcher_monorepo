@@ -1,6 +1,9 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+
+// revalidateTag (not updateTag) — "dashboard" tags belong to fetch() Data
+// Cache entries (next: { tags }), which updateTag does not reliably expire.
 
 export const serverRevalidate = async (
   paths: string | string[]
@@ -19,5 +22,5 @@ export const serverRevalidate = async (
 
 export async function refreshDashboard() {
 
-  updateTag("dashboard");
+  revalidateTag("dashboard", "max");
 }

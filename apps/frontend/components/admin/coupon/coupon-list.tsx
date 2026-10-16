@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { cn, formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { deleteData, fetchProtectedData } from "@/utils/api-utils";
-import { Coupon } from "@/utils/types";
+import { Coupon, TopCouponUsage } from "@/utils/types";
 import {
   AlertTriangle,
   CheckCircle,
@@ -30,10 +30,12 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  Receipt,
   Search,
   Tag,
   TicketPercent,
   Trash2,
+  TrendingUp,
   Users,
   XCircle,
 } from "lucide-react";
@@ -48,6 +50,7 @@ export function CouponList() {
   const MENU_URL = "/admin/marketing/coupon/coupon-list";
   const { can } = usePermissions();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [topCoupons, setTopCoupons] = useState<TopCouponUsage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
@@ -66,6 +69,16 @@ export function CouponList() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchCoupons();
+    // Performance data is auxiliary — a failure leaves the section hidden.
+    fetchProtectedData<TopCouponUsage[]>(
+      "coupon-usage-logs/reports/top?days=30&limit=5"
+    )
+      .then((data) => setTopCoupons(data ?? []))
+      .catch(() => setTopCoupons([]));
+  }, []);
 
   useEffect(() => {
     fetchCoupons();
@@ -181,6 +194,12 @@ export function CouponList() {
     },
   ];
 
+  const topCouponsTotalUses = topCoupons.reduce((sum, c) => sum + c.uses, 0);
+  const topCouponsDiscount = topCoupons.reduce(
+    (sum, c) => sum + c.discountGiven,
+    0
+  );
+
   const renderEmptyState = () => (
     <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
       <Tag className="h-10 w-10 text-muted-foreground/50 mb-4" />
@@ -238,6 +257,66 @@ export function CouponList() {
                 bgColor={tile.bgColor}
               />
             ))}
+          </div>
+        )}
+
+        {/* Coupon performance — last 30 days (hidden when no usage) */}
+        {topCoupons.length > 0 && (
+          <div className="rounded-sm border bg-card p-4 space-y-3">
+            <h3 className="text-sm font-semibold">
+              Coupon Performance — last 30 days
+            </h3>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <StatsCard
+                icon={TicketPercent}
+                title="Uses (30d)"
+                value={topCouponsTotalUses.toLocaleString()}
+                description={`Top ${topCoupons.length} coupons`}
+                bgColor="violet"
+              />
+              <StatsCard
+                icon={Receipt}
+                title="Discount Given (30d)"
+                value={formatCurrencyEnglish(topCouponsDiscount)}
+                description="Sum of discounts applied"
+                bgColor="green"
+              />
+              <StatsCard
+                icon={TrendingUp}
+                title="Order Value (30d)"
+                value={formatCurrencyEnglish(
+                  topCoupons.reduce((sum, c) => sum + c.orderValue, 0)
+                )}
+                description="Orders that used these coupons"
+                bgColor="blue"
+              />
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="py-2 pr-4 font-medium">Coupon</th>
+                    <th className="py-2 pr-4 font-medium">Uses</th>
+                    <th className="py-2 pr-4 font-medium">Discount Given</th>
+                    <th className="py-2 font-medium">Order Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topCoupons.map((c) => (
+                    <tr key={c.couponCode} className="border-b last:border-0">
+                      <td className="py-2 pr-4 font-medium">{c.couponCode}</td>
+                      <td className="py-2 pr-4">{c.uses}</td>
+                      <td className="py-2 pr-4">
+                        {formatCurrencyEnglish(c.discountGiven)}
+                      </td>
+                      <td className="py-2">
+                        {formatCurrencyEnglish(c.orderValue)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

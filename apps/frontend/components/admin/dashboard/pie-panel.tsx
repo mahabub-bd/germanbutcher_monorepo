@@ -113,7 +113,9 @@ export function PiePanel({
         </div>
       </header>
 
-      <div className={`relative ${compactLaptop ? "h-31 xl:h-26 2xl:h-31" : ""}`}>
+      {/* z-10 keeps the chart (and its hover tooltip) above the donut Total
+          overlay and the watermark icon, which are painted later in the DOM */}
+      <div className={`relative z-10 ${compactLaptop ? "h-31 xl:h-26 2xl:h-31" : ""}`}>
         <ResponsiveContainer
           width="100%"
           height={compactLaptop ? "100%" : HEIGHTS[size]}
@@ -136,7 +138,14 @@ export function PiePanel({
                 <Cell key={item.name} fill={item.color} className="transition-opacity hover:opacity-80" />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip
+              content={<CustomTooltip />}
+              // Render into document.body so the hover tooltip escapes the
+              // panel's overflow-hidden clipping and any sibling stacking
+              // contexts (donut Total overlay, watermark icon)
+              portal={typeof document !== "undefined" ? document.body : undefined}
+              wrapperStyle={{ zIndex: 50 }}
+            />
           </PieChart>
         </ResponsiveContainer>
 

@@ -76,6 +76,28 @@ export type OrderStatistics = {
   cancelledValue: number;
 };
 
+export type AbandonedCartsSummary = {
+  abandonedCarts: number;
+  abandonedValue: number;
+};
+
+export type TopCouponUsage = {
+  couponCode: string;
+  uses: number;
+  discountGiven: number;
+  orderValue: number;
+};
+
+export type DeliveryPerformance = {
+  avgDeliveryHours: number | null;
+  deliveredOrders30d: number;
+  topDeliveryMen: Array<{
+    name: string;
+    deliveries: number;
+    deliveredValue: number;
+  }>;
+};
+
 /** Payload of the consolidated `orders/reports/dashboard` endpoint. */
 export type DashboardReports = {
   statistics: OrderStatistics;
@@ -86,6 +108,7 @@ export type DashboardReports = {
   customerType: CustomerTypeShare;
   todaySnapshot: TodaySnapshot;
   paymentDue: PaymentDueSummary;
+  deliveryPerformance?: DeliveryPerformance;
 };
 export type UserTypes = {
   id: number;
@@ -313,6 +336,10 @@ export interface BusinessSettings {
     id: string;
     url: string;
   } | null;
+  maintenanceMode: boolean;
+  maintenanceMessage: string | null;
+  maintenanceStartsAt: string | null;
+  maintenanceEndsAt: string | null;
 }
 
 export interface MenuItem {
@@ -1040,11 +1067,11 @@ export interface DeliveryManResponse {
   message: string;
   statusCode: number;
   data: DeliveryMan[];
-  meta?: {
-    total: number;
-    page: number;
-    limit: number;
-  };
+  /** Actual envelope from GET /v1/delivery-man: totals sit at top level. */
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export type DeliveryManDetailResponse = ApiEnvelope & {

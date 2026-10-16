@@ -74,6 +74,37 @@ export class BusinessSetting {
   })
   websiteUrl: string;
 
+  @Column({ default: false })
+  @ApiPropertyOptional({
+    example: false,
+    description:
+      'When true (and within the optional schedule window), the storefront shows a maintenance page',
+  })
+  maintenanceMode: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  @ApiPropertyOptional({
+    example: 'We are upgrading our store — back soon!',
+    description: 'Custom message displayed on the maintenance page',
+  })
+  maintenanceMessage: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  @ApiPropertyOptional({
+    example: '2026-10-16T18:00:00.000Z',
+    description:
+      'Maintenance window start; before this time the storefront stays online',
+  })
+  maintenanceStartsAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  @ApiPropertyOptional({
+    example: '2026-10-16T20:00:00.000Z',
+    description:
+      'Maintenance window end; after this time the storefront comes back online',
+  })
+  maintenanceEndsAt: Date | null;
+
   @ManyToOne(() => Attachment, { eager: true, nullable: true })
   @JoinColumn()
   @ApiProperty({

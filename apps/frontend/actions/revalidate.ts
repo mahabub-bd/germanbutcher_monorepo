@@ -1,12 +1,14 @@
 "use server";
 
-import { updateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 
+// revalidateTag (not updateTag) — these tags belong to fetch() Data Cache
+// entries (next: { tags }), which updateTag does not reliably expire.
 
 export async function revalidateProducts(): Promise<void> {
-  updateTag("products");
+  revalidateTag("products", "max");
 }
 
 export async function revalidatePublic(): Promise<void> {
-  updateTag("public");
+  revalidateTag("public", "max");
 }

@@ -762,6 +762,7 @@ export class OrderService {
       customerType,
       todaySnapshot,
       paymentDue,
+      deliveryPerformance,
     ] = await Promise.all([
       this.getOrderStatistics(),
       this.getMonthlyOrderReport(),
@@ -771,6 +772,7 @@ export class OrderService {
       this.getCustomerTypeShare(),
       this.getTodaySnapshot(),
       this.getPaymentDue(),
+      this.getDeliveryPerformanceSummary(),
     ]);
 
     return {
@@ -784,6 +786,64 @@ export class OrderService {
       customerType,
       todaySnapshot,
       paymentDue,
+      deliveryPerformance,
+    };
+  }
+
+  /** Delivery widget data: average time from order placement to the
+   * delivered status track, plus top delivery men by delivered orders over
+   * the last 30 days. Used by getDashboardReports and the delivery summary
+   * endpoint. */
+  async getDeliveryPerformanceSummary(): Promise<{
+    avgDeliveryHours: number | null;
+    deliveredOrders30d: number;
+    topDeliveryMen: Array<{
+      name: string;
+      deliveries: number;
+      deliveredValue: number;
+    }>;
+  }> {
+    const [timingRow, topRows] = await Promise.all([
+      this.orderRepository.query(
+        `SELECT COUNT(DISTINCT o.id) AS delivered_orders,
+                AVG(EXTRACT(EPOCH FROM (d.delivered_at - o."createdAt")) / 3600) AS avg_hours
+         FROM "order" o
+         JOIN (
+           SELECT ost."orderId",
+                  MAX(ost."createdAt") AS delivered_at
+           FROM order_status_track ost
+           WHERE ost."status" = 'delivered'
+           GROUP BY ost."orderId"
+           HAVING MAX(ost."createdAt") >= NOW() - INTERVAL '30 days'
+         ) d ON d."orderId" = o.id`,
+      ),
+      this.orderRepository.query(
+        `SELECT dm.name,
+                COUNT(o.id) AS deliveries,
+                COALESCE(SUM(o."totalValue"), 0) AS delivered_value
+         FROM delivery_man dm
+         JOIN "order" o
+           ON o."deliveryManId" = dm.id
+          AND o."orderStatus" = 'delivered'
+          AND o."createdAt" >= NOW() - INTERVAL '30 days'
+         GROUP BY dm.id, dm.name
+         ORDER BY COUNT(o.id) DESC, dm.name ASC
+         LIMIT 5`,
+      ),
+    ]);
+
+    const row = timingRow[0] ?? {};
+    return {
+      avgDeliveryHours:
+        row.avg_hours === null || row.avg_hours === undefined
+          ? null
+          : Math.round(parseFloat(row.avg_hours) * 10) / 10,
+      deliveredOrders30d: parseInt(row.delivered_orders, 10) || 0,
+      topDeliveryMen: (topRows as Array<Record<string, unknown>>).map((r) => ({
+        name: String(r.name),
+        deliveries: parseInt(String(r.deliveries), 10) || 0,
+        deliveredValue: parseFloat(String(r.delivered_value)) || 0,
+      })),
     };
   }
 
