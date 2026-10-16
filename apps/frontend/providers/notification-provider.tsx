@@ -39,7 +39,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       const user = await getUser();
       if (!user?.isAdmin) return;
 
-      console.log("🔔 [Notifications] Seeding unread from DB…");
       // fetchProtectedData unwraps the API envelope — the result IS the row array.
       const rows = await fetchProtectedData<PersistedNotification[]>(
         "notifications/admin?page=1&limit=15"
@@ -74,9 +73,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         ),
         ...prev,
       ]);
-      console.log(
-        `🔔 [Notifications] Seeded ${seeded.length} unread notification(s)`
-      );
     } catch (error) {
       console.error("Error seeding notifications from DB:", error);
     }
@@ -97,7 +93,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       const user = await getUser();
 
       if (!user) {
-        console.log("No user found, skipping WebSocket connection");
         return;
       }
 
@@ -120,21 +115,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
       // Connection handlers
       newSocket.on("connect", () => {
-        console.log(
-          "✅ [WebSocket] Connected to notification server",
-          newSocket?.id
-        );
         setIsConnected(true);
         // Anything that happened while disconnected is already persisted —
         // pull the unread rows so the bell never misses an order.
         seedFromDb();
       });
 
-      newSocket.on("disconnect", (reason) => {
-        console.log(
-          "❌ [WebSocket] Disconnected from notification server:",
-          reason
-        );
+      newSocket.on("disconnect", () => {
         setIsConnected(false);
       });
 
@@ -143,22 +130,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         setIsConnected(false);
       });
 
-      // Log all outgoing messages
-      const originalEmit = newSocket.emit.bind(newSocket);
-      newSocket.emit = function (event: string, ...args: unknown[]) {
-        console.log("📤 [WebSocket] Sending:", event, args);
-        return originalEmit(event, ...args);
-      };
-
-      // Log all incoming messages
-      newSocket.onAny((event: string, ...args: unknown[]) => {
-        console.log("📥 [WebSocket] Received:", event, args);
-      });
-
       // Admin-only: Listen for new orders
       if (user.isAdmin) {
         newSocket.on("newOrder", (data: Notification) => {
-          console.log("New order received:", data);
           setNotifications((prev) => [data, ...prev]);
           playNotificationSound();
 
@@ -171,7 +145,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
       // Listen for order confirmation
       newSocket.on("orderConfirmation", (data: Notification) => {
-        console.log("Order confirmed:", data);
         setNotifications((prev) => [data, ...prev]);
 
         toast.success("Order Confirmed!", {
@@ -182,7 +155,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
       // Listen for order status updates
       newSocket.on("orderStatusUpdate", (data: Notification) => {
-        console.log("Order status updated:", data);
         setNotifications((prev) => [data, ...prev]);
 
         const statusMessages: Record<string, string> = {
@@ -205,7 +177,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
       // Listen for payment status updates
       newSocket.on("paymentStatusUpdate", (data: Notification) => {
-        console.log("Payment status updated:", data);
         setNotifications((prev) => [data, ...prev]);
 
         toast.info("Payment Status Update", {
@@ -216,7 +187,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
       // Listen for general notifications
       newSocket.on("notification", (data: Notification) => {
-        console.log("Notification received:", data);
         setNotifications((prev) => [data, ...prev]);
 
         toast(data.data.title || "Notification", {
@@ -227,7 +197,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
       // Listen for broadcasts
       newSocket.on("broadcast", (data: Notification) => {
-        console.log("Broadcast received:", data);
         setNotifications((prev) => [data, ...prev]);
 
         // Handle different broadcast types
