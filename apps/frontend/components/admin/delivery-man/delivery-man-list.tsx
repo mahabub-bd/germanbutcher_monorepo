@@ -32,10 +32,15 @@ import {
 } from "@/components/ui/table";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
-import { fetchDataPagination } from "@/utils/api-utils";
-import type { DeliveryMan, DeliveryManResponse } from "@/utils/types";
+import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
+import type {
+  DeliveryMan,
+  DeliveryManResponse,
+  DeliveryPerformance,
+} from "@/utils/types";
 import {
   CheckCircle2,
+  Clock,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -76,6 +81,8 @@ export function DeliveryManList({
   };
 
   const [deliveryMen, setDeliveryMen] = useState<DeliveryMan[]>([]);
+  const [deliverySummary, setDeliverySummary] =
+    useState<DeliveryPerformance | null>(null);
   const [searchQuery, setSearchQuery] = useState(
     getInitialParam("search") as string
   );
@@ -116,10 +123,8 @@ export function DeliveryManList({
       );
 
       setDeliveryMen(response.data);
-      setTotalItems(response.meta?.total || 0);
-      setTotalPages(
-        Math.ceil((response.meta?.total || 0) / limit)
-      );
+      setTotalItems(response.total || 0);
+      setTotalPages(response.totalPages || Math.ceil((response.total || 0) / limit));
     } catch (error) {
       console.error("Error fetching delivery men:", error);
       toast.error("Failed to load delivery men. Please try again.");
@@ -149,6 +154,12 @@ export function DeliveryManList({
   // Fetch data when dependencies change
   useEffect(() => {
     fetchDeliveryMen();
+    // Delivery performance is auxiliary — a failure leaves the tile hidden.
+    fetchProtectedData<DeliveryPerformance>(
+      "orders/reports/delivery-performance-summary"
+    )
+      .then((data) => setDeliverySummary(data ?? null))
+      .catch(() => setDeliverySummary(null));
   }, [fetchDeliveryMen]);
 
   // Update URL when state changes
@@ -269,7 +280,7 @@ export function DeliveryManList({
                 </Link>
               </TableCell>
               <TableCell>
-                <span className="truncate max-w-[200px] block text-muted-foreground">
+                <span className="truncate max-w-50 block text-muted-foreground">
                   {deliveryMan.mobileNumber}
                 </span>
               </TableCell>
@@ -371,7 +382,7 @@ export function DeliveryManList({
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="w-[140px] h-9">
+              <SelectTrigger className="w-35 h-9">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -384,7 +395,7 @@ export function DeliveryManList({
               value={limit.toString()}
               onValueChange={handleLimitChange}
             >
-              <SelectTrigger className="w-[100px] h-9">
+              <SelectTrigger className="w-25 h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -409,7 +420,7 @@ export function DeliveryManList({
         ) : (
           <>
             {/* Summary Stats */}
-            <div className="mb-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+            <div className="mb-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
               <StatsCard
                 icon={Users}
                 title="Total"
@@ -442,6 +453,19 @@ export function DeliveryManList({
                 description="This page"
                 bgColor="purple"
               />
+              {deliverySummary && (
+                <StatsCard
+                  icon={Clock}
+                  title="Avg Delivery Time"
+                  value={
+                    deliverySummary.avgDeliveryHours !== null
+                      ? `${deliverySummary.avgDeliveryHours}h`
+                      : "—"
+                  }
+                  description={`Placement → delivered · ${deliverySummary.deliveredOrders30d} orders (30d)`}
+                  bgColor="amber"
+                />
+              )}
             </div>
 
             {/* Count */}

@@ -206,4 +206,32 @@ export class CouponUsageLogController {
       data,
     };
   }
+
+  @Get('reports/top')
+  @ApiOperation({
+    summary: 'Top coupons by usage',
+    description:
+      'Aggregated usage over the last N days. Inherits the controller-wide usage-logs permission.',
+  })
+  @ApiQuery({ name: 'days', required: false, example: 30, type: Number })
+  @ApiQuery({ name: 'limit', required: false, example: 5, type: Number })
+  async getTopCoupons(
+    @Query('days') days: string = '30',
+    @Query('limit') limit: string = '5',
+  ): Promise<ApiResponseDto<Array<{
+    couponCode: string;
+    uses: number;
+    discountGiven: number;
+    orderValue: number;
+  }>>> {
+    const data = await this.couponUsageLogService.getTopCoupons(
+      Math.max(1, parseInt(days, 10) || 30),
+      Math.min(25, Math.max(1, parseInt(limit, 10) || 5)),
+    );
+    return {
+      message: 'Top coupons retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
 }

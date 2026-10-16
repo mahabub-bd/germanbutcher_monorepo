@@ -3,11 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 // Only attachments from our own bucket may be proxied (prevents SSRF abuse).
 const ALLOWED_HOST = "germanbutcher.s3.ap-southeast-1.amazonaws.com";
 
-/**
- * Streams an S3 attachment through this origin so @react-pdf/renderer can
- * fetch it without CORS restrictions (the bucket sends no CORS headers,
- * which makes browser-side PDF image loading fail).
- */
+
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get("url");
   if (!url) {

@@ -213,4 +213,40 @@ export class CouponUsageLogService {
       uniqueCoupons: parseInt(result.uniqueCoupons) || 0,
     };
   }
+
+  /** Top coupons by usage over the last `days` days — admin dashboard widget
+   * data. `discountGiven`/`orderValue` come from the denormalized log row so
+   * no join to coupon/order is needed. */
+  async getTopCoupons(
+    days: number = 30,
+    limit: number = 5,
+  ): Promise<
+    Array<{
+      couponCode: string;
+      uses: number;
+      discountGiven: number;
+      orderValue: number;
+    }>
+  > {
+    const result = await this.couponUsageLogRepository
+      .createQueryBuilder('log')
+      .select('log.couponCode', 'couponCode')
+      .addSelect('COUNT(log.id)', 'uses')
+      .addSelect('SUM(log.discountAmount)', 'discountGiven')
+      .addSelect('SUM(log.orderTotal)', 'orderValue')
+      .where(`log.createdAt >= NOW() - (:days::text || ' days')::interval`, {
+        days: String(days),
+      })
+      .groupBy('log.couponCode')
+      .orderBy('uses', 'DESC')
+      .limit(limit)
+      .getRawMany();
+
+    return result.map((r) => ({
+      couponCode: r.couponCode,
+      uses: parseInt(r.uses, 10) || 0,
+      discountGiven: parseFloat(r.discountGiven) || 0,
+      orderValue: parseFloat(r.orderValue) || 0,
+    }));
+  }
 }

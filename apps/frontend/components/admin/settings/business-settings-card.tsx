@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchData, formPostData, patchData } from "@/utils/api-utils";
 import type { BusinessSettings } from "@/utils/types";
@@ -26,6 +27,7 @@ import {
   MessagesSquare,
   Pencil,
   Phone,
+  Wrench,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -42,6 +44,10 @@ interface BusinessSettingsForm {
   whatsappNumber: string;
   messengerUrl: string;
   websiteUrl: string;
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+  maintenanceStartsAt: string; // datetime-local string or ""
+  maintenanceEndsAt: string; // datetime-local string or ""
 }
 
 const EMPTY_FORM: BusinessSettingsForm = {
@@ -53,7 +59,20 @@ const EMPTY_FORM: BusinessSettingsForm = {
   whatsappNumber: "",
   messengerUrl: "",
   websiteUrl: "",
+  maintenanceMode: false,
+  maintenanceMessage: "",
+  maintenanceStartsAt: "",
+  maintenanceEndsAt: "",
 };
+
+/** ISO datetime → value for <input type="datetime-local"> (browser-local). */
+function toLocalInputValue(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 /** Icon + label + value cell used in the details grid. */
 function InfoField({
@@ -81,7 +100,7 @@ function InfoField({
         <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </dt>
-        <dd className="mt-0.5 font-semibold text-gray-900 dark:text-gray-50 [overflow-wrap:anywhere]">
+        <dd className="mt-0.5 font-semibold text-gray-900 dark:text-gray-50 wrap-anywhere">
           {value?.includes(",") && !href ? (
             // Comma-separated values (e.g. admin notification emails) render
             // as individual pills instead of one long wrapped string.
@@ -187,6 +206,10 @@ export function BusinessSettingsCard() {
       whatsappNumber: settings?.whatsappNumber ?? "",
       messengerUrl: settings?.messengerUrl ?? "",
       websiteUrl: settings?.websiteUrl ?? "",
+      maintenanceMode: settings?.maintenanceMode ?? false,
+      maintenanceMessage: settings?.maintenanceMessage ?? "",
+      maintenanceStartsAt: toLocalInputValue(settings?.maintenanceStartsAt),
+      maintenanceEndsAt: toLocalInputValue(settings?.maintenanceEndsAt),
     });
     setLogoFile(null);
     setLogoPreview(settings?.logo?.url || "");
@@ -248,6 +271,13 @@ export function BusinessSettingsCard() {
 
       const response = await patchData<BusinessSettings>("business-settings", {
         ...draft,
+        maintenanceMessage: draft.maintenanceMessage.trim() || null,
+        maintenanceStartsAt: draft.maintenanceStartsAt
+          ? new Date(draft.maintenanceStartsAt).toISOString()
+          : null,
+        maintenanceEndsAt: draft.maintenanceEndsAt
+          ? new Date(draft.maintenanceEndsAt).toISOString()
+          : null,
         ...(logoId ? { logoId } : {}),
         ...(invoiceLogoId ? { invoiceLogoId } : {}),
       });
@@ -264,7 +294,13 @@ export function BusinessSettingsCard() {
     }
   };
 
-  const textFields: [keyof BusinessSettingsForm, string, string][] = [
+  // Only string-valued keys — maintenance fields get their own controls below
+  type StringFieldKey = {
+    [K in keyof BusinessSettingsForm]: BusinessSettingsForm[K] extends string
+      ? K
+      : never;
+  }[keyof BusinessSettingsForm];
+  const textFields: [StringFieldKey, string, string][] = [
     ["businessName", "Business Name", "e.g. German Butcher"],
     ["phone", "Phone", "e.g. +8809666791991"],
     ["email", "Email", "e.g. support@germanbutcherbd.com"],
@@ -386,6 +422,16 @@ export function BusinessSettingsCard() {
                   external
                   className="sm:col-span-2 lg:col-span-3"
                 />
+                <InfoField
+                  icon={Wrench}
+                  label="Maintenance Mode"
+                  value={
+                    settings?.maintenanceMode
+                      ? `On${settings.maintenanceEndsAt ? ` — back by ${toLocalInputValue(settings.maintenanceEndsAt).replace("T", " ")}` : ""}`
+                      : "Off"
+                  }
+                  className="sm:col-span-2 lg:col-span-3"
+                />
               </dl>
             </div>
           </div>
@@ -504,6 +550,87 @@ export function BusinessSettingsCard() {
                 />
               </div>
             ))}
+
+            {/* Maintenance mode */}
+            <div className="rounded-lg border p-3 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="business-maintenance-mode">
+                    Maintenance Mode
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Takes the storefront offline with a &quot;back soon&quot;
+                    page. Admin stays accessible.
+                  </p>
+                </div>
+                <Switch
+                  id="business-maintenance-mode"
+                  checked={draft.maintenanceMode}
+                  onCheckedChange={(checked) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      maintenanceMode: checked,
+                    }))
+                  }
+                />
+              </div>
+
+              {draft.maintenanceMode && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="business-maintenance-message">
+                      Message
+                    </Label>
+                    <Textarea
+                      id="business-maintenance-message"
+                      rows={2}
+                      value={draft.maintenanceMessage}
+                      onChange={(e) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          maintenanceMessage: e.target.value,
+                        }))
+                      }
+                      placeholder="We are upgrading the store — back soon!"
+                    />
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="business-maintenance-start">
+                        Starts At (optional)
+                      </Label>
+                      <Input
+                        id="business-maintenance-start"
+                        type="datetime-local"
+                        value={draft.maintenanceStartsAt}
+                        onChange={(e) =>
+                          setDraft((prev) => ({
+                            ...prev,
+                            maintenanceStartsAt: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="business-maintenance-end">
+                        Ends At (optional)
+                      </Label>
+                      <Input
+                        id="business-maintenance-end"
+                        type="datetime-local"
+                        value={draft.maintenanceEndsAt}
+                        onChange={(e) =>
+                          setDraft((prev) => ({
+                            ...prev,
+                            maintenanceEndsAt: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Address (multi-line) */}
             <div className="space-y-2">

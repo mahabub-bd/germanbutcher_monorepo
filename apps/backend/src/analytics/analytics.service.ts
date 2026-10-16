@@ -22,6 +22,19 @@ const DEFAULT_MAX_BUFFER_SIZE = 1000;
 /** Rows older than this many days are purged by the daily cron (0 disables). */
 const DEFAULT_RETENTION_DAYS = 90;
 
+/**
+ * Product detail page paths: API style (/v1/products/42, /v1/products/slug/x)
+ * and storefront style (/product/x). Shared by the top-pages aggregation and
+ * the public page-view beacon, which only accepts these paths.
+ */
+export const PRODUCT_PAGE_PATH_REGEX = new RegExp(
+  '^(/v1)?/products/([0-9]+|slug/[^/]+)$|^/product/[^/]+$',
+);
+
+/** SQL version of PRODUCT_PAGE_PATH_REGEX for the top-pages aggregation. */
+const PRODUCT_PAGE_PATH_SQL =
+  '^(/v1)?/products/([0-9]+|slug/[^/]+)$|^/product/[^/]+$';
+
 @Injectable()
 export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AnalyticsService.name);
@@ -386,9 +399,9 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
       .addSelect('COUNT(*)', 'count')
       .where('analytics.timestamp >= :startDate', { startDate })
       .andWhere("analytics.method = 'GET'")
-      .andWhere(
-        "analytics.requestPath ~ '^(/v1)?/products/([0-9]+|slug/[^/]+)$'",
-      )
+      .andWhere('analytics.requestPath ~ :pathPattern', {
+        pathPattern: PRODUCT_PAGE_PATH_SQL,
+      })
       .groupBy('analytics.requestPath')
       .orderBy('COUNT(*)', 'DESC')
       .limit(limit)
@@ -398,7 +411,7 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     const ids: number[] = [];
     const slugs: string[] = [];
     for (const r of results) {
-      const match = /\/products\/(?:slug\/)?([^/]+)$/.exec(r.path);
+      const match = /\/products?(?:\/slug)?\/([^/]+)$/.exec(r.path);
       if (!match) continue;
       if (/^\d+$/.test(match[1])) ids.push(Number(match[1]));
       else slugs.push(decodeURIComponent(match[1]));
@@ -423,7 +436,7 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     const nameBySlug = new Map(slugProducts.map((p) => [p.slug, p.name]));
 
     return results.map((r) => {
-      const match = /\/products\/(?:slug\/)?([^/]+)$/.exec(r.path);
+      const match = /\/products?(?:\/slug)?\/([^/]+)$/.exec(r.path);
       const key = match?.[1] ?? '';
       const name =
         (/^\d+$/.test(key) ? nameById.get(Number(key)) : null) ??

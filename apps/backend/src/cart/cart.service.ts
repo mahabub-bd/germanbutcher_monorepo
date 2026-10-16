@@ -184,4 +184,100 @@ export class CartService {
 
     return this.getUserCart(user?.userId);
   }
+
+  /** Abandoned-cart summary for the admin dashboard: carts that still hold
+   * items, were last touched over 24h ago, and whose user never checked out
+   * afterwards. Carts are lazily created for every user, so empty ones are
+   * excluded via the item join. */
+  async getAbandonedSummary(): Promise<{
+    abandonedCarts: number;
+    abandonedValue: number;
+  }> {
+    const result: Record<string, string>[] = await this.cartRepo.query(
+      `SELECT COUNT(*) AS abandoned_carts,
+              COALESCE(SUM(cart_totals.value), 0) AS abandoned_value
+       FROM (
+         SELECT c.id,
+                SUM(ci.quantity * p."sellingPrice") AS value
+         FROM cart c
+         JOIN cart_item ci ON ci."cartId" = c.id
+         JOIN product p ON p.id = ci."productId"
+         WHERE c."updatedAt" < NOW() - INTERVAL '24 hours'
+           AND NOT EXISTS (
+             SELECT 1 FROM "order" o
+             WHERE o."userId" = c."userId"
+               AND o."createdAt" >= c."updatedAt"
+           )
+         GROUP BY c.id
+       ) cart_totals`,
+    );
+
+    const row = result[0] ?? {};
+    return {
+      abandonedCarts: parseInt(row.abandoned_carts, 10) || 0,
+      abandonedValue: parseFloat(row.abandoned_value) || 0,
+    };
+  }
+
+  /** Paginated list of abandoned carts for the admin report page — same
+   * definition as getAbandonedSummary, with per-cart detail rows. */
+  async getAbandonedReport(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    summary: { abandonedCarts: number; abandonedValue: number };
+    items: Array<{
+      cartId: number;
+      userName: string | null;
+      mobileNumber: string | null;
+      itemCount: number;
+      value: number;
+      updatedAt: Date;
+    }>;
+    total: number;
+  }> {
+    const baseWhere = `c."updatedAt" < NOW() - INTERVAL '24 hours'
+      AND NOT EXISTS (
+        SELECT 1 FROM "order" o
+        WHERE o."userId" = c."userId"
+          AND o."createdAt" >= c."updatedAt"
+      )`;
+
+    const [summary, countResult, items] = await Promise.all([
+      this.getAbandonedSummary(),
+      this.cartRepo.query(
+        `SELECT COUNT(DISTINCT c.id) AS total
+         FROM cart c
+         JOIN cart_item ci ON ci."cartId" = c.id
+         WHERE ${baseWhere}`,
+      ),
+      this.cartRepo.query(
+        `SELECT c.id, c."updatedAt", u.name AS user_name, u."mobileNumber",
+                SUM(ci.quantity) AS item_count,
+                SUM(ci.quantity * p."sellingPrice") AS value
+         FROM cart c
+         JOIN "user" u ON u.id = c."userId"
+         JOIN cart_item ci ON ci."cartId" = c.id
+         JOIN product p ON p.id = ci."productId"
+         WHERE ${baseWhere}
+         GROUP BY c.id, c."updatedAt", u.name, u."mobileNumber"
+         ORDER BY c."updatedAt" DESC
+         LIMIT $1 OFFSET $2`,
+        [limit, (page - 1) * limit],
+      ),
+    ]);
+
+    return {
+      summary,
+      total: parseInt(countResult[0]?.total, 10) || 0,
+      items: items.map((r) => ({
+        cartId: parseInt(r.id, 10),
+        userName: r.user_name ?? null,
+        mobileNumber: r.mobileNumber ?? null,
+        itemCount: parseInt(r.item_count, 10) || 0,
+        value: parseFloat(r.value) || 0,
+        updatedAt: r.updatedAt,
+      })),
+    };
+  }
 }

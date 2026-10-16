@@ -449,6 +449,23 @@ export class OrderController {
   }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/delivery-man')
+  @Get('reports/delivery-performance-summary')
+  @ApiOperation({
+    summary: 'Delivery performance summary (Delivery Men page)',
+    description:
+      'Average placement-to-delivered time and top delivery men over the last 30 days',
+  })
+  async getDeliveryPerformanceSummary(): Promise<ApiResponseDto<any>> {
+    const data = await this.orderService.getDeliveryPerformanceSummary();
+    return {
+      message: 'Delivery performance summary retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, PermissionGuard)
   @ModulePermissions('/admin/reports/order-reports')
   @Get('reports/statistics')
   @ApiOperation({

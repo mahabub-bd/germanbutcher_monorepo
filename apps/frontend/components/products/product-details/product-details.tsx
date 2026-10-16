@@ -7,6 +7,7 @@ import { ProductDetailsCard } from "./product-details-card";
 import { ProductFeatures } from "./product-features";
 import { ProductImageGallery } from "./product-image-gallery";
 import { ProductInfo } from "./product-info";
+import { ProductPageViewTracker } from "./product-page-view-tracker";
 import { ProductPurchaseSection } from "./product-purchase-section";
 import { ProductReviews } from "./product-reviews/product-reviews";
 
@@ -22,6 +23,7 @@ export default async function ProductDetails({ product }: ProductDetailsProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ProductPageViewTracker />
       <ProductBreadcrumb product={product} />
 
       <div className="container mx-auto md:px-0 px-2 md:py-4 py-2 space-y-4 md:space-y-8">

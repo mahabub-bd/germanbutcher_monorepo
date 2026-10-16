@@ -7,17 +7,21 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
   getSchemaPath,
 } from '@nestjs/swagger';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 import { Request } from 'express';
@@ -157,6 +161,51 @@ export class CartController {
     const data = await this.cartService.clearCart(user);
     return {
       message: 'Cart cleared successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @Get('reports/abandoned-summary')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/dashboard')
+  @ApiOperation({
+    summary: 'Abandoned cart summary (admin dashboard)',
+    description:
+      'Carts holding items, untouched for 24h+, whose user never checked out afterwards',
+  })
+  async getAbandonedSummary(): Promise<ApiResponseDto<{
+    abandonedCarts: number;
+    abandonedValue: number;
+  }>> {
+    const data = await this.cartService.getAbandonedSummary();
+    return {
+      message: 'Abandoned cart summary retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @Get('reports/abandoned')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/abandoned-carts')
+  @ApiOperation({
+    summary: 'Abandoned carts report (paginated)',
+    description:
+      'Per-cart detail rows plus the summary — backs the Abandoned Carts report page',
+  })
+  @ApiQuery({ name: 'page', required: false, example: 1, type: Number })
+  @ApiQuery({ name: 'limit', required: false, example: 10, type: Number })
+  async getAbandonedReport(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ): Promise<ApiResponseDto<unknown>> {
+    const data = await this.cartService.getAbandonedReport(
+      Math.max(1, parseInt(page, 10) || 1),
+      Math.min(50, Math.max(1, parseInt(limit, 10) || 10)),
+    );
+    return {
+      message: 'Abandoned carts report retrieved successfully',
       statusCode: HttpStatus.OK,
       data,
     };

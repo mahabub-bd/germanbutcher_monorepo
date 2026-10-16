@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class UpdateBusinessSettingsDto {
   @ApiPropertyOptional({
@@ -84,4 +84,39 @@ export class UpdateBusinessSettingsDto {
   @IsOptional()
   @IsString()
   invoiceLogoId?: string;
+
+  @ApiPropertyOptional({
+    example: false,
+    description:
+      'When true (and within the optional schedule window), the storefront shows a maintenance page',
+  })
+  @IsOptional()
+  @IsBoolean()
+  maintenanceMode?: boolean;
+
+  @ApiPropertyOptional({
+    example: 'We are upgrading our store — back soon!',
+    description: 'Custom message displayed on the maintenance page; null clears it',
+  })
+  @IsOptional()
+  @IsString()
+  maintenanceMessage?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-10-16T18:00:00.000Z',
+    description:
+      'Maintenance window start (ISO datetime); before this time the storefront stays online',
+  })
+  @IsOptional()
+  @IsString()
+  maintenanceStartsAt?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-10-16T20:00:00.000Z',
+    description:
+      'Maintenance window end (ISO datetime); after this time the storefront comes back online',
+  })
+  @IsOptional()
+  @IsString()
+  maintenanceEndsAt?: string;
 }
