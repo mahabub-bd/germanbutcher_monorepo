@@ -24,7 +24,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  ClipboardList,
   Copy,
   CreditCard,
   Download,
@@ -36,8 +35,8 @@ import {
   RefreshCw,
   X
 } from "lucide-react";
-import { toast } from "sonner";
 import { Fragment, useState } from "react";
+import { toast } from "sonner";
 
 /**
  * Check if an order can be refunded
@@ -256,12 +255,7 @@ export function OrderActions({
       <div className="flex flex-col gap-3 p-3 sm:p-4 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-5">
         {/* Identity: order no, status badges, inline meta */}
         <div className="flex min-w-0 items-center gap-2.5">
-          <span
-            aria-hidden="true"
-            className="shrink-0 rounded-md bg-primary/10 p-1.5 text-primary"
-          >
-            <ClipboardList className="size-4" />
-          </span>
+
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
               <h1 className="truncate text-sm font-bold tracking-tight sm:text-base">
@@ -312,13 +306,13 @@ export function OrderActions({
                       disabled={action.disabled}
                       className={cn(
                         btnClass,
+                        "w-9 px-0",
                         action.accent && accentButtonClasses[action.accent]
                       )}
                       aria-label={action.label}
                       title={action.label}
                     >
-                      {actionIcon(action, "size-3.5")}
-                      <span>{actionLabel(action)}</span>
+                      {actionIcon(action, "size-3")}
                     </Button>
                   </Fragment>
                 ))}
@@ -370,7 +364,7 @@ export function OrderActions({
                                 : undefined
                             }
                           >
-                            <action.icon className="size-3.5" />
+                            <action.icon className="size-3" />
                             {action.label}
                           </DropdownMenuItem>
                         </Fragment>
@@ -387,7 +381,7 @@ export function OrderActions({
               className={cn(
                 "flex items-center gap-1 sm:gap-1.5",
                 visibleActions.length > 0 &&
-                  "border-border/70 pl-1.5 sm:border-l sm:pl-2"
+                "border-border/70 pl-1.5 sm:border-l sm:pl-2"
               )}
             >
               {(onPrevOrder || onNextOrder) && (
@@ -401,8 +395,8 @@ export function OrderActions({
                     aria-label="Previous order"
                     title="Previous order"
                   >
-                    <ArrowLeft className="size-3.5" />
-                    <span className="hidden sm:inline">Previous</span>
+                    <ArrowLeft className="size-3" />
+
                   </Button>
                   <Button
                     variant="ghost"
@@ -413,8 +407,8 @@ export function OrderActions({
                     aria-label="Next order"
                     title="Next order"
                   >
-                    <span className="hidden sm:inline">Next </span>
-                    <ArrowRight className="size-3.5" />
+
+                    <ArrowRight className="size-3" />
                   </Button>
                 </>
               )}
@@ -426,7 +420,7 @@ export function OrderActions({
                   aria-label="Back to Order List"
                   title="Back to Order List"
                 >
-                  <List className="size-3.5" />
+                  <List className="size-3" />
                   <span className="hidden sm:inline">Order List</span>
                 </Button>
               )}

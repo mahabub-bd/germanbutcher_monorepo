@@ -1,12 +1,8 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { AnalyticsCardHeader } from "@/components/admin/analytics/analytics-card-header";
+import { Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   Bar,
@@ -85,22 +81,24 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
   if (!data || data.length === 0) {
     return (
       <Card className="h-full rounded-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-bold">Visitors Overview</CardTitle>
-          <CardDescription>No data available</CardDescription>
-        </CardHeader>
+        <AnalyticsCardHeader
+          title="Visitors Overview"
+          description="No data available"
+          icon={Users}
+          tone="green"
+        />
       </Card>
     );
   }
 
   return (
     <Card className="h-full rounded-sm">
-      <CardHeader>
-        <CardTitle className="text-lg font-bold">Visitors Overview</CardTitle>
-        <CardDescription>
-          {totalVisitors.toLocaleString()} total visitors
-        </CardDescription>
-      </CardHeader>
+      <AnalyticsCardHeader
+        title="Visitors Overview"
+        description={`${totalVisitors.toLocaleString()} total visitors`}
+        icon={Users}
+        tone="green"
+      />
       <CardContent>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>

@@ -249,19 +249,30 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
   async getPeakTraffic(period: string = '7d') {
     const startDate = this.getDateFromPeriod(period);
 
+    // Bucket by hour-of-day summed across the whole period, not by truncated
+    // timestamps — one row per day per hour produced duplicate axis labels
+    // (e.g. "14:00" once per day). +6h shift so buckets align to BDT hours
+    // (Asia/Dhaka is UTC+6, no DST), same as getUniqueVisitors.
     const results = await this.analyticsRepository
       .createQueryBuilder('analytics')
-      .select("DATE_TRUNC('hour', analytics.timestamp)", 'hour')
+      .select(
+        "EXTRACT(HOUR FROM analytics.timestamp + INTERVAL '6 hours')",
+        'hour',
+      )
       .addSelect('COUNT(*)', 'requestCount')
       .where('analytics.timestamp >= :startDate', { startDate })
-      .groupBy("DATE_TRUNC('hour', analytics.timestamp)")
-      .addOrderBy('COUNT(*)', 'DESC')
-      .limit(24)
+      .groupBy("EXTRACT(HOUR FROM analytics.timestamp + INTERVAL '6 hours')")
+      .orderBy('hour', 'ASC')
       .getRawMany();
 
-    return results.map((r) => ({
-      hour: this.formatHour(r.hour),
-      requestCount: parseInt(r.requestCount),
+    const countByHour = new Map<number, number>(
+      results.map((r) => [Number(r.hour), parseInt(r.requestCount)]),
+    );
+
+    // Zero-fill all 24 hours so the chart axis always reads 00:00 → 23:00
+    return Array.from({ length: 24 }, (_, hour) => ({
+      hour: `${String(hour).padStart(2, '0')}:00`,
+      requestCount: countByHour.get(hour) ?? 0,
     }));
   }
 

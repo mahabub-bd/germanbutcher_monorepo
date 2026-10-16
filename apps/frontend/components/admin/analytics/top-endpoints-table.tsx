@@ -1,13 +1,8 @@
 "use client";
 
+import { AnalyticsCardHeader } from "@/components/admin/analytics/analytics-card-header";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -16,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Network } from "lucide-react";
 import type { TopEndpoint } from "@/utils/types";
 
 interface TopEndpointsTableProps {
@@ -25,42 +21,60 @@ interface TopEndpointsTableProps {
 const getMethodColor = (method: string) => {
   switch (method.toUpperCase()) {
     case "GET":
-      return "bg-green-100 text-green-800";
+      return "bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-400";
     case "POST":
-      return "bg-blue-100 text-blue-800";
+      return "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-400";
     case "PUT":
-      return "bg-yellow-100 text-yellow-800";
+      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-400";
     case "PATCH":
-      return "bg-orange-100 text-orange-800";
+      return "bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-400";
     case "DELETE":
-      return "bg-red-100 text-red-800";
+      return "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-gray-100 text-gray-800 dark:bg-gray-950/40 dark:text-gray-400";
   }
 };
 
+/** Latency tone: green when fast, amber when noticeable, red when slow. */
+const getLatencyClass = (ms: number) => {
+  if (ms < 300) return "text-green-600 dark:text-green-400";
+  if (ms < 800) return "text-amber-600 dark:text-amber-400";
+  return "text-red-600 dark:text-red-400";
+};
+
 export function TopEndpointsTable({ data }: TopEndpointsTableProps) {
+  const maxCount = Math.max(...data.map((d) => d.count), 1);
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-lg font-bold">Top Endpoints</CardTitle>
-        <CardDescription>Most frequently accessed API endpoints</CardDescription>
-      </CardHeader>
+      <AnalyticsCardHeader
+        title="Top Endpoints"
+        description="Most frequently accessed API endpoints"
+        icon={Network}
+        tone="indigo"
+      />
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8">#</TableHead>
               <TableHead>Endpoint</TableHead>
               <TableHead>Method</TableHead>
+              <TableHead className="w-40">Traffic share</TableHead>
               <TableHead className="text-right">Requests</TableHead>
               <TableHead className="text-right">Avg Time</TableHead>
-              <TableHead className="text-right">Errors</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((endpoint, index) => (
               <TableRow key={`${endpoint.endpoint}-${index}`}>
-                <TableCell className="font-mono text-sm max-w-50 truncate">
+                <TableCell className="text-muted-foreground tabular-nums">
+                  {index + 1}
+                </TableCell>
+                <TableCell
+                  className="max-w-50 truncate font-mono text-sm"
+                  title={endpoint.endpoint}
+                >
                   {endpoint.endpoint}
                 </TableCell>
                 <TableCell>
@@ -68,14 +82,23 @@ export function TopEndpointsTable({ data }: TopEndpointsTableProps) {
                     {endpoint.method}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell>
+                  <div className="h-1.5 rounded-full bg-muted">
+                    <div
+                      className="h-1.5 rounded-full bg-primaryColor"
+                      style={{
+                        width: `${Math.round((endpoint.count / maxCount) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </TableCell>
+                <TableCell className="text-right font-medium tabular-nums">
                   {endpoint.count.toLocaleString()}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell
+                  className={`text-right tabular-nums ${getLatencyClass(endpoint.avgResponseTime)}`}
+                >
                   {endpoint.avgResponseTime.toFixed(0)}ms
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className="text-green-600">0</span>
                 </TableCell>
               </TableRow>
             ))}

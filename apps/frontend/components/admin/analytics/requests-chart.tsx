@@ -1,12 +1,8 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { AnalyticsCardHeader } from "@/components/admin/analytics/analytics-card-header";
+import { Activity } from "lucide-react";
 import type { AnalyticsPeriod, AnalyticsRequests } from "@/utils/types";
 import {
   Area,
@@ -61,22 +57,24 @@ export function RequestsChart({ data }: RequestsChartProps) {
   if (!data || data.length === 0) {
     return (
       <Card className="h-full rounded-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-bold">Request Traffic</CardTitle>
-          <CardDescription>No data available</CardDescription>
-        </CardHeader>
+        <AnalyticsCardHeader
+          title="Request Traffic"
+          description="No data available"
+          icon={Activity}
+          tone="blue"
+        />
       </Card>
     );
   }
 
   return (
     <Card className="h-full rounded-sm">
-      <CardHeader>
-        <CardTitle className="text-lg font-bold">Request Traffic</CardTitle>
-        <CardDescription>
-          {totalRequests.toLocaleString()} total requests (avg: {avgRequests.toLocaleString()}/{avgUnit})
-        </CardDescription>
-      </CardHeader>
+      <AnalyticsCardHeader
+        title="Request Traffic"
+        description={`${totalRequests.toLocaleString()} total requests (avg: ${avgRequests.toLocaleString()}/${avgUnit})`}
+        icon={Activity}
+        tone="blue"
+      />
       <CardContent>
         <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>

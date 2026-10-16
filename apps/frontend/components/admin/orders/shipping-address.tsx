@@ -26,13 +26,13 @@ export function ShippingAddress({
       <div className="space-y-2.5 p-3">
         <div className="flex items-center gap-1.5 text-sm">
           <User className="size-3.5 shrink-0 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Name</span>
+          <span className="text-muted-foreground">Name:</span>
           <span className="font-medium">{userName}</span>
         </div>
 
         <div className="flex items-center gap-1.5 text-sm">
           <Phone className="size-3.5 shrink-0 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Phone</span>
+          <span className="text-muted-foreground">Phone:</span>
           <span className="font-medium">{userMobileNumber}</span>
         </div>
 
@@ -40,7 +40,7 @@ export function ShippingAddress({
           <div className="flex items-start gap-1.5">
             <MapPin className="mt-0.5 size-3.5 shrink-0 text-primary" />
             <div className="flex-1 min-w-0">
-              <p className="break-words text-sm leading-snug">
+              <p className="wrap-break-word text-sm leading-snug">
                 {address.address}, {address.area}, {address.city},{" "}
                 {address.division}
               </p>

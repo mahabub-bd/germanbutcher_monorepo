@@ -4,14 +4,6 @@ import { Clock } from "lucide-react";
 import { memo, useMemo } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Timeline,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
-  TimelineItem,
-  TimelineSeparator,
-} from "@/components/ui/timeline";
 
 import { formatDateTime } from "@/lib/utils";
 import { getStatusDotColor, getStatusIcon } from "@/utils/order-helper";
@@ -53,7 +45,10 @@ const getTimelineFlow = (currentStatus: string): readonly string[] => {
     normalized as (typeof ORDER_FLOW)[number]
   );
 
-  return index >= 0 ? ORDER_FLOW.slice(0, index + 1) : [normalized];
+  // Always render every step — upcoming ones show as hidden/inactive
+  // (grayed node, no timestamp). Unknown statuses fall back to themselves.
+  if (index >= 0) return ORDER_FLOW;
+  return [normalized];
 };
 
 const isStatusActive = (status: string, currentStatus: string): boolean => {
@@ -73,91 +68,92 @@ const isStatusActive = (status: string, currentStatus: string): boolean => {
 const formatStatusLabel = (status: string) =>
   status.charAt(0).toUpperCase() + status.slice(1);
 
-interface TimelineItemProps {
+interface StepProps {
   item: TimelineItemData;
   isLast: boolean;
   currentStatus: string;
 }
 
-const TimelineItemComponent = memo<TimelineItemProps>(
+const NODE_SIZE = "size-8";
+
+const StepComponent = memo<StepProps>(
   ({ item, isLast, currentStatus }) => {
     const isCurrent = item.status === currentStatus;
-    const icon = item.isActive ? getStatusIcon(item.status) : null;
+    const icon = getStatusIcon(item.status);
 
     return (
-      <TimelineItem className="pb-0 last:pb-0">
-        <TimelineSeparator className="w-8 shrink-0">
-          <TimelineDot
-            className={`flex h-7 w-7 items-center justify-center border-4 border-background shadow-sm ${item.isActive ? getStatusDotColor(item.status) : "bg-muted"} ${
-              isCurrent ? "ring-4 ring-primary/15" : ""
+      <li className="relative flex flex-col items-center px-2 text-center">
+        {/* Connector to the next node — spans from this node's edge into the
+            next column so it visually bridges the gap between centers. */}
+        {!isLast && (
+          <span
+            aria-hidden
+            className={`absolute top-4 h-0.5 left-[calc(50%+1.25rem)] right-[calc(-50%+1.25rem)] ${
+              item.isActive ? "bg-primary/40" : "bg-border"
             }`}
-          >
-            {icon && <span className="scale-75 text-white">{icon}</span>}
-          </TimelineDot>
-          {!isLast && (
-            <TimelineConnector
-              className={
-                item.isActive
-                  ? "my-1.5 bg-primary/30"
-                  : "my-1.5 border-l border-dashed border-border bg-transparent"
-              }
-            />
+          />
+        )}
+
+        {/* Node */}
+        <span
+          className={`z-10 flex ${NODE_SIZE} items-center justify-center rounded-full border-4 border-background shadow-sm ${
+            item.isActive
+              ? getStatusDotColor(item.status)
+              : "bg-muted"
+          } ${isCurrent ? "ring-4 ring-primary/15" : ""}`}
+        >
+          {icon && (
+            <span className={item.isActive ? "text-white" : "text-muted-foreground/60"}>
+              {icon}
+            </span>
           )}
-        </TimelineSeparator>
+        </span>
 
-        <TimelineContent>
-          <div
-            className={`ml-1.5 rounded-sm border px-3 py-2 transition-colors ${
-              isCurrent
-                ? "border-primary/25 bg-primary/4.5 shadow-sm"
-                : item.isActive
-                  ? "border-border/70 bg-card"
-                  : "border-transparent bg-muted/30 opacity-70"
+        {/* Label */}
+        <div className="mt-2 flex items-center justify-center gap-1.5">
+          <span
+            className={`text-sm font-semibold ${
+              item.isActive ? "" : "text-muted-foreground"
             }`}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="text-sm font-semibold">
-                  {formatStatusLabel(item.status)}
-                </span>
-                {isCurrent && (
-                  <Badge
-                    variant="default"
-                    className="h-5 rounded-full px-2 text-[9px] font-semibold uppercase tracking-wider"
-                  >
-                    Current
-                  </Badge>
-                )}
-              </div>
+            {formatStatusLabel(item.status)}
+          </span>
+          {isCurrent && (
+            <Badge
+              className={`h-5 rounded-full border-0 px-2 text-[9px] font-semibold uppercase tracking-wider text-white ${getStatusDotColor(item.status)}`}
+            >
+              Current
+            </Badge>
+          )}
+        </div>
 
-              {item.timestamp && (
-                <time className="shrink-0 text-[11px] text-muted-foreground">
-                  {formatDateTime(item.timestamp)}
-                </time>
-              )}
-            </div>
+        {/* Note */}
+        {item.note && (
+          <p className="mt-0.5 max-w-44 text-xs leading-snug text-muted-foreground">
+            {item.note}
+          </p>
+        )}
 
-            {/* Note */}
-            {item.note && (
-              <p className="mt-1.5 border-l-2 border-primary/20 pl-2 text-xs leading-snug text-muted-foreground">
-                {item.note}
-              </p>
-            )}
-
-            {/* Meta */}
-            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/45" />
-              <span>Updated by {item.updatedBy?.name || "System"}</span>
-            </div>
+        {/* Meta — only for steps that actually happened; hidden steps have
+            no track row and would otherwise read a fabricated "System" */}
+        {item.isActive && (
+          <div className="mt-1 text-[11px] text-muted-foreground">
+            Updated by {item.updatedBy?.name || "System"}
           </div>
-        </TimelineContent>
-      </TimelineItem>
+        )}
+
+        {/* Timestamp pill */}
+        {item.timestamp && (
+          <div className="mt-1.5 rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
+            {formatDateTime(item.timestamp)}
+          </div>
+        )}
+      </li>
     );
   }
 );
 
-TimelineItemComponent.displayName = "TimelineItemComponent";
+StepComponent.displayName = "StepComponent";
 
 
 
@@ -227,19 +223,24 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
         )}
       </div>
 
-      {/* Content */}
-      <div className="min-h-20 p-3">
+      {/* Content — horizontal stepper, one column per status */}
+      <div className="min-h-20 p-2">
         {hasData ? (
-          <Timeline className="space-y-2">
+          <ol
+            className="grid"
+            style={{
+              gridTemplateColumns: `repeat(${timelineItems.length}, minmax(0, 1fr))`,
+            }}
+          >
             {timelineItems.map((item, index) => (
-              <TimelineItemComponent
+              <StepComponent
                 key={item.status}
                 item={item}
                 isLast={index === timelineItems.length - 1}
                 currentStatus={order.orderStatus}
               />
             ))}
-          </Timeline>
+          </ol>
         ) : (
           <EmptyTimelineState />
         )}
