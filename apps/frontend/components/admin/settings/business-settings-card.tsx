@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -72,6 +73,23 @@ function toLocalInputValue(iso: string | null | undefined): string {
   if (Number.isNaN(d.getTime())) return "";
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Merge a picked date and/or time into the draft's datetime-local string —
+ * updating one part preserves the other (falls back to today / 00:00). */
+function combineDateTime(
+  datePart: Date | undefined,
+  timePart: string | undefined,
+  current: string
+): string {
+  const base = current ? new Date(current) : new Date();
+  if (Number.isNaN(base.getTime())) base.setTime(Date.now());
+  const d = datePart ? new Date(datePart) : base;
+  const [h, m] = (timePart ?? `${base.getHours()}:${base.getMinutes()}`)
+    .split(":")
+    .map(Number);
+  d.setHours(h || 0, m || 0, 0, 0);
+  return toLocalInputValue(d.toISOString());
 }
 
 /** Icon + label + value cell used in the details grid. */
@@ -596,36 +614,95 @@ export function BusinessSettingsCard() {
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="business-maintenance-start">
-                        Starts At (optional)
-                      </Label>
-                      <Input
-                        id="business-maintenance-start"
-                        type="datetime-local"
-                        value={draft.maintenanceStartsAt}
-                        onChange={(e) =>
-                          setDraft((prev) => ({
-                            ...prev,
-                            maintenanceStartsAt: e.target.value,
-                          }))
-                        }
-                      />
+                      <Label>Starts At (optional)</Label>
+                      <div className="flex gap-2">
+                        <DatePicker
+                          value={
+                            draft.maintenanceStartsAt
+                              ? new Date(draft.maintenanceStartsAt)
+                              : undefined
+                          }
+                          onChange={(date) =>
+                            setDraft((prev) => ({
+                              ...prev,
+                              maintenanceStartsAt: combineDateTime(
+                                date,
+                                undefined,
+                                prev.maintenanceStartsAt
+                              ),
+                            }))
+                          }
+                          placeholder="Pick a date"
+                          className="flex-1"
+                        />
+                        <Input
+                          type="time"
+                          value={
+                            draft.maintenanceStartsAt
+                              ? draft.maintenanceStartsAt.slice(11, 16)
+                              : ""
+                          }
+                          onChange={(e) =>
+                            setDraft((prev) => ({
+                              ...prev,
+                              maintenanceStartsAt: combineDateTime(
+                                undefined,
+                                e.target.value,
+                                prev.maintenanceStartsAt
+                              ),
+                            }))
+                          }
+                          className="w-30"
+                        />
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="business-maintenance-end">
-                        Ends At (optional)
-                      </Label>
-                      <Input
-                        id="business-maintenance-end"
-                        type="datetime-local"
-                        value={draft.maintenanceEndsAt}
-                        onChange={(e) =>
-                          setDraft((prev) => ({
-                            ...prev,
-                            maintenanceEndsAt: e.target.value,
-                          }))
-                        }
-                      />
+                      <Label>Ends At (optional)</Label>
+                      <div className="flex gap-2">
+                        <DatePicker
+                          value={
+                            draft.maintenanceEndsAt
+                              ? new Date(draft.maintenanceEndsAt)
+                              : undefined
+                          }
+                          onChange={(date) =>
+                            setDraft((prev) => ({
+                              ...prev,
+                              maintenanceEndsAt: combineDateTime(
+                                date,
+                                undefined,
+                                prev.maintenanceEndsAt
+                              ),
+                            }))
+                          }
+                          minDate={
+                            draft.maintenanceStartsAt
+                              ? new Date(draft.maintenanceStartsAt)
+                              : undefined
+                          }
+                          placeholder="Pick a date"
+                          className="flex-1"
+                        />
+                        <Input
+                          type="time"
+                          value={
+                            draft.maintenanceEndsAt
+                              ? draft.maintenanceEndsAt.slice(11, 16)
+                              : ""
+                          }
+                          onChange={(e) =>
+                            setDraft((prev) => ({
+                              ...prev,
+                              maintenanceEndsAt: combineDateTime(
+                                undefined,
+                                e.target.value,
+                                prev.maintenanceEndsAt
+                              ),
+                            }))
+                          }
+                          className="w-30"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
