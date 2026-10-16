@@ -75,8 +75,12 @@ export default function OrderView({
         onPaymentSuccess={handleRefreshOrder}
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="xl:col-span-2 space-y-4">
+      {/* Right rail: ~29% on laptop (xl), 25% on 2xl where there's room to spare.
+          min-w-0 on both columns: grid items default to min-width:auto, and the
+          rail's min-content (long email, nowrap buttons) would otherwise blow
+          the 1fr track past the viewport and force horizontal scrolling. */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2.5fr_1fr] 2xl:grid-cols-4">
+        <div className="min-w-0 2xl:col-span-3 space-y-4">
           <OrderItems items={currentOrder.items} />
 
           <OrderTimeline order={currentOrder} />
@@ -84,7 +88,7 @@ export default function OrderView({
           <PaymentHistory payments={currentOrder.payments ?? []} />
         </div>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <CustomerInfo
             user={{
               ...currentOrder.user,

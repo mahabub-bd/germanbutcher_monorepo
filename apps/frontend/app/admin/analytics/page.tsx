@@ -80,7 +80,7 @@ export default function AnalyticsPage() {
           <p className="text-red-600">{error}</p>
         </div>
       ) : data ? (
-        <div className="md:p-4 p-2 space-y-4 rounded-sm">
+        <div className=" space-y-4 rounded-sm">
           <AnalyticsOverviewCards
             data={data.overview}
             conversion={data.conversion}

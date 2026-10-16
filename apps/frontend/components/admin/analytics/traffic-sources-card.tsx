@@ -1,12 +1,8 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { AnalyticsCardHeader } from "@/components/admin/analytics/analytics-card-header";
+import { Share2 } from "lucide-react";
 import type { TrafficSource } from "@/utils/types";
 
 interface TrafficSourcesCardProps {
@@ -19,22 +15,24 @@ export function TrafficSourcesCard({ data }: TrafficSourcesCardProps) {
   if (data.length === 0) {
     return (
       <Card className="h-full rounded-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-bold">Traffic Sources</CardTitle>
-          <CardDescription>No data available yet</CardDescription>
-        </CardHeader>
+        <AnalyticsCardHeader
+          title="Traffic Sources"
+          description="Where visitors come from (no referer = Direct)"
+          icon={Share2}
+          tone="teal"
+        />
       </Card>
     );
   }
 
   return (
     <Card className="h-full rounded-sm">
-      <CardHeader>
-        <CardTitle className="text-lg font-bold">Traffic Sources</CardTitle>
-        <CardDescription>
-          Where visitors come from (no referer = Direct)
-        </CardDescription>
-      </CardHeader>
+      <AnalyticsCardHeader
+        title="Traffic Sources"
+        description="Where visitors come from (no referer = Direct)"
+        icon={Share2}
+        tone="teal"
+      />
       <CardContent>
         <div className="space-y-3">
           {data.map((item) => (

@@ -1,25 +1,21 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { AnalyticsCardHeader } from "@/components/admin/analytics/analytics-card-header";
+import type { DeviceBreakdownData, NamedCount } from "@/utils/types";
 import {
   Circle,
   Compass,
   Flame,
   Globe,
   Monitor,
+  MonitorSmartphone,
   Smartphone,
   Tablet,
   Waves,
   type LucideIcon,
 } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import type { DeviceBreakdownData, NamedCount } from "@/utils/types";
 
 interface DeviceChartProps {
   data: DeviceBreakdownData;
@@ -63,90 +59,138 @@ function sumCounts(rows: NamedCount[]): number {
   return rows.reduce((sum, row) => sum + row.count, 0);
 }
 
+/** Soft tinted background for an icon chip (hex + alpha keeps the exact hue). */
+function tintStyle(color: string) {
+  return { backgroundColor: `${color}1a`, color };
+}
+
 export function DeviceChart({ data }: DeviceChartProps) {
   const devices = data.devices.filter((d) => d.count > 0);
   const browsers = data.browsers.filter((b) => b.count > 0);
   const deviceTotal = sumCounts(devices);
+  const topDevice = devices.reduce<NamedCount | null>(
+    (max, d) => (!max || d.count > max.count ? d : max),
+    null,
+  );
+  const topBrowser = browsers.reduce<NamedCount | null>(
+    (max, b) => (!max || b.count > max.count ? b : max),
+    null,
+  );
 
   if (deviceTotal === 0) {
     return (
       <Card className="h-full rounded-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-bold">Devices</CardTitle>
-          <CardDescription>No data available</CardDescription>
-        </CardHeader>
+        <AnalyticsCardHeader
+          title="Devices"
+          description="Mobile vs desktop, plus browser split"
+          icon={MonitorSmartphone}
+          tone="violet"
+        />
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <span className="mb-3 flex size-12 items-center justify-center rounded-full bg-muted">
+              <MonitorSmartphone className="size-5 text-muted-foreground" />
+            </span>
+            <p className="text-sm font-medium">No device data yet</p>
+            <p className="mt-1 max-w-56 text-xs text-muted-foreground">
+              Device and browser breakdown will appear once there is traffic
+            </p>
+          </div>
+        </CardContent>
       </Card>
     );
   }
 
   return (
     <Card className="h-full rounded-sm">
-      <CardHeader>
-        <CardTitle className="text-lg font-bold">Devices</CardTitle>
-        <CardDescription>Mobile vs desktop, plus browser split</CardDescription>
-      </CardHeader>
+      <AnalyticsCardHeader
+        title="Devices"
+        description="Mobile vs desktop, plus browser split"
+        icon={MonitorSmartphone}
+        tone="violet"
+        action={
+          <>
+            <div className="text-lg font-bold leading-tight tabular-nums">
+              {deviceTotal.toLocaleString()}
+            </div>
+            <div className="text-[11px] leading-tight text-muted-foreground">
+              total visits
+            </div>
+          </>
+        }
+      />
       <CardContent>
-        <div className="grid gap-6 sm:grid-cols-2">
-          <div>
-            <div className="relative">
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie
-                    data={devices}
-                    dataKey="count"
-                    nameKey="name"
-                    innerRadius={52}
-                    outerRadius={72}
-                    paddingAngle={2}
-                    strokeWidth={0}
-                  >
-                    {devices.map((entry, index) => (
-                      <Cell
-                        key={entry.name}
-                        fill={DEVICE_COLORS[index % DEVICE_COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xl font-bold">
-                  {deviceTotal.toLocaleString()}
-                </span>
-                <span className="text-[11px] text-muted-foreground">Total</span>
-              </div>
-            </div>
-            <div className="mt-2 space-y-1.5">
-              {devices.map((device, index) => {
-                const DeviceIcon = deviceIcon(device.name);
-                return (
-                  <div
-                    key={device.name}
-                    className="flex items-center gap-2 text-xs"
-                  >
-                    <DeviceIcon
-                      className="h-3.5 w-3.5 shrink-0"
-                      style={{
-                        color: DEVICE_COLORS[index % DEVICE_COLORS.length],
-                      }}
+        <div className="grid gap-6 lg:grid-cols-[auto_minmax(170px,1fr)_minmax(240px,1.4fr)] lg:items-center">
+          {/* Device split — donut. Fixed width: ResponsiveContainer measures
+              its parent, and an auto grid track would collapse it to 0. */}
+          <div className="mx-auto w-35">
+            <ResponsiveContainer width="100%" height={140}>
+              <PieChart>
+                <Pie
+                  data={devices}
+                  dataKey="count"
+                  nameKey="name"
+                  innerRadius={42}
+                  outerRadius={58}
+                  paddingAngle={2}
+                  cornerRadius={3}
+                  strokeWidth={0}
+                >
+                  {devices.map((entry, index) => (
+                    <Cell
+                      key={entry.name}
+                      fill={DEVICE_COLORS[index % DEVICE_COLORS.length]}
                     />
-                    <span className="flex-1">{device.name}</span>
-                    <span className="font-medium">
-                      {device.count.toLocaleString()}
-                    </span>
-                    <span className="w-10 text-right text-muted-foreground">
-                      {Math.round((device.count / deviceTotal) * 100)}%
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
 
-          <div className="space-y-3">
+          {/* Device list */}
+          <div className="space-y-1.5">
             <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              <Globe className="h-3.5 w-3.5" />
+              <MonitorSmartphone className="size-3.5" />
+              Devices
+            </p>
+            {devices.map((device, index) => {
+              const DeviceIcon = deviceIcon(device.name);
+              const color = DEVICE_COLORS[index % DEVICE_COLORS.length];
+              return (
+                <div
+                  key={device.name}
+                  className="flex items-center gap-2.5 rounded-lg border bg-card px-2.5 py-2 text-xs"
+                >
+                  <span
+                    className="flex size-6 shrink-0 items-center justify-center rounded-md"
+                    style={tintStyle(color)}
+                  >
+                    <DeviceIcon className="size-3" />
+                  </span>
+                  <span className="flex-1 truncate font-medium">
+                    {device.name}
+                  </span>
+                  <span className="font-semibold tabular-nums">
+                    {device.count.toLocaleString()}
+                  </span>
+                  <span className="w-9 text-right tabular-nums text-muted-foreground">
+                    {Math.round((device.count / deviceTotal) * 100)}%
+                  </span>
+                </div>
+              );
+            })}
+            {topDevice && (
+              <p className="px-1 pt-0.5 text-[11px] text-muted-foreground">
+                Mostly visited from {topDevice.name.toLowerCase()}
+              </p>
+            )}
+          </div>
+
+          {/* Browser split — bars */}
+          <div className="space-y-2.5">
+            <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <Globe className="size-3.5" />
               Browsers
             </p>
             {browsers.map((browser, index) => {
@@ -156,39 +200,43 @@ export function DeviceChart({ data }: DeviceChartProps) {
                   ? Math.round((browser.count / browserTotal) * 100)
                   : 0;
               const BrowserIcon = browserIcon(browser.name);
+              const color = BROWSER_COLORS[index % BROWSER_COLORS.length];
               return (
                 <div key={browser.name}>
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-1.5">
-                      <BrowserIcon
-                        className="h-3.5 w-3.5"
-                        style={{
-                          color: BROWSER_COLORS[index % BROWSER_COLORS.length],
-                        }}
-                      />
-                      {browser.name}
+                  <div className="mb-1 flex items-center gap-2 text-xs">
+                    <span
+                      className="flex size-6 shrink-0 items-center justify-center rounded-md"
+                      style={tintStyle(color)}
+                    >
+                      <BrowserIcon className="size-3" />
                     </span>
-                    <span className="font-medium">
-                      {browser.count.toLocaleString()} · {pct}%
+                    <span className="flex-1 font-medium">{browser.name}</span>
+                    <span className="font-semibold tabular-nums">
+                      {browser.count.toLocaleString()}
+                    </span>
+                    <span className="w-9 text-right tabular-nums text-muted-foreground">
+                      {pct}%
                     </span>
                   </div>
-                  <div className="h-2 rounded-full bg-muted">
+                  <div className="ml-8 h-2 rounded-full bg-muted">
                     <div
                       className="h-2 rounded-full"
-                      style={{
-                        width: `${pct}%`,
-                        backgroundColor:
-                          BROWSER_COLORS[index % BROWSER_COLORS.length],
-                      }}
+                      style={{ width: `${pct}%`, backgroundColor: color }}
                     />
                   </div>
                 </div>
               );
             })}
-            {browsers.length === 0 && (
+            {browsers.length === 0 ? (
               <p className="text-xs text-muted-foreground">
                 No browser data yet
               </p>
+            ) : (
+              topBrowser && (
+                <p className="pt-1 text-[11px] text-muted-foreground">
+                  Most visits via {topBrowser.name}
+                </p>
+              )
             )}
           </div>
         </div>

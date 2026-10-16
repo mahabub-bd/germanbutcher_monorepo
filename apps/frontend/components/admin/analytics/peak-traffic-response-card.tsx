@@ -4,9 +4,8 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
+import { AnalyticsCardHeader } from "@/components/admin/analytics/analytics-card-header";
 import { ArrowDown, ArrowUp, Clock } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import {
@@ -119,14 +118,16 @@ export function PeakTrafficResponseCard({
 
   return (
     <Card className="h-full rounded-sm">
-      <CardHeader>
-        <CardTitle className="text-lg font-bold">Peak Traffic Hours</CardTitle>
-        <CardDescription>
-          {peakData
+      <AnalyticsCardHeader
+        title="Peak Traffic Hours"
+        description={
+          peakData
             ? `Peak: ${peakData.hour} (${peakData.requestCount.toLocaleString()} requests)`
-            : "No data"}
-        </CardDescription>
-      </CardHeader>
+            : "No data"
+        }
+        icon={Clock}
+        tone="teal"
+      />
       <CardContent className="space-y-4">
         <div className="grid grid-cols-3 gap-2">
           <ResponseTimeTile

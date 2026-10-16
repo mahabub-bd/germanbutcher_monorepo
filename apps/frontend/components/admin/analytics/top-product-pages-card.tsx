@@ -1,12 +1,7 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { AnalyticsCardHeader } from "@/components/admin/analytics/analytics-card-header";
 import { ShoppingBag } from "lucide-react";
 import type { TopProductPage } from "@/utils/types";
 
@@ -20,10 +15,12 @@ export function TopProductPagesCard({ data }: TopProductPagesCardProps) {
   if (data.length === 0) {
     return (
       <Card className="h-full rounded-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-bold">Top Product Pages</CardTitle>
-          <CardDescription>No data available yet</CardDescription>
-        </CardHeader>
+        <AnalyticsCardHeader
+          title="Top Product Pages"
+          description="Most viewed product detail pages"
+          icon={ShoppingBag}
+          tone="amber"
+        />
         <CardContent>
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <span className="mb-3 flex size-12 items-center justify-center rounded-full bg-muted">
@@ -41,10 +38,12 @@ export function TopProductPagesCard({ data }: TopProductPagesCardProps) {
 
   return (
     <Card className="h-full rounded-sm">
-      <CardHeader>
-        <CardTitle className="text-lg font-bold">Top Product Pages</CardTitle>
-        <CardDescription>Most viewed product detail pages</CardDescription>
-      </CardHeader>
+      <AnalyticsCardHeader
+        title="Top Product Pages"
+        description="Most viewed product detail pages"
+        icon={ShoppingBag}
+        tone="amber"
+      />
       <CardContent>
         <div className="space-y-3">
           {data.map((page) => (
