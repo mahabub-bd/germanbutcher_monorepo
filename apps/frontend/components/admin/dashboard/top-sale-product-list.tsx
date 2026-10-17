@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -25,9 +24,17 @@ import {
 } from "@/components/ui/table";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { fetchProtectedData } from "@/utils/api-utils";
-import { Eye, Package, Star } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Banknote,
+  Boxes,
+  Package,
+  ShoppingCart,
+  Star,
+  Tag,
+} from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoadingIndicator } from "../loading-indicator";
@@ -94,6 +101,7 @@ type TimeFilter =
   | "all_time";
 
 export default function TopSaleProductsList() {
+  const router = useRouter();
   const [products, setProducts] = useState<BestsellerProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [limit, setLimit] = useState<number>(5);
@@ -122,7 +130,7 @@ export default function TopSaleProductsList() {
   if (loading) {
     return (
       <Card className="w-full overflow-hidden">
-        <div className="flex justify-center items-center min-h-[200px]">
+        <div className="flex justify-center items-center min-h-50">
           <LoadingIndicator message="Loading top selling products..." />
         </div>
       </Card>
@@ -143,7 +151,7 @@ export default function TopSaleProductsList() {
               value={limit.toString()}
               onValueChange={(v) => setLimit(parseInt(v))}
             >
-              <SelectTrigger className="w-[100px] sm:w-[130px] h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
+              <SelectTrigger className="w-25 sm:w-32.5 h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -158,7 +166,7 @@ export default function TopSaleProductsList() {
               value={timeFilter}
               onValueChange={(value: TimeFilter) => setTimeFilter(value)}
             >
-              <SelectTrigger className="w-[110px] sm:w-[140px] h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
+              <SelectTrigger className="w-27.5 sm:w-35 h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -180,18 +188,16 @@ export default function TopSaleProductsList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[50px] sm:w-[60px] text-xs">#</TableHead>
-                <TableHead className="text-xs">Product</TableHead>
-                <TableHead className="hidden md:table-cell text-xs">
+                <TableHead className="w-12.5 sm:w-15 text-xs sm:text-sm font-bold h-9 sm:h-10">Rank</TableHead>
+                <TableHead className="text-xs sm:text-sm font-bold h-9 sm:h-10">Product</TableHead>
+                <TableHead className="hidden md:table-cell text-xs sm:text-sm font-bold h-9 sm:h-10">
                   Category
                 </TableHead>
-                <TableHead className="text-center text-xs">Sold</TableHead>
-                <TableHead className="text-center text-xs">Featured</TableHead>
-                <TableHead className="text-right text-xs">Price</TableHead>
-                <TableHead className="text-right text-xs">Discounted Price</TableHead>
-                <TableHead className="text-right text-xs hidden sm:table-cell">Stock</TableHead>
-                <TableHead className="text-right text-xs w-[50px] sm:w-[60px]">
-                  View
+                <TableHead className="text-center text-xs sm:text-sm font-bold h-9 sm:h-10">Sold</TableHead>
+                <TableHead className="text-center text-xs sm:text-sm font-bold h-9 sm:h-10">Featured</TableHead>
+                <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10">Price</TableHead>
+                <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10 hidden sm:table-cell">
+                  Stock
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -200,7 +206,7 @@ export default function TopSaleProductsList() {
               {products.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={9}
+                    colSpan={7}
                     className="text-center py-6 sm:py-8 text-muted-foreground"
                   >
                     <Package className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-2 opacity-50" />
@@ -213,12 +219,19 @@ export default function TopSaleProductsList() {
                   const hasDiscount = discountedPrice < p.sellingPrice;
 
                   return (
-                    <TableRow key={p.id}>
-                      <TableCell className="py-1.5 sm:py-2 text-xs sm:text-sm">{idx + 1}</TableCell>
+                    <TableRow
+                      key={p.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/product/${p.slug}`)}
+                    >
+                      {/* Rank */}
+                      <TableCell className="py-1.5 sm:py-2 text-xs sm:text-sm">
+                        {idx + 1}
+                      </TableCell>
 
                       <TableCell className="py-1.5 sm:py-2">
                         <div className="flex items-center gap-2 sm:gap-3">
-                          <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded overflow-hidden bg-muted flex-shrink-0">
+                          <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-md overflow-hidden bg-muted shrink-0">
                             {p.attachment?.url ? (
                               <Image
                                 src={p.attachment.url}
@@ -235,72 +248,60 @@ export default function TopSaleProductsList() {
                           </div>
 
                           <div className="flex flex-col min-w-0 flex-1">
-                            <span className="font-medium text-xs sm:text-sm truncate">
+                            <span className="font-medium text-xs sm:text-sm truncate max-w-37.5 sm:max-w-55">
                               {p.name}
                             </span>
-                            <div className="text-[10px] sm:text-xs text-muted-foreground truncate max-w-[150px] sm:max-w-[220px]">
-                              <span>{p.brand?.name ?? ""}</span>
-                            </div>
+                            <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-37.5 sm:max-w-55">
+                              {p.brand?.name ?? ""}
+                            </span>
                           </div>
                         </div>
                       </TableCell>
 
                       <TableCell className="hidden md:table-cell py-1.5 sm:py-2">
-                        <span className="text-[10px] sm:text-xs">{p.category?.name ?? "—"}</span>
+                        <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm font-normal">
+                          <Tag className="h-3.5 w-3.5 shrink-0" />
+                          {p.category?.name ?? "—"}
+                        </Badge>
                       </TableCell>
 
                       <TableCell className="text-center py-1.5 sm:py-2">
-                        <span className="font-bold text-xs sm:text-sm">{p.saleCount}</span>
+                        <Badge variant="secondary" className="h-5 px-1.5 text-xs sm:text-sm font-bold">
+                          <ShoppingCart className="h-3.5 w-3.5" />{p.saleCount}
+                        </Badge>
                       </TableCell>
 
                       <TableCell className="text-center py-1.5 sm:py-2">
                         {p.isFeatured ? (
-                          <div className="flex justify-center">
-                            <Star className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 fill-yellow-500" />
-                          </div>
+                          <Star className="h-4 w-4 sm:h-5 sm:w-5 mx-auto text-yellow-500 fill-yellow-500" />
                         ) : (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-xs sm:text-sm text-muted-foreground">—</span>
                         )}
                       </TableCell>
 
-                      <TableCell className="text-right py-1.5 sm:py-2">
-                        <span className="font-bold text-xs sm:text-sm">
-                          {formatCurrencyEnglish(p.sellingPrice)}
-                        </span>
-                      </TableCell>
-
+                      {/* Price */}
                       <TableCell className="text-right py-1.5 sm:py-2">
                         {hasDiscount ? (
-                          <div className="flex flex-col items-end">
-                            <span className="font-bold text-xs sm:text-sm text-green-600 dark:text-green-400">
-                              {formatCurrencyEnglish(discountedPrice)}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground line-through">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span className="text-xs sm:text-sm text-muted-foreground line-through">
                               {formatCurrencyEnglish(p.sellingPrice)}
                             </span>
+                            <Badge className="h-5 px-1.5 text-xs sm:text-sm font-bold bg-green-600 dark:bg-green-500">
+                              <Banknote className="h-3.5 w-3.5" />{formatCurrencyEnglish(discountedPrice)}
+                            </Badge>
                           </div>
                         ) : (
-                          <span className="font-bold text-xs sm:text-sm text-muted-foreground">
-                            —
-                          </span>
+                          <Badge variant="secondary" className="h-5 px-1.5 text-xs sm:text-sm font-bold">
+                            <Banknote className="h-3.5 w-3.5" />{formatCurrencyEnglish(p.sellingPrice)}
+                          </Badge>
                         )}
                       </TableCell>
 
                       <TableCell className="text-right py-1.5 sm:py-2 hidden sm:table-cell">
-                        <span className="text-[10px] sm:text-xs">{p.stock}</span>
-                      </TableCell>
-
-                      <TableCell className="text-right py-1.5 sm:py-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 sm:h-7 sm:w-7 p-0"
-                          asChild
-                        >
-                          <Link href={`/product/${p.slug}`}>
-                            <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                          </Link>
-                        </Button>
+                        {/* Stock */}
+                        <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm">
+                          <Boxes className="h-3.5 w-3.5" />{p.stock}
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   );

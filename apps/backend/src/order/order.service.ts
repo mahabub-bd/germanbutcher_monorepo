@@ -929,7 +929,10 @@ export class OrderService {
     >,
   ): void {
     if (search) {
-      qb.andWhere('order.orderNo LIKE :search', { search: `%${search}%` });
+      qb.andWhere(
+        '(order.orderNo LIKE :search OR user.name LIKE :search OR user.mobileNumber LIKE :search)',
+        { search: `%${search}%` },
+      );
     }
     if (orderStatus) {
       qb.andWhere('order.orderStatus = :orderStatus', { orderStatus });
@@ -1011,8 +1014,11 @@ export class OrderService {
     }
     queryBuilder.skip(skip).take(limit);
 
-    // Join-free count — every filter references only order columns
-    const countBuilder = this.orderRepository.createQueryBuilder('order');
+    // Count query mirrors the list query's joins: the search filter references
+    // user columns, and a many-to-one left join cannot duplicate rows.
+    const countBuilder = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoin('order.user', 'user');
     this.applyOrderFilters(countBuilder, {
       search,
       orderStatus,
