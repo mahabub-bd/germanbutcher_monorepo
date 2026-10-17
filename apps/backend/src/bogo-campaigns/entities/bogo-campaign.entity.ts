@@ -64,6 +64,13 @@ export class BogoCampaign {
   @Column({ default: 0 })
   @ApiProperty({
     example: 0,
+    description: 'Maximum free groups a single order can earn (0 = unlimited)',
+  })
+  maxGroupsPerOrder: number;
+
+  @Column({ default: 0 })
+  @ApiProperty({
+    example: 0,
     description: 'Maximum uses (0 = unlimited)',
   })
   maxUsage: number;

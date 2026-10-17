@@ -118,6 +118,7 @@ export default function OrderView({
             totalValue={currentOrder.totalValue}
             paidAmount={currentOrder.paidAmount}
             paymentStatus={currentOrder.paymentStatus}
+            bogoUsage={currentOrder.bogoUsage}
           />
         </div>
       </div>

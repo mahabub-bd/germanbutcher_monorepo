@@ -188,7 +188,7 @@ export class CartController {
 
   @Get('reports/abandoned')
   @UseGuards(JwtAuthGuard, PermissionGuard)
-  @ModulePermissions('/admin/reports/abandoned-carts')
+  @ModulePermissions('/admin/analytics/abandoned-carts')
   @ApiOperation({
     summary: 'Abandoned carts report (paginated)',
     description:

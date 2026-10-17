@@ -23,8 +23,8 @@ export default function NotificationsPage() {
           </div>
         </div>
         <Button asChild variant="outline" className="shrink-0">
-          <Link href="/admin/marketing/coupon/coupon-list">
-            Back to Marketing
+          <Link href="/admin/inbox">
+            Back to Inbox
           </Link>
         </Button>
       </div>

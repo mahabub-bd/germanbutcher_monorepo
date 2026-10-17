@@ -127,7 +127,16 @@ export function applyBogoDiscount(
       0,
     );
     const groupSize = campaign.buyQuantity + campaign.getQuantity;
-    const freeUnits = Math.floor(totalUnits / groupSize) * campaign.getQuantity;
+    let freeUnits =
+      Math.floor(totalUnits / groupSize) * campaign.getQuantity;
+    // Per-order cap: maxGroupsPerOrder limits how many free groups one
+    // order can earn (0 = unlimited)
+    if ((campaign.maxGroupsPerOrder ?? 0) > 0) {
+      freeUnits = Math.min(
+        freeUnits,
+        campaign.maxGroupsPerOrder * campaign.getQuantity,
+      );
+    }
     if (freeUnits <= 0) continue;
 
     let discount = 0;
@@ -351,6 +360,57 @@ export class BogoCampaignsService {
     });
   }
 
+  /** First active campaign covering the product (directly or via category). */
+  resolveForProductFromList(
+    campaigns: BogoCampaign[],
+    productId: number,
+    categoryId?: number,
+  ): BogoCampaign | null {
+    for (const campaign of campaigns) {
+      if (campaign.products?.some((product) => product.id === productId)) {
+        return campaign;
+      }
+      if (
+        categoryId !== undefined &&
+        campaign.categories?.some((category) => category.id === categoryId)
+      ) {
+        return campaign;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Attach `bogo` to each product (display-only plain prop, never
+   * persisted). Whole-catalog campaigns (no products/categories) cover
+   * every product; scoped campaigns only their own scope.
+   */
+  attachBogoInfo<T extends Product | Product[]>(
+    products: T,
+    campaigns: BogoCampaign[],
+  ): T {
+    const list = Array.isArray(products) ? products : [products];
+    for (const product of list) {
+      const campaign = this.resolveForProductFromList(
+        campaigns,
+        product.id,
+        product.category?.id,
+      );
+      product.bogo = campaign
+        ? {
+            campaignId: campaign.id,
+            name: campaign.name,
+            buyQuantity: campaign.buyQuantity,
+            getQuantity: campaign.getQuantity,
+            endsAt: campaign.validUntil
+              ? new Date(campaign.validUntil).toISOString()
+              : null,
+          }
+        : null;
+    }
+    return products;
+  }
+
   /**
    * Estimate the BOGO discount for a cart. Unit prices mirror order.service
    * per-item pricing: flash sale first (no stacking), else the product's own
@@ -368,6 +428,9 @@ export class BogoCampaignsService {
     }[];
   }> {
     const details: BogoPricingDetail[] = [];
+    // Resolved once per cart, not per item
+    const flashCampaigns =
+      await this.flashSaleCampaignsService.getActiveCampaigns();
     for (const item of items) {
       const product = await this.productRepository.findOne({
         where: { id: item.productId },
@@ -386,7 +449,7 @@ export class BogoCampaignsService {
       // Flash sale wins over the product's own discount — never stacked
       const flashCampaign =
         this.flashSaleCampaignsService.resolveForProductFromList(
-          await this.flashSaleCampaignsService.getActiveCampaigns(),
+          flashCampaigns,
           product.id,
           product.category?.id,
         );

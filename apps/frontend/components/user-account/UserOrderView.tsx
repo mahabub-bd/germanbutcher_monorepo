@@ -138,6 +138,7 @@ export default function OrderView({ order, onBack }: OrderViewProps) {
             totalValue={order.totalValue}
             paidAmount={order.paidAmount}
             paymentStatus={order.paymentStatus}
+            bogoUsage={order.bogoUsage}
           />
         </div>
       </div>

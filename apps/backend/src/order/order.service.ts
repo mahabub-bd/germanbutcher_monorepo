@@ -569,6 +569,14 @@ export class OrderService {
             discountAmount: couponDiscountAmount,
           },
         }),
+        ...(bogoResult &&
+          bogoResult.usages.length > 0 && {
+            bogo: bogoResult.usages.map((usage) => ({
+              campaignName: usage.campaign.name,
+              discountAmount: Math.round(usage.discount * 100) / 100,
+              freeUnits: usage.freeUnits,
+            })),
+          }),
         shippingAddress: {
           address: `${address.address}, ${address.area}`,
           city: address.city,
@@ -593,6 +601,14 @@ export class OrderService {
         unitDiscount: Number(item.unitDiscount) || 0,
         productImage: item.product?.attachment?.url ?? null,
       })),
+      ...(bogoResult &&
+        bogoResult.usages.length > 0 && {
+          bogo: bogoResult.usages.map((usage) => ({
+            campaignName: usage.campaign.name,
+            discountAmount: Math.round(usage.discount * 100) / 100,
+            freeUnits: usage.freeUnits,
+          })),
+        }),
     });
 
     // Send order confirmation SMS
@@ -674,6 +690,16 @@ export class OrderService {
     if (!order) {
       throw new NotFoundException(`Order with ID ${id} not found`);
     }
+
+    // Attach BOGO usage for the confirmation display — plain prop on the
+    // returned object, never persisted. Failure must not break the fetch.
+    try {
+      (order as Order & { bogoUsage?: unknown }).bogoUsage =
+        await this.bogoUsageLogService.findByOrder(id);
+    } catch (error) {
+      this.logger.warn(`Failed to load BOGO usage for order ${id}: ${error}`);
+    }
+
     return order;
   }
 

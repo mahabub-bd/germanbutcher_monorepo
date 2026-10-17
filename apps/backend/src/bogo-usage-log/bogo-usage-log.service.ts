@@ -99,6 +99,15 @@ export class BogoUsageLogService {
     return { data, total };
   }
 
+  /** All BOGO usages recorded for one order (order-confirmation display). */
+  async findByOrder(orderId: number): Promise<BogoUsageLog[]> {
+    return this.usageLogRepository.find({
+      where: { order: { id: orderId } },
+      relations: ['campaign'],
+      order: { id: 'ASC' },
+    });
+  }
+
   // Aggregate stats for the Reports page — across all campaigns (or one when
   // campaignId is given), optionally within a date range.
   async getReportStats(options: BogoReportStatsOptions = {}) {

@@ -349,6 +349,62 @@ export class ProductController {
       },
     );
   }
+  @Get('bogo')
+  @HttpCache(15)
+  @ApiOperation({
+    summary: 'Get BOGO products',
+    description:
+      'Retrieves products covered by an active BOGO campaign (directly or via category)',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number for pagination',
+    example: 1,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items per page',
+    example: 10,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    description: 'Filter by active status',
+    type: Boolean,
+  })
+  @ApiOkResponse({
+    description: 'BOGO products retrieved successfully',
+    type: [ProductResponseDto],
+  })
+  @CacheKey('products_bogo')
+  @CacheTTL(60000) // Cache for 1 minute
+  async getBogoProducts(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('isActive') isActive?: boolean,
+  ) {
+    const [products, total] = await this.productService.findBogo({
+      page,
+      limit,
+      isActive,
+    });
+
+    return this.formatResponse(
+      'BOGO products retrieved successfully',
+      HttpStatus.OK,
+      products,
+      {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    );
+  }
   @Get('bestsellers')
   @HttpCache(15)
   @ApiOperation({ summary: 'Get the best-selling products' })

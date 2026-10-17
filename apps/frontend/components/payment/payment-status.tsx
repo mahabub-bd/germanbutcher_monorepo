@@ -195,13 +195,33 @@ export default function PaymentStatusPage({
       productDiscountTotal += getItemUnitDiscount(item) * item.quantity;
     });
 
+    // BOGO usage recorded per campaign for this order (backend-attached)
+    const bogoUsages = (order.bogoUsage ?? []).map((usage) => ({
+      campaignName: usage.campaignName,
+      discount: Number(usage.discountAmount),
+      freeUnits: usage.freeUnits,
+    }));
+    const bogoDiscountTotal = bogoUsages.reduce(
+      (sum, usage) => sum + usage.discount,
+      0
+    );
+
+    // Coupon takes whatever the total discount snapshot leaves after the
+    // per-item discounts and BOGO
     const couponDiscount = order.coupon
-      ? Number(order.totalDiscount || 0) - productDiscountTotal
+      ? Math.max(
+        Number(order.totalDiscount || 0) -
+          productDiscountTotal -
+          bogoDiscountTotal,
+        0
+      )
       : 0;
 
     return {
       originalSubtotal,
       productDiscountTotal,
+      bogoUsages,
+      bogoDiscountTotal,
       couponDiscount,
       shippingCost: Number(order.shippingCost ?? order.shippingMethod?.cost ?? 0),
       total: order.totalValue,
@@ -435,17 +455,39 @@ export default function PaymentStatusPage({
                   </span>
                 </div>
 
-                {orderSummary.productDiscountTotal > 0 && (
+                {/* unitDiscount snapshots include BOGO, so show the pure
+                    product discount here and list BOGO separately below */}
+                {orderSummary.productDiscountTotal -
+                  orderSummary.bogoDiscountTotal >
+                  0 && (
                   <div className="flex justify-between items-center text-sm">
                     <span className="flex items-center gap-2 text-gray-600">
                       <Tag className="size-4 text-gray-400" />
                       Product Discounts
                     </span>
                     <span className="font-semibold text-green-600">
-                      -{formatCurrencyEnglish(orderSummary.productDiscountTotal)}
+                      -{formatCurrencyEnglish(
+                        orderSummary.productDiscountTotal -
+                          orderSummary.bogoDiscountTotal
+                      )}
                     </span>
                   </div>
                 )}
+
+                {orderSummary.bogoUsages.map((usage) => (
+                  <div
+                    key={usage.campaignName}
+                    className="flex justify-between items-center text-sm"
+                  >
+                    <span className="flex items-center gap-2 text-gray-600">
+                      <Tag className="size-4 text-gray-400" />
+                      BOGO — {usage.campaignName} ({usage.freeUnits} free)
+                    </span>
+                    <span className="font-semibold text-green-600">
+                      -{formatCurrencyEnglish(usage.discount)}
+                    </span>
+                  </div>
+                ))}
 
                 {order.coupon && orderSummary.couponDiscount > 0 && (
                   <div className="flex justify-between items-center text-sm">

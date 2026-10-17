@@ -2,12 +2,22 @@
 
 import { Separator } from "@/components/ui/separator";
 import { formatCurrencyEnglish } from "@/lib/utils";
-import type { Coupon, OrderItem, ShippingMethod } from "@/utils/types";
+import type {
+  BogoUsageLog,
+  Coupon,
+  OrderItem,
+  ShippingMethod,
+} from "@/utils/types";
 import { FileText } from "lucide-react";
 
 interface OrderSummaryData {
   originalSubtotal: number;
   productDiscountTotal: number;
+  bogoUsages: Pick<
+    BogoUsageLog,
+    "campaignName" | "discountAmount" | "freeUnits"
+  >[];
+  bogoDiscountTotal: number;
   couponDiscount: number;
   itemsSubtotal: number;
   shippingCost: number;
@@ -25,6 +35,12 @@ interface OrderSummaryProps {
   totalValue: number;
   paidAmount: number;
   paymentStatus: string;
+  /** BOGO campaign usages attached by the backend on order detail */
+  bogoUsage?: Array<{
+    campaignName: string;
+    discountAmount: string | number;
+    freeUnits: number;
+  }> | null;
 }
 
 export function OrderSummary({
@@ -36,6 +52,7 @@ export function OrderSummary({
   totalValue,
   paidAmount,
   paymentStatus,
+  bogoUsage,
 }: OrderSummaryProps) {
   const calculateOrderSummary = (): OrderSummaryData => {
     const itemsSubtotal = items.reduce((sum, item) => {
@@ -52,7 +69,22 @@ export function OrderSummary({
 
     const originalSubtotal = itemsSubtotal + productDiscountTotal;
 
-    const couponDiscount = Number(totalDiscount) - productDiscountTotal;
+    // unitDiscount snapshots include BOGO, so split it back out; old orders
+    // have no bogoUsage and just keep it folded into product discounts
+    const bogoUsages = (bogoUsage ?? []).map((usage) => ({
+      campaignName: usage.campaignName,
+      discountAmount: usage.discountAmount,
+      freeUnits: usage.freeUnits,
+    }));
+    const bogoDiscountTotal = bogoUsages.reduce(
+      (sum, usage) => sum + Number(usage.discountAmount),
+      0
+    );
+
+    const couponDiscount = Math.max(
+      Number(totalDiscount) - productDiscountTotal - bogoDiscountTotal,
+      0
+    );
 
     const effectiveShippingCost = Number(shippingCost ?? shippingMethod.cost);
 
@@ -61,6 +93,8 @@ export function OrderSummary({
     return {
       originalSubtotal,
       productDiscountTotal,
+      bogoUsages,
+      bogoDiscountTotal,
       couponDiscount,
       itemsSubtotal,
       shippingCost: effectiveShippingCost,
@@ -86,16 +120,31 @@ export function OrderSummary({
               {formatCurrencyEnglish(orderSummary.originalSubtotal)}
             </span>
           </div>
-          {orderSummary.productDiscountTotal > 0 && (
+          {orderSummary.productDiscountTotal -
+            orderSummary.bogoDiscountTotal >
+            0 && (
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground flex items-center">
                 Product Discounts
               </span>
               <span className="text-sm text-green-600">
-                -{formatCurrencyEnglish(orderSummary.productDiscountTotal)}
+                -{formatCurrencyEnglish(
+                  orderSummary.productDiscountTotal -
+                    orderSummary.bogoDiscountTotal
+                )}
               </span>
             </div>
           )}
+          {orderSummary.bogoUsages.map((usage) => (
+            <div key={usage.campaignName} className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground flex items-center">
+                BOGO — {usage.campaignName} ({usage.freeUnits} free)
+              </span>
+              <span className="text-sm text-green-600">
+                -{formatCurrencyEnglish(Number(usage.discountAmount))}
+              </span>
+            </div>
+          ))}
           {coupon && orderSummary.couponDiscount > 0 && (
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground flex items-center">

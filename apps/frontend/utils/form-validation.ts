@@ -310,6 +310,9 @@ const bogoSchema = z
     maxUsage: z.union([z.string(), z.number(), z.undefined()])
       .transform((val) => val === undefined ? 0 : (typeof val === "string" ? parseInt(val, 10) : val))
       .pipe(z.number().int().min(0, "Max usage cannot be negative")),
+    maxGroupsPerOrder: z.union([z.string(), z.number(), z.undefined()])
+      .transform((val) => val === undefined ? 0 : (typeof val === "string" ? parseInt(val, 10) : val))
+      .pipe(z.number().int().min(0, "Limit cannot be negative")),
     validFrom: z.union([z.string(), z.date(), z.null(), z.undefined()])
       .transform((val) => val ? new Date(val) : undefined)
       .optional(),

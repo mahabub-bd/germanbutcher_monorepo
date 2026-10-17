@@ -375,6 +375,21 @@ export class Product extends BaseEntity {
   })
   effectivePrice?: number;
 
+  // Display-only field attached by BogoCampaignsService.attachBogoInfo on
+  // storefront reads. Plain (non-column) prop — never persist an entity
+  // that carries it back.
+  @ApiPropertyOptional({
+    description: 'Active BOGO campaign covering this product (null = none)',
+    readOnly: true,
+  })
+  bogo?: {
+    campaignId: number;
+    name: string;
+    buyQuantity: number;
+    getQuantity: number;
+    endsAt: string | null;
+  } | null;
+
   @ApiProperty({
     example: 169.99,
     description: 'Calculated price after discount',

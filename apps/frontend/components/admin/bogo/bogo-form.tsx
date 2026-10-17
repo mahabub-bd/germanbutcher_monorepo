@@ -103,6 +103,7 @@ export function BogoForm({ campaign, mode, onSuccess }: BogoFormProps) {
       name: campaign?.name || "",
       buyQuantity: campaign?.buyQuantity || 2,
       getQuantity: campaign?.getQuantity || 1,
+      maxGroupsPerOrder: campaign?.maxGroupsPerOrder || 0,
       maxUsage: campaign?.maxUsage || 0,
       validFrom: campaign?.validFrom ? new Date(campaign.validFrom) : undefined,
       validUntil: campaign?.validUntil ? new Date(campaign.validUntil) : undefined,
@@ -338,39 +339,73 @@ export function BogoForm({ campaign, mode, onSuccess }: BogoFormProps) {
                   {(() => {
                     const buy = parseInt(String(form.watch("buyQuantity"))) || 0;
                     const get = parseInt(String(form.watch("getQuantity"))) || 0;
+                    const cap =
+                      parseInt(String(form.watch("maxGroupsPerOrder"))) || 0;
                     if (buy < 1 || get < 1) {
                       return "Set both quantities to preview the deal";
                     }
-                    return `Buy ${buy} Get ${get} Free — every group of ${buy + get} eligible units, the ${get} cheapest are free`;
+                    const base = `Buy ${buy} Get ${get} Free — every group of ${buy + get} eligible units, the ${get} cheapest are free`;
+                    return cap > 0
+                      ? `${base}. Limited to ${cap} free group${cap !== 1 ? "s" : ""} per order.`
+                      : base;
                   })()}
                 </span>
               </div>
 
-              <FormField
-                control={form.control}
-                name="maxUsage"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-1.5">
-                      <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
-                      Max Usage
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(parseInt(e.target.value))
-                        }
-                      />
-                    </FormControl>
-                    <p className="text-xs text-muted-foreground">
-                      Maximum orders this deal can apply to; 0 = unlimited
-                    </p>
-                  </FormItem>
-                )}
-              />
+              {/* Limits — Per-Order Limit and Max Usage side by side */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="maxGroupsPerOrder"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1.5">
+                        <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
+                        Per-Order Limit
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value))
+                          }
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Max free groups per order; 0 = unlimited
+                      </p>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="maxUsage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1.5">
+                        <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
+                        Max Usage
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value))
+                          }
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Max orders this deal can apply to; 0 = unlimited
+                      </p>
+                    </FormItem>
+                  )}
+                />
+              </div>
             </section>
 
 

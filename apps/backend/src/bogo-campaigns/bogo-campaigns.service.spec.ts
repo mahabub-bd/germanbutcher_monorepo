@@ -100,4 +100,23 @@ describe('applyBogoDiscount', () => {
     expect(result.totalDiscount).toBe(100);
     expect(result.usages).toHaveLength(1);
   });
+
+  it('maxGroupsPerOrder caps the free units a single order can earn', () => {
+    // Buy 1 get 1, qty 6 would give 3 free; capped to 1 group = 1 free
+    const d1 = makeDetail(10, 6, 100);
+    const result = applyBogoDiscount([d1], [
+      makeCampaign({ maxGroupsPerOrder: 1 }),
+    ]);
+    expect(result.totalDiscount).toBe(100);
+    expect(result.usages[0].freeUnits).toBe(1);
+    expect(d1.totalPrice).toBe(500);
+
+    // Cap of 2 groups on the same cart -> 2 free
+    const d2 = makeDetail(10, 6, 100);
+    const result2 = applyBogoDiscount([d2], [
+      makeCampaign({ maxGroupsPerOrder: 2 }),
+    ]);
+    expect(result2.totalDiscount).toBe(200);
+    expect(result2.usages[0].freeUnits).toBe(2);
+  });
 });

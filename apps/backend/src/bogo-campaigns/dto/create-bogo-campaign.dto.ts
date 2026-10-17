@@ -46,6 +46,17 @@ export class CreateBogoCampaignDto {
   @ApiPropertyOptional({
     example: 0,
     default: 0,
+    description:
+      'Maximum free groups a single order can earn; 0 = unlimited. E.g. buy 1 get 1 with 1 = at most one free unit per order.',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  maxGroupsPerOrder?: number;
+
+  @ApiPropertyOptional({
+    example: 0,
+    default: 0,
     description: 'Maximum uses; 0 = unlimited',
   })
   @IsOptional()

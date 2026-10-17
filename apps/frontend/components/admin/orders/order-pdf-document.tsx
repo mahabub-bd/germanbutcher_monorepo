@@ -382,12 +382,29 @@ export const OrderPDFDocument = ({
     // Original subtotal (before product discounts)
     const originalSubtotal = itemsSubtotal + productDiscountTotal;
 
-    // Coupon discount is total discount minus product discounts
-    const couponDiscount = Number(order.totalDiscount) - productDiscountTotal;
+    // unitDiscount snapshots include BOGO, so split it back out; old orders
+    // have no bogoUsage and just keep it folded into product discounts
+    const bogoUsages = (order.bogoUsage ?? []).map((usage) => ({
+      campaignName: usage.campaignName,
+      discountAmount: Number(usage.discountAmount),
+      freeUnits: usage.freeUnits,
+    }));
+    const bogoDiscountTotal = bogoUsages.reduce(
+      (sum, usage) => sum + usage.discountAmount,
+      0
+    );
+
+    // Coupon discount is total discount minus product discounts and BOGO
+    const couponDiscount = Math.max(
+      Number(order.totalDiscount) - productDiscountTotal - bogoDiscountTotal,
+      0
+    );
 
     return {
       originalSubtotal,
       productDiscountTotal,
+      bogoUsages,
+      bogoDiscountTotal,
       couponDiscount,
       shippingCost: Number(order.shippingCost ?? (order.shippingMethod?.cost || 0)),
       total: Number(order.totalValue || 0),
@@ -647,14 +664,31 @@ export const OrderPDFDocument = ({
                 {formatCurrency(orderSummary.originalSubtotal)}
               </Text>
             </View>
-            {orderSummary.productDiscountTotal > 0 && (
+            {/* unitDiscount snapshots include BOGO, so show the pure product
+                discount here and list BOGO campaigns separately below */}
+            {orderSummary.productDiscountTotal -
+              orderSummary.bogoDiscountTotal >
+              0 && (
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Product Discounts:</Text>
                 <Text style={[styles.summaryValue, styles.discountValue]}>
-                  -{formatCurrency(orderSummary.productDiscountTotal)}
+                  -{formatCurrency(
+                    orderSummary.productDiscountTotal -
+                      orderSummary.bogoDiscountTotal
+                  )}
                 </Text>
               </View>
             )}
+            {orderSummary.bogoUsages.map((usage) => (
+              <View key={usage.campaignName} style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>
+                  BOGO — {usage.campaignName} ({usage.freeUnits} free):
+                </Text>
+                <Text style={[styles.summaryValue, styles.discountValue]}>
+                  -{formatCurrency(usage.discountAmount)}
+                </Text>
+              </View>
+            ))}
             {order.coupon && orderSummary.couponDiscount > 0 && (
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>

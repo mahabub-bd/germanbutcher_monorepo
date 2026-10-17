@@ -52,7 +52,7 @@ export class OrderPaymentController {
   }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
-  @ModulePermissions('/admin/reports/order-payments')
+  @ModulePermissions('/admin/analytics/payment-transactions')
   @Get()
   @ApiOperation({ summary: 'Get all payments for order' })
   @ApiParam({ name: 'orderId', type: Number })
@@ -135,7 +135,7 @@ export class OrderPaymentController {
 
   @Patch(':paymentId')
   @UseGuards(JwtAuthGuard, PermissionGuard)
-  @ModulePermissions('/admin/reports/order-payments')
+  @ModulePermissions('/admin/analytics/payment-transactions')
   @ApiOperation({ summary: 'Update payment' })
   @ApiParam({ name: 'orderId', type: Number })
   @ApiParam({ name: 'paymentId', type: Number })
@@ -158,7 +158,7 @@ export class OrderPaymentController {
 
   @Delete(':paymentId')
   @UseGuards(JwtAuthGuard, PermissionGuard)
-  @ModulePermissions('/admin/reports/order-payments')
+  @ModulePermissions('/admin/analytics/payment-transactions')
   @ApiOperation({ summary: 'Delete payment' })
   @ApiParam({ name: 'orderId', type: Number })
   @ApiParam({ name: 'paymentId', type: Number })

@@ -29,6 +29,7 @@ import { OrderSummary } from "@/components/checkout/order-summary";
 import { PaymentMethodSelector } from "@/components/checkout/payment-method-selector";
 import { ShippingInformation } from "@/components/checkout/shipping-information";
 import { ShippingMethodSelector } from "@/components/checkout/shipping-method-selector";
+import { useBogo } from "@/hooks/use-bogo";
 import { useFreeDelivery } from "@/hooks/use-free-delivery";
 import { postData } from "@/utils/api-utils";
 
@@ -105,7 +106,19 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
   }, [isOnlineOnlyShipping, selectedPaymentMethod]);
 
   const couponDiscount = Number(appliedCoupon?.discount || 0);
-  const payableSubtotal = Number(discountedSubtotal) - couponDiscount;
+
+  // Server-evaluated BOGO preview (buy N get M free) — display-only; the
+  // authoritative discount is computed again at order creation
+  const bogoResult = useBogo(
+    (cart?.items ?? []).map((item) => ({
+      productId: item.product.id,
+      quantity: item.quantity,
+    }))
+  );
+  const bogoDiscount = bogoResult?.totalDiscount ?? 0;
+
+  const payableSubtotal =
+    Number(discountedSubtotal) - couponDiscount - bogoDiscount;
 
   // Server-side campaign evaluation (date range, day/time, products,
   // categories, new customers)
@@ -481,6 +494,8 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
               <OrderSummary
                 originalSubtotal={originalSubtotal}
                 productDiscounts={productDiscounts}
+                bogoDiscount={bogoDiscount}
+                bogoCampaignName={bogoResult?.usages[0]?.campaign?.name ?? null}
                 appliedCoupon={appliedCoupon}
                 shippingCost={effectiveShippingCost}
                 isFreeDelivery={isShippingFree}
@@ -510,6 +525,8 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
               <OrderSummary
                 originalSubtotal={originalSubtotal}
                 productDiscounts={productDiscounts}
+                bogoDiscount={bogoDiscount}
+                bogoCampaignName={bogoResult?.usages[0]?.campaign?.name ?? null}
                 appliedCoupon={appliedCoupon}
                 shippingCost={effectiveShippingCost}
                 isFreeDelivery={isShippingFree}

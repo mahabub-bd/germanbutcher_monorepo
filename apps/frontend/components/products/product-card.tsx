@@ -12,7 +12,7 @@ import {
   hasProductDiscount,
   isFlashSaleActive,
 } from "@/utils/product-utils";
-import { Truck, Weight, Zap } from "lucide-react";
+import { Weight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { AddToCartButton } from "../cart/add-to-cart-button";
@@ -69,8 +69,7 @@ export default function ProductCard({
           {/* Flash Sale Badge — overrides the per-product discount badge */}
           {flashActive && flash && (
             <div className="absolute top-1 right-1 z-10">
-              <span className="inline-flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold leading-none text-white shadow-sm">
-                <Zap size={10} className="fill-current" />
+              <span className="inline-flex items-center rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold leading-none text-white shadow-sm">
                 Flash Sale
               </span>
             </div>
@@ -102,23 +101,31 @@ export default function ProductCard({
               </div>
             </div>
           )}
-          {/* Discount Countdown Timer - Top Left */}
-          {(flashActive || isDiscountActive) && (
-            <div className="absolute top-1 left-1 z-10">
-              <CountdownTimer
-                endsAt={
-                  flashActive
-                    ? product.flashSale?.endsAt
-                    : product.discountEndDate
-                }
-              />
+          {/* Top-left stack: countdown timer above the B1G1 badge */}
+          {(flashActive || isDiscountActive || (product.bogo && !isOutOfStock)) && (
+            <div className="absolute top-1 left-1 z-10 flex flex-col items-start gap-1">
+              {(flashActive || isDiscountActive) && (
+                <CountdownTimer
+                  endsAt={
+                    flashActive
+                      ? product.flashSale?.endsAt
+                      : product.discountEndDate
+                  }
+                />
+              )}
+              {product.bogo && !isOutOfStock && (
+                <span className="inline-flex items-center rounded-full bg-primaryColor px-2.5 py-1 text-xs font-semibold leading-none text-white shadow-sm">
+                  {product.bogo.buyQuantity === 1 && product.bogo.getQuantity === 1
+                    ? "B1G1"
+                    : `B${product.bogo.buyQuantity}G${product.bogo.getQuantity}`}
+                </span>
+              )}
             </div>
           )}
-          {/* Free Delivery Badge - Bottom Left */}
+          {/* Bottom-left badge: Free Delivery */}
           {hasFreeDelivery && !isOutOfStock && (
             <div className="absolute bottom-1.5 left-1.5 z-10">
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] font-semibold leading-none text-white shadow-sm">
-                <Truck className="w-3 h-3" />
+              <span className="inline-flex items-center rounded-full bg-emerald-700 px-2.5 py-1 text-xs font-semibold leading-none text-white shadow-sm">
                 Free Delivery
               </span>
             </div>

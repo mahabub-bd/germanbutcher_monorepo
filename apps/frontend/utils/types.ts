@@ -272,6 +272,15 @@ export interface Product {
 
   flashSale?: FlashSaleInfo | null;
   effectivePrice?: number;
+
+  /** Active BOGO campaign covering this product (display-only, backend-attached) */
+  bogo?: {
+    campaignId: number;
+    name: string;
+    buyQuantity: number;
+    getQuantity: number;
+    endsAt: string | null;
+  } | null;
 }
 
 export type ProductResponse = SingleOrListResponse<Product>;
@@ -568,6 +577,8 @@ export interface BogoCampaign {
   validUntil: string | Date | null;
   buyQuantity: number;
   getQuantity: number;
+  /** Max free groups a single order can earn (0 = unlimited) */
+  maxGroupsPerOrder: number;
   maxUsage: number;
   timesUsed: number;
   productIds?: number[];
@@ -803,6 +814,13 @@ export interface Order {
   statusTracks: StatusTrack[];
   coupon: Coupon | null;
   deliveryMan?: DeliveryMan | null;
+  /** BOGO campaign usages attached by the backend on order detail (display-only) */
+  bogoUsage?: Array<{
+    id: number;
+    campaignName: string;
+    discountAmount: string | number;
+    freeUnits: number;
+  }> | null;
   createdAt: string;
   updatedAt: string;
 }

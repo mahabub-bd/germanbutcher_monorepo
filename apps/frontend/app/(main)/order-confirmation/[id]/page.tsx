@@ -192,13 +192,33 @@ export default async function OrderConfirmationPage({
       productDiscountTotal += getItemUnitDiscount(item) * item.quantity;
     });
 
+    // BOGO usage recorded per campaign for this order (backend-attached)
+    const bogoUsages = (order.bogoUsage ?? []).map((usage) => ({
+      campaignName: usage.campaignName,
+      discount: Number(usage.discountAmount),
+      freeUnits: usage.freeUnits,
+    }));
+    const bogoDiscountTotal = bogoUsages.reduce(
+      (sum, usage) => sum + usage.discount,
+      0
+    );
+
+    // Coupon takes whatever the total discount snapshot leaves after the
+    // per-item discounts and BOGO
     const couponDiscount = order.coupon
-      ? Number(order.totalDiscount) - productDiscountTotal
+      ? Math.max(
+        Number(order.totalDiscount) -
+          productDiscountTotal -
+          bogoDiscountTotal,
+        0
+      )
       : 0;
 
     return {
       originalSubtotal,
       productDiscountTotal,
+      bogoUsages,
+      bogoDiscountTotal,
       couponDiscount,
       shippingCost: Number(order.shippingCost ?? order.shippingMethod.cost),
       total: order.totalValue,
@@ -447,13 +467,32 @@ export default async function OrderConfirmationPage({
               <InfoRow label="Subtotal">
                 {formatCurrencyEnglish(orderSummary.originalSubtotal)}
               </InfoRow>
-              {orderSummary.productDiscountTotal > 0 && (
-                <InfoRow label="Product Discounts">
+              {/* unitDiscount snapshots include BOGO, so show the pure
+                  product discount here and list BOGO separately below */}
+              {orderSummary.productDiscountTotal -
+                orderSummary.bogoDiscountTotal >
+                0 && (
+                <InfoRow
+                  label="Product Discounts"
+                >
                   <span className="text-green-600">
-                    -{formatCurrencyEnglish(orderSummary.productDiscountTotal)}
+                    -{formatCurrencyEnglish(
+                      orderSummary.productDiscountTotal -
+                        orderSummary.bogoDiscountTotal
+                    )}
                   </span>
                 </InfoRow>
               )}
+              {orderSummary.bogoUsages.map((usage) => (
+                <InfoRow
+                  key={usage.campaignName}
+                  label={`BOGO — ${usage.campaignName} (${usage.freeUnits} free)`}
+                >
+                  <span className="text-green-600">
+                    -{formatCurrencyEnglish(usage.discount)}
+                  </span>
+                </InfoRow>
+              ))}
               {order.coupon && orderSummary.couponDiscount > 0 && (
                 <InfoRow label={`Coupon (${order.coupon.code})`}>
                   <span className="text-green-600">

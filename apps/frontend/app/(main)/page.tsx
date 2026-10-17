@@ -10,6 +10,7 @@ import { SalesPartnersCompact } from "@/components/homepage/sales-partner/sales-
 import { NewsletterSection } from "@/components/homepage/subscriber/newsletter";
 import { TestimonialSection } from "@/components/homepage/testimonial/testimonial-section-server";
 import FlashSaleSection from "@/components/products/flash-sale-section";
+import BogoSection from "@/components/products/bogo-section";
 import ProductList from "@/components/products/product-list";
 
 // No `revalidate` segment config here: the root layout reads cookies(), so
@@ -52,6 +53,7 @@ export default function Home() {
         </ProductList>
       </Section>
       <FlashSaleSection />
+      <BogoSection />
       <Section className="bg-gray-50">
         <ProductList
           endpoint="products/discounted?page=1&limit=10&isActive=true"

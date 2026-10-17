@@ -670,7 +670,7 @@ export class OrderController {
   }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
-  @ModulePermissions('/admin/reports/order-payments')
+  @ModulePermissions('/admin/analytics/payment-transactions')
   @Get('reports/payment-due')
   @ApiOperation({
     summary: 'Delivered orders not fully paid',
@@ -689,7 +689,7 @@ export class OrderController {
   }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
-  @ModulePermissions('/admin/reports/customer-list')
+  @ModulePermissions('/admin/analytics/customer-list')
   @Get('reports/customer-type')
   @ApiOperation({
     summary: 'New vs returning customers this month',
@@ -709,7 +709,7 @@ export class OrderController {
   }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
-  @ModulePermissions('/admin/reports/order-payments')
+  @ModulePermissions('/admin/analytics/payment-transactions')
   @Get('reports/payment-methods')
   @ApiOperation({
     summary: 'Get revenue share per payment method',

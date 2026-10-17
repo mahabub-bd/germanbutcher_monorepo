@@ -24,6 +24,8 @@ import { deleteData, fetchProtectedData } from "@/utils/api-utils";
 import { BogoCampaign } from "@/utils/types";
 import {
   AlertTriangle,
+  Calendar,
+  CalendarCheck2,
   CheckCircle,
   Clock,
   Eye,
@@ -311,6 +313,12 @@ export function BogoList() {
                           Buy {campaign.buyQuantity} → {campaign.getQuantity}{" "}
                           Free
                         </div>
+                        {campaign.maxGroupsPerOrder > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            Limit {campaign.maxGroupsPerOrder} group
+                            {campaign.maxGroupsPerOrder !== 1 ? "s" : ""} / order
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         <span className="text-sm text-muted-foreground">
@@ -336,16 +344,23 @@ export function BogoList() {
                         )}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        <div className="text-sm">
-                          {campaign.validFrom
-                            ? formatDateTime(campaign.validFrom)
-                            : "No start"}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          →{" "}
-                          {campaign.validUntil
-                            ? formatDateTime(campaign.validUntil)
-                            : "No end"}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-sm">
+                            <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="whitespace-nowrap">
+                              {campaign.validFrom
+                                ? formatDateTime(campaign.validFrom)
+                                : "No start"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <CalendarCheck2 className="h-3.5 w-3.5 shrink-0" />
+                            <span className="whitespace-nowrap">
+                              {campaign.validUntil
+                                ? formatDateTime(campaign.validUntil)
+                                : "No end"}
+                            </span>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>

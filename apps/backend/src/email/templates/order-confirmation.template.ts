@@ -29,6 +29,11 @@ export interface OrderEmailData {
     code: string;
     discountAmount: number;
   };
+  bogo?: Array<{
+    campaignName: string;
+    discountAmount: number;
+    freeUnits: number;
+  }>;
 }
 
 export function generateOrderConfirmationHTML(
@@ -186,6 +191,18 @@ export function generateOrderConfirmationHTML(
                                   <td style="padding: 6px 0; font-size: 12px; color: #64748b;">Subtotal:</td>
                                   <td style="padding: 6px 0; font-size: 12px; color: #1e293b; text-align: right; font-weight: 500;">৳${orderData.subtotal.toFixed(2)}</td>
                                 </tr>
+                                ${
+                                  (orderData.bogo ?? [])
+                                    .map(
+                                      (usage) => `
+                                <tr>
+                                  <td style="padding: 6px 0; font-size: 12px; color: #16a34a;">BOGO — ${usage.campaignName} (${usage.freeUnits} free):</td>
+                                  <td style="padding: 6px 0; font-size: 12px; color: #16a34a; text-align: right; font-weight: 500;">-৳${usage.discountAmount.toFixed(2)}</td>
+                                </tr>
+                                `,
+                                    )
+                                    .join('')
+                                }
                                 ${
                                   orderData.coupon
                                     ? `
