@@ -1,7 +1,6 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -26,8 +25,14 @@ import {
 } from "@/components/ui/table";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { fetchProtectedData } from "@/utils/api-utils";
-import { Award, Eye, Users } from "lucide-react";
-import Link from "next/link";
+import {
+  BarChart3,
+  Phone,
+  ShoppingBag,
+  Users,
+  Wallet,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoadingIndicator } from "../loading-indicator";
@@ -65,6 +70,7 @@ type TimeFilter =
   | "all_time";
 
 export function TopCustomersList() {
+  const router = useRouter();
   const [customers, setCustomers] = useState<TopCustomer[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [limit, setLimit] = useState<number>(5);
@@ -92,36 +98,10 @@ export function TopCustomersList() {
     fetchTopCustomers();
   }, [limit, sortBy, timeFilter]);
 
-  const getRankBadge = (index: number) => {
-    if (index === 0)
-      return (
-        <Badge className="bg-yellow-500 text-white h-5 sm:h-6">
-          <Award className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />1
-        </Badge>
-      );
-    if (index === 1)
-      return (
-        <Badge className="bg-gray-400 text-white h-5 sm:h-6">
-          <Award className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />2
-        </Badge>
-      );
-    if (index === 2)
-      return (
-        <Badge className="bg-amber-600 text-white h-5 sm:h-6">
-          <Award className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />3
-        </Badge>
-      );
-    return (
-      <Badge variant="outline" className="h-5 sm:h-6 text-[10px] sm:text-xs">
-        {index + 1}
-      </Badge>
-    );
-  };
-
   if (loading) {
     return (
       <Card className="w-full overflow-hidden">
-        <div className="flex justify-center items-center min-h-[200px]">
+        <div className="flex justify-center items-center min-h-50">
           <LoadingIndicator message="Loading top customers..." />
         </div>
       </Card>
@@ -142,7 +122,7 @@ export function TopCustomersList() {
               value={limit.toString()}
               onValueChange={(value) => setLimit(parseInt(value))}
             >
-              <SelectTrigger className="w-[100px] sm:w-[130px] h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
+              <SelectTrigger className="w-25 sm:w-32.5 h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -158,7 +138,7 @@ export function TopCustomersList() {
               value={sortBy}
               onValueChange={(value: "orders" | "spending") => setSortBy(value)}
             >
-              <SelectTrigger className="w-[100px] sm:w-[130px] h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
+              <SelectTrigger className="w-25 sm:w-32.5 h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -171,7 +151,7 @@ export function TopCustomersList() {
               value={timeFilter}
               onValueChange={(value: TimeFilter) => setTimeFilter(value)}
             >
-              <SelectTrigger className="w-[110px] sm:w-[140px] h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
+              <SelectTrigger className="w-27.5 sm:w-35 h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -193,18 +173,15 @@ export function TopCustomersList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[50px] sm:w-[60px] text-xs h-9 sm:h-10">Rank</TableHead>
-                <TableHead className="text-xs h-9 sm:h-10">Customer</TableHead>
-                <TableHead className="hidden md:table-cell text-xs h-9 sm:h-10">
+                <TableHead className="w-12.5 sm:w-15 text-xs sm:text-sm font-bold h-9 sm:h-10">Rank</TableHead>
+                <TableHead className="text-xs sm:text-sm font-bold h-9 sm:h-10">Customer</TableHead>
+                <TableHead className="hidden md:table-cell text-xs sm:text-sm font-bold h-9 sm:h-10">
                   Contact
                 </TableHead>
-                <TableHead className="text-center text-xs h-9 sm:h-10">Orders</TableHead>
-                <TableHead className="text-right text-xs h-9 sm:h-10">Spent</TableHead>
-                <TableHead className="text-right text-xs h-9 sm:h-10 hidden lg:table-cell">
+                <TableHead className="text-center text-xs sm:text-sm font-bold h-9 sm:h-10">Orders</TableHead>
+                <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10">Spent</TableHead>
+                <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10 hidden lg:table-cell">
                   Avg
-                </TableHead>
-                <TableHead className="text-right text-xs h-9 sm:h-10 w-[50px] sm:w-[60px]">
-                  View
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -212,7 +189,7 @@ export function TopCustomersList() {
               {customers.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={6}
                     className="text-center py-6 sm:py-8 text-muted-foreground"
                   >
                     <Users className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-2 opacity-50" />
@@ -221,19 +198,25 @@ export function TopCustomersList() {
                 </TableRow>
               ) : (
                 customers.map((customer, index) => (
-                  <TableRow key={customer.id}>
+                  <TableRow
+                    key={customer.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/admin/customer/${customer.id}/view`)}
+                  >
                     {/* Rank */}
-                    <TableCell className="py-1.5 sm:py-2">{getRankBadge(index)}</TableCell>
+                    <TableCell className="py-1.5 sm:py-2 text-xs sm:text-sm">
+                      {index + 1}
+                    </TableCell>
 
                     {/* Customer */}
                     <TableCell className="py-1.5 sm:py-2">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1">
-                          <span className="font-medium text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[150px]">
+                          <span className="font-medium text-xs sm:text-sm truncate max-w-25 sm:max-w-37.5">
                             {customer.name}
                           </span>
                           {customer.isVerified && (
-                            <Badge variant="default" className="text-[10px] sm:text-xs h-3.5 sm:h-4 px-1">
+                            <Badge variant="default" className="text-[10px] 2xl:text-xs h-3.5 sm:h-4 px-1">
                               ✓
                             </Badge>
                           )}
@@ -243,17 +226,19 @@ export function TopCustomersList() {
 
                     {/* Contact */}
                     <TableCell className="hidden md:table-cell py-1.5 sm:py-2">
-                      <span className="text-[10px] sm:text-xs">{customer.mobileNumber}</span>
+                      <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm">
+                        <Phone className="h-3.5 w-3.5 shrink-0" />{customer.mobileNumber}
+                      </Badge>
                     </TableCell>
 
                     {/* Orders */}
                     <TableCell className="text-center py-1.5 sm:py-2">
                       <div className="flex flex-col items-center">
-                        <span className="font-bold text-xs sm:text-sm">
-                          {customer.statistics.totalOrders}
-                        </span>
+                        <Badge variant="secondary" className="h-5 px-1.5 text-xs sm:text-sm font-bold">
+                          <ShoppingBag className="h-3.5 w-3.5" />{customer.statistics.totalOrders}
+                        </Badge>
                         {customer.statistics.pendingOrders > 0 && (
-                          <span className="text-[10px] sm:text-xs text-yellow-600">
+                          <span className="text-xs sm:text-sm text-yellow-600">
                             {customer.statistics.pendingOrders}p
                           </span>
                         )}
@@ -262,34 +247,21 @@ export function TopCustomersList() {
 
                     {/* Total Spent */}
                     <TableCell className="text-right py-1.5 sm:py-2">
-                      <span className="font-bold text-xs sm:text-sm">
-                        {formatCurrencyEnglish(customer.statistics.totalSpent)}
-                      </span>
+                      <Badge variant="secondary" className="h-5 px-1.5 text-xs sm:text-sm font-bold">
+                        <Wallet className="h-3.5 w-3.5" />{formatCurrencyEnglish(customer.statistics.totalSpent)}
+                      </Badge>
                     </TableCell>
 
                     {/* Average */}
                     <TableCell className="text-right py-1.5 sm:py-2 hidden lg:table-cell">
-                      <span className="text-[10px] sm:text-xs text-muted-foreground">
+                      <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm font-normal text-muted-foreground">
+                        <BarChart3 className="h-3.5 w-3.5" />
                         {customer.statistics.totalOrders > 0
                           ? formatCurrencyEnglish(
                             customer.statistics.averageOrderValue
                           )
                           : "—"}
-                      </span>
-                    </TableCell>
-
-                    {/* Actions */}
-                    <TableCell className="text-right py-1.5 sm:py-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 sm:h-7 sm:w-7 p-0"
-                        asChild
-                      >
-                        <Link href={`/admin/customer/${customer.id}/view`}>
-                          <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                        </Link>
-                      </Button>
+                      </Badge>
                     </TableCell>
                   </TableRow>
                 ))

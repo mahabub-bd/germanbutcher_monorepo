@@ -359,7 +359,7 @@ export function OrderList({
   const renderTableView = () => (
     <div className="">
       <div className="overflow-x-auto">
-        <Table className="min-w-220 text-xs [&_td]:text-xs [&_th]:text-xs lg:text-xs lg:[&_td]:text-xs lg:[&_th]:text-xs 2xl:text-sm 2xl:[&_td]:text-sm 2xl:[&_th]:text-sm">
+        <Table className="min-w-220 text-xs 2xl:text-sm">
           <TableHeader>
             <TableRow>
               <TableHead>Order ID / Date</TableHead>
@@ -449,11 +449,11 @@ export function OrderList({
                   <TableCell className="align-top">
                     <Link
                       href={buildDetailHref(order.id, "view")}
-                      className="font-mono text-sm hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      className="font-mono hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                     >
                       {order.orderNo}
                     </Link>
-                    <div className="mt-0.5 text-[11px] text-muted-foreground lg:text-[11px] 2xl:text-xs">
+                    <div className="mt-0.5 text-muted-foreground">
                       {formatDateTime(order.createdAt)}
                     </div>
                   </TableCell>
@@ -470,7 +470,7 @@ export function OrderList({
                         {order.user?.name || "N/A"}
                       </div>
                     )}
-                    <div className="mt-0.5 text-[11px] lg:text-[11px] 2xl:text-xs">
+                    <div className="mt-0.5">
                       {order.user?.mobileNumber ? (
                         <a
                           href={`tel:${order.user.mobileNumber}`}
@@ -614,7 +614,7 @@ export function OrderList({
       {/* Pagination Section */}
       {!isLoading && orders.length > 0 && (
         <div className="flex flex-row justify-between items-center p-2 border-t">
-          <div className="text-sm text-muted-foreground whitespace-nowrap hidden md:flex">
+          <div className="text-xs text-muted-foreground whitespace-nowrap hidden md:flex 2xl:text-sm">
             Showing {Math.min((currentPage - 1) * limit + 1, totalItems)} to{" "}
             {Math.min(currentPage * limit, totalItems)} of {totalItems} orders
           </div>

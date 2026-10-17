@@ -94,7 +94,7 @@ export default function OrdersTable() {
       {loading && <LoadingIndicator message="Loading Orders..... " />}
       {error && <div className="py-4 text-center text-red-500">{error}</div>}
 
-      <Table>
+      <Table className="text-xs 2xl:text-sm">
         <TableHeader>
           <TableRow>
             <TableHead>Order ID</TableHead>
@@ -138,7 +138,7 @@ export default function OrdersTable() {
                     </span>
                   )}
                 </TableCell>
-                <TableCell className="text-sm">
+                <TableCell>
                   {order.user.mobileNumber ? (
                     <a
                       href={`tel:${order.user.mobileNumber}`}
@@ -154,7 +154,7 @@ export default function OrdersTable() {
                 <TableCell className="font-medium">
                   <div className="space-y-0.5">
                     <div>{formatCurrencyEnglish(order.totalValue || 0)}</div>
-                    <div className="text-xs font-normal">
+                    <div className="font-normal">
                       {(order.totalValue || 0) - (order.paidAmount || 0) > 0 ? (
                         <span className="text-red-600 dark:text-red-400">
                           Due {formatCurrencyEnglish((order.totalValue || 0) - (order.paidAmount || 0))}
@@ -250,7 +250,7 @@ export default function OrdersTable() {
         </TableBody>
       </Table>
       <div className="flex justify-between items-center">
-        <div className="text-sm text-muted-foreground ">
+        <div className="text-xs text-muted-foreground 2xl:text-sm">
           {start} to {end} of {totalOrders} Orders
         </div>
         {totalOrders > 0 && (
