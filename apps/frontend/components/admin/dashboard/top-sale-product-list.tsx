@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -24,7 +25,6 @@ import {
 } from "@/components/ui/table";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { fetchProtectedData } from "@/utils/api-utils";
-import { Badge } from "@/components/ui/badge";
 import {
   Banknote,
   Boxes,

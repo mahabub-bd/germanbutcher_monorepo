@@ -1040,6 +1040,25 @@ export class OrderService {
     user: User,
     note?: string,
   ): Promise<Order> {
+    // Cancelling via the edit modal runs the full cancel flow (payment status
+    // → NEED_REFUND for paid orders, stock restore) so it stays consistent
+    // with the dedicated Cancel action.
+    if (status === OrderStatus.CANCELLED) {
+      const existing = await this.orderRepository.findOneBy({ id });
+      if (!existing) throw new NotFoundException(`Order with ID ${id} not found`);
+
+      // Already cancelled: nothing to cancel again, just record the note.
+      if (existing.orderStatus === OrderStatus.CANCELLED) {
+        return this.recordStatusTrack(id, status, user, note);
+      }
+
+      return this.cancelOrder(
+        id,
+        { reason: CancellationReason.OTHER, notes: note },
+        user,
+      );
+    }
+
     await this.orderRepository.update(id, { orderStatus: status });
 
     const order = await this.orderRepository.findOneBy({ id });
@@ -1089,6 +1108,30 @@ export class OrderService {
     }
 
     return updatedOrder;
+  }
+
+  /** Create a status-track entry and return the reloaded order. */
+  private async recordStatusTrack(
+    id: number,
+    status: OrderStatus,
+    user: User,
+    note?: string,
+  ): Promise<Order> {
+    const order = await this.orderRepository.findOneBy({ id });
+    if (!order) throw new NotFoundException(`Order with ID ${id} not found`);
+
+    const statusTrack = this.orderStatusTrackRepository.create({
+      order,
+      status,
+      note,
+      updatedBy: user?.userId,
+    });
+    await this.orderStatusTrackRepository.save(statusTrack);
+
+    return this.orderRepository.findOne({
+      where: { id },
+      relations: ['statusTracks', 'items', 'user', 'address', 'deliveryMan'],
+    });
   }
 
   async assignDeliveryMan(
