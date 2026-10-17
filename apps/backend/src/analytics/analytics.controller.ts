@@ -167,17 +167,26 @@ export class AnalyticsController {
     example: 10,
     type: Number,
   })
+  @ApiQuery({
+    name: 'period',
+    required: false,
+    description: 'Time period to aggregate over',
+    example: '7d',
+  })
   @ApiOkResponse({
     description: 'Top endpoints retrieved successfully',
     type: [TopEndpointDto],
   })
-  async getTopEndpoints(@Query('limit') limit: number = 10) {
-    const data = await this.analyticsService.getTopEndpoints(limit);
+  async getTopEndpoints(
+    @Query('limit') limit: number = 10,
+    @Query('period') period: string = '7d',
+  ) {
+    const data = await this.analyticsService.getTopEndpoints(limit, period);
     return this.formatResponse(
       'Top endpoints retrieved successfully',
       HttpStatus.OK,
       data,
-      { limit },
+      { limit, period },
     );
   }
 
@@ -305,7 +314,7 @@ export class AnalyticsController {
     message: string,
     statusCode: number,
     data: any,
-    meta?: { limit?: number },
+    meta?: { limit?: number; period?: string },
   ) {
     const response: any = {
       message,

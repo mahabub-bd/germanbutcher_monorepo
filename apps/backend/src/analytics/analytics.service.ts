@@ -75,6 +75,45 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     }, intervalMs);
     // Don't hold the process open just for the timer
     this.flushTimer.unref?.();
+
+    void this.ensureIndexes();
+  }
+
+  /**
+   * Create the analytics indexes idempotently at boot. synchronize is
+   * disabled in production (and there are no migrations), so the @Index()
+   * decorators never reach the DB there — without these every dashboard
+   * query full-scans the table. Skipped when an equivalent index already
+   * exists (e.g. dev, where synchronize created its own).
+   */
+  private async ensureIndexes(): Promise<void> {
+    const indexes = [
+      { column: '"timestamp"', name: 'IDX_analytics_timestamp' },
+      { column: '"timestamp", "endpoint"', name: 'IDX_analytics_timestamp_endpoint' },
+    ];
+
+    for (const { column, name } of indexes) {
+      try {
+        const existing = await this.analyticsRepository.query(
+          `SELECT 1 FROM pg_indexes
+           WHERE tablename = 'analytics' AND indexdef ILIKE $1
+           LIMIT 1`,
+          [`%(${column})%`],
+        );
+        if (existing.length > 0) continue;
+
+        await this.analyticsRepository.query(
+          `CREATE INDEX CONCURRENTLY IF NOT EXISTS "${name}" ON "analytics" (${column})`,
+        );
+        this.logger.log(`Analytics index ready: ${name}`);
+      } catch (error) {
+        this.logger.warn(
+          `Could not create index ${name}: ${
+            error instanceof Error ? error.message : error
+          }`,
+        );
+      }
+    }
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -299,13 +338,16 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     }));
   }
 
-  async getTopEndpoints(limit: number = 10) {
+  async getTopEndpoints(limit: number = 10, period: string = '7d') {
+    const startDate = this.getDateFromPeriod(period);
+
     const results = await this.analyticsRepository
       .createQueryBuilder('analytics')
       .select('analytics.endpoint', 'endpoint')
       .addSelect('analytics.method', 'method')
       .addSelect('COUNT(*)', 'count')
       .addSelect('AVG(analytics.responseTime)', 'avgResponseTime')
+      .where('analytics.timestamp >= :startDate', { startDate })
       .groupBy('analytics.endpoint, analytics.method')
       .addOrderBy('COUNT(*)', 'DESC')
       .limit(limit)
