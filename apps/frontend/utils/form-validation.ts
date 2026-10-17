@@ -296,6 +296,35 @@ const couponSchema = z.object({
   excludedItemIds: z.array(z.number()).optional(),
 });
 
+const bogoSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    buyQuantity: z.union([z.string(), z.number()])
+      .transform((val) => typeof val === "string" ? parseInt(val, 10) : val)
+      .pipe(z.number().int("Buy quantity must be a whole number")
+        .min(1, "Buy quantity must be at least 1")),
+    getQuantity: z.union([z.string(), z.number()])
+      .transform((val) => typeof val === "string" ? parseInt(val, 10) : val)
+      .pipe(z.number().int("Get quantity must be a whole number")
+        .min(1, "Get quantity must be at least 1")),
+    maxUsage: z.union([z.string(), z.number(), z.undefined()])
+      .transform((val) => val === undefined ? 0 : (typeof val === "string" ? parseInt(val, 10) : val))
+      .pipe(z.number().int().min(0, "Max usage cannot be negative")),
+    validFrom: z.union([z.string(), z.date(), z.null(), z.undefined()])
+      .transform((val) => val ? new Date(val) : undefined)
+      .optional(),
+    validUntil: z.union([z.string(), z.date(), z.null(), z.undefined()])
+      .transform((val) => val ? new Date(val) : undefined)
+      .optional(),
+    isActive: z.boolean(),
+    productIds: z.array(z.number()).optional(),
+    categoryIds: z.array(z.number()).optional(),
+  })
+  .refine(
+    (data) => !data.validFrom || !data.validUntil || data.validUntil > data.validFrom,
+    { message: "End date must be after start date", path: ["validUntil"] }
+  );
+
 const discountFormSchema = z.object({
   discountType: z.nativeEnum(DiscountType, {
     message: "Please select a discount type"
@@ -392,6 +421,7 @@ const deliveryManSchema = z.object({
 export {
   addressSchema,
   bannerSchema,
+  bogoSchema,
   brandSchema,
   couponSchema,
   deliveryManSchema,

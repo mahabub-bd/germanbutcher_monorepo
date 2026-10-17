@@ -2,6 +2,11 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { Address } from 'src/address/entities/address.entity';
 import { OrderStatus, PaymentStatus, CancellationReason } from 'src/common/enums';
+import {
+  applyBogoDiscount,
+  BogoCampaignsService,
+} from 'src/bogo-campaigns/bogo-campaigns.service';
+import { BogoUsageLogService } from 'src/bogo-usage-log/bogo-usage-log.service';
 import {  getDateRangeFromPreset,  parseReportDate,} from 'src/common/utils/report-date-range.util';
 import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { DeliveryMan } from 'src/delivery-man/entities/delivery-man.entity';
@@ -81,6 +86,8 @@ export class OrderService {
     private readonly freeDeliveryUsageLogService: FreeDeliveryUsageLogService,
     private readonly flashSaleCampaignsService: FlashSaleCampaignsService,
     private readonly flashSaleUsageLogService: FlashSaleUsageLogService,
+    private readonly bogoCampaignsService: BogoCampaignsService,
+    private readonly bogoUsageLogService: BogoUsageLogService,
   ) {}
 
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -253,6 +260,24 @@ export class OrderService {
       });
     }
 
+    // BOGO: for every (buyQuantity + getQuantity) eligible units, the
+    // getQuantity cheapest become free. Applied after per-item pricing (so
+    // free units are valued at flash/product-discount prices) and before the
+    // coupon block (so coupon % never discounts the free units).
+    let bogoResult: ReturnType<typeof applyBogoDiscount> | null = null;
+    try {
+      const bogoCampaigns = await this.bogoCampaignsService.getActiveCampaigns();
+      if (bogoCampaigns.length > 0) {
+        bogoResult = applyBogoDiscount(itemPricingDetails, bogoCampaigns);
+        if (bogoResult.totalDiscount > 0) {
+          totalValue -= bogoResult.totalDiscount;
+          totalDiscount += bogoResult.totalDiscount;
+        }
+      }
+    } catch (error) {
+      this.logger.error(`BOGO evaluation failed for ${orderNo}: ${error}`);
+    }
+
     let couponDiscountAmount = 0;
     if (coupon) {
       const now = new Date().getTime();
@@ -357,6 +382,20 @@ export class OrderService {
       }
     }
 
+    // BOGO usage: once per distinct campaign that freed at least one unit.
+    // Atomic conditional UPDATE — silently caps at maxUsage.
+    if (bogoResult) {
+      for (const usage of bogoResult.usages) {
+        try {
+          await this.bogoCampaignsService.incrementUsage(usage.campaign.id);
+        } catch (error) {
+          this.logger.error(
+            `Failed to increment BOGO campaign usage: ${error}`,
+          );
+        }
+      }
+    }
+
     totalValue += chargedShipping;
 
     // Round final values
@@ -440,6 +479,29 @@ export class OrderService {
         this.logger.error(
           `Failed to log flash sale usage for order ${orderNo} (campaign ${campaignId}): ${error}`,
         );
+      }
+    }
+
+    // Log BOGO usage — one row per campaign that freed at least one unit,
+    // with the total discount that campaign gave on this order.
+    if (bogoResult) {
+      for (const usage of bogoResult.usages) {
+        if (usage.discount <= 0) continue;
+        try {
+          await this.bogoUsageLogService.create({
+            campaign: usage.campaign,
+            campaignName: usage.campaign.name,
+            order,
+            user,
+            discountAmount: Math.round(usage.discount * 100) / 100,
+            freeUnits: usage.freeUnits,
+            orderTotal: totalValue,
+          });
+        } catch (error) {
+          this.logger.error(
+            `Failed to log BOGO usage for order ${orderNo} (campaign ${usage.campaign.id}): ${error}`,
+          );
+        }
       }
     }
 

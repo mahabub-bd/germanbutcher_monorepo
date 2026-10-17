@@ -9,6 +9,8 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { AttachmentModule } from './attachment/attachment.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtStrategy } from './auth/strategies/jwt.strategy';
+import { BogoCampaignsModule } from './bogo-campaigns/bogo-campaigns.module';
+import { BogoUsageLogModule } from './bogo-usage-log/bogo-usage-log.module';
 import { BannerModule } from './banner/banner.module';
 import { BrandModule } from './brand/brand.module';
 import { BusinessSettingsModule } from './business-settings/business-settings.module';
@@ -115,6 +117,8 @@ import { WishlistModule } from './wishlist/wishlist.module';
     AnalyticsModule,
     AttachmentModule,
     AuthModule,
+    BogoCampaignsModule,
+    BogoUsageLogModule,
     BannerModule,
     BrandModule,
     CartModule,

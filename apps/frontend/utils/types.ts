@@ -560,6 +560,58 @@ export interface Coupon {
   updatedAt: Date;
 }
 
+export interface BogoCampaign {
+  id: number;
+  name: string;
+  isActive: boolean;
+  validFrom: string | Date | null;
+  validUntil: string | Date | null;
+  buyQuantity: number;
+  getQuantity: number;
+  maxUsage: number;
+  timesUsed: number;
+  productIds?: number[];
+  products?: Array<{
+    id: number;
+    name: string;
+    slug: string;
+    sellingPrice: number | string;
+    category?: { id: number; name: string } | null;
+    attachment?: { id: number | string; url: string } | null;
+  }>;
+  categoryIds?: number[];
+  categories?: Array<{ id: number; name: string }>;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface BogoUsageLog {
+  id: number;
+  campaignName: string;
+  campaign?: { id: number; name: string };
+  order?: { id: number; orderNo: string };
+  user?: { id: number; name: string; email: string };
+  discountAmount: string | number;
+  freeUnits: number;
+  orderTotal: string | number;
+  createdAt: string;
+}
+
+export interface BogoPreviewResult {
+  eligible: boolean;
+  totalDiscount: number;
+  usages: Array<{
+    campaign: {
+      id: number;
+      name: string;
+      buyQuantity: number;
+      getQuantity: number;
+    };
+    discount: number;
+    freeUnits: number;
+  }>;
+}
+
 export interface CouponUsageLog {
   id: number;
   couponCode: string;
