@@ -14,6 +14,7 @@ import { Category } from 'src/category/entities/category.entity';
 import { resolveReportRange } from 'src/common/utils/report-date-range.util';
 import { SwrCache } from 'src/common/utils/swr-cache';
 import { FlashSaleCampaignsService } from 'src/flash-sale-campaigns/flash-sale-campaigns.service';
+import { BogoCampaignsService } from 'src/bogo-campaigns/bogo-campaigns.service';
 import { Gallery } from 'src/gallery/entities/gallery.entity';
 import { OrderItem } from 'src/order/entities/order-item.entity';
 import { Unit } from 'src/unit/entities/unit.entity';
@@ -61,25 +62,36 @@ export class ProductService {
     private attachmentRepository: Repository<Attachment>,
     private attachmentService: AttachmentService,
     private flashSaleCampaignsService: FlashSaleCampaignsService,
+    private bogoCampaignsService: BogoCampaignsService,
     @Inject(CACHE_MANAGER)
     private cacheManager: Cache,
   ) {}
 
-  /** Attach fresh flash-sale info AFTER cache retrieval — cached product
-   * lists must not carry campaign data frozen at cache time. Campaigns are
-   * loaded once per call (30s-cached in FlashSaleCampaignsService). */
+  /** Attach fresh flash-sale + BOGO info AFTER cache retrieval — cached
+   * product lists must not carry campaign data frozen at cache time.
+   * Campaigns are loaded once per call (30s-cached in the campaign services). */
   private async withFlashSale(products: Product[]): Promise<Product[]> {
     if (!products.length) return products;
-    const campaigns =
-      await this.flashSaleCampaignsService.getActiveCampaigns();
+    const [campaigns, bogoCampaigns] = await Promise.all([
+      this.flashSaleCampaignsService.getActiveCampaigns(),
+      this.bogoCampaignsService.getActiveCampaigns(),
+    ]);
     if (!campaigns.length) {
       for (const product of products) {
         product.flashSale = null;
         product.effectivePrice = Number(Number(product.salePrice).toFixed(2));
       }
-      return products;
+    } else {
+      this.flashSaleCampaignsService.attachFlashInfo(products, campaigns);
     }
-    return this.flashSaleCampaignsService.attachFlashInfo(products, campaigns);
+    if (!bogoCampaigns.length) {
+      for (const product of products) {
+        product.bogo = null;
+      }
+    } else {
+      this.bogoCampaignsService.attachBogoInfo(products, bogoCampaigns);
+    }
+    return products;
   }
 
   /**
@@ -738,6 +750,101 @@ export class ProductService {
         `flash_sale_products_page_${page}_${limit}_${isActive ?? 'all'}`,
         30000,
       )
+      .getManyAndCount();
+    await this.withFlashSale(products);
+    return [products, total] as [Product[], number];
+  }
+
+  /** Storefront BOGO listing: products covered by an active BOGO campaign
+   * directly or through their category. Same shape as findFlashSale. A
+   * whole-catalog BOGO campaign (no products/categories selected) lists
+   * nothing here — there is no meaningful "all products" deal page. */
+  async findBogo(options: {
+    page: number;
+    limit: number;
+    isActive?: boolean;
+  }): Promise<[Product[], number]> {
+    const { page = 1, limit = 50, isActive } = options;
+
+    const campaigns = await this.bogoCampaignsService.getActiveCampaigns();
+    const productIds = [
+      ...new Set(campaigns.flatMap((c) => c.products?.map((p) => p.id) ?? [])),
+    ];
+    const categoryIds = [
+      ...new Set(
+        campaigns.flatMap((c) => c.categories?.map((c) => c.id) ?? []),
+      ),
+    ];
+    if (!productIds.length && !categoryIds.length) return [[], 0];
+
+    const query = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect(
+        'product.brand',
+        'brand',
+        'brand.isActive = :isActive',
+        {
+          isActive: true,
+        },
+      )
+      .leftJoinAndSelect(
+        'product.category',
+        'category',
+        'category.isActive = :isActive',
+        {
+          isActive: true,
+        },
+      )
+      .leftJoinAndSelect('category.parent', 'parentCategory')
+      .leftJoinAndSelect('product.unit', 'unit', 'unit.isActive = :isActive', {
+        isActive: true,
+      })
+      .leftJoinAndSelect('product.attachment', 'attachment')
+      .select([
+        'product',
+        'brand.id',
+        'brand.name',
+        'brand.slug',
+        'category.id',
+        'category.name',
+        'category.slug',
+        'parentCategory.id',
+        'parentCategory.name',
+        'parentCategory.slug',
+        'unit.id',
+        'unit.name',
+        'attachment.id',
+        'attachment.url',
+        'attachment.fileName',
+      ])
+      .where(
+        new Brackets((w) => {
+          if (productIds.length) {
+            w.where('product.id IN (:...productIds)', { productIds });
+          }
+          if (categoryIds.length) {
+            if (productIds.length) {
+              w.orWhere('product.categoryId IN (:...categoryIds)', {
+                categoryIds,
+              });
+            } else {
+              w.where('product.categoryId IN (:...categoryIds)', {
+                categoryIds,
+              });
+            }
+          }
+        }),
+      );
+
+    if (isActive !== undefined) {
+      query.andWhere('product.isActive = :isActive', { isActive });
+    }
+
+    const [products, total] = await query
+      .orderBy('product.name', 'ASC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .cache(`bogo_products_page_${page}_${limit}_${isActive ?? 'all'}`, 30000)
       .getManyAndCount();
     await this.withFlashSale(products);
     return [products, total] as [Product[], number];

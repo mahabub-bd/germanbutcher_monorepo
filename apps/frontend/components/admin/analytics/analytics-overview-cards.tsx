@@ -28,8 +28,10 @@ export function AnalyticsOverviewCards({
   requestsSeries,
   visitorsSeries,
 }: AnalyticsOverviewCardsProps) {
+  // 8-across only on large desktops; laptops (xl) get 4x2 so the cards
+  // keep readable widths
   return (
-    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8">
+    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-8">
       <OnlineNowCard />
       <StatsCard
         title="Total Requests"

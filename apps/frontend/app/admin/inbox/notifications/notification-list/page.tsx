@@ -17,13 +17,13 @@ export default async function AdminNotificationsPage({
   const handleMarkRead = async (notificationId: number) => {
     "use server";
     await patchData(`notifications/admin/${notificationId}/read`);
-    serverRevalidate("/admin/notifications");
+    serverRevalidate("/admin/inbox/notifications/notification-list");
   };
 
   const handleMarkAllRead = async () => {
     "use server";
     await patchData(`notifications/admin/read-all`);
-    serverRevalidate("/admin/notifications");
+    serverRevalidate("/admin/inbox/notifications/notification-list");
   };
 
   try {
@@ -54,7 +54,7 @@ export default async function AdminNotificationsPage({
             There was an error loading your notifications. Please try again.
           </p>
           <Link
-            href="/admin/notifications"
+            href="/admin/inbox/notifications/notification-list"
             className="rounded-lg bg-primaryColor px-6 py-3 text-white transition-colors hover:bg-primaryColor/90"
           >
             Retry

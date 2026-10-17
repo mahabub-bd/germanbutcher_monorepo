@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   FlashSaleCampaignsService,
 } from 'src/flash-sale-campaigns/flash-sale-campaigns.service';
+import { BogoCampaignsService } from 'src/bogo-campaigns/bogo-campaigns.service';
 import { Product } from 'src/product/entities/product.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
@@ -20,20 +21,27 @@ export class CartService {
     @InjectRepository(CartItem) private itemRepo: Repository<CartItem>,
     @InjectRepository(Product) private productRepo: Repository<Product>,
     private readonly flashSaleCampaignsService: FlashSaleCampaignsService,
+    private readonly bogoCampaignsService: BogoCampaignsService,
   ) {}
 
-  /** Attach flash-sale pricing info to every product in the cart so the
-   * storefront cart/checkout show the same price the order service will
-   * charge. Display-only props; the cart itself is never saved after this. */
+  /** Attach flash-sale pricing + BOGO info to every product in the cart so
+   * the storefront cart/checkout show the same price and deals the order
+   * service will apply. Display-only props; the cart itself is never saved
+   * after this. */
   private async withFlashSale(cart: Cart): Promise<Cart> {
     const products = (cart.items ?? [])
       .map((item) => item.product)
       .filter(Boolean);
     if (products.length) {
-      const campaigns =
-        await this.flashSaleCampaignsService.getActiveCampaigns();
+      const [campaigns, bogoCampaigns] = await Promise.all([
+        this.flashSaleCampaignsService.getActiveCampaigns(),
+        this.bogoCampaignsService.getActiveCampaigns(),
+      ]);
       if (campaigns.length) {
         this.flashSaleCampaignsService.attachFlashInfo(products, campaigns);
+      }
+      if (bogoCampaigns.length) {
+        this.bogoCampaignsService.attachBogoInfo(products, bogoCampaigns);
       }
     }
     return cart;

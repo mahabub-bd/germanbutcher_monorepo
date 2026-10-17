@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FlashSaleCampaignsModule } from 'src/flash-sale-campaigns/flash-sale-campaigns.module';
+import { BogoCampaignsModule } from 'src/bogo-campaigns/bogo-campaigns.module';
 import { Product } from 'src/product/entities/product.entity';
 import { User } from 'src/user/entities/user.entity';
 import { CartController } from './cart.controller';
@@ -12,6 +13,7 @@ import { Cart } from './entities/cart.entity';
   imports: [
     TypeOrmModule.forFeature([Cart, CartItem, Product, User]),
     FlashSaleCampaignsModule,
+    BogoCampaignsModule,
   ],
   controllers: [CartController],
   providers: [CartService],

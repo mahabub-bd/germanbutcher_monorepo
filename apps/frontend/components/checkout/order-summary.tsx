@@ -24,6 +24,8 @@ interface OrderSummaryProps {
   originalSubtotal: number;
 
   productDiscounts: number;
+  bogoDiscount?: number;
+  bogoCampaignName?: string | null;
   appliedCoupon: { code: string; discount: number } | null;
   shippingCost: number;
   isFreeDelivery?: boolean;
@@ -44,6 +46,8 @@ interface OrderSummaryProps {
 export function OrderSummary({
   originalSubtotal,
   productDiscounts,
+  bogoDiscount = 0,
+  bogoCampaignName = null,
   appliedCoupon,
   shippingCost,
   isFreeDelivery = false,
@@ -96,6 +100,23 @@ export function OrderSummary({
           <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
             <span>Product Discounts:</span>
             <span>-{formatCurrencyEnglish(productDiscounts)}</span>
+          </div>
+        )}
+
+        {bogoDiscount > 0 && (
+          <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+            <span className="flex items-center gap-2">
+              BOGO
+              {bogoCampaignName && (
+                <Badge
+                  variant="outline"
+                  className="border-primaryColor/20 bg-primaryColor/5 text-xs text-primaryColor"
+                >
+                  {bogoCampaignName}
+                </Badge>
+              )}
+            </span>
+            <span>-{formatCurrencyEnglish(bogoDiscount)}</span>
           </div>
         )}
 

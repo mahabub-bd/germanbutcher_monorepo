@@ -19,6 +19,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useCartContext } from "@/contexts/cart-context";
+import { useBogo } from "@/hooks/use-bogo";
 import { useFreeDelivery } from "@/hooks/use-free-delivery";
 import { cn, formatCurrencyEnglish } from "@/lib/utils";
 import type { Cart, CartItem } from "@/utils/types";
@@ -55,17 +56,24 @@ export function CartModal({
     productCount,
   } = getCartTotals();
   const couponDiscount = Number(appliedCoupon?.discount || 0);
-  const total = discountedSubtotal - couponDiscount;
+
+  // Server-evaluated BOGO preview (buy N get M free) — display-only; the
+  // authoritative discount is computed again at order creation
+  const cartItems = (cart?.items ?? []).map((item: CartItem) => ({
+    productId: item.product.id,
+    quantity: item.quantity,
+  }));
+  const bogoResult = useBogo(cartItems);
+  const bogoDiscount = bogoResult?.totalDiscount ?? 0;
+
+  const total = discountedSubtotal - couponDiscount - bogoDiscount;
 
   // Server-side campaign evaluation (date range, day/time, products,
   // categories, new customers)
   const freeDeliveryCheck = useFreeDelivery({
-    payableSubtotal: discountedSubtotal - couponDiscount,
+    payableSubtotal: discountedSubtotal - couponDiscount - bogoDiscount,
     itemCount,
-    items: (cart?.items ?? []).map((item: CartItem) => ({
-      productId: item.product.id,
-      quantity: item.quantity,
-    })),
+    items: cartItems,
   });
   const effectiveFreeDelivery = freeDeliveryCheck?.freeDelivery ?? false;
 
@@ -263,6 +271,18 @@ export function CartModal({
                     <div className="flex justify-between text-green-600">
                       <span>Product Discounts</span>
                       <span>-{formatCurrencyEnglish(productDiscounts)}</span>
+                    </div>
+                  )}
+
+                  {bogoResult?.eligible && bogoDiscount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>
+                        BOGO Discount
+                        {bogoResult.usages[0]?.campaign?.name
+                          ? ` (${bogoResult.usages[0].campaign.name})`
+                          : ""}
+                      </span>
+                      <span>-{formatCurrencyEnglish(bogoDiscount)}</span>
                     </div>
                   )}
 

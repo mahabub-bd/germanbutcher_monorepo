@@ -10,6 +10,7 @@ import { CategoryService } from 'src/category/category.service';
 import { Category } from 'src/category/entities/category.entity';
 
 import { FlashSaleCampaignsModule } from 'src/flash-sale-campaigns/flash-sale-campaigns.module';
+import { BogoCampaignsModule } from 'src/bogo-campaigns/bogo-campaigns.module';
 
 import { AttachmentService } from 'src/attachment/attachment.service';
 import { Attachment } from 'src/attachment/entities/attachment.entity';
@@ -39,6 +40,7 @@ import { ProductService } from './product.service';
     ]),
     CacheModule.register(),
     FlashSaleCampaignsModule,
+    BogoCampaignsModule,
   ],
   controllers: [ProductController, CategoryController, BrandController],
   providers: [

@@ -70,6 +70,9 @@ export function PeakTrafficResponseCard({
   }, []);
 
   const getXAxisInterval = () => {
+    // 24 hourly labels can't fit a half-width card — thin by data length so
+    // ~12 evenly spaced ticks remain readable
+    if (traffic.length > 12) return Math.ceil(traffic.length / 12);
     const { width } = windowSize;
     if (width < 640) return 4;
     if (width < 768) return 2;
@@ -184,7 +187,7 @@ export function PeakTrafficResponseCard({
                 dataKey="requests"
                 fill={BAR_COLOR}
                 radius={[4, 4, 0, 0]}
-                barSize={windowSize.width < 640 ? 8 : 16}
+                barSize={traffic.length > 12 ? 8 : windowSize.width < 640 ? 8 : 16}
               />
             </BarChart>
           </ResponsiveContainer>

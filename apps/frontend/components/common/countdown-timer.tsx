@@ -82,15 +82,15 @@ export function CountdownTimer({
     );
   }
 
+  // Pill variant (product cards): same height/shape as the card badges
   return (
-    <div className={`bg-black/60 backdrop-blur-sm rounded-sm px-2 py-1 shadow-lg ${className}`}>
-      <div className="flex items-center gap-1 text-white text-xs font-bold">
-        <Clock size={10} />
-        {timeRemaining.days > 0 && `${timeRemaining.days}d `}
-        {String(timeRemaining.hours).padStart(2, "0")}:
-        {String(timeRemaining.minutes).padStart(2, "0")}:
-        {String(timeRemaining.seconds).padStart(2, "0")}
-      </div>
-    </div>
+    <span
+      className={`inline-flex items-center rounded-full bg-black/60 backdrop-blur-sm px-2.5 py-1 text-xs font-semibold leading-none text-white shadow-sm ${className}`}
+    >
+      {timeRemaining.days > 0 && `${timeRemaining.days}d `}
+      {String(timeRemaining.hours).padStart(2, "0")}:
+      {String(timeRemaining.minutes).padStart(2, "0")}:
+      {String(timeRemaining.seconds).padStart(2, "0")}
+    </span>
   );
 }

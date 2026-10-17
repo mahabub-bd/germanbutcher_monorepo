@@ -12,6 +12,7 @@ import {
   Award,
   Barcode,
   CheckCircle,
+  Gift,
   Leaf,
   Scale,
   ShieldCheck,
@@ -140,6 +141,24 @@ export function ProductInfo({ product }: ProductInfoProps) {
           <CountdownTimer
             variant="banner"
             endsAt={product.flashSale.endsAt}
+            className="ml-auto"
+          />
+        </div>
+      )}
+
+      {/* BOGO banner */}
+      {product.bogo && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primaryColor/30 bg-primaryColor/5 px-3 py-2">
+          <Badge className="bg-primaryColor text-white text-xs font-bold uppercase tracking-wide">
+            <Gift className="mr-1 h-3 w-3" />
+            Buy {product.bogo.buyQuantity} Get {product.bogo.getQuantity} Free
+          </Badge>
+          <span className="text-xs font-medium text-primaryColor">
+            {product.bogo.name}
+          </span>
+          <CountdownTimer
+            variant="banner"
+            endsAt={product.bogo.endsAt}
             className="ml-auto"
           />
         </div>

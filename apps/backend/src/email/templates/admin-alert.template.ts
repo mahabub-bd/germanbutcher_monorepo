@@ -25,6 +25,12 @@ export interface NewOrderAlertData {
     unitDiscount?: number;
     productImage?: string | null;
   }>;
+  /** BOGO campaigns applied to this order (name snapshot + amounts) */
+  bogo?: Array<{
+    campaignName: string;
+    discountAmount: number;
+    freeUnits: number;
+  }>;
 }
 
 const wrap = (rightTitle: string, bodyHtml: string) => `
@@ -124,6 +130,20 @@ export const generateNewOrderAlertHTML = (data: NewOrderAlertData) => {
           ${itemsHTML}
         </tbody>
       </table>
+    </div>
+    ` : ''}
+    ${(data.bogo ?? []).length > 0 ? `
+    <div style="margin-bottom: 24px;">
+      <div style="font-size: 12px; font-weight: bold; color: #8B0000; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">BOGO Deals Applied</div>
+      ${data.bogo!
+        .map(
+          (usage) => `
+      <div style="padding: 8px 12px; background-color: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 4px; margin-bottom: 6px; font-size: 12px; color: #333333;">
+        <strong>${usage.campaignName}</strong> — ${usage.freeUnits} free unit${usage.freeUnits !== 1 ? 's' : ''} given, discount <strong style="color: #16a34a;">৳${usage.discountAmount.toFixed(2)}</strong>
+      </div>
+      `,
+        )
+        .join('')}
     </div>
     ` : ''}
     <p>Manage it in the admin panel: <a href="https://germanbutcherbd.com/admin/orders" style="color:#8B0000;">Orders</a></p>

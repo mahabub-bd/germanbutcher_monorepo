@@ -266,7 +266,7 @@ export function NotificationPanel() {
           variant="ghost"
           className="w-full text-sm font-medium text-primaryColor hover:text-primaryColor"
         >
-          <Link href="/admin/notifications">View all notifications</Link>
+          <Link href="/admin/inbox/notifications/notification-list">View all notifications</Link>
         </Button>
       </div>
     </Card>

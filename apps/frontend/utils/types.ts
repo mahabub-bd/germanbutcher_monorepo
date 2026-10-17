@@ -272,6 +272,15 @@ export interface Product {
 
   flashSale?: FlashSaleInfo | null;
   effectivePrice?: number;
+
+  /** Active BOGO campaign covering this product (display-only, backend-attached) */
+  bogo?: {
+    campaignId: number;
+    name: string;
+    buyQuantity: number;
+    getQuantity: number;
+    endsAt: string | null;
+  } | null;
 }
 
 export type ProductResponse = SingleOrListResponse<Product>;
@@ -560,6 +569,60 @@ export interface Coupon {
   updatedAt: Date;
 }
 
+export interface BogoCampaign {
+  id: number;
+  name: string;
+  isActive: boolean;
+  validFrom: string | Date | null;
+  validUntil: string | Date | null;
+  buyQuantity: number;
+  getQuantity: number;
+  /** Max free groups a single order can earn (0 = unlimited) */
+  maxGroupsPerOrder: number;
+  maxUsage: number;
+  timesUsed: number;
+  productIds?: number[];
+  products?: Array<{
+    id: number;
+    name: string;
+    slug: string;
+    sellingPrice: number | string;
+    category?: { id: number; name: string } | null;
+    attachment?: { id: number | string; url: string } | null;
+  }>;
+  categoryIds?: number[];
+  categories?: Array<{ id: number; name: string }>;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface BogoUsageLog {
+  id: number;
+  campaignName: string;
+  campaign?: { id: number; name: string };
+  order?: { id: number; orderNo: string };
+  user?: { id: number; name: string; email: string };
+  discountAmount: string | number;
+  freeUnits: number;
+  orderTotal: string | number;
+  createdAt: string;
+}
+
+export interface BogoPreviewResult {
+  eligible: boolean;
+  totalDiscount: number;
+  usages: Array<{
+    campaign: {
+      id: number;
+      name: string;
+      buyQuantity: number;
+      getQuantity: number;
+    };
+    discount: number;
+    freeUnits: number;
+  }>;
+}
+
 export interface CouponUsageLog {
   id: number;
   couponCode: string;
@@ -751,6 +814,13 @@ export interface Order {
   statusTracks: StatusTrack[];
   coupon: Coupon | null;
   deliveryMan?: DeliveryMan | null;
+  /** BOGO campaign usages attached by the backend on order detail (display-only) */
+  bogoUsage?: Array<{
+    id: number;
+    campaignName: string;
+    discountAmount: string | number;
+    freeUnits: number;
+  }> | null;
   createdAt: string;
   updatedAt: string;
 }

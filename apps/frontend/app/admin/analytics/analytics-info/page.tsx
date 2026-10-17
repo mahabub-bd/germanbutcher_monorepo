@@ -88,8 +88,8 @@ export default function AnalyticsPage() {
             visitorsSeries={data.visitors.map((v) => v.count)}
           />
 
-          {/* Size-aware grid: dense charts get wider spans, list cards narrower */}
-          <div className="grid gap-4 grid-cols-1 xl:grid-cols-12">
+          {/* Size-aware grid: pairs on small laptops, 12-col spans from xl */}
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-12">
             <div className="xl:col-span-6">
               <RequestsChart data={data.requests} period={period} />
             </div>
@@ -97,13 +97,15 @@ export default function AnalyticsPage() {
               <VisitorsChart data={data.visitors} />
             </div>
 
-            <div className="xl:col-span-4">
+            {/* 4/5/3 spans only on large desktops; laptops pair the three
+                cards two-per-row so lists/pies keep usable widths */}
+            <div className="xl:col-span-6 2xl:col-span-4">
               <TopProductPagesCard data={data.topPages} />
             </div>
-            <div className="xl:col-span-5">
+            <div className="xl:col-span-6 2xl:col-span-5">
               <DeviceChart data={data.devices} />
             </div>
-            <div className="xl:col-span-3">
+            <div className="xl:col-span-6 2xl:col-span-3">
               <TrafficSourcesCard data={data.trafficSources} />
             </div>
 
@@ -113,7 +115,7 @@ export default function AnalyticsPage() {
                 responseTimes={data.responseTimes}
               />
             </div>
-            <div className="xl:col-span-6">
+            <div className="xl:col-span-12 2xl:col-span-6">
               <TopEndpointsTable data={data.topEndpoints} />
             </div>
           </div>

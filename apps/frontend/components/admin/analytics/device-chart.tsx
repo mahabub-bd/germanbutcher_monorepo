@@ -120,7 +120,10 @@ export function DeviceChart({ data }: DeviceChartProps) {
         }
       />
       <CardContent>
-        <div className="grid gap-6 lg:grid-cols-[auto_minmax(170px,1fr)_minmax(240px,1.4fr)] lg:items-center">
+        {/* Donut + device list pair from sm; the browser column joins as a
+            third track only on large desktops — its 240px minimum would
+            overflow the narrower laptop card */}
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-[auto_minmax(150px,1fr)] 2xl:grid-cols-[auto_minmax(170px,1fr)_minmax(240px,1.4fr)] sm:items-center">
           {/* Device split — donut. Fixed width: ResponsiveContainer measures
               its parent, and an auto grid track would collapse it to 0. */}
           <div className="mx-auto w-35">
@@ -187,8 +190,8 @@ export function DeviceChart({ data }: DeviceChartProps) {
             )}
           </div>
 
-          {/* Browser split — bars */}
-          <div className="space-y-2.5">
+          {/* Browser split — bars (full row below 2xl, third track above) */}
+          <div className="space-y-2.5 sm:col-span-2 2xl:col-span-1">
             <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               <Globe className="size-3.5" />
               Browsers

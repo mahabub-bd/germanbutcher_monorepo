@@ -36,6 +36,9 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
   }, []);
 
   const getXAxisInterval = () => {
+    // Long periods (15d/30d) must thin labels by data length — showing every
+    // rotated date label overlaps into an unreadable smudge
+    if (data.length > 20) return Math.ceil(data.length / 10);
     const { width } = windowSize;
     if (width < 640) return 6;
     if (width < 768) return 4;
@@ -125,7 +128,9 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
               dataKey="visitors"
               fill={VISITORS_COLOR}
               radius={[4, 4, 0, 0]}
-              barSize={windowSize.width < 640 ? 8 : 16}
+              barSize={
+                data.length > 20 ? 6 : windowSize.width < 640 ? 8 : 16
+              }
             />
           </BarChart>
         </ResponsiveContainer>

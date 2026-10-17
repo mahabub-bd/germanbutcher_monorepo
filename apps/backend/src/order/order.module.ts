@@ -2,6 +2,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Address } from 'src/address/entities/address.entity';
+import { BogoCampaignsModule } from 'src/bogo-campaigns/bogo-campaigns.module';
+import { BogoUsageLogModule } from 'src/bogo-usage-log/bogo-usage-log.module';
 import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { DeliveryMan } from 'src/delivery-man/entities/delivery-man.entity';
 import { FlashSaleCampaignsModule } from 'src/flash-sale-campaigns/flash-sale-campaigns.module';
@@ -45,6 +47,8 @@ import { CouponUsageLogModule } from 'src/coupon-usage-log/coupon-usage-log.modu
     SmsModule,
     DeliveryManModule,
     CouponUsageLogModule,
+    BogoCampaignsModule,
+    BogoUsageLogModule,
     FlashSaleCampaignsModule,
     FlashSaleUsageLogModule,
     FreeDeliveryCampaignsModule,

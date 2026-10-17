@@ -31,13 +31,13 @@ export default async function FlashSaleSection() {
   return (
     <section className="lg:py-10 py-5 bg-gray-50">
       <div className="container mx-auto">
-        <div className="flex flex-wrap items-center gap-3 mb-6">
-          <HeadingPrimary title="FLASH SALE" align="left" className="mb-0" />
+        <div className="space-y-3 mb-6">
+          <HeadingPrimary title="FLASH SALE" className="mb-0" />
           {endsAt && (
             <CountdownTimer
               variant="banner"
               endsAt={endsAt}
-              className="ml-auto"
+              className="mx-auto w-fit"
             />
           )}
         </div>
