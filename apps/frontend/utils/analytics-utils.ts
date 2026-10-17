@@ -65,9 +65,10 @@ export async function fetchVisitors(
 }
 
 export async function fetchTopEndpoints(
-  limit: number = 10
+  limit: number = 10,
+  period: AnalyticsPeriod = "7d"
 ): Promise<TopEndpoint[]> {
-  const result = await fetchProtectedData<TopEndpoint[] | { data: TopEndpoint[] }>(`${ANALYTICS_BASE}/top-endpoints?limit=${limit}`);
+  const result = await fetchProtectedData<TopEndpoint[] | { data: TopEndpoint[] }>(`${ANALYTICS_BASE}/top-endpoints?limit=${limit}&period=${period}`);
   // Unwrap the response if it's wrapped in a data property
   if (result && typeof result === "object" && "data" in result && Array.isArray(result.data)) {
     return result.data;
@@ -113,7 +114,7 @@ export async function fetchAllAnalyticsData(period: AnalyticsPeriod = "24h") {
     fetchAnalyticsRequests(period),
     fetchPeakTraffic("7d"),
     fetchVisitors("30d"),
-    fetchTopEndpoints(10),
+    fetchTopEndpoints(10, period),
     fetchResponseTimes(period),
     fetchDeviceBreakdown(period),
     fetchTopProductPages("7d"),
