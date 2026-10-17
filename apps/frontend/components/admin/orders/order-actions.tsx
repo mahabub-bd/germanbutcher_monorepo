@@ -40,14 +40,22 @@ import { toast } from "sonner";
 
 /**
  * Check if an order can be refunded
- * Order must have payment status of "need_refund" and have payments with paid amount
+ * Order must have payments with paid amount and be in a refundable state:
+ * a refund-pending status, or a cancelled order still marked as paid money
+ * (guards against stale payment statuses from older cancel logic).
  */
 export function canRefundOrder(order: Order): boolean {
   const hasPayments = !!(order.payments && order.payments.length > 0);
   const hasPaidAmount = order.paidAmount > 0;
-  const isNeedRefund = order.paymentStatus === "need_refund";
+  const isRefundableStatus =
+    order.paymentStatus === "need_refund" ||
+    order.paymentStatus === "partial_refund" ||
+    (order.orderStatus === "cancelled" &&
+      (order.paymentStatus === "paid" ||
+        order.paymentStatus === "completed" ||
+        order.paymentStatus === "partial"));
 
-  return hasPayments && hasPaidAmount && isNeedRefund;
+  return hasPayments && hasPaidAmount && isRefundableStatus;
 }
 
 interface OrderActionsProps {
@@ -137,7 +145,6 @@ export function OrderActions({
     }
   };
 
-  // canRefundOrder only passes for need_refund orders
   const canCancel = canCancelOrder(order);
   const canRefund = canRefundOrder(order);
   const isNeedRefundOnly = order.paymentStatus === "need_refund";
