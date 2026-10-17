@@ -206,6 +206,15 @@ export function MenuList({
     }
   };
 
+  const handleCopyName = async (name: string) => {
+    try {
+      await navigator.clipboard.writeText(name);
+      toast.success("Menu name copied to clipboard");
+    } catch {
+      toast.error("Failed to copy menu name");
+    }
+  };
+
   const getParentMenuName = (parentId: number | null) => {
     if (!parentId) return "None";
 
@@ -315,7 +324,20 @@ export function MenuList({
         <TableBody>
           {menuItems.map((menuItem) => (
             <TableRow key={menuItem.id}>
-              <TableCell className="font-medium">{menuItem.name}</TableCell>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-1">
+                  <span>{menuItem.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => handleCopyName(menuItem.name)}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    <span className="sr-only">Copy menu name</span>
+                  </Button>
+                </div>
+              </TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
                   <span

@@ -41,6 +41,7 @@ import {
 import { listRouteToSlug } from "@/utils/order-list-routes";
 import type { Order, PaymentMethod, ShippingMethod } from "@/utils/types";
 import {
+  Copy,
   DollarSign,
   Eye,
   Filter,
@@ -282,6 +283,15 @@ export function OrderList({
     return `/admin/order/${id}/${tab}?${params.toString()}`;
   };
 
+  const handleCopyOrderNo = async (orderNo: string) => {
+    try {
+      await navigator.clipboard.writeText(orderNo);
+      toast.success("Order number copied to clipboard");
+    } catch {
+      toast.error("Failed to copy order number");
+    }
+  };
+
   const renderActiveFilters = () => {
     const hasFilters = searchQuery || statusFilter || paymentMethodFilter || shippingMethodFilter;
 
@@ -447,12 +457,23 @@ export function OrderList({
               orders.map((order) => (
                 <TableRow key={order.id} className="hover:bg-muted/50">
                   <TableCell className="align-top">
-                    <Link
-                      href={buildDetailHref(order.id, "view")}
-                      className="font-mono hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                    >
-                      {order.orderNo}
-                    </Link>
+                    <div className="flex items-center gap-1">
+                      <Link
+                        href={buildDetailHref(order.id, "view")}
+                        className="font-mono hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      >
+                        {order.orderNo}
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 shrink-0"
+                        onClick={() => handleCopyOrderNo(order.orderNo)}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                        <span className="sr-only">Copy order number</span>
+                      </Button>
+                    </div>
                     <div className="mt-0.5 text-muted-foreground">
                       {formatDateTime(order.createdAt)}
                     </div>
