@@ -1,9 +1,9 @@
 "use client";
 
 import { PulseDot } from "@/components/admin/analytics/online-now-card";
-import { useOnlineUsers } from "@/hooks/use-online-users";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useOnlineUsers } from "@/hooks/use-online-users";
 import type { AnalyticsOverview } from "@/utils/types";
 import { Activity, Clock, TrendingUp, Users, Zap } from "lucide-react";
 import Link from "next/link";
@@ -93,7 +93,7 @@ export function AnalyticsWidget({ data }: AnalyticsWidgetProps) {
           </p>
         </div>
         <Link
-          href="/admin/analytics"
+          href="/admin/analytics/analytics-info"
           className="shrink-0 text-sm font-medium text-primary underline-offset-4 transition-colors hover:text-primary/75 hover:underline"
         >
           View Details
