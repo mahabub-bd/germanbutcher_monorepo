@@ -14,7 +14,7 @@ export function DesktopHeader({
   const businessName = settings?.businessName || "";
 
   return (
-    <div className="hidden bg-gradient-to-r from-[#7a0d0d] via-primaryColor to-[#7a0d0d] lg:block shadow-lg">
+    <div className="hidden bg-linear-to-r from-[#7a0d0d] via-primaryColor to-[#7a0d0d] lg:block shadow-lg">
       <div className="container mx-auto flex items-center justify-between gap-4 px-4 py-2.5 2xl:px-0">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex shrink-0 items-center" aria-label="Go to homepage">

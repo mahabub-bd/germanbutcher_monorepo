@@ -1,7 +1,7 @@
 "use client";
 
 import { Clock } from "lucide-react";
-import { memo, useMemo } from "react";
+import { memo, useMemo, type CSSProperties } from "react";
 
 import { Badge } from "@/components/ui/badge";
 
@@ -82,13 +82,24 @@ const StepComponent = memo<StepProps>(
     const icon = getStatusIcon(item.status);
 
     return (
-      <li className="relative flex flex-col items-center px-2 text-center">
-        {/* Connector to the next node — spans from this node's edge into the
+      <li className="relative flex items-start gap-3 px-2 py-1 sm:flex-col sm:items-center sm:gap-0 sm:py-0 sm:text-center">
+        {/* Horizontal connector (sm+) — spans from this node's edge into the
             next column so it visually bridges the gap between centers. */}
         {!isLast && (
           <span
             aria-hidden
-            className={`absolute top-4 h-0.5 left-[calc(50%+1.25rem)] right-[calc(-50%+1.25rem)] ${
+            className={`absolute top-4 hidden h-0.5 left-[calc(50%+1.25rem)] right-[calc(-50%+1.25rem)] sm:block ${
+              item.isActive ? "bg-primary/40" : "bg-border"
+            }`}
+          />
+        )}
+
+        {/* Vertical connector (mobile) — runs from below this node down to
+            the next item's node. */}
+        {!isLast && (
+          <span
+            aria-hidden
+            className={`absolute top-9 bottom-0 left-6 w-0.5 -translate-x-1/2 sm:hidden ${
               item.isActive ? "bg-primary/40" : "bg-border"
             }`}
           />
@@ -96,7 +107,7 @@ const StepComponent = memo<StepProps>(
 
         {/* Node */}
         <span
-          className={`z-10 flex ${NODE_SIZE} items-center justify-center rounded-full border-4 border-background shadow-sm ${
+          className={`z-10 flex shrink-0 ${NODE_SIZE} items-center justify-center rounded-full border-4 border-background shadow-sm ${
             item.isActive
               ? getStatusDotColor(item.status)
               : "bg-muted"
@@ -109,45 +120,48 @@ const StepComponent = memo<StepProps>(
           )}
         </span>
 
-        {/* Label */}
-        <div className="mt-2 flex items-center justify-center gap-1.5">
-          <span
-            className={`text-sm font-semibold ${
-              item.isActive ? "" : "text-muted-foreground"
-            }`}
-          >
-            {formatStatusLabel(item.status)}
-          </span>
-          {isCurrent && (
-            <Badge
-              className={`h-5 rounded-full border-0 px-2 text-[9px] font-semibold uppercase tracking-wider text-white ${getStatusDotColor(item.status)}`}
+        {/* Text column — inline (right of node) on mobile, below node on sm+ */}
+        <div className="flex min-w-0 flex-col items-start sm:mt-2 sm:items-center">
+          {/* Label */}
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`text-sm font-semibold ${
+                item.isActive ? "" : "text-muted-foreground"
+              }`}
             >
-              Current
-            </Badge>
+              {formatStatusLabel(item.status)}
+            </span>
+            {isCurrent && (
+              <Badge
+                className={`h-5 rounded-full border-0 px-2 text-[9px] font-semibold uppercase tracking-wider text-white ${getStatusDotColor(item.status)}`}
+              >
+                Current
+              </Badge>
+            )}
+          </div>
+
+          {/* Note */}
+          {item.note && (
+            <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
+              {item.note}
+            </p>
+          )}
+
+          {/* Meta — only for steps that actually happened; hidden steps have
+              no track row and would otherwise read a fabricated "System" */}
+          {item.isActive && (
+            <div className="mt-1 text-[11px] text-muted-foreground">
+              Updated by {item.updatedBy?.name || "System"}
+            </div>
+          )}
+
+          {/* Timestamp pill */}
+          {item.timestamp && (
+            <div className="mt-1.5 rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
+              {formatDateTime(item.timestamp)}
+            </div>
           )}
         </div>
-
-        {/* Note */}
-        {item.note && (
-          <p className="mt-0.5 max-w-44 text-xs leading-snug text-muted-foreground">
-            {item.note}
-          </p>
-        )}
-
-        {/* Meta — only for steps that actually happened; hidden steps have
-            no track row and would otherwise read a fabricated "System" */}
-        {item.isActive && (
-          <div className="mt-1 text-[11px] text-muted-foreground">
-            Updated by {item.updatedBy?.name || "System"}
-          </div>
-        )}
-
-        {/* Timestamp pill */}
-        {item.timestamp && (
-          <div className="mt-1.5 rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
-            {formatDateTime(item.timestamp)}
-          </div>
-        )}
       </li>
     );
   }
@@ -223,14 +237,13 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
         )}
       </div>
 
-      {/* Content — horizontal stepper, one column per status */}
+      {/* Content — vertical list on mobile, horizontal stepper (one column
+          per status) from sm up */}
       <div className="min-h-20 p-2">
         {hasData ? (
           <ol
-            className="grid"
-            style={{
-              gridTemplateColumns: `repeat(${timelineItems.length}, minmax(0, 1fr))`,
-            }}
+            className="flex flex-col gap-1 sm:grid sm:gap-0 sm:grid-cols-[repeat(var(--steps),minmax(0,1fr))]"
+            style={{ "--steps": timelineItems.length } as CSSProperties}
           >
             {timelineItems.map((item, index) => (
               <StepComponent
