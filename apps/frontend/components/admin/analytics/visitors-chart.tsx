@@ -35,17 +35,6 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const getXAxisInterval = () => {
-    // Long periods (15d/30d) must thin labels by data length — showing every
-    // rotated date label overlaps into an unreadable smudge
-    if (data.length > 20) return Math.ceil(data.length / 10);
-    const { width } = windowSize;
-    if (width < 640) return 6;
-    if (width < 768) return 4;
-    if (width < 1024) return 2;
-    return 0;
-  };
-
   // Calculate total visitors
   const totalVisitors = data.reduce((sum, item) => sum + item.count, 0);
 
@@ -103,7 +92,7 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
         tone="green"
       />
       <CardContent>
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={170}>
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
             <XAxis
@@ -111,10 +100,10 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
               axisLine={false}
               tickLine={false}
               tickMargin={5}
-              interval={getXAxisInterval()}
+              interval={0}
               angle={-45}
               textAnchor="end"
-              height={55}
+              height={45}
               tick={{ fontSize: 11, fill: "currentColor" }}
             />
             <YAxis

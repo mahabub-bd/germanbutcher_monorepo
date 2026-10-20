@@ -90,14 +90,14 @@ export default function AnalyticsPage() {
 
           {/* Size-aware grid: pairs on small laptops, 12-col spans from xl */}
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-12">
-            <div className="xl:col-span-6">
+            <div className="xl:col-span-12">
               <RequestsChart data={data.requests} period={period} />
             </div>
-            <div className="xl:col-span-6">
+            <div className="xl:col-span-12">
               <VisitorsChart data={data.visitors} />
             </div>
 
-            {/* 4/5/3 spans only on large desktops; laptops pair the three
+            {/* 4/5 spans only on large desktops; laptops pair the two
                 cards two-per-row so lists/pies keep usable widths */}
             <div className="xl:col-span-6 2xl:col-span-4">
               <TopProductPagesCard data={data.topPages} />
@@ -105,11 +105,11 @@ export default function AnalyticsPage() {
             <div className="xl:col-span-6 2xl:col-span-5">
               <DeviceChart data={data.devices} />
             </div>
-            <div className="xl:col-span-6 2xl:col-span-3">
+            <div className="xl:col-span-12">
               <TrafficSourcesCard data={data.trafficSources} />
             </div>
 
-            <div className="xl:col-span-6">
+            <div className="xl:col-span-12">
               <PeakTrafficResponseCard
                 traffic={data.peakTraffic}
                 responseTimes={data.responseTimes}

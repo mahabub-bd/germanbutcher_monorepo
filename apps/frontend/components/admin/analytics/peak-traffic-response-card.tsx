@@ -69,16 +69,6 @@ export function PeakTrafficResponseCard({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const getXAxisInterval = () => {
-    // 24 hourly labels can't fit a half-width card — thin by data length so
-    // ~12 evenly spaced ticks remain readable
-    if (traffic.length > 12) return Math.ceil(traffic.length / 12);
-    const { width } = windowSize;
-    if (width < 640) return 4;
-    if (width < 768) return 2;
-    return 0;
-  };
-
   // Find peak from data
   const peakData =
     traffic.length > 0
@@ -158,7 +148,7 @@ export function PeakTrafficResponseCard({
         {traffic.length === 0 ? (
           <CardDescription>No traffic data available</CardDescription>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={220}>
             <BarChart
               data={chartData}
               margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -173,7 +163,7 @@ export function PeakTrafficResponseCard({
                 axisLine={false}
                 tickLine={false}
                 tickMargin={10}
-                interval={getXAxisInterval()}
+                interval={0}
                 tick={{ fontSize: 11, fill: "currentColor" }}
               />
               <YAxis
