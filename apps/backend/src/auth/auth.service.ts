@@ -3,6 +3,7 @@ import {
   HttpStatus,
   Injectable,
   Logger,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -11,11 +12,11 @@ import * as bcrypt from 'bcryptjs';
 import { UserService } from '../user/user.service';
 
 import { User } from 'src/user/entities/user.entity';
+import { AuditStatus, UserActivityService, UserType } from '../user-activity/user-activity.service';
 import { LoginDto } from './dto/login.dto';
 import { TokensDto } from './dto/tokens.dto';
 import { OtpService } from './otp.service';
 import { SmsService } from './sms.service';
-import { UserActivityService, UserType, AuditStatus } from '../user-activity/user-activity.service';
 
 @Injectable()
 export class AuthService {
@@ -232,7 +233,14 @@ export class AuthService {
     }
 
     const message = `Your German Butcher sign-in code: ${otp}. Valid for 5 minutes. Thank you`;
-    await this.smsService.sendSms(mobileNumber, message, 'OTP-LOGIN');
+    const sent = await this.smsService.sendSms(mobileNumber, message, 'OTP-LOGIN');
+
+    if (!sent) {
+      throw new ServiceUnavailableException({
+        message: 'Failed to send OTP. Please try again later.',
+        statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+      });
+    }
 
     return {
       message: 'OTP sent successfully',

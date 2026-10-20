@@ -7,10 +7,8 @@ import axios from 'axios';
 export class SmsService {
   private readonly logger = new Logger(SmsService.name);
 
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) { }
 
-  // `context` tags each log line with the calling flow (OTP-LOGIN,
-  // PASSWORD-RESET, ORDER-CONFIRMATION, ...) so bursts are traceable.
   async sendSms(
     mobileNumber: string,
     message: string,
@@ -33,11 +31,24 @@ export class SmsService {
         message: message,
       });
 
-      if (response.data?.status === 'success' || response.status === 200) {
+
+      const body = response.data as {
+        response_code?: number | string;
+        success_message?: string;
+        error_message?: string;
+      } | string;
+
+      const responseCode =
+        typeof body === 'string' ? NaN : Number(body.response_code);
+
+      if (responseCode === 202) {
         this.logger.log(`[${context}] SMS sent successfully to ${mobileNumber}`);
         return true;
       } else {
-        this.logger.warn(`[${context}] SMS API response: ${JSON.stringify(response.data)}`);
+        this.logger.warn(
+          `[${context}] SMS gateway rejected (${responseCode}): ${typeof body === 'string' ? body : body?.error_message || JSON.stringify(body)
+          }`,
+        );
         return false;
       }
     } catch (error) {
