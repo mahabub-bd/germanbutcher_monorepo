@@ -15,6 +15,10 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
 
     dangerouslyAllowLocalIP: true,
+    // S3 objects are UUID-named and never change in place, so the optimizer
+    // can cache resizes long-term instead of re-fetching upstream (repeat
+    // upstream fetches were timing out against S3 ap-southeast-1)
+    minimumCacheTTL: 2678400, // 31 days
     contentDispositionType: "attachment",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
