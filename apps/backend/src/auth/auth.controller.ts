@@ -231,10 +231,12 @@ export class AuthController {
   @Post('mobile-login')
   // Overrides must use the throttler names defined in app.module (short/medium/long);
   // a `default` override matches nothing, so the global 3000/min applied before.
+  // Limits are site-wide, not per user: login requests come from the Next.js
+  // server action, so the backend sees one shared IP for all visitors.
   @Throttle({
-    short: { limit: 3, ttl: 60000 }, // 3 per minute
-    medium: { limit: 10, ttl: 300000 }, // 10 per 5 minutes
-    long: { limit: 20, ttl: 3600000 }, // 20 per hour
+    short: { limit: 30, ttl: 60000 }, // 30 per minute
+    medium: { limit: 100, ttl: 300000 }, // 100 per 5 minutes
+    long: { limit: 300, ttl: 3600000 }, // 300 per hour
   })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -265,10 +267,12 @@ export class AuthController {
   }
 
   @Post('verify-otp')
+  // Same shared-IP caveat as mobile-login above — verify-otp is also called
+  // through a Next.js server action, so these limits are site-wide.
   @Throttle({
-    short: { limit: 10, ttl: 60000 }, // 10 attempts per minute
-    medium: { limit: 30, ttl: 300000 }, // 30 per 5 minutes
-    long: { limit: 100, ttl: 3600000 }, // 100 per hour
+    short: { limit: 30, ttl: 60000 }, // 30 attempts per minute
+    medium: { limit: 100, ttl: 300000 }, // 100 per 5 minutes
+    long: { limit: 500, ttl: 3600000 }, // 500 per hour
   })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

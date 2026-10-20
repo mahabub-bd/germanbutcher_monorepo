@@ -133,7 +133,15 @@ export class OrderController {
   }
   @UseGuards(JwtAuthGuard)
   @Post()
-  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 orders per minute
+  // Overrides must use the throttler names defined in app.module
+  // (short/medium/long); a `default` override matches nothing, so the
+  // global 3000/min applied before. Called client-side, so limits are
+  // per real customer IP.
+  @Throttle({
+    short: { limit: 60, ttl: 60000 }, // 60 orders per minute
+    medium: { limit: 300, ttl: 300000 }, // 300 orders per 5 minutes
+    long: { limit: 1200, ttl: 3600000 }, // 1200 orders per hour
+  })
   @ApiOperation({ summary: 'Create a new order' })
   @ApiBody({ type: CreateOrderDto })
   async create(
