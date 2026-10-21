@@ -8,14 +8,20 @@ import { fetchProtectedData } from "@/utils/api-utils";
 import type { User } from "@/utils/types";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function EditUserPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const userId = params.id as string;
+
+  // Preserve the list page the user came from (e.g. ?page=554)
+  const listUrl = searchParams.get("page")
+    ? `/admin/customer/customer-list?page=${searchParams.get("page")}`
+    : "/admin/customer/customer-list";
 
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,7 +45,7 @@ export default function EditUserPage() {
 
   const handleSuccess = () => {
     toast.success("Customer updated successfully");
-    router.push("/admin/customer/customer-list");
+    router.push(listUrl);
   };
 
   if (isLoading) {
@@ -77,9 +83,7 @@ export default function EditUserPage() {
             <CardDescription>Update the user details.</CardDescription>
           </div>
           <Button asChild variant="outline">
-            <Link href="/admin/customer/customer-list">
-              Back to CustomerList
-            </Link>
+            <Link href={listUrl}>Back to CustomerList</Link>
           </Button>
         </div>
 

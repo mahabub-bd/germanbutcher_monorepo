@@ -80,6 +80,21 @@ export function UserActivityList({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
   const [totalPages, setTotalPages] = useState(1);
+  const [expandedMessages, setExpandedMessages] = useState<Set<number>>(
+    new Set()
+  );
+
+  const toggleMessage = (id: number) => {
+    setExpandedMessages((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const updateUrl = useCallback(() => {
     const params = new URLSearchParams();
@@ -232,7 +247,7 @@ export function UserActivityList({
 
   const renderTableView = () => (
     <div className="overflow-x-auto">
-      <Table className="min-w-[900px] [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+      <Table className="min-w-[900px] [&_td]:py-2.5 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Date & Time</TableHead>
@@ -293,7 +308,19 @@ export function UserActivityList({
                 </TableCell>
 
                 <TableCell className="max-w-xs">
-                  <span className="block truncate text-sm">
+                  <span
+                    className={`block max-w-xs text-sm ${
+                      expandedMessages.has(activity.id)
+                        ? "whitespace-normal wrap-break-word"
+                        : "cursor-pointer truncate"
+                    }`}
+                    title={
+                      expandedMessages.has(activity.id)
+                        ? undefined
+                        : activity.message
+                    }
+                    onClick={() => toggleMessage(activity.id)}
+                  >
                     {activity.message}
                   </span>
                 </TableCell>

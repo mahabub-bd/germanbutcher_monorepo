@@ -275,7 +275,7 @@ export function CustomerList({
                     </DropdownMenuItem>
                     {can(MENU_URL, "canEdit") && (
                       <DropdownMenuItem asChild>
-                        <Link href={`/admin/customer/${customer.id}/edit`}>
+                        <Link href={`/admin/customer/${customer.id}/edit?page=${currentPage}`}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit
                         </Link>
