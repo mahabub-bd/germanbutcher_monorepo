@@ -140,10 +140,9 @@ export function FlashSaleUsageReport({
 
   return (
     <div className="w-full">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4">
         <PageHeader
           title="Flash Sale Usage Report"
-          description="Flash sale campaign usage with customer and order details"
         />
         <ReportPdfButton
           title="Flash Sale Usage Report"

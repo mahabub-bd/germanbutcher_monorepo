@@ -1,19 +1,14 @@
 "use client";
 
-import { DateRangePreset } from "@/common/enums";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
-import { Button } from "@/components/ui/button";
-import { DatePicker } from "@/components/ui/date-picker";
+import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
-import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  ReportDateFilters,
+  type ReportFilterParams,
+} from "@/components/admin/reports/report-date-filters";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
   Table,
   TableBody,
@@ -22,16 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  endOfMonth,
-  endOfWeek,
-  format,
-  startOfMonth,
-  startOfWeek,
-  subMonths,
-  subWeeks,
-  subYears,
-} from "date-fns";
 import { CalendarDays, ShoppingCart, Wallet } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -89,94 +74,16 @@ export default function DailySummaryList({
   const settings = useBusinessSettings();
   const [mounted, setMounted] = useState(false);
 
-  const [startDate, setStartDate] = useState<Date | undefined>(
-    fromDate ? new Date(fromDate) : undefined
-  );
-  const [endDate, setEndDate] = useState<Date | undefined>(
-    toDate ? new Date(toDate) : undefined
-  );
-  const [quickRange, setQuickRange] = useState<string>(preset || "");
-
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const applyFilters = (
-    range: string,
-    start: Date | undefined,
-    end: Date | undefined
-  ) => {
-    const params = new URLSearchParams();
-    if (range) params.set("preset", range);
-    if (start) params.set("fromDate", format(start, "yyyy-MM-dd"));
-    if (end) params.set("toDate", format(end, "yyyy-MM-dd"));
-    router.push(`?${params.toString()}`);
-  };
-
-  const handleFilter = () => {
-    applyFilters("", startDate, endDate);
-  };
-
-  const handleQuickRange = (value: string) => {
-    setQuickRange(value);
-    const today = new Date();
-    let from: Date | undefined;
-    let to: Date | undefined;
-
-    switch (value) {
-      case DateRangePreset.TODAY:
-        from = today;
-        to = today;
-        break;
-      case DateRangePreset.THIS_WEEK:
-        from = startOfWeek(today, { weekStartsOn: 6 });
-        to = endOfWeek(today, { weekStartsOn: 6 });
-        break;
-      case DateRangePreset.LAST_WEEK:
-        from = subWeeks(startOfWeek(today, { weekStartsOn: 6 }), 1);
-        to = subWeeks(endOfWeek(today, { weekStartsOn: 6 }), 1);
-        break;
-      case DateRangePreset.THIS_MONTH:
-        from = startOfMonth(today);
-        to = endOfMonth(today);
-        break;
-      case DateRangePreset.LAST_MONTH: {
-        const lastMonth = subMonths(today, 1);
-        from = startOfMonth(lastMonth);
-        to = endOfMonth(lastMonth);
-        break;
-      }
-      case DateRangePreset.LAST_3_MONTHS:
-        from = subMonths(today, 3);
-        to = today;
-        break;
-      case DateRangePreset.LAST_6_MONTHS:
-        from = subMonths(today, 6);
-        to = today;
-        break;
-      case DateRangePreset.LAST_YEAR:
-        from = subYears(today, 1);
-        to = today;
-        break;
-      case DateRangePreset.THIS_YEAR:
-        from = new Date(today.getFullYear(), 0, 1);
-        to = today;
-        break;
-      default:
-        from = undefined;
-        to = undefined;
-    }
-
-    setStartDate(from);
-    setEndDate(to);
-    applyFilters(value, undefined, undefined);
-  };
-
-  const handleClear = () => {
-    setStartDate(undefined);
-    setEndDate(undefined);
-    setQuickRange("");
-    router.push("?");
+  const handleFilterApply = (params: ReportFilterParams) => {
+    const qs = new URLSearchParams();
+    if (params.preset) qs.set("preset", params.preset);
+    if (params.fromDate) qs.set("fromDate", params.fromDate);
+    if (params.toDate) qs.set("toDate", params.toDate);
+    router.push(`?${qs.toString()}`);
   };
 
   const pdfRows = daily.map((row) => [
@@ -203,7 +110,6 @@ export default function DailySummaryList({
       <div className="flex items-start justify-between gap-4">
         <PageHeader
           title="Daily Summary Report"
-          description="Day-by-day order, delivered, cancelled, paid and due summary"
         />
         {daily.length > 0 && mounted && (
           <PDFDownloadLink
@@ -233,80 +139,19 @@ export default function DailySummaryList({
             }.pdf`}
           >
             {({ loading, error }) => (
-              <Button
-                className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0"
-                disabled={!!error}
-              >
-                {error
-                  ? "PDF Error"
-                  : loading
-                    ? "Generating PDF..."
-                    : "Download PDF"}
-              </Button>
+              <PdfDownloadButton loading={loading} error={error} />
             )}
           </PDFDownloadLink>
         )}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-end gap-3 mb-6">
-        <div className="space-y-1.5">
-          <label className="text-xs text-muted-foreground">Quick Range</label>
-          <Select value={quickRange} onValueChange={handleQuickRange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Quick Range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={DateRangePreset.TODAY}>Today</SelectItem>
-              <SelectItem value={DateRangePreset.THIS_WEEK}>
-                This Week
-              </SelectItem>
-              <SelectItem value={DateRangePreset.LAST_WEEK}>
-                Last Week
-              </SelectItem>
-              <SelectItem value={DateRangePreset.THIS_MONTH}>
-                This Month
-              </SelectItem>
-              <SelectItem value={DateRangePreset.LAST_MONTH}>
-                Last Month
-              </SelectItem>
-              <SelectItem value={DateRangePreset.LAST_3_MONTHS}>
-                Last 3 Months
-              </SelectItem>
-              <SelectItem value={DateRangePreset.LAST_6_MONTHS}>
-                Last 6 Months
-              </SelectItem>
-              <SelectItem value={DateRangePreset.LAST_YEAR}>
-                Last Year
-              </SelectItem>
-              <SelectItem value={DateRangePreset.THIS_YEAR}>
-                This Year
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {mounted && (
-          <>
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">From</label>
-              <DatePicker
-                value={startDate}
-                onChange={(date) => setStartDate(date)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">To</label>
-              <DatePicker value={endDate} onChange={(date) => setEndDate(date)} />
-            </div>
-          </>
-        )}
-
-        <Button onClick={handleFilter}>Apply</Button>
-        <Button variant="outline" onClick={handleClear}>
-          Clear
-        </Button>
-      </div>
+      {/* Filters — shared single-row filter bar (identical on all report pages) */}
+      <ReportDateFilters
+        preset={preset}
+        fromDate={fromDate}
+        toDate={toDate}
+        onApply={handleFilterApply}
+      />
 
       {/* Range summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">

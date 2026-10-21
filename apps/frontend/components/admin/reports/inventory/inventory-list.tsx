@@ -3,7 +3,7 @@
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
-import { Button } from "@/components/ui/button";
+import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import {
   Table,
   TableBody,
@@ -73,7 +73,6 @@ export default function InventoryList({
       <div className="flex items-start justify-between gap-4">
         <PageHeader
           title="Inventory Report"
-          description="Stock valuation and products needing restock"
         />
         {products.length > 0 && (
           <PDFDownloadLink
@@ -97,13 +96,7 @@ export default function InventoryList({
               }.pdf`}
           >
             {({ loading, error }) => (
-              <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0">
-                {error
-                  ? "PDF Error"
-                  : loading
-                    ? "Generating PDF..."
-                    : "Download PDF"}
-              </Button>
+              <PdfDownloadButton loading={loading} error={error} />
             )}
           </PDFDownloadLink>
         )}

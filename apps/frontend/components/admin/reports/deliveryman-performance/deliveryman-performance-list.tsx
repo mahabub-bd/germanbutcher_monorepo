@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { Badge } from "@/components/ui/badge";
@@ -90,7 +90,6 @@ export default function DeliverymanPerformanceList({
       <div className="flex items-start justify-between gap-4">
         <PageHeader
           title="Deliveryman Performance Report"
-          description="Delivered orders and value per delivery man for a date range"
         />
         {deliveryMen.length > 0 && (
           <PDFDownloadLink
@@ -116,13 +115,7 @@ export default function DeliverymanPerformanceList({
             }.pdf`}
           >
             {({ loading, error }) => (
-              <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0">
-                {error
-                  ? "PDF Error"
-                  : loading
-                    ? "Generating PDF..."
-                    : "Download PDF"}
-              </Button>
+              <PdfDownloadButton loading={loading} error={error} />
             )}
           </PDFDownloadLink>
         )}

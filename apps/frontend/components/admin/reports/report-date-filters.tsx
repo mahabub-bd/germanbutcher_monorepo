@@ -20,7 +20,7 @@ import {
   subWeeks,
   subYears,
 } from "date-fns";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 export interface ReportFilterParams {
   preset?: string;
@@ -83,14 +83,22 @@ interface ReportDateFiltersProps {
   preset?: string;
   fromDate?: string;
   toDate?: string;
+  /** Extra filter controls (e.g. an Order Status select) rendered inline
+   *  between Quick Range and the date pickers. */
+  extra?: ReactNode;
   onApply: (params: ReportFilterParams) => void;
+  /** Called alongside onApply({}) when Clear is pressed, so pages with
+   *  extra filters can reset their own state too. */
+  onClear?: () => void;
 }
 
 export function ReportDateFilters({
   preset,
   fromDate,
   toDate,
+  extra,
   onApply,
+  onClear,
 }: ReportDateFiltersProps) {
   const [mounted, setMounted] = useState(false);
   const [startDate, setStartDate] = useState<Date | undefined>(
@@ -124,17 +132,20 @@ export function ReportDateFilters({
     setStartDate(undefined);
     setEndDate(undefined);
     setQuickRange("");
+    onClear?.();
     onApply({});
   };
 
   if (!mounted) return null;
 
+  // Mobile: 2-column grid so every control (Quick Range included) is half
+  // width. md+ (1 line): nowrap inline row — no labels, every control (selects,
+  // date pickers, buttons) sits on the same line via placeholders.
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 items-end gap-3 mb-6">
-      <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground">Quick Range</label>
+    <div className="grid grid-cols-2 gap-2 items-center mb-6 md:flex md:flex-nowrap md:items-center md:gap-2">
+      <div className="md:shrink-0">
         <Select value={quickRange} onValueChange={handleQuickRange}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full md:w-[150px]">
             <SelectValue placeholder="Quick Range" />
           </SelectTrigger>
           <SelectContent>
@@ -147,17 +158,27 @@ export function ReportDateFilters({
         </Select>
       </div>
 
-      <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground">From</label>
-        <DatePicker value={startDate} onChange={(date) => setStartDate(date)} />
+      {extra}
+
+      <div className="md:flex-1 md:max-w-[150px] md:min-w-0">
+        <DatePicker
+          value={startDate}
+          onChange={(date) => setStartDate(date)}
+          placeholder="From Date"
+        />
       </div>
-      <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground">To</label>
-        <DatePicker value={endDate} onChange={(date) => setEndDate(date)} />
+      <div className="md:flex-1 md:max-w-[150px] md:min-w-0">
+        <DatePicker
+          value={endDate}
+          onChange={(date) => setEndDate(date)}
+          placeholder="To Date"
+        />
       </div>
 
-      <Button onClick={handleApply}>Apply</Button>
-      <Button variant="outline" onClick={handleClear}>
+      <Button onClick={handleApply} className="px-3 shrink-0">
+        Filter
+      </Button>
+      <Button variant="outline" onClick={handleClear} className="px-3 shrink-0">
         Clear
       </Button>
     </div>

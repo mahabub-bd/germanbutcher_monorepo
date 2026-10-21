@@ -1,17 +1,12 @@
 "use client";
 
-import { DateRangePreset } from "@/common/enums";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
-import { Button } from "@/components/ui/button";
-import { DatePicker } from "@/components/ui/date-picker";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  ReportDateFilters,
+  type ReportFilterParams,
+} from "@/components/admin/reports/report-date-filters";
+import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import {
   Table,
   TableBody,
@@ -22,16 +17,7 @@ import {
 } from "@/components/ui/table";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import {
-  endOfMonth,
-  endOfWeek,
-  format,
-  startOfMonth,
-  startOfWeek,
-  subMonths,
-  subWeeks,
-  subYears,
-} from "date-fns";
+import { format } from "date-fns";
 import { ShoppingCart, TrendingUp, Users } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -79,87 +65,16 @@ export default function CustomerListReport({
   const [mounted, setMounted] = useState(false);
   const settings = useBusinessSettings();
 
-  const [startDate, setStartDate] = useState<Date | undefined>(
-    fromDate ? new Date(fromDate) : undefined
-  );
-  const [endDate, setEndDate] = useState<Date | undefined>(
-    toDate ? new Date(toDate) : undefined
-  );
-  const [quickRange, setQuickRange] = useState<string>(preset || "");
-
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleFilter = () => {
-    const params = new URLSearchParams();
-    if (startDate) params.set("fromDate", format(startDate, "yyyy-MM-dd"));
-    if (endDate) params.set("toDate", format(endDate, "yyyy-MM-dd"));
-    router.push(`?${params.toString()}`);
-  };
-
-  const handleQuickRange = (value: string) => {
-    setQuickRange(value);
-    const today = new Date();
-    let from: Date | undefined;
-    let to: Date | undefined;
-
-    switch (value) {
-      case DateRangePreset.TODAY:
-        from = today;
-        to = today;
-        break;
-      case DateRangePreset.THIS_WEEK:
-        from = startOfWeek(today, { weekStartsOn: 6 });
-        to = endOfWeek(today, { weekStartsOn: 6 });
-        break;
-      case DateRangePreset.LAST_WEEK:
-        from = subWeeks(startOfWeek(today, { weekStartsOn: 6 }), 1);
-        to = subWeeks(endOfWeek(today, { weekStartsOn: 6 }), 1);
-        break;
-      case DateRangePreset.THIS_MONTH:
-        from = startOfMonth(today);
-        to = endOfMonth(today);
-        break;
-      case DateRangePreset.LAST_MONTH:
-        const lastMonth = subMonths(today, 1);
-        from = startOfMonth(lastMonth);
-        to = endOfMonth(lastMonth);
-        break;
-      case DateRangePreset.LAST_3_MONTHS:
-        from = subMonths(today, 3);
-        to = today;
-        break;
-      case DateRangePreset.LAST_6_MONTHS:
-        from = subMonths(today, 6);
-        to = today;
-        break;
-      case DateRangePreset.LAST_YEAR:
-        from = subYears(today, 1);
-        to = today;
-        break;
-      case DateRangePreset.THIS_YEAR:
-        from = new Date(today.getFullYear(), 0, 1);
-        to = today;
-        break;
-      default:
-        from = undefined;
-        to = undefined;
-    }
-
-    setStartDate(from);
-    setEndDate(to);
-
-    const params = new URLSearchParams();
-    if (value) params.set("preset", value);
-    router.push(`?${params.toString()}`);
-  };
-
-  const handleClear = () => {
-    setStartDate(undefined);
-    setEndDate(undefined);
-    setQuickRange("");
-    router.push("?");
+  const handleFilterApply = (params: ReportFilterParams) => {
+    const qs = new URLSearchParams();
+    if (params.preset) qs.set("preset", params.preset);
+    if (params.fromDate) qs.set("fromDate", params.fromDate);
+    if (params.toDate) qs.set("toDate", params.toDate);
+    router.push(`?${qs.toString()}`);
   };
 
   // Calculate date range only on client side to avoid hydration issues
@@ -173,84 +88,36 @@ export default function CustomerListReport({
 
   return (
     <div className="w-full">
-      <PageHeader
-        title="Customer List Report"
-        description="View customer registration and order statistics"
-      />
-
-      {/* Filters + Export */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Quick Range Dropdown */}
-          <Select value={quickRange} onValueChange={handleQuickRange}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Quick Range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={DateRangePreset.TODAY}>Today</SelectItem>
-              <SelectItem value={DateRangePreset.THIS_WEEK}>This Week</SelectItem>
-              <SelectItem value={DateRangePreset.LAST_WEEK}>Last Week</SelectItem>
-              <SelectItem value={DateRangePreset.THIS_MONTH}>
-                This Month
-              </SelectItem>
-              <SelectItem value={DateRangePreset.LAST_MONTH}>
-                Last Month
-              </SelectItem>
-              <SelectItem value={DateRangePreset.LAST_3_MONTHS}>
-                Last 3 Months
-              </SelectItem>
-              <SelectItem value={DateRangePreset.LAST_6_MONTHS}>
-                Last 6 Months
-              </SelectItem>
-              <SelectItem value={DateRangePreset.LAST_YEAR}>Last Year</SelectItem>
-              <SelectItem value={DateRangePreset.THIS_YEAR}>This Year</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Manual Date Pickers */}
-          <DatePicker
-            value={startDate}
-            onChange={(date) => setStartDate(date)}
-            placeholder="From Date"
-            className="w-[200px]"
-          />
-          <DatePicker
-            value={endDate}
-            onChange={(date) => setEndDate(date)}
-            placeholder="To Date"
-            className="w-[200px]"
-          />
-
-          <Button onClick={handleFilter}>Filter</Button>
-          {(startDate || endDate) && (
-            <Button onClick={handleClear} variant="outline">
-              Clear
-            </Button>
-          )}
-        </div>
-
-        <div className="flex gap-2">
-          {customers.length > 0 && mounted && (
-            <PDFDownloadLink
-              document={
-                <CustomerListPDF
-                  customers={customers}
-                  summary={summary}
-                  dateRange={dateRange}
-                  settings={settings}
-                />
-              }
-              fileName={`customer-list-${new Date().toISOString().split("T")[0]}.pdf`}
-            >
-              {({ loading, error }) => (
-                <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white">
-                  {error ? "PDF Error" : loading ? "Generating PDF..." : "Download PDF"}
-                </Button>
-              )}
-            </PDFDownloadLink>
-          )}
-        </div>
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          title="Customer List Report"
+        />
+        {customers.length > 0 && mounted && (
+          <PDFDownloadLink
+            document={
+              <CustomerListPDF
+                customers={customers}
+                summary={summary}
+                dateRange={dateRange}
+                settings={settings}
+              />
+            }
+            fileName={`customer-list-${new Date().toISOString().split("T")[0]}.pdf`}
+          >
+            {({ loading, error }) => (
+              <PdfDownloadButton loading={loading} error={error} />
+            )}
+          </PDFDownloadLink>
+        )}
       </div>
+
+      {/* Filters — shared single-row filter bar (identical on all report pages) */}
+      <ReportDateFilters
+        preset={preset}
+        fromDate={fromDate}
+        toDate={toDate}
+        onApply={handleFilterApply}
+      />
 
       {/* Summary */}
       {summary && (

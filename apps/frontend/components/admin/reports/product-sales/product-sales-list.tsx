@@ -4,7 +4,7 @@ import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
 import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
-import { Button } from "@/components/ui/button";
+import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import {
   Table,
   TableBody,
@@ -91,10 +91,9 @@ export default function ProductSalesList({
 
   return (
     <div className="w-full">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4">
         <PageHeader
           title="Product Sales Report"
-          description="Top products by revenue for a date range (cancelled orders excluded)"
         />
         {products.length > 0 && (
           <PDFDownloadLink
@@ -120,13 +119,7 @@ export default function ProductSalesList({
               }.pdf`}
           >
             {({ loading, error }) => (
-              <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0 w-full sm:w-auto">
-                {error
-                  ? "PDF Error"
-                  : loading
-                    ? "Generating PDF..."
-                    : "Download PDF"}
-              </Button>
+              <PdfDownloadButton loading={loading} error={error} />
             )}
           </PDFDownloadLink>
         )}
@@ -136,8 +129,8 @@ export default function ProductSalesList({
         preset={preset}
         fromDate={fromDate} toDate={toDate} onApply={applyParams} />
 
-      {/* Summary tiles */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      {/* Summary tiles — all three in one line, even on mobile */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
         <StatsCard
           icon={TrendingUp}
           title="Total Revenue"

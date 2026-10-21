@@ -139,10 +139,9 @@ export function FreeDeliveryUsageReport({
 
   return (
     <div className="w-full">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4">
         <PageHeader
           title="Free Delivery Usage Report"
-          description="Free delivery campaign usage with customer and order details"
         />
         <ReportPdfButton
           title="Free Delivery Usage Report"

@@ -94,7 +94,11 @@ export class UserActivityService {
       ]);
 
     if (filters?.action) {
-      query.andWhere('activity.action = :action', { action: filters.action });
+      // Actions are stored as "METHOD /path" (e.g. "PATCH /v1/orders/:id"),
+      // so match by method prefix; bare actions like "LOGIN" also match.
+      query.andWhere('activity.action LIKE :action', {
+        action: `${filters.action}%`,
+      });
     }
 
     if (filters?.entityType) {

@@ -2,7 +2,7 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
-import { Button } from "@/components/ui/button";
+import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import {
   Select,
   SelectContent,
@@ -83,32 +83,11 @@ export default function MonthlyOrderReportList({
 
   return (
     <div className="w-full">
-      <PageHeader
-        title="Monthly Order Summary"
-        description="View monthly order statistics and trends"
-      />
-
-      {/* Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Year</span>
-          <Select
-            value={selectedYear ? String(selectedYear) : "all"}
-            onValueChange={handleYearChange}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Years" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Years</SelectItem>
-              {yearOptions.map((year) => (
-                <SelectItem key={year} value={String(year)}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Title + PDF export (compact on mobile, right of the title) */}
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          title="Monthly Order Summary"
+        />
         {monthlyData.length > 0 && mounted && (
           <PDFDownloadLink
             document={
@@ -121,12 +100,30 @@ export default function MonthlyOrderReportList({
             fileName={`monthly-order-report-${selectedYear ?? "all"}-${new Date().toISOString().split("T")[0]}.pdf`}
           >
             {({ loading, error }) => (
-              <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white">
-                {error ? "PDF Error" : loading ? "Generating PDF..." : "Download PDF"}
-              </Button>
+              <PdfDownloadButton loading={loading} error={error} />
             )}
           </PDFDownloadLink>
         )}
+      </div>
+
+      {/* Filters — shared single-row style (selects only, one line on md+) */}
+      <div className="grid grid-cols-2 gap-2 mb-6 md:flex md:flex-nowrap md:items-center md:gap-2">
+        <Select
+          value={selectedYear ? String(selectedYear) : "all"}
+          onValueChange={handleYearChange}
+        >
+          <SelectTrigger className="w-full md:w-[150px] md:shrink-0">
+            <SelectValue placeholder="All Years" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Years</SelectItem>
+            {yearOptions.map((year) => (
+              <SelectItem key={year} value={String(year)}>
+                {year}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Summary */}
