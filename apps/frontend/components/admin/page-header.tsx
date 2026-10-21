@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 
 interface PageHeaderProps {
   title: string;
-  description: string;
+  description?: string;
   /** Optional icon rendered beside the title. */
   titleIcon?: React.ReactNode;
   actionLabel?: string;
@@ -29,7 +29,9 @@ export function PageHeader({
           {titleIcon}
           {title}
         </h2>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        {description && (
+          <p className="text-sm text-muted-foreground">{description}</p>
+        )}
       </div>
 
       {actionHref && actionLabel ? (

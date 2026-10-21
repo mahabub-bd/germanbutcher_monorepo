@@ -1,10 +1,14 @@
 "use client";
 
-import { DateRangePreset, OrderStatus } from "@/common/enums";
+import { OrderStatus } from "@/common/enums";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
+import {
+  ReportDateFilters,
+  type ReportFilterParams,
+} from "@/components/admin/reports/report-date-filters";
 import { Button } from "@/components/ui/button";
-import { DatePicker } from "@/components/ui/date-picker";
+import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import {
   Select,
   SelectContent,
@@ -22,16 +26,6 @@ import {
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
-import {
-  endOfMonth,
-  endOfWeek,
-  format,
-  startOfMonth,
-  startOfWeek,
-  subMonths,
-  subWeeks,
-  subYears,
-} from "date-fns";
 import { Eye, ShoppingCart, Wallet } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -103,13 +97,6 @@ export default function OrderReportList({
   const [mounted, setMounted] = useState(false);
   const settings = useBusinessSettings();
 
-  const [startDate, setStartDate] = useState<Date | undefined>(
-    fromDate ? new Date(fromDate) : undefined
-  );
-  const [endDate, setEndDate] = useState<Date | undefined>(
-    toDate ? new Date(toDate) : undefined
-  );
-  const [quickRange, setQuickRange] = useState<string>(preset || "");
   const [selectedOrderStatus, setSelectedOrderStatus] = useState<string>(
     orderStatus || "all"
   );
@@ -118,143 +105,53 @@ export default function OrderReportList({
     setMounted(true);
   }, []);
 
-  const handleFilter = () => {
-    const params = new URLSearchParams();
-    if (startDate) params.set("fromDate", format(startDate, "yyyy-MM-dd"));
-    if (endDate) params.set("toDate", format(endDate, "yyyy-MM-dd"));
+  const handleFilterApply = (params: ReportFilterParams) => {
+    const qs = new URLSearchParams();
+    if (params.preset) qs.set("preset", params.preset);
+    if (params.fromDate) qs.set("fromDate", params.fromDate);
+    if (params.toDate) qs.set("toDate", params.toDate);
     if (selectedOrderStatus && selectedOrderStatus !== "all")
-      params.set("orderStatus", selectedOrderStatus);
-    router.push(`?${params.toString()}`);
+      qs.set("orderStatus", selectedOrderStatus);
+    router.push(`?${qs.toString()}`);
   };
 
-  const handleQuickRange = (value: string) => {
-    setQuickRange(value);
-    const today = new Date();
-    let from: Date | undefined;
-    let to: Date | undefined;
-
-    switch (value) {
-      case DateRangePreset.TODAY:
-        from = today;
-        to = today;
-        break;
-      case DateRangePreset.THIS_WEEK:
-        from = startOfWeek(today, { weekStartsOn: 6 });
-        to = endOfWeek(today, { weekStartsOn: 6 });
-        break;
-      case DateRangePreset.LAST_WEEK:
-        from = subWeeks(startOfWeek(today, { weekStartsOn: 6 }), 1);
-        to = subWeeks(endOfWeek(today, { weekStartsOn: 6 }), 1);
-        break;
-      case DateRangePreset.THIS_MONTH:
-        from = startOfMonth(today);
-        to = endOfMonth(today);
-        break;
-      case DateRangePreset.LAST_MONTH:
-        const lastMonth = subMonths(today, 1);
-        from = startOfMonth(lastMonth);
-        to = endOfMonth(lastMonth);
-        break;
-      case DateRangePreset.LAST_3_MONTHS:
-        from = subMonths(today, 3);
-        to = today;
-        break;
-      case DateRangePreset.LAST_6_MONTHS:
-        from = subMonths(today, 6);
-        to = today;
-        break;
-      case DateRangePreset.LAST_YEAR:
-        from = subYears(today, 1);
-        to = today;
-        break;
-      case DateRangePreset.THIS_YEAR:
-        from = new Date(today.getFullYear(), 0, 1);
-        to = today;
-        break;
-      default:
-        from = undefined;
-        to = undefined;
-    }
-
-    setStartDate(from);
-    setEndDate(to);
-
-    const params = new URLSearchParams();
-    if (value) params.set("preset", value);
-    if (selectedOrderStatus && selectedOrderStatus !== "all")
-      params.set("orderStatus", selectedOrderStatus);
-    router.push(`?${params.toString()}`);
-  };
-
-  const handleClear = () => {
-    setStartDate(undefined);
-    setEndDate(undefined);
-    setQuickRange("");
+  const handleFilterClear = () => {
     setSelectedOrderStatus("all");
-    router.push("?");
-  };
-
-  const handleOrderStatusChange = (value: string) => {
-    setSelectedOrderStatus(value);
-    const params = new URLSearchParams();
-    if (quickRange) params.set("preset", quickRange);
-    if (startDate) params.set("fromDate", format(startDate, "yyyy-MM-dd"));
-    if (endDate) params.set("toDate", format(endDate, "yyyy-MM-dd"));
-    if (value && value !== "all") params.set("orderStatus", value);
-    router.push(`?${params.toString()}`);
   };
 
   return (
     <div className="w-full">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <PageHeader
-          title="Sales Report"
-          description="Per-order sales for a date range: order value, discount and amount paid"
-        />
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <PageHeader
+            title="Sales Report"
+          />
+        </div>
         {orders.length > 0 && mounted && (
           <PDFDownloadLink
             document={<OrderReportPDF orders={orders} settings={settings} />}
             fileName={`order-report-${new Date().toISOString().split("T")[0]}.pdf`}
           >
             {({ loading, error }) => (
-              <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white w-full sm:w-auto shrink-0">
-                {error ? "PDF Error" : loading ? "Generating PDF..." : "Download PDF"}
-              </Button>
+              <PdfDownloadButton loading={loading} error={error} />
             )}
           </PDFDownloadLink>
         )}
       </div>
 
-      {/* Filters — 2 columns on mobile, inline row from md up */}
-      <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center md:gap-2 mb-6">
-        <Select value={quickRange} onValueChange={handleQuickRange}>
-          <SelectTrigger className="w-full md:w-[200px]">
-            <SelectValue placeholder="Quick Range" />
-          </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={DateRangePreset.TODAY}>Today</SelectItem>
-              <SelectItem value={DateRangePreset.THIS_WEEK}>This Week</SelectItem>
-              <SelectItem value={DateRangePreset.LAST_WEEK}>Last Week</SelectItem>
-              <SelectItem value={DateRangePreset.THIS_MONTH}>This Month</SelectItem>
-              <SelectItem value={DateRangePreset.LAST_MONTH}>Last Month</SelectItem>
-              <SelectItem value={DateRangePreset.LAST_3_MONTHS}>
-                Last 3 Months
-              </SelectItem>
-              <SelectItem value={DateRangePreset.LAST_6_MONTHS}>
-                Last 6 Months
-              </SelectItem>
-              <SelectItem value={DateRangePreset.LAST_YEAR}>Last Year</SelectItem>
-              <SelectItem value={DateRangePreset.THIS_YEAR}>This Year</SelectItem>
-            </SelectContent>
-          </Select>
-
-        <Select
-          value={selectedOrderStatus || "all"}
-          onValueChange={handleOrderStatusChange}
-        >
-          <SelectTrigger className="w-full md:w-[200px]">
-            <SelectValue placeholder="Order Status" />
-          </SelectTrigger>
+      {/* Filters — shared single-row filter bar (identical on all report pages) */}
+      <ReportDateFilters
+        preset={preset}
+        fromDate={fromDate}
+        toDate={toDate}
+        extra={
+          <Select
+            value={selectedOrderStatus || "all"}
+            onValueChange={setSelectedOrderStatus}
+          >
+            <SelectTrigger className="w-full md:w-[150px] md:shrink-0">
+              <SelectValue placeholder="Order Status" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value={OrderStatus.PENDING}>Pending</SelectItem>
@@ -271,29 +168,10 @@ export default function OrderReportList({
               <SelectItem value={OrderStatus.RETURNED}>Returned</SelectItem>
             </SelectContent>
           </Select>
-
-        <DatePicker
-          value={startDate}
-          onChange={(date) => setStartDate(date)}
-          placeholder="From Date"
-          className="w-full md:w-[200px]"
-        />
-        <DatePicker
-          value={endDate}
-          onChange={(date) => setEndDate(date)}
-          placeholder="To Date"
-          className="w-full md:w-[200px]"
-        />
-
-        <Button onClick={handleFilter} className="w-full md:w-auto">
-          Filter
-        </Button>
-        {(startDate || endDate || selectedOrderStatus !== "all") && (
-          <Button onClick={handleClear} variant="outline" className="w-full md:w-auto">
-            Clear
-          </Button>
-        )}
-      </div>
+        }
+        onApply={handleFilterApply}
+        onClear={handleFilterClear}
+      />
 
       {/* Summary */}
       {orders.length > 0 && (

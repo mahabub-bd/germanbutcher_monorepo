@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { fetchData } from "@/utils/api-utils";
 import type { BusinessSettings } from "@/utils/types";
 import dynamic from "next/dynamic";
@@ -13,6 +12,7 @@ import {
   View,
 } from "@react-pdf/renderer";
 
+import { PdfDownloadButton } from "./pdf-download-button";
 import { ReportPDFHeader } from "./report-pdf-header";
 
 const PDFDownloadLink = dynamic(
@@ -265,12 +265,7 @@ export function ReportPdfButton({
       fileName={`${fileName}-${new Date().toISOString().split("T")[0]}.pdf`}
     >
       {({ loading, error }) => (
-        <Button
-          disabled={!!error}
-          className="bg-primaryColor hover:bg-primaryColor/90 text-white w-full sm:w-auto shrink-0"
-        >
-          {error ? "PDF Error" : loading ? "Generating PDF..." : "Download PDF"}
-        </Button>
+        <PdfDownloadButton loading={loading} error={error} />
       )}
     </PDFDownloadLink>
   );

@@ -3,7 +3,6 @@ export const dynamic = "force-dynamic";
 import TopCustomersReport, {
   type TopCustomer,
 } from "@/components/admin/reports/top-customers/top-customers";
-import { PageHeader } from "@/components/admin/page-header";
 import { fetchProtectedData } from "@/utils/api-utils";
 
 interface ResolvedSearchParams {
@@ -68,10 +67,6 @@ export default async function TopCustomersReportPage({ searchParams }: Props) {
 
   return (
     <div className="md:p-4 p-2 space-y-6 rounded-sm">
-      <PageHeader
-        title="Top Customers Report"
-        description="Best customers by orders and spending"
-      />
       <TopCustomersReport
         customers={customers}
         limit={limit}

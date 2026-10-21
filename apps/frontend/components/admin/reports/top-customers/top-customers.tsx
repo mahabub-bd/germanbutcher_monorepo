@@ -1,5 +1,7 @@
 "use client";
 
+import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
+import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -143,57 +145,12 @@ export default function TopCustomersReport({
 
   return (
     <div className="w-full">
-      {/* Filters + Export */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Select
-            value={limit.toString()}
-            onValueChange={(value) => updateFilter("limit", value)}
-          >
-            <SelectTrigger className="w-[100px] sm:w-[130px] h-8 sm:h-9 text-xs sm:text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="5">Top 5</SelectItem>
-              <SelectItem value="10">Top 10</SelectItem>
-              <SelectItem value="20">Top 20</SelectItem>
-              <SelectItem value="50">Top 50</SelectItem>
-              <SelectItem value="100">Top 100</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={sortBy}
-            onValueChange={(value) => updateFilter("sortBy", value)}
-          >
-            <SelectTrigger className="w-[100px] sm:w-[130px] h-8 sm:h-9 text-xs sm:text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="orders">By Orders</SelectItem>
-              <SelectItem value="spending">By Spending</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={timeFilter}
-            onValueChange={(value) => updateFilter("timeFilter", value)}
-          >
-            <SelectTrigger className="w-[110px] sm:w-[140px] h-8 sm:h-9 text-xs sm:text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="this_month">This Month</SelectItem>
-              <SelectItem value="last_3_months">Last 3 Months</SelectItem>
-              <SelectItem value="last_6_months">Last 6 Months</SelectItem>
-              <SelectItem value="last_year">Last Year</SelectItem>
-              <SelectItem value="this_year">This Year</SelectItem>
-              <SelectItem value="all_time">All Time</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex gap-2">
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          title="Top Customers Report"
+          description="Best customers by orders and spending"
+        />
+        <div className="shrink-0">
           {customers.length > 0 && mounted && (
             <PDFDownloadLink
               document={
@@ -209,17 +166,60 @@ export default function TopCustomersReport({
                 .split("T")[0]}.pdf`}
             >
               {({ loading, error }) => (
-                <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white">
-                  {error
-                    ? "PDF Error"
-                    : loading
-                      ? "Generating PDF..."
-                      : "Download PDF"}
-                </Button>
+                <PdfDownloadButton loading={loading} error={error} />
               )}
             </PDFDownloadLink>
           )}
         </div>
+      </div>
+
+      {/* Filters — shared single-row style (selects only, one line on md+) */}
+      <div className="grid grid-cols-2 gap-2 mb-6 md:flex md:flex-nowrap md:items-center md:gap-2">
+        <Select
+          value={limit.toString()}
+          onValueChange={(value) => updateFilter("limit", value)}
+        >
+          <SelectTrigger className="w-full md:w-[150px] md:shrink-0 h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="5">Top 5</SelectItem>
+            <SelectItem value="10">Top 10</SelectItem>
+            <SelectItem value="20">Top 20</SelectItem>
+            <SelectItem value="50">Top 50</SelectItem>
+            <SelectItem value="100">Top 100</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={sortBy}
+          onValueChange={(value) => updateFilter("sortBy", value)}
+        >
+          <SelectTrigger className="w-full md:w-[150px] md:shrink-0 h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="orders">By Orders</SelectItem>
+            <SelectItem value="spending">By Spending</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={timeFilter}
+          onValueChange={(value) => updateFilter("timeFilter", value)}
+        >
+          <SelectTrigger className="w-full md:w-[150px] md:shrink-0 h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="this_month">This Month</SelectItem>
+            <SelectItem value="last_3_months">Last 3 Months</SelectItem>
+            <SelectItem value="last_6_months">Last 6 Months</SelectItem>
+            <SelectItem value="last_year">Last Year</SelectItem>
+            <SelectItem value="this_year">This Year</SelectItem>
+            <SelectItem value="all_time">All Time</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Summary */}

@@ -122,11 +122,8 @@ export function UserActivityList({
 
   useEffect(() => {
     fetchActivities();
-  }, []);
-
-  useEffect(() => {
-    fetchActivities();
     updateUrl();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, limit, actionFilter]);
 
   const handlePageChange = (page: number) => {
@@ -390,7 +387,8 @@ export function UserActivityList({
                       HTTP Method
                     </label>
                     <div className="grid grid-cols-2 gap-2">
-                      {["all", "GET", "POST", "PATCH", "DELETE"].map(
+                      {/* GET is excluded — the backend never logs GET requests */}
+                      {["all", "POST", "PATCH", "DELETE"].map(
                         (action) => (
                           <button
                             key={action}

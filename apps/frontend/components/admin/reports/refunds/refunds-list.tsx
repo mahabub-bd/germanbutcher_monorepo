@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import {
   Table,
   TableBody,
@@ -120,10 +120,9 @@ export default function RefundsList({
 
   return (
     <div className="w-full">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4">
         <PageHeader
           title="Refund & Cancelled Orders Report"
-          description="Cancelled orders, refunded money and cancellation reasons for a date range"
         />
         {orders.length > 0 && (
           <PDFDownloadLink
@@ -150,13 +149,7 @@ export default function RefundsList({
               }.pdf`}
           >
             {({ loading, error }) => (
-              <Button disabled={!!error} className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0 w-full sm:w-auto">
-                {error
-                  ? "PDF Error"
-                  : loading
-                    ? "Generating PDF..."
-                    : "Download PDF"}
-              </Button>
+              <PdfDownloadButton loading={loading} error={error} />
             )}
           </PDFDownloadLink>
         )}

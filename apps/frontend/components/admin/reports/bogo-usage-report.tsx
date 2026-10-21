@@ -142,10 +142,9 @@ export function BogoUsageReport({
 
   return (
     <div className="w-full">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4">
         <PageHeader
           title="BOGO Usage Report"
-          description="BOGO campaign usage with customer and order details"
         />
         <ReportPdfButton
           title="BOGO Usage Report"
