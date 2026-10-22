@@ -7,6 +7,9 @@ import type { CategorySales, CustomerTypeShare, OrderSummary, PaymentDueSummary,
 import { AlertTriangle, Calendar, CalendarDays, Package, Receipt, TrendingDown, TrendingUp, Users, Wallet, XCircle } from "lucide-react";
 import { PiePanel } from "./pie-panel";
 
+// Stat cards show whole Taka (e.g. ৳ 2,060) — decimals are rounded away.
+const formatTaka = (amount: number) => formatCurrencyEnglish(amount, 0);
+
 // Validated categorical slots (light + dark); slices take slots in fixed
 // order, overflow folds into a neutral "Other" slice.
 const PIE_SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"];
@@ -135,7 +138,7 @@ export default function DashboardStatsGrid({
         {/* Today */}
         <StatsCard
           title="Today"
-          value={formatCurrencyEnglish(todaySnapshot.todayValue)}
+          value={formatTaka(todaySnapshot.todayValue)}
           count={String(todaySnapshot.todayOrders)}
           description={`${isTodayUp ? "▲" : "▼"} ${Math.abs(todayGrowth).toFixed(1)}% vs yesterday`}
           icon={CalendarDays}
@@ -145,7 +148,7 @@ export default function DashboardStatsGrid({
         {/* Avg. Order Value */}
         <StatsCard
           title="Avg. Order Value"
-          value={formatCurrencyEnglish(avgOrderValue)}
+          value={formatTaka(avgOrderValue)}
           count={String(totals.orders)}
           description="Delivered revenue / orders"
           icon={Receipt}
@@ -154,7 +157,7 @@ export default function DashboardStatsGrid({
         {/* Sales - Current Month */}
         <StatsCard
           title={`Sales (${currentMonthLabel})`}
-          value={formatCurrencyEnglish(current.totalValue)}
+          value={formatTaka(current.totalValue)}
           count={String(current.orderCount)}
           description={` ${isSalesUp ? "▲" : "▼"} ${Math.abs(salesGrowth).toFixed(2)}%`}
           icon={isSalesUp ? TrendingUp : TrendingDown}
@@ -164,7 +167,7 @@ export default function DashboardStatsGrid({
         {/* Cancel - Current Month */}
         <StatsCard
           title={`Cancel (${currentMonthLabel})`}
-          value={formatCurrencyEnglish(current.cancelValue ?? 0)}
+          value={formatTaka(current.cancelValue ?? 0)}
           count={String(current.cancelOrderCount ?? 0)}
           description={` ${isCancelUp ? "▲" : "▼"} ${Math.abs(cancelGrowth).toFixed(2)}%`}
           icon={isCancelUp ? TrendingUp : TrendingDown}
@@ -174,7 +177,7 @@ export default function DashboardStatsGrid({
         {/* Sales - Last Month */}
         <StatsCard
           title={`Sales (${lastMonthLabel})`}
-          value={formatCurrencyEnglish(previous.totalValue)}
+          value={formatTaka(previous.totalValue)}
           count={String(previous.orderCount)}
           description="Previous month revenue"
           icon={Calendar}
@@ -184,7 +187,7 @@ export default function DashboardStatsGrid({
         {/* Cancel - Last Month */}
         <StatsCard
           title={`Cancel (${lastMonthLabel})`}
-          value={formatCurrencyEnglish(previous.cancelValue ?? 0)}
+          value={formatTaka(previous.cancelValue ?? 0)}
           count={String(previous.cancelOrderCount ?? 0)}
           description="Previous month cancellations"
           icon={TrendingDown}
@@ -193,7 +196,7 @@ export default function DashboardStatsGrid({
         {/* Total Sales */}
         <StatsCard
           title="Total Sales"
-          value={formatCurrencyEnglish(totals.sales)}
+          value={formatTaka(totals.sales)}
           count={String(totals.orders)}
           description="All-time revenue"
           icon={TrendingUp}
@@ -203,7 +206,7 @@ export default function DashboardStatsGrid({
         {/* Total Cancel */}
         <StatsCard
           title="Total Cancel"
-          value={formatCurrencyEnglish(totals.cancelValue)}
+          value={formatTaka(totals.cancelValue)}
           count={String(totals.cancelOrders)}
           description="All-time cancellations"
           icon={XCircle}
@@ -242,7 +245,7 @@ export default function DashboardStatsGrid({
         {/* Payment Due */}
         <StatsCard
           title="Payment Due"
-          value={formatCurrencyEnglish(paymentDue.dueAmount)}
+          value={formatTaka(paymentDue.dueAmount)}
           count={String(paymentDue.dueOrders)}
           description="Delivered · partially paid"
           icon={Wallet}

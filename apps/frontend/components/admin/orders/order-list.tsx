@@ -470,7 +470,7 @@ export function OrderList({
                         className="h-6 w-6 shrink-0"
                         onClick={() => handleCopyOrderNo(order.orderNo)}
                       >
-                        <Copy className="h-3.5 w-3.5" />
+                        <Copy className="h-3 w-3" />
                         <span className="sr-only">Copy order number</span>
                       </Button>
                     </div>
