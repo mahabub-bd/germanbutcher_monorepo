@@ -25,13 +25,13 @@ export function shortenArea(area: string, maxWords = 3): string {
   return `${words.slice(0, maxWords).join(" ")}…`;
 }
 
-export function formatCurrencyEnglish(amount: number): string {
+export function formatCurrencyEnglish(amount: number, maximumFractionDigits: number = 2): string {
   return new Intl.NumberFormat("en-BD", {
     style: "currency",
     currency: "BDT",
     currencyDisplay: "narrowSymbol",
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+    maximumFractionDigits,
   })
     .format(amount)
     .replace("BDT", "৳ ");

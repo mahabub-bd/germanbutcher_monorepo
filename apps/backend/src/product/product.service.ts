@@ -518,32 +518,19 @@ export class ProductService {
   ): Promise<Product[]> {
     const range = this.resolveBestsellerStartDate(timeFilter);
 
-    // All time — keep the cheap cumulative-counter path.
-    if (!range) {
-      const query = this.buildBestsellerQuery().where('product.saleCount > 0');
-      if (isActive !== undefined) {
-        query.andWhere('product.isActive = :isActive', { isActive });
-      }
-      return await query
-        .orderBy('product.saleCount', 'DESC')
-        .addOrderBy('product.name', 'ASC')
-        .take(limit)
-        .cache(
-          `bestselling_products_${limit}_${isActive ?? 'all'}`,
-          30000,
-        )
-        .getMany();
-    }
-
-    // Time-filtered — sold quantity from delivered orders in the window.
+    // Sold quantity from delivered orders (no date window = all time).
     const salesWindow = this.productRepository.manager
       .createQueryBuilder(OrderItem, 'orderItem')
       .select('orderItem.productId', 'productId')
       .addSelect('SUM(orderItem.quantity)', 'sold')
       .innerJoin('orderItem.order', 'order')
-      .where('order.orderStatus = :status', { status: 'delivered' })
-      .andWhere('order.createdAt >= :startDate', { startDate: range.start });
-    if (range.end) {
+      .where('order.orderStatus = :status', { status: 'delivered' });
+    if (range?.start) {
+      salesWindow.andWhere('order.createdAt >= :startDate', {
+        startDate: range.start,
+      });
+    }
+    if (range?.end) {
       salesWindow.andWhere('order.createdAt < :endDate', { endDate: range.end });
     }
     const rows = await salesWindow

@@ -1464,7 +1464,8 @@ export class OrderService {
 
     const rows: Record<string, string>[] = await this.orderRepository.query(
       `SELECT
-         TO_CHAR("createdAt", 'YYYY-MM-DD') AS date,
+         -- createdAt is stored in UTC; +6h buckets rows by the Dhaka calendar day
+         TO_CHAR("createdAt" + INTERVAL '6 hours', 'YYYY-MM-DD') AS date,
          COUNT(*) AS order_count,
          COALESCE(SUM("totalValue"), 0) AS order_value,
          COALESCE(SUM(CASE WHEN "orderStatus" = 'delivered' THEN 1 END), 0) AS delivered_count,
@@ -1575,7 +1576,8 @@ export class OrderService {
 
     const rows: Record<string, string>[] = await this.orderRepository.query(
       `SELECT o.id, o."orderNo",
-              TO_CHAR(o."createdAt", 'YYYY-MM-DD') AS date,
+              -- createdAt is stored in UTC; +6h shows the Dhaka calendar day
+              TO_CHAR(o."createdAt" + INTERVAL '6 hours', 'YYYY-MM-DD') AS date,
               o."totalValue", o."paidAmount", o."paymentStatus",
               t.note AS reason
        FROM "order" o

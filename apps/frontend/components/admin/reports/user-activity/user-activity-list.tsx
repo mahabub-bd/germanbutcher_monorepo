@@ -17,7 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
 import type { UserActivity } from "@/utils/types";
 import {
@@ -197,6 +196,27 @@ export function UserActivityList({
     return { method: action, path: '' };
   };
 
+  // Two-line date cell: date on top, time below (Dhaka timezone, matches utils.formatDateTime).
+  const formatDate = (input: string | Date) => {
+    const d = input instanceof Date ? input : new Date(input);
+    return d.toLocaleDateString("en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZone: "Asia/Dhaka",
+    });
+  };
+
+  const formatTime = (input: string | Date) => {
+    const d = input instanceof Date ? input : new Date(input);
+    return d.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Dhaka",
+    });
+  };
+
   const renderEmptyState = () => (
     <div className="flex flex-col items-center justify-center p-8 text-center">
       <Activity className="h-10 w-10 text-muted-foreground mb-4" />
@@ -265,8 +285,15 @@ export function UserActivityList({
             const { method, path } = formatAction(activity.action);
             return (
               <TableRow key={activity.id} className="hover:bg-muted/50">
-                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                  {formatDateTime(activity.createdAt)}
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium whitespace-nowrap">
+                      {formatDate(activity.createdAt)}
+                    </span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatTime(activity.createdAt)}
+                    </span>
+                  </div>
                 </TableCell>
 
                 <TableCell>
@@ -309,10 +336,10 @@ export function UserActivityList({
 
                 <TableCell className="max-w-xs">
                   <span
-                    className={`block max-w-xs text-sm ${
+                    className={`text-sm ${
                       expandedMessages.has(activity.id)
-                        ? "whitespace-normal wrap-break-word"
-                        : "cursor-pointer truncate"
+                        ? "block whitespace-normal wrap-break-word"
+                        : "line-clamp-2 cursor-pointer wrap-break-word"
                     }`}
                     title={
                       expandedMessages.has(activity.id)
