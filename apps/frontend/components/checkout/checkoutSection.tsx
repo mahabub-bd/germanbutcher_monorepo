@@ -21,7 +21,6 @@ import type {
 
 import { mobileLogin, verifyOtp } from "@/actions/auth";
 import { OtpVerificationModal } from "@/components/auth/otp-verification-modal";
-import { AccountCreation } from "@/components/checkout/account-creation";
 import { CustomerInformation } from "@/components/checkout/customer-information";
 import { EmptyCartMessage } from "@/components/checkout/empty-cart-message";
 import { OrderItems } from "@/components/checkout/order-items";
@@ -59,7 +58,6 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
     area: "",
     city: "",
     division: "",
-    createAccount: false,
   });
 
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(
@@ -283,11 +281,6 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
   };
 
   const handleSubmit = async () => {
-    if (formData.createAccount && !user && !isVerified) {
-      toast.error("Please verify your phone number to create an account");
-      return;
-    }
-
     // Validate required fields and highlight empty ones in red
     const newErrors: Record<string, string> = {};
     if (!formData.name.trim()) {
@@ -479,15 +472,6 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
               onSelectMethod={setSelectedPaymentMethod}
               disabledMethods={disabledPaymentMethods}
             />
-
-            {!user && (
-              <AccountCreation
-                createAccount={formData.createAccount}
-                onChange={(value) =>
-                  handleFormDataChange("createAccount", value)
-                }
-              />
-            )}
 
             {/* Mobile Order Summary */}
             <div className="lg:hidden">

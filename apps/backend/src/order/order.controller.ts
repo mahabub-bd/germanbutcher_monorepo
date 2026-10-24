@@ -308,17 +308,25 @@ export class OrderController {
     enum: OrderStatus,
     description: 'Filter by order status',
   })
+  @ApiQuery({
+    name: 'paymentStatus',
+    required: false,
+    enum: PaymentStatus,
+    description: 'Filter by payment status',
+  })
   async getOrderReportByDateRange(
     @Query('fromDate') fromDate?: string,
     @Query('toDate') toDate?: string,
     @Query('preset') preset?: DateRangePreset,
     @Query('orderStatus') orderStatus?: OrderStatus,
+    @Query('paymentStatus') paymentStatus?: PaymentStatus,
   ): Promise<ApiResponseDto<any>> {
     const data = await this.orderService.getOrderReportByDateRange(
       fromDate,
       toDate,
       preset,
       orderStatus,
+      paymentStatus,
     );
     return {
       message: 'Order report retrieved successfully',

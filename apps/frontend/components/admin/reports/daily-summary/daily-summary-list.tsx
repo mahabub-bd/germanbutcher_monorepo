@@ -3,12 +3,11 @@
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
 import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
-import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import {
   ReportDateFilters,
   type ReportFilterParams,
 } from "@/components/admin/reports/report-date-filters";
-import { useBusinessSettings } from "@/hooks/use-business-settings";
+import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import {
   Table,
   TableBody,
@@ -17,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { CalendarDays, ShoppingCart, Wallet } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -45,6 +45,8 @@ interface DailyRow {
   deliveredValue: number;
   cancelledCount: number;
   cancelledValue: number;
+  pendingCount: number;
+  pendingValue: number;
   paidAmount: number;
   dueAmount: number;
 }
@@ -57,10 +59,10 @@ interface DailySummaryListProps {
   daily: DailyRow[];
 }
 
-const formatCurrency = (value: number) =>
+const formatCurrency = (value: number, maximumFractionDigits = 2) =>
   new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: maximumFractionDigits,
+    maximumFractionDigits,
   }).format(value || 0);
 
 export default function DailySummaryList({
@@ -94,6 +96,8 @@ export default function DailySummaryList({
     formatCurrency(row.deliveredValue),
     row.cancelledCount,
     formatCurrency(row.cancelledValue),
+    row.pendingCount,
+    formatCurrency(row.pendingValue),
     formatCurrency(row.paidAmount),
     formatCurrency(row.dueAmount),
   ]);
@@ -116,6 +120,7 @@ export default function DailySummaryList({
             document={
               <ReportTablePDF
                 title="Daily Summary Report"
+                orientation="landscape"
                 headers={[
                   "Date",
                   "Orders",
@@ -124,19 +129,20 @@ export default function DailySummaryList({
                   "Delivered Value",
                   "Cancelled",
                   "Cancelled Value",
+                  "Pending/Processing",
+                  "Pending Value",
                   "Paid",
                   "Due",
                 ]}
-                flexes={[1.2, 0.7, 1, 0.8, 1, 0.8, 1, 1, 1]}
-                alignRight={[1, 2, 3, 4, 5, 6, 7, 8]}
+                flexes={[1.2, 0.7, 1, 0.8, 1, 0.8, 0.9, 1.1, 1, 0.9, 1]}
+                alignRight={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
                 rows={pdfRows}
                 summary={pdfSummary}
                 settings={settings}
               />
             }
-            fileName={`daily-summary-report-${
-              new Date().toISOString().split("T")[0]
-            }.pdf`}
+            fileName={`daily-summary-report-${new Date().toISOString().split("T")[0]
+              }.pdf`}
           >
             {({ loading, error }) => (
               <PdfDownloadButton loading={loading} error={error} />
@@ -154,31 +160,31 @@ export default function DailySummaryList({
       />
 
       {/* Range summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <StatsCard
           icon={ShoppingCart}
           title="Total Orders"
           value={summary?.totalOrders ?? 0}
-          count={formatCurrency(summary?.totalValue ?? 0)}
+          count={formatCurrency(summary?.totalValue ?? 0, 0)}
           bgColor="blue"
         />
         <StatsCard
           icon={CalendarDays}
           title="Delivered"
           value={summary?.deliveredOrders ?? 0}
-          count={formatCurrency(summary?.deliveredValue ?? 0)}
+          count={formatCurrency(summary?.deliveredValue ?? 0, 0)}
           bgColor="green"
         />
         <StatsCard
           icon={Wallet}
           title="Paid"
-          value={formatCurrency(summary?.paidAmount ?? 0)}
+          value={formatCurrency(summary?.paidAmount ?? 0, 0)}
           bgColor="purple"
         />
         <StatsCard
           icon={Wallet}
           title="Due"
-          value={formatCurrency(summary?.dueAmount ?? 0)}
+          value={formatCurrency(summary?.dueAmount ?? 0, 0)}
           bgColor="red"
         />
       </div>
@@ -194,6 +200,8 @@ export default function DailySummaryList({
               <TableHead className="text-right">Delivered</TableHead>
               <TableHead className="text-right">Delivered Value</TableHead>
               <TableHead className="text-right">Cancelled</TableHead>
+              <TableHead className="text-right">Pending/Processing</TableHead>
+              <TableHead className="text-right">Pending Value</TableHead>
               <TableHead className="text-right">Paid</TableHead>
               <TableHead className="text-right">Due</TableHead>
             </TableRow>
@@ -202,7 +210,7 @@ export default function DailySummaryList({
             {daily.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={10}
                   className="text-center py-12 text-muted-foreground"
                 >
                   No orders found for this date range
@@ -226,6 +234,12 @@ export default function DailySummaryList({
                   </TableCell>
                   <TableCell className="text-right text-red-600 dark:text-red-400">
                     {row.cancelledCount}
+                  </TableCell>
+                  <TableCell className="text-right text-orange-600 dark:text-orange-400">
+                    {row.pendingCount}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(row.pendingValue)}
                   </TableCell>
                   <TableCell className="text-right">
                     {formatCurrency(row.paidAmount)}

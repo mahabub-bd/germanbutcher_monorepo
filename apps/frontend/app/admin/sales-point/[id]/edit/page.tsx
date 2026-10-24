@@ -3,7 +3,7 @@
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { SalesPointForm } from "@/components/admin/sales-point/sales-point-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchProtectedData } from "@/utils/api-utils";
 import type { SalesPoint } from "@/utils/types";
 import Link from "next/link";
@@ -50,9 +50,6 @@ export default function EditSalesPointPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Sales Point</CardTitle>
-            <CardDescription>
-              Update the sales point information.
-            </CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/sales-point/sales-point-list">

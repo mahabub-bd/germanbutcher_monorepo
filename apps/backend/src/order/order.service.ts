@@ -1315,6 +1315,7 @@ export class OrderService {
     toDate?: string,
     dateRangePreset?: string,
     orderStatus?: OrderStatus,
+    paymentStatus?: PaymentStatus,
   ) {
     // --- Determine date range ---
     let from: Date | undefined;
@@ -1360,6 +1361,11 @@ export class OrderService {
     // Apply order status filter
     if (orderStatus) {
       query.andWhere('order.orderStatus = :orderStatus', { orderStatus });
+    }
+
+    // Apply payment status filter
+    if (paymentStatus) {
+      query.andWhere('order.paymentStatus = :paymentStatus', { paymentStatus });
     }
 
     const orders = await query.getMany();
@@ -1472,6 +1478,8 @@ export class OrderService {
          COALESCE(SUM(CASE WHEN "orderStatus" = 'delivered' THEN "totalValue" END), 0) AS delivered_value,
          COALESCE(SUM(CASE WHEN "orderStatus" = 'cancelled' THEN 1 END), 0) AS cancelled_count,
          COALESCE(SUM(CASE WHEN "orderStatus" = 'cancelled' THEN "totalValue" END), 0) AS cancelled_value,
+         COALESCE(SUM(CASE WHEN "orderStatus" IN ('pending', 'processing') THEN 1 END), 0) AS pending_count,
+         COALESCE(SUM(CASE WHEN "orderStatus" IN ('pending', 'processing') THEN "totalValue" END), 0) AS pending_value,
          COALESCE(SUM("paidAmount"), 0) AS paid_amount,
          COALESCE(SUM("totalValue" - "paidAmount"), 0) AS due_amount
        FROM "order"
@@ -1489,6 +1497,8 @@ export class OrderService {
       deliveredValue: parseFloat(row.delivered_value) || 0,
       cancelledCount: parseInt(row.cancelled_count, 10) || 0,
       cancelledValue: parseFloat(row.cancelled_value) || 0,
+      pendingCount: parseInt(row.pending_count, 10) || 0,
+      pendingValue: parseFloat(row.pending_value) || 0,
       paidAmount: parseFloat(row.paid_amount) || 0,
       dueAmount: parseFloat(row.due_amount) || 0,
     }));
@@ -1500,6 +1510,8 @@ export class OrderService {
         deliveredOrders: acc.deliveredOrders + d.deliveredCount,
         deliveredValue: acc.deliveredValue + d.deliveredValue,
         cancelledOrders: acc.cancelledOrders + d.cancelledCount,
+        pendingOrders: acc.pendingOrders + d.pendingCount,
+        pendingValue: acc.pendingValue + d.pendingValue,
         paidAmount: acc.paidAmount + d.paidAmount,
         dueAmount: acc.dueAmount + d.dueAmount,
       }),
@@ -1509,6 +1521,8 @@ export class OrderService {
         deliveredOrders: 0,
         deliveredValue: 0,
         cancelledOrders: 0,
+        pendingOrders: 0,
+        pendingValue: 0,
         paidAmount: 0,
         dueAmount: 0,
       },

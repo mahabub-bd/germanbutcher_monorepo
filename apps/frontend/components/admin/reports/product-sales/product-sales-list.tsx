@@ -134,7 +134,7 @@ export default function ProductSalesList({
         <StatsCard
           icon={TrendingUp}
           title="Total Revenue"
-          value={formatCurrencyEnglish(totalRevenue)}
+          value={formatCurrencyEnglish(totalRevenue, 0)}
           bgColor="green"
         />
         <StatsCard

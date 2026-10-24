@@ -2,7 +2,7 @@
 
 import { RoleForm } from "@/components/admin/role/role-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchData } from "@/utils/api-utils";
 import { Role } from "@/utils/types";
 import { Loader2 } from "lucide-react";
@@ -73,7 +73,6 @@ export default function EditRolePage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Role Information</CardTitle>
-            <CardDescription>Update the role details.</CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/user/role/role-list">Back to Role List</Link>

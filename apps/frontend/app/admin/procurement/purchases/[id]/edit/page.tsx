@@ -3,7 +3,7 @@
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { PurchaseForm } from "@/components/admin/procurement/purchases/purchase-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchProtectedData } from "@/utils/api-utils";
 
 import type { Purchase } from "@/utils/types";
@@ -52,7 +52,6 @@ export default function EditPurchasePage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Purchase</CardTitle>
-            <CardDescription>Update the purchase information.</CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/procurement/purchases/purchases-list">Back to Purchases</Link>

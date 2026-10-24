@@ -3,7 +3,7 @@
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { OrderForm } from "@/components/admin/orders/order-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchProtectedData } from "@/utils/api-utils";
 import type { Order } from "@/utils/types";
 import { List } from "lucide-react";
@@ -50,7 +50,6 @@ export default function EditOrderPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Order</CardTitle>
-            <CardDescription>Update the order information.</CardDescription>
           </div>
           <Button className="bg-primaryColor text-white hover:bg-primaryColor/90" asChild>
             <Link href={`/admin/orders`}>

@@ -3,7 +3,7 @@
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { RecipeForm } from "@/components/admin/recipe/recipe-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchData } from "@/utils/api-utils";
 import { Recipe } from "@/utils/types";
 
@@ -50,7 +50,6 @@ export default function EditRecipePage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Recipe</CardTitle>
-            <CardDescription>Update the recipe information.</CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/recipe/recipe-list">Back to Recipes</Link>

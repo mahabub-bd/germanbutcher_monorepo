@@ -3,7 +3,7 @@
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { PaymentMethodForm } from "@/components/admin/payment-method/payment-method-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchData } from "@/utils/api-utils";
 import type { PaymentMethod } from "@/utils/types";
 import Link from "next/link";
@@ -72,9 +72,6 @@ export default function EditPaymentMethodPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Payment Method Information</CardTitle>
-            <CardDescription>
-              Update the payment method details.
-            </CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/settings/payment-method">

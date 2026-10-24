@@ -380,13 +380,13 @@ export function UserList({
         />
 
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-row justify-between gap-2">
+            <div className="relative w-full sm:max-w-xs min-w-0">
+              <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search users..."
-                className="pl-8"
+                className="h-8 pl-8"
                 value={searchQuery}
                 onChange={handleSearchChange}
               />

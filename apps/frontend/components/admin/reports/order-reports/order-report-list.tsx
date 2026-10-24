@@ -3,12 +3,12 @@
 import { OrderStatus } from "@/common/enums";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
+import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import {
   ReportDateFilters,
   type ReportFilterParams,
 } from "@/components/admin/reports/report-date-filters";
 import { Button } from "@/components/ui/button";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import {
   Select,
   SelectContent,
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import { PaymentStatus } from "@/utils/types";
 import { Eye, ShoppingCart, Wallet } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -76,6 +77,7 @@ interface OrderReportProps {
   toDate?: string;
   preset?: string;
   orderStatus?: string;
+  paymentStatus?: string;
   totalOrders: number;
   totalValue: number;
   totalDiscount: number;
@@ -88,6 +90,7 @@ export default function OrderReportList({
   toDate,
   preset,
   orderStatus,
+  paymentStatus,
   totalOrders,
   totalValue,
   totalDiscount,
@@ -99,6 +102,9 @@ export default function OrderReportList({
 
   const [selectedOrderStatus, setSelectedOrderStatus] = useState<string>(
     orderStatus || "all"
+  );
+  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<string>(
+    paymentStatus || "all"
   );
 
   useEffect(() => {
@@ -112,11 +118,14 @@ export default function OrderReportList({
     if (params.toDate) qs.set("toDate", params.toDate);
     if (selectedOrderStatus && selectedOrderStatus !== "all")
       qs.set("orderStatus", selectedOrderStatus);
+    if (selectedPaymentStatus && selectedPaymentStatus !== "all")
+      qs.set("paymentStatus", selectedPaymentStatus);
     router.push(`?${qs.toString()}`);
   };
 
   const handleFilterClear = () => {
     setSelectedOrderStatus("all");
+    setSelectedPaymentStatus("all");
   };
 
   return (
@@ -145,29 +154,57 @@ export default function OrderReportList({
         fromDate={fromDate}
         toDate={toDate}
         extra={
-          <Select
-            value={selectedOrderStatus || "all"}
-            onValueChange={setSelectedOrderStatus}
-          >
-            <SelectTrigger className="w-full md:w-[150px] md:shrink-0">
-              <SelectValue placeholder="Order Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value={OrderStatus.PENDING}>Pending</SelectItem>
-              <SelectItem value={OrderStatus.PROCESSING}>
-                Processing
-              </SelectItem>
-              <SelectItem value={OrderStatus.SHIPPED}>Shipped</SelectItem>
-              <SelectItem value={OrderStatus.DELIVERED}>
-                Delivered
-              </SelectItem>
-              <SelectItem value={OrderStatus.CANCELLED}>
-                Cancelled
-              </SelectItem>
-              <SelectItem value={OrderStatus.RETURNED}>Returned</SelectItem>
-            </SelectContent>
-          </Select>
+          <>
+            <Select
+              value={selectedOrderStatus || "all"}
+              onValueChange={setSelectedOrderStatus}
+            >
+              <SelectTrigger className="w-full md:w-40 md:shrink-0">
+                <SelectValue placeholder="Order Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Order Status</SelectItem>
+                <SelectItem value={OrderStatus.PENDING}>Pending</SelectItem>
+                <SelectItem value={OrderStatus.PROCESSING}>
+                  Processing
+                </SelectItem>
+                <SelectItem value={OrderStatus.SHIPPED}>Shipped</SelectItem>
+                <SelectItem value={OrderStatus.DELIVERED}>
+                  Delivered
+                </SelectItem>
+                <SelectItem value={OrderStatus.CANCELLED}>
+                  Cancelled
+                </SelectItem>
+                <SelectItem value={OrderStatus.RETURNED}>Returned</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={selectedPaymentStatus || "all"}
+              onValueChange={setSelectedPaymentStatus}
+            >
+              <SelectTrigger className="w-full md:w-42.5 md:shrink-0">
+                <SelectValue placeholder="Payment Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Payment Status</SelectItem>
+                <SelectItem value={PaymentStatus.PENDING}>Pending</SelectItem>
+                <SelectItem value={PaymentStatus.COMPLETED}>Completed</SelectItem>
+                <SelectItem value={PaymentStatus.PARTIAL}>Partial</SelectItem>
+                <SelectItem value={PaymentStatus.PAID}>Paid</SelectItem>
+                <SelectItem value={PaymentStatus.FAILED}>Failed</SelectItem>
+                <SelectItem value={PaymentStatus.REFUNDED}>Refunded</SelectItem>
+                <SelectItem value={PaymentStatus.NEED_REFUND}>
+                  Need Refund
+                </SelectItem>
+                <SelectItem value={PaymentStatus.PARTIAL_REFUND}>
+                  Partial Refund
+                </SelectItem>
+                <SelectItem value={PaymentStatus.REFUND_COMPLETE}>
+                  Refund Complete
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </>
         }
         onApply={handleFilterApply}
         onClear={handleFilterClear}
@@ -178,7 +215,7 @@ export default function OrderReportList({
         <div className="mb-4 grid grid-cols-2 2xl:grid-cols-4 gap-3">
           <StatsCard
             title="Total Orders"
-            value={formatCurrencyEnglish(totalValue)}
+            value={formatCurrencyEnglish(totalValue, 0)}
             count={String(totalOrders)}
             description="All orders in this period"
             icon={ShoppingCart}
@@ -186,7 +223,7 @@ export default function OrderReportList({
           />
           <StatsCard
             title="Total Value"
-            value={formatCurrencyEnglish(totalValue)}
+            value={formatCurrencyEnglish(totalValue, 0)}
             count={String(totalOrders)}
             description="Sum of order values"
             icon={ShoppingCart}
@@ -194,7 +231,7 @@ export default function OrderReportList({
           />
           <StatsCard
             title="Total Discount"
-            value={formatCurrencyEnglish(totalDiscount)}
+            value={formatCurrencyEnglish(totalDiscount, 0)}
             count={String(totalOrders)}
             description="Total discounts given"
             icon={Wallet}
@@ -202,7 +239,7 @@ export default function OrderReportList({
           />
           <StatsCard
             title="Total Paid"
-            value={formatCurrencyEnglish(totalPaid)}
+            value={formatCurrencyEnglish(totalPaid, 0)}
             count={String(totalOrders)}
             description="Total amount paid"
             icon={Wallet}
@@ -216,7 +253,7 @@ export default function OrderReportList({
         <Table>
           <TableHeader>
             <TableRow>
-           
+
               <TableHead>Order No</TableHead>
               <TableHead>Order Status</TableHead>
               <TableHead>Payment Status</TableHead>
@@ -239,7 +276,7 @@ export default function OrderReportList({
             ) : (
               orders.map((o) => (
                 <TableRow key={o.orderNo}>
-                  
+
                   <TableCell>{o.orderNo}</TableCell>
                   <TableCell>{o.orderStatus}</TableCell>
                   <TableCell>{o.paymentStatus}</TableCell>

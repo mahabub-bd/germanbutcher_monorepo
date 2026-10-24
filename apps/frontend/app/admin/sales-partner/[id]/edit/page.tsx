@@ -3,7 +3,7 @@
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { SalesPartnerForm } from "@/components/admin/sales-partner/sales-partner-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchData } from "@/utils/api-utils";
 import type { SalesPartner } from "@/utils/types";
 import Link from "next/link";
@@ -50,9 +50,6 @@ export default function EditSalesPartnerPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Sales Partner</CardTitle>
-            <CardDescription>
-              Update the sales partner information.
-            </CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/sales-partner/sales-partner-list">

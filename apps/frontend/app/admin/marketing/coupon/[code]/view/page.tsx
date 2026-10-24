@@ -3,7 +3,7 @@
 import { CouponForm } from "@/components/admin/coupon/coupon-form";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchProtectedData } from "@/utils/api-utils";
 import { Coupon } from "@/utils/types";
 import Link from "next/link";
@@ -66,7 +66,6 @@ export default function ViewCouponPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Coupon Information</CardTitle>
-            <CardDescription>Update the coupon details.</CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/coupons">Back to Coupons</Link>

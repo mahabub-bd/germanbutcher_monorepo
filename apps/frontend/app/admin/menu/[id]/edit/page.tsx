@@ -3,7 +3,7 @@
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { MenuForm } from "@/components/admin/menu/menu-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchData } from "@/utils/api-utils";
 import type { MenuItem } from "@/utils/types";
 import Link from "next/link";
@@ -49,7 +49,6 @@ export default function EditMenuPage() {
         <div className="flex justify-between items-center">
           <div>
             <CardTitle>Edit Menu Item</CardTitle>
-            <CardDescription>Update the menu item information.</CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/menu/menu-list">Back to Menu</Link>

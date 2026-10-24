@@ -592,13 +592,13 @@ export function PurchaseList({
                 </p>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
-              <div className="relative w-full sm:w-64">
+            <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
+              <div className="relative w-full sm:w-64 min-w-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
                   placeholder="Search purchases..."
-                  className="pl-9"
+                  className="h-8 pl-9"
                   value={searchQuery}
                   onChange={handleSearchChange}
                 />

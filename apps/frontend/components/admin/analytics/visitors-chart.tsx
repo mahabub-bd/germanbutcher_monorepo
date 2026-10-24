@@ -100,7 +100,9 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
               axisLine={false}
               tickLine={false}
               tickMargin={5}
-              interval={0}
+              // Force every tick on desktop; auto-thin overlapping labels on mobile
+              interval={windowSize.width < 640 ? "preserveStartEnd" : 0}
+              minTickGap={windowSize.width < 640 ? 30 : 0}
               angle={-45}
               textAnchor="end"
               height={45}

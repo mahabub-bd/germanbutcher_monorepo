@@ -123,8 +123,8 @@ export function CouponUsageReport({
     });
   };
 
-  const formatMoney = (value: number | string) =>
-    `BDT ${Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatMoney = (value: number | string, decimals = 2) =>
+    `BDT ${Number(value).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 
   // Amounts use the ASCII "BDT " prefix everywhere — the ৳ glyph is not
   const formatMoneyPdf = (value: number | string) =>
@@ -182,7 +182,7 @@ export function CouponUsageReport({
       />
 
       {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <StatsCard
             title="Total Uses"
             value={stats.totalUses}
@@ -192,14 +192,14 @@ export function CouponUsageReport({
           />
           <StatsCard
             title="Total Discount Given"
-            value={formatMoney(stats.totalDiscountGiven)}
+            value={formatMoney(stats.totalDiscountGiven, 0)}
             description="Sum of all coupon discounts"
             icon={Tag}
             bgColor="red"
           />
           <StatsCard
             title="Total Order Value"
-            value={formatMoney(stats.totalOrderValue)}
+            value={formatMoney(stats.totalOrderValue, 0)}
             description="Value of orders using coupons"
             icon={TrendingUp}
             bgColor="green"

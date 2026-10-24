@@ -2,10 +2,10 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
+import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import { Badge } from "@/components/ui/badge";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import {
   Table,
   TableBody,
@@ -162,7 +162,7 @@ export default function RefundsList({
         onApply={applyParams}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
         <StatsCard
           icon={Ban}
           title="Cancelled Orders"
@@ -172,13 +172,13 @@ export default function RefundsList({
         <StatsCard
           icon={AlertTriangle}
           title="Cancelled Value"
-          value={formatCurrencyEnglish(totalValue)}
+          value={formatCurrencyEnglish(totalValue, 0)}
           bgColor="amber"
         />
         <StatsCard
           icon={RotateCcw}
           title="Refunded Amount"
-          value={formatCurrencyEnglish(summary?.refundedAmount ?? 0)}
+          value={formatCurrencyEnglish(summary?.refundedAmount ?? 0, 0)}
           bgColor="purple"
         />
       </div>
@@ -266,7 +266,7 @@ export default function RefundsList({
                     {amount(o.refundedAmount)}
                   </TableCell>
                   <TableCell className="pl-8">{paymentBadge(o.paymentStatus)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-[240px] truncate">
+                  <TableCell className="text-sm text-muted-foreground max-w-60 truncate">
                     {o.reason || "—"}
                   </TableCell>
                 </TableRow>

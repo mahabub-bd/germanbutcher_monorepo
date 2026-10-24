@@ -300,13 +300,13 @@ export function CustomerList({
 
       <div className="space-y-4">
         {/* Search Bar */}
-        <div className="flex flex-col sm:flex-row justify-between gap-4">
-          <div className="relative w-full sm:max-w-md">
+        <div className="flex flex-row justify-between gap-2">
+          <div className="relative w-full sm:max-w-md min-w-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
               placeholder="Search by name, email, or phone..."
-              className="pl-10 pr-4"
+              className="h-8 pl-10 pr-4"
               value={searchQuery}
               onChange={handleSearchChange}
             />

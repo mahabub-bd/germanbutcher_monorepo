@@ -81,9 +81,6 @@ function OrderPaymentsListPageContent() {
           <h1 className="truncate text-2xl font-bold">
             Payments for Order #{order.orderNo}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Manage and track payment details
-          </p>
         </div>
         <div className="flex shrink-0 gap-3">
           <Button className="bg-primaryColor text-white hover:bg-primaryColor/90" asChild>

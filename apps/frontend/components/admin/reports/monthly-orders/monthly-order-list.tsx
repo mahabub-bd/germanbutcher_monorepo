@@ -18,8 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrencyEnglish } from "@/lib/utils";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
+import { formatCurrencyEnglish } from "@/lib/utils";
 import { ShoppingCart, XCircle } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -112,7 +112,7 @@ export default function MonthlyOrderReportList({
           value={selectedYear ? String(selectedYear) : "all"}
           onValueChange={handleYearChange}
         >
-          <SelectTrigger className="w-full md:w-[150px] md:shrink-0">
+          <SelectTrigger className="w-full md:w-37.5 md:shrink-0">
             <SelectValue placeholder="All Years" />
           </SelectTrigger>
           <SelectContent>
@@ -128,10 +128,10 @@ export default function MonthlyOrderReportList({
 
       {/* Summary */}
       {monthlyData.length > 0 && (
-        <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="mb-4 grid grid-cols-2 md:grid-cols-3 gap-3">
           <StatsCard
             title="All Orders"
-            value={formatCurrencyEnglish(totalAllOrderValue)}
+            value={formatCurrencyEnglish(totalAllOrderValue, 0)}
             count={String(totalAllOrders)}
             description="All orders regardless of status"
             icon={ShoppingCart}
@@ -139,7 +139,7 @@ export default function MonthlyOrderReportList({
           />
           <StatsCard
             title="Delivered Orders"
-            value={formatCurrencyEnglish(totalValue)}
+            value={formatCurrencyEnglish(totalValue, 0)}
             count={String(totalOrders)}
             description="Successfully delivered orders"
             icon={ShoppingCart}
@@ -147,7 +147,7 @@ export default function MonthlyOrderReportList({
           />
           <StatsCard
             title="Cancelled Orders"
-            value={formatCurrencyEnglish(totalCancelValue)}
+            value={formatCurrencyEnglish(totalCancelValue, 0)}
             count={String(totalCancelled)}
             description="Cancelled orders"
             icon={XCircle}

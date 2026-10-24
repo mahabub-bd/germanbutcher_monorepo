@@ -228,11 +228,6 @@ export function CouponForm({ coupon, mode, onSuccess }: CouponFormProps) {
             <h2 className="text-2xl font-bold">
               {mode === "create" ? "Create Coupon" : "Edit Coupon"}
             </h2>
-            <p className="text-sm text-muted-foreground">
-              {mode === "create"
-                ? "Define a new discount coupon"
-                : "Update the coupon details"}
-            </p>
           </div>
         </div>
         <Button className="bg-primaryColor text-white hover:bg-primaryColor/90" asChild>
