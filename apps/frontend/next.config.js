@@ -2,6 +2,9 @@
 const nextConfig = {
   reactCompiler: true,
   output: 'standalone',
+  experimental: {
+    agentUpgrade: 'security',
+  },
   transpilePackages: ["@react-pdf/renderer"],
   webpack: (config, { isServer }) => {
 
