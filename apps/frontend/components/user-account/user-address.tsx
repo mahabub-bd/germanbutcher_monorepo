@@ -1,7 +1,7 @@
 "use client";
 
-import { deleteData } from "@/utils/api-utils";
 import { AccountPageHeader } from "@/components/user-account/account-page-header";
+import { deleteData } from "@/utils/api-utils";
 import { serverRevalidate } from "@/utils/revalidatePath";
 import { Address } from "@/utils/types";
 import {
@@ -162,9 +162,9 @@ export default function MyAddress({
 
           const fields = [
             { label: "Address", value: address.address },
-            { label: "Area", value: address.area },
-            { label: "City", value: address.city },
             { label: "Division", value: address.division },
+            { label: "City", value: address.city },
+            { label: "Area", value: address.area },
           ];
 
           return (
@@ -220,7 +220,7 @@ export default function MyAddress({
                     <span className="w-20 sm:w-28 lg:w-36 shrink-0 text-xs sm:text-base text-gray-500">
                       {field.label}
                     </span>
-                    <span className="text-xs sm:text-base font-medium text-gray-900 break-words">
+                    <span className="text-xs sm:text-base font-medium text-gray-900 wrap-break-word">
                       {field.value}
                     </span>
                   </div>
