@@ -3,6 +3,7 @@
 import { AddressSelector } from "@/components/checkout/address-selector";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   Select,
   SelectContent,
@@ -11,7 +12,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Address, User as UserType } from "@/utils/types";
+import {
+  DISTRICT_AREAS,
+  getDistrictsByDivision,
+} from "@/data/districts-areas";
 import { MapPin } from "lucide-react";
+
+const areasByDistrict = new Map(
+  DISTRICT_AREAS.map(({ district, areas }) => [
+    district,
+    [...new Set(areas)].sort((a, b) => a.localeCompare(b)),
+  ]),
+);
 
 interface ShippingInformationProps {
   formData: {
@@ -67,55 +79,16 @@ export function ShippingInformation({
         {showAddressForm && (
           <div className="grid md:grid-cols-2 grid-cols-1 gap-4 text-md">
             <div>
-              <Label htmlFor="address">Address *</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => onChange("address", e.target.value)}
-                placeholder="House #, Road #, Area"
-                aria-invalid={!!errors?.address}
-                className="mt-1 w-full"
-              />
-              {errors?.address && (
-                <p className="mt-1 text-xs text-red-500">{errors.address}</p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="area">Area *</Label>
-              <Input
-                id="area"
-                value={formData.area}
-                onChange={(e) => onChange("area", e.target.value)}
-                placeholder="Your area (e.g., Badda, Gulshan)"
-                aria-invalid={!!errors?.area}
-                className="mt-1 w-full"
-              />
-              {errors?.area && (
-                <p className="mt-1 text-xs text-red-500">{errors.area}</p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="city">City *</Label>
-              <Input
-                id="city"
-                value={formData.city}
-                onChange={(e) => onChange("city", e.target.value)}
-                placeholder="Your city"
-                aria-invalid={!!errors?.city}
-                className="mt-1 w-full"
-              />
-              {errors?.city && (
-                <p className="mt-1 text-xs text-red-500">{errors.city}</p>
-              )}
-            </div>
-
-            <div>
               <Label htmlFor="division">Division *</Label>
               <Select
                 value={formData.division}
-                onValueChange={(value) => onChange("division", value)}
+                onValueChange={(value) => {
+                  if (value !== formData.division) {
+                    onChange("city", "");
+                    onChange("area", "");
+                  }
+                  onChange("division", value);
+                }}
               >
                 <SelectTrigger
                   id="division"
@@ -137,6 +110,63 @@ export function ShippingInformation({
               </Select>
               {errors?.division && (
                 <p className="mt-1 text-xs text-red-500">{errors.division}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="city">City *</Label>
+              <SearchableSelect
+                value={formData.city}
+                onValueChange={(value) => {
+                  if (value !== formData.city) {
+                    onChange("area", "");
+                  }
+                  onChange("city", value);
+                }}
+                options={getDistrictsByDivision(formData.division)}
+                placeholder={
+                  formData.division ? "Select City" : "Select Division first"
+                }
+                searchPlaceholder="Search city..."
+                disabled={!formData.division}
+                className="mt-1"
+              />
+              {errors?.city && (
+                <p className="mt-1 text-xs text-red-500">{errors.city}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="area">Area *</Label>
+              <SearchableSelect
+                value={formData.area}
+                onValueChange={(value) => onChange("area", value)}
+                options={areasByDistrict.get(formData.city) ?? []}
+                placeholder={
+                  formData.city ? "Select Area" : "Select City first"
+                }
+                searchPlaceholder="Search area..."
+                emptyMessage="No area found."
+                disabled={!formData.city}
+                className="mt-1"
+              />
+              {errors?.area && (
+                <p className="mt-1 text-xs text-red-500">{errors.area}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="address">Address *</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => onChange("address", e.target.value)}
+                placeholder="House #, Road #"
+                aria-invalid={!!errors?.address}
+                className="mt-1 w-full"
+              />
+              {errors?.address && (
+                <p className="mt-1 text-xs text-red-500">{errors.address}</p>
               )}
             </div>
           </div>

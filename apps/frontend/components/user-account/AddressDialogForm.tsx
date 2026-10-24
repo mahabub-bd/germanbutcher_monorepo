@@ -25,6 +25,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import {
+  DISTRICT_AREAS,
+  getDistrictsByDivision,
+} from "@/data/districts-areas";
 import { patchData, postData } from "@/utils/api-utils";
 import { serverRevalidate } from "@/utils/revalidatePath";
 import { Address } from "@/utils/types";
@@ -68,6 +73,13 @@ const bangladeshDivisions = [
   "Mymensingh",
 ] as const;
 
+const areasByDistrict = new Map(
+  DISTRICT_AREAS.map(({ district, areas }) => [
+    district,
+    [...new Set(areas)].sort((a, b) => a.localeCompare(b)),
+  ]),
+);
+
 export default function AddressDialog({
   userId,
   open,
@@ -89,6 +101,8 @@ export default function AddressDialog({
   });
 
   const { isSubmitting } = form.formState;
+  const selectedDistrict = form.watch("city");
+  const selectedDivision = form.watch("division");
 
   useEffect(() => {
     if (open) {
@@ -165,54 +179,6 @@ export default function AddressDialog({
             <div className="grid grid-cols-1 gap-4">
               <FormField
                 control={form.control}
-                name="address"
-                render={({ field }) => (
-                  <FormItem className="w-full">
-                    <FormLabel>
-                      Address <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your full address" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="area"
-                render={({ field }) => (
-                  <FormItem className="w-full">
-                    <FormLabel>
-                      Area <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your area" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem className="w-full">
-                    <FormLabel>
-                      City <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your city" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="division"
                 render={({ field }) => (
                   <FormItem className="w-full">
@@ -220,7 +186,13 @@ export default function AddressDialog({
                       Division <span className="text-red-500">*</span>
                     </FormLabel>
                     <Select
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => {
+                        if (value !== field.value) {
+                          form.setValue("city", "", { shouldValidate: false });
+                          form.setValue("area", "", { shouldValidate: false });
+                        }
+                        field.onChange(value);
+                      }}
                       defaultValue={field.value}
                     >
                       <FormControl>
@@ -236,6 +208,80 @@ export default function AddressDialog({
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem className="w-full">
+                    <FormLabel>
+                      City <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <SearchableSelect
+                      value={field.value}
+                      onValueChange={(value) => {
+                        if (value !== field.value) {
+                          form.setValue("area", "", {
+                            shouldValidate: false,
+                          });
+                        }
+                        field.onChange(value);
+                      }}
+                      options={getDistrictsByDivision(selectedDivision)}
+                      placeholder={
+                        selectedDivision
+                          ? "Select city"
+                          : "Select division first"
+                      }
+                      searchPlaceholder="Search city..."
+                      disabled={!selectedDivision}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="area"
+                render={({ field }) => (
+                  <FormItem className="w-full">
+                    <FormLabel>
+                      Area <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <SearchableSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      options={areasByDistrict.get(selectedDistrict) ?? []}
+                      placeholder={
+                        selectedDistrict
+                          ? "Select area"
+                          : "Select City first"
+                      }
+                      searchPlaceholder="Search area..."
+                      emptyMessage="No area found."
+                      disabled={!selectedDistrict}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem className="w-full">
+                    <FormLabel>
+                      Address <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="House #, Road #" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
