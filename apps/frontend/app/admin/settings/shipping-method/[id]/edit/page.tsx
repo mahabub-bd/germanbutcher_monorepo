@@ -2,7 +2,7 @@
 
 import { ShippingMethodForm } from "@/components/admin/shipping-method/shipping-method-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchData } from "@/utils/api-utils";
 import type { ShippingMethod } from "@/utils/types";
 import { Loader2 } from "lucide-react";
@@ -81,9 +81,6 @@ export default function EditShippingMethodPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Shipping Method Information</CardTitle>
-            <CardDescription>
-              Update the shipping method details.
-            </CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/settings/shipping-method">

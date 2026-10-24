@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
-import { Tag, TrendingUp, Users, Gift } from "lucide-react";
+import { Gift, Tag, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -126,8 +126,8 @@ export function BogoUsageReport({
     });
   };
 
-  const formatMoney = (value: number | string) =>
-    `৳${Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatMoney = (value: number | string, decimals = 2) =>
+    `৳${Number(value).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 
   // Amounts use the ASCII "BDT " prefix for the PDF — the ৳ glyph is not
   // embedded in the PDF font.
@@ -189,7 +189,7 @@ export function BogoUsageReport({
       />
 
       {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <StatsCard
             title="Total Uses"
             value={stats.totalUses}
@@ -199,7 +199,7 @@ export function BogoUsageReport({
           />
           <StatsCard
             title="Total Discount Given"
-            value={formatMoney(stats.totalDiscount)}
+            value={formatMoney(stats.totalDiscount, 0)}
             description="BOGO discounts on those orders"
             icon={Tag}
             bgColor="green"
@@ -213,7 +213,7 @@ export function BogoUsageReport({
           />
           <StatsCard
             title="Total Order Value"
-            value={formatMoney(stats.totalOrderValue)}
+            value={formatMoney(stats.totalOrderValue, 0)}
             description="Value of orders with a BOGO deal"
             icon={TrendingUp}
             bgColor="purple"

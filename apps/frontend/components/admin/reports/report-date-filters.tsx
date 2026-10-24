@@ -145,7 +145,7 @@ export function ReportDateFilters({
     <div className="grid grid-cols-2 gap-2 items-center mb-6 md:flex md:flex-nowrap md:items-center md:gap-2">
       <div className="md:shrink-0">
         <Select value={quickRange} onValueChange={handleQuickRange}>
-          <SelectTrigger className="w-full md:w-[150px]">
+          <SelectTrigger className="w-full md:w-37.5">
             <SelectValue placeholder="Quick Range" />
           </SelectTrigger>
           <SelectContent>
@@ -160,14 +160,14 @@ export function ReportDateFilters({
 
       {extra}
 
-      <div className="md:flex-1 md:max-w-[150px] md:min-w-0">
+      <div className="md:flex-1 md:max-w-37.5 md:min-w-0">
         <DatePicker
           value={startDate}
           onChange={(date) => setStartDate(date)}
           placeholder="From Date"
         />
       </div>
-      <div className="md:flex-1 md:max-w-[150px] md:min-w-0">
+      <div className="md:flex-1 md:max-w-37.5 md:min-w-0">
         <DatePicker
           value={endDate}
           onChange={(date) => setEndDate(date)}

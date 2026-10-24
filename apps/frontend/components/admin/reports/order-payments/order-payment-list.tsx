@@ -3,12 +3,12 @@
 import { OrderStatus } from "@/common/enums";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
+import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import {
   ReportDateFilters,
   type ReportFilterParams,
 } from "@/components/admin/reports/report-date-filters";
 import { Button } from "@/components/ui/button";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import {
   Select,
   SelectContent,
@@ -24,8 +24,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrencyEnglish } from "@/lib/utils";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
+import { formatCurrencyEnglish } from "@/lib/utils";
 import { CheckCircle, CreditCard, Eye, Layers } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -136,7 +136,7 @@ export default function OrderPaymentList({
             value={selectedOrderStatus || "all"}
             onValueChange={setSelectedOrderStatus}
           >
-            <SelectTrigger className="w-full md:w-[150px] md:shrink-0">
+            <SelectTrigger className="w-full md:w-37.5 md:shrink-0">
               <SelectValue placeholder="Order Status" />
             </SelectTrigger>
             <SelectContent>
@@ -167,7 +167,8 @@ export default function OrderPaymentList({
             title="Payment Transactions"
             value={String(payments.length)}
             count={formatCurrencyEnglish(
-              payments.reduce((sum, p) => sum + parseFloat(p.amount), 0)
+              payments.reduce((sum, p) => sum + parseFloat(p.amount), 0),
+              0
             )}
             description="Total payment transactions"
             icon={CreditCard}
@@ -176,7 +177,8 @@ export default function OrderPaymentList({
           <StatsCard
             title="Total Amount"
             value={formatCurrencyEnglish(
-              payments.reduce((sum, p) => sum + parseFloat(p.amount), 0)
+              payments.reduce((sum, p) => sum + parseFloat(p.amount), 0),
+              0
             )}
             count={String(payments.length)}
             description="Sum of all payments"
@@ -192,7 +194,8 @@ export default function OrderPaymentList({
             count={formatCurrencyEnglish(
               payments
                 .filter((p) => p.order.paymentStatus === "completed")
-                .reduce((sum, p) => sum + parseFloat(p.amount), 0)
+                .reduce((sum, p) => sum + parseFloat(p.amount), 0),
+              0
             )}
             description="Fully paid orders"
             icon={CheckCircle}
@@ -202,7 +205,8 @@ export default function OrderPaymentList({
             title="Payment Methods"
             value={String([...new Set(payments.map((p) => p.paymentMethod.name))].length)}
             count={formatCurrencyEnglish(
-              payments.reduce((sum, p) => sum + parseFloat(p.amount), 0)
+              payments.reduce((sum, p) => sum + parseFloat(p.amount), 0),
+              0
             )}
             description="Different payment methods used"
             icon={Layers}

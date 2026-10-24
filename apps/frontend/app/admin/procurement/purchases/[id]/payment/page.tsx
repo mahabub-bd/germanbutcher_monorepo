@@ -2,7 +2,7 @@
 
 import { PaymentForm } from "@/components/admin/payment/payment-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchData } from "@/utils/api-utils";
 import type { Purchase } from "@/utils/types";
 import Link from "next/link";
@@ -43,9 +43,6 @@ export default function AddPaymentPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Add New Payment</CardTitle>
-            <CardDescription>
-              Record a payment for purchase #{purchase.purchaseNumber}
-            </CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href={`/admin/procurement/purchases/${purchaseId}/payments`}>

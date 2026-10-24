@@ -3,7 +3,7 @@
 import { CategoryForm } from "@/components/admin/category/category-form";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchData } from "@/utils/api-utils";
 import type { Category } from "@/utils/types";
 import Link from "next/link";
@@ -49,7 +49,6 @@ export default function EditCategoryPage() {
         <div className="flex justify-between items-center mt-6">
           <div>
             <CardTitle>Edit Category</CardTitle>
-            <CardDescription>Update the category information.</CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/categories/categories-list">

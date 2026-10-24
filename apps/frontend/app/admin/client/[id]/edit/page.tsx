@@ -3,7 +3,7 @@
 import { ClientForm } from "@/components/admin/client/client-form";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchData } from "@/utils/api-utils";
 import type { Client } from "@/utils/types";
 
@@ -49,7 +49,6 @@ export default function EditClientPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Client</CardTitle>
-            <CardDescription>Update the client information.</CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/client/client-list">Back to Clients</Link>

@@ -3,7 +3,7 @@
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { UnitForm } from "@/components/admin/products/units/unit-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchData } from "@/utils/api-utils";
 import { Unit } from "@/utils/types";
 import Link from "next/link";
@@ -66,7 +66,6 @@ export default function EditUnitPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Unit Information</CardTitle>
-            <CardDescription>Update the unit details.</CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/products/units">Back to Units</Link>

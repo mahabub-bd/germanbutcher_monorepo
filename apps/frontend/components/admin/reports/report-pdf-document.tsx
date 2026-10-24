@@ -25,6 +25,9 @@ interface Props {
   flexes?: number[];
   /** Column indexes rendered right-aligned (numeric columns). */
   alignRight?: number[];
+  /** Page orientation — landscape gives wide tables room to keep each
+   *  header label on a single line. Defaults to portrait. */
+  orientation?: "portrait" | "landscape";
   rows: (string | number)[][];
   summary?: { label: string; value: string }[];
   settings?: BusinessSettings | null;
@@ -125,13 +128,14 @@ export function ReportTablePDF({
   headers,
   flexes,
   alignRight = [],
+  orientation,
   rows,
   summary,
   settings,
 }: Props) {
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" orientation={orientation} style={styles.page}>
         <ReportPDFHeader settings={settings} styles={styles} />
 
         <Text style={styles.reportTitle}>{title}</Text>

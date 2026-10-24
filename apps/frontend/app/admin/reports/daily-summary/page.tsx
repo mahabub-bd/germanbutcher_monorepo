@@ -43,6 +43,8 @@ export default async function DailySummaryReportPage({ searchParams }: Props) {
       deliveredValue: number;
       cancelledCount: number;
       cancelledValue: number;
+      pendingCount: number;
+      pendingValue: number;
       paidAmount: number;
       dueAmount: number;
     }[];

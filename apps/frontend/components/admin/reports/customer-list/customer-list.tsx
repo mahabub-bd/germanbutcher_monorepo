@@ -133,14 +133,14 @@ export default function CustomerListReport({
           <StatsCard
             title="Total Orders"
             value={String(summary.totalOrders)}
-            count={formatCurrencyEnglish(summary.totalOrderValue)}
+            count={formatCurrencyEnglish(summary.totalOrderValue, 0)}
             description="All customer orders"
             icon={ShoppingCart}
             bgColor="green"
           />
           <StatsCard
             title="Total Order Value"
-            value={formatCurrencyEnglish(summary.totalOrderValue)}
+            value={formatCurrencyEnglish(summary.totalOrderValue, 0)}
             count={String(summary.totalCustomers)}
             description="Sum of all orders"
             icon={ShoppingCart}
@@ -151,7 +151,8 @@ export default function CustomerListReport({
             value={
               summary.totalCustomers > 0
                 ? formatCurrencyEnglish(
-                  summary.totalOrderValue / summary.totalCustomers
+                  summary.totalOrderValue / summary.totalCustomers,
+                  0
                 )
                 : "BDT 0"
             }

@@ -1,7 +1,7 @@
 "use client";
 
-import { PaginationComponent } from "@/components/common/pagination";
 import StatsCard from "@/components/admin/dashboard/stats-card";
+import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,7 +74,7 @@ export function AbandonedCartsList() {
     <div className="w-full space-y-4">
       {/* Summary tiles */}
       {report && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <StatsCard
             icon={ShoppingCart}
             title="Abandoned Carts"
@@ -99,13 +99,13 @@ export function AbandonedCartsList() {
             value={
               report.summary.abandonedCarts > 0
                 ? new Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: "BDT",
-                    maximumFractionDigits: 0,
-                  }).format(
-                    report.summary.abandonedValue /
-                      report.summary.abandonedCarts
-                  )
+                  style: "currency",
+                  currency: "BDT",
+                  maximumFractionDigits: 0,
+                }).format(
+                  report.summary.abandonedValue /
+                  report.summary.abandonedCarts
+                )
                 : "৳0"
             }
             description="Potential recovery per customer"

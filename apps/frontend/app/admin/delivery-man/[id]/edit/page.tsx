@@ -2,7 +2,7 @@
 
 import { DeliveryManForm } from "@/components/admin/delivery-man/delivery-man-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchProtectedData } from "@/utils/api-utils";
 import type { DeliveryMan } from "@/utils/types";
 import { Loader2 } from "lucide-react";
@@ -75,7 +75,6 @@ export default function EditDeliveryManPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Delivery Man Information</CardTitle>
-            <CardDescription>Update the delivery man details.</CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/delivery-man">Back to Delivery Men</Link>

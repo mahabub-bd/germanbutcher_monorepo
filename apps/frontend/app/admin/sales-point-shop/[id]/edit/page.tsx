@@ -3,7 +3,7 @@
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { ShopForm } from "@/components/admin/sales-point-shop/shop-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchData } from "@/utils/api-utils";
 import type { Shop } from "@/utils/types";
 import Link from "next/link";
@@ -48,7 +48,6 @@ export default function EditShopPage() {
       <div className="flex justify-between items-center">
         <div>
           <CardTitle>Edit Shop</CardTitle>
-          <CardDescription>Update the shop information.</CardDescription>
         </div>
         <Button asChild variant="outline" size="sm">
           <Link href="/admin/sales-point-shop/sales-point-shop-list">

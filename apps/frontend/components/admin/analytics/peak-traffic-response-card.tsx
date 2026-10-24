@@ -163,7 +163,9 @@ export function PeakTrafficResponseCard({
                 axisLine={false}
                 tickLine={false}
                 tickMargin={10}
-                interval={0}
+                // Force every tick on desktop; auto-thin overlapping labels on mobile
+                interval={windowSize.width < 640 ? "preserveStartEnd" : 0}
+                minTickGap={windowSize.width < 640 ? 30 : 0}
                 tick={{ fontSize: 11, fill: "currentColor" }}
               />
               <YAxis

@@ -3,7 +3,7 @@
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { SupplierForm } from "@/components/admin/procurement/suppliers/supplier-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchProtectedData } from "@/utils/api-utils";
 import { Supplier } from "@/utils/types";
 
@@ -51,7 +51,6 @@ export default function EditSupplierPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Supplier</CardTitle>
-            <CardDescription>Update the supplier information.</CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/procurement/suppliers/suppliers-list">Back to Suppliers</Link>

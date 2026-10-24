@@ -167,11 +167,6 @@ export function DiscountForm({
             <h2 className="text-2xl font-bold">
               {mode === "create" ? "Create New Discount" : "Edit Discount"}
             </h2>
-            <p className="text-sm text-muted-foreground">
-              {mode === "create"
-                ? "Apply a discount to one or multiple products"
-                : "Modify the existing discount settings"}
-            </p>
           </div>
         </div>
         <Button asChild className="bg-primaryColor text-white hover:bg-primaryColor/90">

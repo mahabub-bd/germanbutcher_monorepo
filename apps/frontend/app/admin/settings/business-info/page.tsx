@@ -2,7 +2,7 @@
 
 import { BusinessSettingsCard } from "@/components/admin/settings/business-settings-card";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { Building2 } from "lucide-react";
 import Link from "next/link";
 
@@ -16,10 +16,6 @@ export default function BusinessInfoSettingsPage() {
           </div>
           <div>
             <CardTitle>Business Info</CardTitle>
-            <CardDescription>
-              Logo, address, phone, email, WhatsApp and Messenger used across
-              the storefront and invoices.
-            </CardDescription>
           </div>
         </div>
         <Button asChild variant="outline">

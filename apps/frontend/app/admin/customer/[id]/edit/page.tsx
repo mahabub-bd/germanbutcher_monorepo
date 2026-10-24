@@ -2,7 +2,7 @@
 
 import { CustomerForm } from "@/components/admin/customer/customer-form";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 
 import { fetchProtectedData } from "@/utils/api-utils";
 import type { User } from "@/utils/types";
@@ -80,7 +80,6 @@ export default function EditUserPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>User Information</CardTitle>
-            <CardDescription>Update the user details.</CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href={listUrl}>Back to CustomerList</Link>

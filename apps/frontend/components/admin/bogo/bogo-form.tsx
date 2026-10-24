@@ -223,11 +223,6 @@ export function BogoForm({ campaign, mode, onSuccess }: BogoFormProps) {
             <h2 className="text-2xl font-bold">
               {mode === "create" ? "Create BOGO Deal" : "Edit BOGO Deal"}
             </h2>
-            <p className="text-sm text-muted-foreground">
-              {mode === "create"
-                ? "Define a new buy X get Y free deal"
-                : "Update the campaign details"}
-            </p>
           </div>
         </div>
         <Button className="bg-primaryColor text-white hover:bg-primaryColor/90" asChild>

@@ -2,7 +2,10 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
+import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
+import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -11,10 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
-import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { Badge } from "@/components/ui/badge";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { PackageCheck, Truck, Users } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -110,9 +110,8 @@ export default function DeliverymanPerformanceList({
                 settings={settings}
               />
             }
-            fileName={`deliveryman-performance-report-${
-              new Date().toISOString().split("T")[0]
-            }.pdf`}
+            fileName={`deliveryman-performance-report-${new Date().toISOString().split("T")[0]
+              }.pdf`}
           >
             {({ loading, error }) => (
               <PdfDownloadButton loading={loading} error={error} />
@@ -128,7 +127,7 @@ export default function DeliverymanPerformanceList({
         onApply={applyParams}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
         <StatsCard
           icon={PackageCheck}
           title="Total Deliveries"
@@ -138,7 +137,7 @@ export default function DeliverymanPerformanceList({
         <StatsCard
           icon={Truck}
           title="Delivered Value"
-          value={formatCurrencyEnglish(summary?.totalDeliveredValue ?? 0)}
+          value={formatCurrencyEnglish(summary?.totalDeliveredValue ?? 0, 0)}
           bgColor="blue"
         />
         <StatsCard

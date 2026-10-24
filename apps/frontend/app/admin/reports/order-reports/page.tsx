@@ -40,6 +40,10 @@ export default async function OrderReportPage({ searchParams }: Props) {
     typeof resolvedParams.orderStatus === "string"
       ? resolvedParams.orderStatus
       : undefined;
+  const paymentStatus =
+    typeof resolvedParams.paymentStatus === "string"
+      ? resolvedParams.paymentStatus
+      : undefined;
 
   let reportData: OrderReportData | null = null;
 
@@ -52,6 +56,7 @@ export default async function OrderReportPage({ searchParams }: Props) {
       if (toDate) queryParams.append("toDate", toDate);
     }
     if (orderStatus) queryParams.append("orderStatus", orderStatus);
+    if (paymentStatus) queryParams.append("paymentStatus", paymentStatus);
 
     const endpoint = `orders/reports/date-range${
       queryParams.toString() ? `?${queryParams.toString()}` : ""
@@ -78,6 +83,7 @@ export default async function OrderReportPage({ searchParams }: Props) {
         toDate={toDate}
         preset={preset}
         orderStatus={orderStatus}
+        paymentStatus={paymentStatus}
         totalOrders={totalOrders}
         totalValue={totalValue}
         totalDiscount={totalDiscount}

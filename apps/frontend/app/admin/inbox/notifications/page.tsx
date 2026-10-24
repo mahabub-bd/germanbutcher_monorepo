@@ -17,9 +17,6 @@ export default function NotificationsPage() {
             <h1 className="truncate text-2xl font-bold">
               Broadcast Notifications
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Send offers, announcements, and system updates to your customers
-            </p>
           </div>
         </div>
         <Button asChild variant="outline" className="shrink-0">

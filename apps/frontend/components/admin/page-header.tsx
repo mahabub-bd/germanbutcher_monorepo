@@ -15,7 +15,6 @@ interface PageHeaderProps {
 
 export function PageHeader({
   title,
-  description,
   titleIcon,
   actionLabel,
   actionHref,
@@ -29,9 +28,6 @@ export function PageHeader({
           {titleIcon}
           {title}
         </h2>
-        {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
-        )}
       </div>
 
       {actionHref && actionLabel ? (

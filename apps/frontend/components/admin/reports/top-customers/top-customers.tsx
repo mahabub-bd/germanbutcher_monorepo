@@ -1,7 +1,7 @@
 "use client";
 
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import { PageHeader } from "@/components/admin/page-header";
+import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -179,7 +179,7 @@ export default function TopCustomersReport({
           value={limit.toString()}
           onValueChange={(value) => updateFilter("limit", value)}
         >
-          <SelectTrigger className="w-full md:w-[150px] md:shrink-0 h-9">
+          <SelectTrigger className="w-full md:w-37.5 md:shrink-0 h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -195,7 +195,7 @@ export default function TopCustomersReport({
           value={sortBy}
           onValueChange={(value) => updateFilter("sortBy", value)}
         >
-          <SelectTrigger className="w-full md:w-[150px] md:shrink-0 h-9">
+          <SelectTrigger className="w-full md:w-37.5 md:shrink-0 h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -208,7 +208,7 @@ export default function TopCustomersReport({
           value={timeFilter}
           onValueChange={(value) => updateFilter("timeFilter", value)}
         >
-          <SelectTrigger className="w-full md:w-[150px] md:shrink-0 h-9">
+          <SelectTrigger className="w-full md:w-37.5 md:shrink-0 h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -242,7 +242,7 @@ export default function TopCustomersReport({
         />
         <StatsCard
           title="Total Spent"
-          value={formatCurrencyEnglish(totalSpent)}
+          value={formatCurrencyEnglish(totalSpent, 0)}
           count={String(customers.length)}
           description="Sum of listed customers"
           icon={TrendingUp}
@@ -250,7 +250,7 @@ export default function TopCustomersReport({
         />
         <StatsCard
           title="Avg Order Value"
-          value={formatCurrencyEnglish(avgOrderValue)}
+          value={formatCurrencyEnglish(avgOrderValue, 0)}
           count={String(totalOrders)}
           description="Across listed customers"
           icon={Users}
@@ -263,7 +263,7 @@ export default function TopCustomersReport({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px] sm:w-[60px] text-xs h-9 sm:h-10">
+              <TableHead className="w-12.5 sm:w-15 text-xs h-9 sm:h-10">
                 Rank
               </TableHead>
               <TableHead className="text-xs h-9 sm:h-10">Customer</TableHead>
@@ -279,7 +279,7 @@ export default function TopCustomersReport({
               <TableHead className="text-right text-xs h-9 sm:h-10 hidden lg:table-cell">
                 Avg
               </TableHead>
-              <TableHead className="text-right text-xs h-9 sm:h-10 w-[50px] sm:w-[60px]">
+              <TableHead className="text-right text-xs h-9 sm:h-10 w-12.5 sm:w-15">
                 View
               </TableHead>
             </TableRow>
@@ -306,7 +306,7 @@ export default function TopCustomersReport({
                   {/* Customer */}
                   <TableCell className="py-1.5 sm:py-2">
                     <div className="flex items-center gap-1">
-                      <span className="font-medium text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[150px]">
+                      <span className="font-medium text-xs sm:text-sm truncate max-w-25 sm:max-w-37.5">
                         {customer.name}
                       </span>
                       {customer.isVerified && (

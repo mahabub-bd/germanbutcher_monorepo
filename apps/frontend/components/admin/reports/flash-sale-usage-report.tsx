@@ -124,8 +124,8 @@ export function FlashSaleUsageReport({
     });
   };
 
-  const formatMoney = (value: number | string) =>
-    `৳${Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatMoney = (value: number | string, decimals = 2) =>
+    `৳${Number(value).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 
   // Amounts use the ASCII "BDT " prefix for the PDF — the ৳ glyph is not
   // embedded in the PDF font.
@@ -184,7 +184,7 @@ export function FlashSaleUsageReport({
       />
 
       {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <StatsCard
             title="Total Uses"
             value={stats.totalUses}
@@ -194,14 +194,14 @@ export function FlashSaleUsageReport({
           />
           <StatsCard
             title="Total Discount Given"
-            value={formatMoney(stats.totalDiscount)}
+            value={formatMoney(stats.totalDiscount, 0)}
             description="Flash sale discounts on those orders"
             icon={Tag}
             bgColor="green"
           />
           <StatsCard
             title="Total Order Value"
-            value={formatMoney(stats.totalOrderValue)}
+            value={formatMoney(stats.totalOrderValue, 0)}
             description="Value of orders with flash pricing"
             icon={TrendingUp}
             bgColor="purple"

@@ -124,8 +124,8 @@ export function FreeDeliveryUsageReport({
     });
   };
 
-  const formatMoney = (value: number | string) =>
-    `BDT ${Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatMoney = (value: number | string, decimals = 2) =>
+    `BDT ${Number(value).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 
   // Amounts use the ASCII "BDT " prefix everywhere — the ৳ glyph is not
   const formatMoneyPdf = (value: number | string) =>
@@ -183,7 +183,7 @@ export function FreeDeliveryUsageReport({
       />
 
       {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <StatsCard
             title="Total Uses"
             value={stats.totalUses}
@@ -193,14 +193,14 @@ export function FreeDeliveryUsageReport({
           />
           <StatsCard
             title="Total Shipping Waived"
-            value={formatMoney(stats.totalShippingWaived)}
+            value={formatMoney(stats.totalShippingWaived, 0)}
             description="Shipping cost covered by campaigns"
             icon={Ticket}
             bgColor="green"
           />
           <StatsCard
             title="Total Order Value"
-            value={formatMoney(stats.totalOrderValue)}
+            value={formatMoney(stats.totalOrderValue, 0)}
             description="Value of orders with free delivery"
             icon={TrendingUp}
             bgColor="purple"

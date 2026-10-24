@@ -3,7 +3,7 @@
 import { BrandForm } from "@/components/admin/brand/brand-form";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import { fetchData } from "@/utils/api-utils";
 import type { Brand } from "@/utils/types";
 import Link from "next/link";
@@ -49,7 +49,6 @@ export default function EditBrandPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Brand</CardTitle>
-            <CardDescription>Update the brand information.</CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/admin/brand/brand-list">Back to Brands</Link>
