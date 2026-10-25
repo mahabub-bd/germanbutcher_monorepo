@@ -12,6 +12,7 @@ import { User } from '../user/entities/user.entity';
 import { CreateOrderPaymentDto } from './dto/create-order-payment.dto';
 import { UpdateOrderPaymentDto } from './dto/update-order-payment.dto';
 import { OrderPayment } from './entities/order-payment.entity';
+import { resolveReportRange } from 'src/common/utils/report-date-range.util';
 
 @Injectable()
 export class OrderPaymentService {
@@ -83,118 +84,8 @@ export class OrderPaymentService {
     dateRangePreset?: string,
     orderStatus?: OrderStatus,
   ) {
-    // --- Helper function to get date range from preset ---
-    const getDateRangeFromPreset = (
-      preset: string,
-    ): { from: Date; to: Date } | null => {
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const startOfDay = new Date(today);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(today);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      switch (preset) {
-        case 'today':
-          return { from: startOfDay, to: endOfDay };
-
-        case 'this_week': {
-          const dayOfWeek = today.getDay();
-          const from = new Date(today);
-          from.setDate(today.getDate() - dayOfWeek);
-          from.setHours(0, 0, 0, 0);
-          return { from, to: endOfDay };
-        }
-
-        case 'last_week': {
-          const dayOfWeek = today.getDay();
-          const from = new Date(today);
-          from.setDate(today.getDate() - dayOfWeek - 7);
-          from.setHours(0, 0, 0, 0);
-          const to = new Date(from);
-          to.setDate(from.getDate() + 6);
-          to.setHours(23, 59, 59, 999);
-          return { from, to };
-        }
-
-        case 'this_month': {
-          const from = new Date(now.getFullYear(), now.getMonth(), 1);
-          from.setHours(0, 0, 0, 0);
-          return { from, to: endOfDay };
-        }
-
-        case 'last_month': {
-          const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          from.setHours(0, 0, 0, 0);
-          const to = new Date(now.getFullYear(), now.getMonth(), 0);
-          to.setHours(23, 59, 59, 999);
-          return { from, to };
-        }
-
-        case 'last_3_months': {
-          const from = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-          from.setHours(0, 0, 0, 0);
-          return { from, to: endOfDay };
-        }
-
-        case 'last_6_months': {
-          const from = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-          from.setHours(0, 0, 0, 0);
-          return { from, to: endOfDay };
-        }
-
-        case 'last_year': {
-          const from = new Date(now.getFullYear() - 1, 0, 1);
-          from.setHours(0, 0, 0, 0);
-          const to = new Date(now.getFullYear() - 1, 11, 31);
-          to.setHours(23, 59, 59, 999);
-          return { from, to };
-        }
-
-        case 'this_year': {
-          const from = new Date(now.getFullYear(), 0, 1);
-          from.setHours(0, 0, 0, 0);
-          return { from, to: endOfDay };
-        }
-
-        default:
-          return null;
-      }
-    };
-
-    // --- Determine date range ---
-    let from: Date | undefined;
-    let to: Date | undefined;
-
-    // Use date range preset if provided
-    if (dateRangePreset) {
-      const presetRange = getDateRangeFromPreset(dateRangePreset);
-      if (presetRange) {
-        from = presetRange.from;
-        to = presetRange.to;
-      } else {
-        throw new Error(
-          `Invalid date range preset: "${dateRangePreset}". Valid values are: today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year.`,
-        );
-      }
-    } else {
-      // Parse and validate date inputs
-      const parseDate = (
-        dateStr?: string,
-        endOfDay = false,
-      ): Date | undefined => {
-        if (!dateStr) return undefined;
-        const date = new Date(dateStr);
-        if (isNaN(date.getTime())) {
-          throw new Error(`Invalid date format: "${dateStr}". Use YYYY-MM-DD.`);
-        }
-        if (endOfDay) date.setHours(23, 59, 59, 999);
-        return date;
-      };
-
-      from = parseDate(fromDate);
-      to = parseDate(toDate, true);
-    }
+    // Dhaka (UTC+6) bounds via the shared report date-range helper
+    const { from, to } = resolveReportRange(fromDate, toDate, dateRangePreset);
 
     const query = this.paymentRepository
       .createQueryBuilder('payment')

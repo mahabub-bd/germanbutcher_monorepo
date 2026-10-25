@@ -116,6 +116,44 @@ export function parseReportDate(
   return endOfDay ? endOfDhakaDay(midnight) : midnight;
 }
 
+/** Dhaka calendar date (YYYY-MM-DD) of a UTC instant, for echoing bounds
+ * back to clients — toISOString() alone would show the previous day. */
+export function formatDhakaDate(date: Date): string {
+  return new Date(date.getTime() + DHAKA_OFFSET_MS)
+    .toISOString()
+    .split('T')[0];
+}
+
+/** Start/end bounds for the "last_month / this_month / last_3_months /
+ * last_6_months / last_year / this_year" quick filters used by the
+ * bestseller and top-customer widgets, in Dhaka time. Null = all-time. */
+export function getTimeFilterRange(
+  timeFilter: string,
+): { start: Date; end?: Date } | null {
+  const now = dhakaNow();
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  const d = now.getUTCDate();
+
+  switch (timeFilter) {
+    case 'last_month':
+      return { start: dhakaMidnight(y, m - 1, 1), end: dhakaMidnight(y, m, 1) };
+    case 'this_month':
+      return { start: dhakaMidnight(y, m, 1) };
+    case 'last_3_months':
+      return { start: dhakaMidnight(y, m - 3, d) };
+    case 'last_6_months':
+      return { start: dhakaMidnight(y, m - 6, d) };
+    case 'last_year':
+      return { start: dhakaMidnight(y - 1, m, d) };
+    case 'this_year':
+      return { start: dhakaMidnight(y, 0, 1) };
+    case 'all_time':
+    default:
+      return null;
+  }
+}
+
 /** Resolves preset-or-explicit bounds, throwing on an unknown preset. */
 export function resolveReportRange(
   fromDate?: string,
