@@ -26,15 +26,11 @@ export function shortenArea(area: string, maxWords = 3): string {
 }
 
 export function formatCurrencyEnglish(amount: number, maximumFractionDigits: number = 2): string {
+  // Plain grouped number, no currency symbol
   return new Intl.NumberFormat("en-BD", {
-    style: "currency",
-    currency: "BDT",
-    currencyDisplay: "narrowSymbol",
     minimumFractionDigits: 0,
     maximumFractionDigits,
-  })
-    .format(amount)
-    .replace("BDT", "৳ ");
+  }).format(amount);
 }
 
 export const formatDateTime = (input: string | Date) => {

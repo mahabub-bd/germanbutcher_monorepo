@@ -369,7 +369,9 @@ export function OrderList({
   const renderTableView = () => (
     <div className="">
       <div className="overflow-x-auto">
-        <Table className="min-w-220 text-xs 2xl:text-sm">
+        {/* min-w only below lg: on laptop+ the table shrinks to the container
+            so all columns fit without horizontal scrolling */}
+        <Table className="min-w-220 lg:min-w-0 text-xs 2xl:text-sm [&_th]:h-9 [&_td]:py-1.5">
           <TableHeader>
             <TableRow>
               <TableHead>Order ID / Date</TableHead>
@@ -529,11 +531,13 @@ export function OrderList({
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={`capitalize ${getPaymentMethodColor(order.paymentMethod?.name)}`}
+                      className={`capitalize max-w-32 truncate ${getPaymentMethodColor(order.paymentMethod?.name)}`}
                     >
-                      <span className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-1.5 min-w-0">
                         {getPaymentMethodIcon(order.paymentMethod?.name || "")}
-                        {order.paymentMethod?.name || "N/A"}
+                        <span className="truncate">
+                          {order.paymentMethod?.name || "N/A"}
+                        </span>
                       </span>
                     </Badge>
                   </TableCell>
@@ -541,13 +545,15 @@ export function OrderList({
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={`capitalize ${getShippingMethodColor(
+                      className={`capitalize max-w-28 truncate ${getShippingMethodColor(
                         order.shippingMethod?.name
                       )}`}
                     >
-                      <span className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-1.5 min-w-0">
                         {getShippingMethodIcon(order.shippingMethod?.name || "")}
-                        {order.shippingMethod?.name || "N/A"}
+                        <span className="truncate">
+                          {order.shippingMethod?.name || "N/A"}
+                        </span>
                       </span>
                     </Badge>
                   </TableCell>
@@ -555,7 +561,7 @@ export function OrderList({
                   <TableCell>
                     <Badge
                       variant="secondary"
-                      className="max-w-40 truncate capitalize border-transparent bg-violet-100 font-normal text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
+                      className="max-w-52 truncate capitalize border-transparent bg-violet-100 font-normal text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
                       title={order.shippingAddress?.area || order.address?.area || undefined}
                     >
                       <span className="flex items-center gap-1">
