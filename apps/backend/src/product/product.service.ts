@@ -11,7 +11,7 @@ import { AttachmentService } from 'src/attachment/attachment.service';
 import { Attachment } from 'src/attachment/entities/attachment.entity';
 import { Brand } from 'src/brand/entities/brand.entity';
 import { Category } from 'src/category/entities/category.entity';
-import { resolveReportRange } from 'src/common/utils/report-date-range.util';
+import { formatDhakaDate, resolveReportRange } from 'src/common/utils/report-date-range.util';
 import { SwrCache } from 'src/common/utils/swr-cache';
 import { FlashSaleCampaignsService } from 'src/flash-sale-campaigns/flash-sale-campaigns.service';
 import { BogoCampaignsService } from 'src/bogo-campaigns/bogo-campaigns.service';
@@ -1424,8 +1424,8 @@ export class ProductService {
     }));
 
     return {
-      fromDate: from ? from.toISOString().split('T')[0] : null,
-      toDate: to ? to.toISOString().split('T')[0] : null,
+      fromDate: from ? formatDhakaDate(from) : null,
+      toDate: to ? formatDhakaDate(to) : null,
       summary: {
         totalRevenue: products.reduce((sum, p) => sum + p.revenue, 0),
         totalQuantity: products.reduce((sum, p) => sum + p.quantity, 0),

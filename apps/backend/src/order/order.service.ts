@@ -7,7 +7,7 @@ import {
   BogoCampaignsService,
 } from 'src/bogo-campaigns/bogo-campaigns.service';
 import { BogoUsageLogService } from 'src/bogo-usage-log/bogo-usage-log.service';
-import {  getDateRangeFromPreset,  parseReportDate,} from 'src/common/utils/report-date-range.util';
+import {  formatDhakaDate, getDateRangeFromPreset,  parseReportDate,} from 'src/common/utils/report-date-range.util';
 import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { DeliveryMan } from 'src/delivery-man/entities/delivery-man.entity';
 import { FreeDeliveryCampaignsService } from 'src/free-delivery-campaigns/free-delivery-campaigns.service';
@@ -755,7 +755,9 @@ export class OrderService {
   }
 
   /** Customers active this month, split by whether their first-ever order
-   * was also this month (new) or earlier (returning). */
+   * was also this month (new) or earlier (returning). "This month" follows
+   * Dhaka time (UTC+6): createdAt stores UTC wall-clock, and the DB server
+   * runs in UTC so CURRENT_DATE would bucket orders by GMT months. */
   async getCustomerTypeShare(): Promise<{
     newCustomers: number;
     returningCustomers: number;
@@ -764,18 +766,22 @@ export class OrderService {
       `WITH user_orders AS (
          SELECT "userId",
                 MIN("createdAt") AS first_order,
-                BOOL_OR("createdAt" >= date_trunc('month', CURRENT_DATE)) AS ordered_this_month
+                BOOL_OR("createdAt" + INTERVAL '6 hours' >=
+                        date_trunc('month', (now() AT TIME ZONE 'UTC') + INTERVAL '6 hours')
+                ) AS ordered_this_month
          FROM "order"
          WHERE "userId" IS NOT NULL
          GROUP BY "userId"
        )
        SELECT
          COUNT(*) FILTER (
-           WHERE date_trunc('month', first_order) = date_trunc('month', CURRENT_DATE)
+           WHERE date_trunc('month', first_order + INTERVAL '6 hours') =
+                 date_trunc('month', (now() AT TIME ZONE 'UTC') + INTERVAL '6 hours')
          ) AS new_customers,
          COUNT(*) FILTER (
            WHERE ordered_this_month = true
-             AND date_trunc('month', first_order) < date_trunc('month', CURRENT_DATE)
+             AND date_trunc('month', first_order + INTERVAL '6 hours') <
+                 date_trunc('month', (now() AT TIME ZONE 'UTC') + INTERVAL '6 hours')
          ) AS returning_customers
        FROM user_orders`,
     );
@@ -1420,8 +1426,8 @@ export class OrderService {
 
     // --- Return report ---
     return {
-      from: from ? from.toISOString().split('T')[0] : null,
-      to: to ? to.toISOString().split('T')[0] : null,
+      from: from ? formatDhakaDate(from) : null,
+      to: to ? formatDhakaDate(to) : null,
       totalOrders: totals.totalOrders,
       totalValue: Math.round(totals.totalValue * 100) / 100,
       totalDiscount: Math.round(totals.totalDiscount * 100) / 100,
@@ -1529,8 +1535,8 @@ export class OrderService {
     );
 
     return {
-      from: from ? from.toISOString().split('T')[0] : null,
-      to: to ? to.toISOString().split('T')[0] : null,
+      from: from ? formatDhakaDate(from) : null,
+      to: to ? formatDhakaDate(to) : null,
       summary,
       daily,
     };
@@ -1794,10 +1800,15 @@ export class OrderService {
   }
 
   async getMonthlyOrderReport(year?: number) {
+    // Group by the Dhaka (UTC+6) calendar month, not UTC, so months align
+    // with the Dhaka-based bounds the other report endpoints filter by.
+    // createdAt stores UTC wall-clock in a timezone-less column.
+    const dhakaCreatedAt =
+      "(order.createdAt AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka')";
     // Optional year filter applied to all three queries
     const withYearFilter = (qb: SelectQueryBuilder<Order>) =>
       year
-        ? qb.andWhere('EXTRACT(YEAR FROM order.createdAt) = :year', { year })
+        ? qb.andWhere(`EXTRACT(YEAR FROM ${dhakaCreatedAt}) = :year`, { year })
         : qb;
 
     // Query for all orders (regardless of status)
@@ -1805,9 +1816,9 @@ export class OrderService {
       this.orderRepository
         .createQueryBuilder('order')
         .select([
-          'EXTRACT(YEAR FROM order.createdAt) AS year',
-          "TO_CHAR(order.createdAt, 'Month') AS month_name",
-          'EXTRACT(MONTH FROM order.createdAt) AS month_number',
+          `EXTRACT(YEAR FROM ${dhakaCreatedAt}) AS year`,
+          `TO_CHAR(${dhakaCreatedAt}, 'Month') AS month_name`,
+          `EXTRACT(MONTH FROM ${dhakaCreatedAt}) AS month_number`,
           'COUNT(order.id) AS all_order_count',
           'SUM(order.totalValue) AS all_order_value',
         ]),
@@ -1823,9 +1834,9 @@ export class OrderService {
       this.orderRepository
         .createQueryBuilder('order')
         .select([
-          'EXTRACT(YEAR FROM order.createdAt) AS year',
-          "TO_CHAR(order.createdAt, 'Month') AS month_name",
-          'EXTRACT(MONTH FROM order.createdAt) AS month_number',
+          `EXTRACT(YEAR FROM ${dhakaCreatedAt}) AS year`,
+          `TO_CHAR(${dhakaCreatedAt}, 'Month') AS month_name`,
+          `EXTRACT(MONTH FROM ${dhakaCreatedAt}) AS month_number`,
           'COUNT(order.id) AS order_count',
           'SUM(order.totalValue) AS total_value',
         ])
@@ -1840,9 +1851,9 @@ export class OrderService {
       this.orderRepository
         .createQueryBuilder('order')
         .select([
-          'EXTRACT(YEAR FROM order.createdAt) AS year',
-          "TO_CHAR(order.createdAt, 'Month') AS month_name",
-          'EXTRACT(MONTH FROM order.createdAt) AS month_number',
+          `EXTRACT(YEAR FROM ${dhakaCreatedAt}) AS year`,
+          `TO_CHAR(${dhakaCreatedAt}, 'Month') AS month_name`,
+          `EXTRACT(MONTH FROM ${dhakaCreatedAt}) AS month_number`,
           'COUNT(order.id) AS cancel_order_count',
           'SUM(order.totalValue) AS cancel_value',
         ])
@@ -1928,9 +1939,12 @@ export class OrderService {
   }
 
   async getMonthlyOrderReportYears() {
+    // Dhaka (UTC+6) years, matching getMonthlyOrderReport's grouping.
+    const dhakaCreatedAt =
+      "(order.createdAt AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka')";
     const result = await this.orderRepository
       .createQueryBuilder('order')
-      .select('DISTINCT EXTRACT(YEAR FROM order.createdAt)', 'year')
+      .select(`DISTINCT EXTRACT(YEAR FROM ${dhakaCreatedAt})`, 'year')
       .orderBy('year', 'DESC')
       .getRawMany();
 
@@ -1994,28 +2008,34 @@ export class OrderService {
   }
 
   async getLast30DaysDeliveredOrders() {
-    // Calculate the date 30 days ago from today (using UTC to avoid timezone issues)
-    const now = new Date();
-    const thirtyDaysAgoUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 30));
-    const endOfTodayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+    // Dhaka (UTC+6) day boundaries so the daily series matches the other
+    // reports; createdAt stores UTC wall-clock in a timezone-less column.
+    const DHAKA_OFFSET_MS = 6 * 60 * 60 * 1000;
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const bdtNow = new Date(Date.now() + DHAKA_OFFSET_MS);
+    const todayStartUtcMs =
+      Date.UTC(
+        bdtNow.getUTCFullYear(),
+        bdtNow.getUTCMonth(),
+        bdtNow.getUTCDate(),
+      ) - DHAKA_OFFSET_MS;
+    const from = new Date(todayStartUtcMs - 30 * DAY_MS);
+    const to = new Date(todayStartUtcMs + DAY_MS - 1);
 
     // Use order creation date for grouping, not delivery date from status tracks
     const query = `
       SELECT
-        TO_CHAR("order"."createdAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD') as date,
+        TO_CHAR("order"."createdAt" + INTERVAL '6 hours', 'YYYY-MM-DD') as date,
         COUNT("order".id) as "orderCount",
         SUM("order"."totalValue") as "totalValue"
       FROM "order"
       WHERE "order"."orderStatus" = 'delivered'
-        AND "order"."createdAt" AT TIME ZONE 'UTC' BETWEEN $1 AND $2
-      GROUP BY TO_CHAR("order"."createdAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-      ORDER BY TO_CHAR("order"."createdAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD') ASC
+        AND "order"."createdAt" BETWEEN $1 AND $2
+      GROUP BY 1
+      ORDER BY 1 ASC
     `;
 
-    const dailyResults = await this.orderRepository.query(query, [
-      thirtyDaysAgoUTC,
-      endOfTodayUTC,
-    ]);
+    const dailyResults = await this.orderRepository.query(query, [from, to]);
 
     // Create a map for quick lookup
     const dailyDataMap = new Map<string, { orderCount: number; totalValue: number }>();
@@ -2026,11 +2046,13 @@ export class OrderService {
       });
     });
 
-    // Generate all dates for the last 30 days (including today) in UTC
+    // Generate all Dhaka dates for the last 30 days (including today);
+    // the ISO date of each Dhaka midnight instant is that Dhaka day's date.
     const result = [];
     for (let i = 30; i >= 0; i--) {
-      const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
-      const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const dateString = new Date(todayStartUtcMs - i * DAY_MS)
+        .toISOString()
+        .split('T')[0]; // YYYY-MM-DD format
       const data = dailyDataMap.get(dateString) || { orderCount: 0, totalValue: 0 };
 
       result.push({

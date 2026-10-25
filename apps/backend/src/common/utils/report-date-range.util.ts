@@ -116,6 +116,14 @@ export function parseReportDate(
   return endOfDay ? endOfDhakaDay(midnight) : midnight;
 }
 
+/** Dhaka calendar date (YYYY-MM-DD) of a UTC instant, for echoing bounds
+ * back to clients — toISOString() alone would show the previous day. */
+export function formatDhakaDate(date: Date): string {
+  return new Date(date.getTime() + DHAKA_OFFSET_MS)
+    .toISOString()
+    .split('T')[0];
+}
+
 /** Resolves preset-or-explicit bounds, throwing on an unknown preset. */
 export function resolveReportRange(
   fromDate?: string,
