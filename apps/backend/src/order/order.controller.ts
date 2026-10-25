@@ -465,6 +465,49 @@ export class OrderController {
   }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/area-wise-orders')
+  @Get('reports/area-wise-orders')
+  @ApiOperation({
+    summary: 'Order counts and value grouped by area for a date range',
+    description:
+      'Returns each shipping area with total/delivered/cancelled order counts and order value in the range, plus range totals. Orders without an area fall under "Unknown".',
+  })
+  @ApiQuery({
+    name: 'fromDate',
+    required: false,
+    example: '2025-11-01',
+    description: 'Start date (inclusive) - use with toDate for custom range',
+  })
+  @ApiQuery({
+    name: 'toDate',
+    required: false,
+    example: '2025-11-10',
+    description: 'End date (inclusive) - use with fromDate for custom range',
+  })
+  @ApiQuery({
+    name: 'preset',
+    required: false,
+    enum: DateRangePreset,
+    description: 'Date range preset - use instead of fromDate/toDate',
+  })
+  async getAreaWiseOrderReport(
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+    @Query('preset') preset?: DateRangePreset,
+  ): Promise<ApiResponseDto<any>> {
+    const data = await this.orderService.getAreaWiseOrderReport(
+      fromDate,
+      toDate,
+      preset,
+    );
+    return {
+      message: 'Area wise order report retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, PermissionGuard)
   @ModulePermissions('/admin/delivery-man')
   @Get('reports/delivery-performance-summary')
   @ApiOperation({

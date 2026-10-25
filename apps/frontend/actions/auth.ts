@@ -2,8 +2,8 @@
 
 import { logoutPost, postData } from "@/utils/api-utils";
 
-import { loginSchema, registerSchema } from "@/utils/form-validation";
 import type { OtpVerificationResponse } from "@/components/auth/otp-verification-modal";
+import { loginSchema, registerSchema } from "@/utils/form-validation";
 import { authResponse, UserTypes } from "@/utils/types";
 import { cookies } from "next/headers";
 import { z } from "zod";
