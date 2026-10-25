@@ -1719,6 +1719,80 @@ export class OrderService {
     return { summary, deliveryMen };
   }
 
+  /**
+   * Order counts and value grouped by shipping address area for a date
+   * range. Orders without an area (or with no address) fall under
+   * "Unknown" so nothing drops out of the totals.
+   */
+  async getAreaWiseOrderReport(
+    fromDate?: string,
+    toDate?: string,
+    dateRangePreset?: string,
+  ) {
+    let from = this.parseReportDate(fromDate);
+    let to = this.parseReportDate(toDate, true);
+
+    if (dateRangePreset) {
+      const presetRange = this.getDateRangeFromPreset(dateRangePreset);
+      if (!presetRange) {
+        throw new Error(
+          `Invalid date range preset: "${dateRangePreset}". Valid values are: today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year.`,
+        );
+      }
+      from = presetRange.from;
+      to = presetRange.to;
+    }
+
+    const params: unknown[] = [];
+    const conditions: string[] = [];
+    if (from) {
+      params.push(from);
+      conditions.push(`o."createdAt" >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`o."createdAt" <= $${params.length}`);
+    }
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
+
+    const rows: Record<string, any>[] = await this.orderRepository.query(
+      `SELECT COALESCE(NULLIF(a.area, ''), 'Unknown') AS area,
+              COUNT(o.id) AS total_orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'delivered') AS delivered_orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'cancelled') AS cancelled_orders,
+              COALESCE(SUM(o."totalValue"), 0) AS total_value,
+              COALESCE(SUM(o."totalValue") FILTER (WHERE o."orderStatus" = 'delivered'), 0) AS delivered_value
+       FROM "order" o
+       LEFT JOIN address a ON o."addressId" = a.id
+       ${whereClause}
+       GROUP BY 1
+       ORDER BY COUNT(o.id) DESC, 1 ASC`,
+      params,
+    );
+
+    const areas = rows.map((row) => ({
+      area: row.area,
+      totalOrders: parseInt(row.total_orders, 10) || 0,
+      deliveredOrders: parseInt(row.delivered_orders, 10) || 0,
+      cancelledOrders: parseInt(row.cancelled_orders, 10) || 0,
+      totalValue: parseFloat(row.total_value) || 0,
+      deliveredValue: parseFloat(row.delivered_value) || 0,
+    }));
+
+    const summary = {
+      totalOrders: areas.reduce((sum, a) => sum + a.totalOrders, 0),
+      deliveredOrders: areas.reduce((sum, a) => sum + a.deliveredOrders, 0),
+      cancelledOrders: areas.reduce((sum, a) => sum + a.cancelledOrders, 0),
+      totalValue: areas.reduce((sum, a) => sum + a.totalValue, 0),
+      deliveredValue: areas.reduce((sum, a) => sum + a.deliveredValue, 0),
+      totalAreas: areas.filter((a) => a.area !== 'Unknown').length,
+    };
+
+    return { summary, areas };
+  }
+
   async getMonthlyOrderReport(year?: number) {
     // Optional year filter applied to all three queries
     const withYearFilter = (qb: SelectQueryBuilder<Order>) =>
