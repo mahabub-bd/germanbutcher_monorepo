@@ -531,7 +531,8 @@ export function OrderList({
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={`capitalize max-w-32 truncate ${getPaymentMethodColor(order.paymentMethod?.name)}`}
+                      title={order.paymentMethod?.name || undefined}
+                      className={`capitalize max-w-32 lg:max-w-none truncate ${getPaymentMethodColor(order.paymentMethod?.name)}`}
                     >
                       <span className="flex items-center gap-1.5 min-w-0">
                         {getPaymentMethodIcon(order.paymentMethod?.name || "")}
@@ -545,7 +546,8 @@ export function OrderList({
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={`capitalize max-w-28 truncate ${getShippingMethodColor(
+                      title={order.shippingMethod?.name || undefined}
+                      className={`capitalize max-w-28 lg:max-w-none truncate ${getShippingMethodColor(
                         order.shippingMethod?.name
                       )}`}
                     >
@@ -561,10 +563,16 @@ export function OrderList({
                   <TableCell>
                     <Badge
                       variant="secondary"
-                      className="max-w-52 truncate capitalize border-transparent bg-violet-100 font-normal text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
+                      className="max-w-52 lg:max-w-none truncate capitalize border-transparent bg-violet-100 font-normal text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
                       title={order.shippingAddress?.area || order.address?.area || undefined}
                     >
-                      <span className="flex items-center gap-1">
+                      {/* compact 3-word area below 2xl, fuller 5-word form on
+                          2xl where the column is wide enough */}
+                      <span className="hidden items-center gap-1 2xl:flex">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        {shortenArea(order.shippingAddress?.area || order.address?.area || "N/A", 5)}
+                      </span>
+                      <span className="flex items-center gap-1 2xl:hidden">
                         <MapPin className="h-3 w-3 shrink-0" />
                         {shortenArea(order.shippingAddress?.area || order.address?.area || "N/A")}
                       </span>
