@@ -168,6 +168,9 @@ export default function OrderReportList({
                 <SelectItem value={OrderStatus.PROCESSING}>
                   Processing
                 </SelectItem>
+                <SelectItem value={OrderStatus.ON_HOLD}>
+                  On Hold
+                </SelectItem>
                 <SelectItem value={OrderStatus.SHIPPED}>Shipped</SelectItem>
                 <SelectItem value={OrderStatus.DELIVERED}>
                   Delivered

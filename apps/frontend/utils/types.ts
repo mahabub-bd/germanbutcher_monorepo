@@ -74,6 +74,8 @@ export type OrderStatistics = {
   shippedValue: number;
   deliveredValue: number;
   cancelledValue: number;
+  onHold: number;
+  onHoldValue: number;
 };
 
 export type AbandonedCartsSummary = {
@@ -798,7 +800,7 @@ export interface Order {
   orderNo: string;
   paidAmount: number;
   totalDiscount: number;
-  orderStatus: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  orderStatus: "pending" | "processing" | "on_hold" | "shipped" | "delivered" | "cancelled";
   paymentStatus: string;
   discountType: string;
   discountValue: number;
@@ -1019,6 +1021,7 @@ export interface Testimonial {
 export enum OrderStatus {
   PENDING = "pending",
   PROCESSING = "processing",
+  ON_HOLD = "on_hold",
   SHIPPED = "shipped",
   DELIVERED = "delivered",
   CANCELLED = "cancelled",

@@ -27,6 +27,7 @@ import {
   MapPin,
   Package,
   PackageCheck,
+  PauseCircle,
   ShoppingCart,
   TrendingUp,
   Truck,
@@ -46,6 +47,8 @@ interface OrderStatistics {
   shippedValue: number;
   deliveredValue: number;
   cancelledValue: number;
+  onHold: number;
+  onHoldValue: number;
 }
 
 interface PaymentMethodShare {
@@ -215,6 +218,13 @@ export function StatisticsView() {
             value={orderStats?.processing ?? 0}
             count={formatCurrencyEnglish(orderStats?.processingValue || 0)}
             bgColor="purple"
+          />
+          <StatsCard
+            icon={PauseCircle}
+            title="On Hold"
+            value={orderStats?.onHold ?? 0}
+            count={formatCurrencyEnglish(orderStats?.onHoldValue || 0)}
+            bgColor="orange"
           />
           <StatsCard
             icon={Truck}

@@ -47,6 +47,7 @@ const orderUpdateSchema = z.object({
   orderStatus: z.union([
     z.literal("pending"),
     z.literal("processing"),
+    z.literal("on_hold"),
     z.literal("shipped"),
     z.literal("delivered"),
     z.literal("cancelled"),
@@ -73,7 +74,8 @@ export function OrderForm({ order, onSuccess, onCancel }: OrderFormProps) {
       order.orderStatus === "shipped" ||
       order?.orderStatus === "cancelled" ||
       order?.orderStatus === "delivered" ||
-      order?.orderStatus === "processing"
+      order?.orderStatus === "processing" ||
+      order?.orderStatus === "on_hold"
         ? order?.orderStatus
         : "pending",
     note: "",
@@ -93,6 +95,7 @@ export function OrderForm({ order, onSuccess, onCancel }: OrderFormProps) {
     const baseOptions = [
       { value: "pending", label: "Pending", disabled: false },
       { value: "processing", label: "Processing", disabled: false },
+      { value: "on_hold", label: "On Hold", disabled: false },
       { value: "shipped", label: "Shipped", disabled: false },
       { value: "delivered", label: "Delivered", disabled: false },
     ];
@@ -172,6 +175,10 @@ export function OrderForm({ order, onSuccess, onCancel }: OrderFormProps) {
       return [OrderStatus.PENDING, OrderStatus.CANCELLED];
     }
 
+    if (currentStatus === OrderStatus.ON_HOLD) {
+      return [OrderStatus.PENDING, OrderStatus.ON_HOLD];
+    }
+
     const statusIndex = allStatuses.findIndex(
       (status) => status === currentStatus
     );
@@ -208,6 +215,10 @@ export function OrderForm({ order, onSuccess, onCancel }: OrderFormProps) {
 
     if (currentStatus === OrderStatus.CANCELLED) {
       return status === OrderStatus.PENDING || status === OrderStatus.CANCELLED;
+    }
+
+    if (currentStatus === OrderStatus.ON_HOLD) {
+      return status === OrderStatus.PENDING || status === OrderStatus.ON_HOLD;
     }
 
     const allStatuses = [

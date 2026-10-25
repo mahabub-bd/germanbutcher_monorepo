@@ -3,6 +3,7 @@ const LIST_ROUTES: Record<string, string> = {
   orders: "/admin/orders",
   pending: "/admin/orders/pending",
   processing: "/admin/orders/processing",
+  "on-hold": "/admin/orders/on-hold",
   shipped: "/admin/orders/shipped",
   delivered: "/admin/orders/delivered",
   cancelled: "/admin/orders/cancelled",

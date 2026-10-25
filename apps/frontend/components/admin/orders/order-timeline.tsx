@@ -34,12 +34,14 @@ const ORDER_FLOW = [
 ] as const;
 
 const CANCELLED_FLOW = [OrderStatus.PENDING, OrderStatus.CANCELLED] as const;
+const ON_HOLD_FLOW = [OrderStatus.PENDING, OrderStatus.ON_HOLD] as const;
 
 
 
 const getTimelineFlow = (currentStatus: string): readonly string[] => {
   const normalized = currentStatus.toLowerCase();
   if (normalized === OrderStatus.CANCELLED) return CANCELLED_FLOW;
+  if (normalized === OrderStatus.ON_HOLD) return ON_HOLD_FLOW;
 
   const index = ORDER_FLOW.indexOf(
     normalized as (typeof ORDER_FLOW)[number]
@@ -57,6 +59,10 @@ const isStatusActive = (status: string, currentStatus: string): boolean => {
 
   if (c === OrderStatus.CANCELLED) {
     return s === OrderStatus.PENDING || s === OrderStatus.CANCELLED;
+  }
+
+  if (c === OrderStatus.ON_HOLD) {
+    return s === OrderStatus.PENDING || s === OrderStatus.ON_HOLD;
   }
 
   const sIndex = ORDER_FLOW.indexOf(s as (typeof ORDER_FLOW)[number]);
