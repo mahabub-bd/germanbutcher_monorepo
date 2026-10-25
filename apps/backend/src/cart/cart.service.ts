@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { BogoCampaignsService } from 'src/bogo-campaigns/bogo-campaigns.service';
 import {
   FlashSaleCampaignsService,
 } from 'src/flash-sale-campaigns/flash-sale-campaigns.service';
-import { BogoCampaignsService } from 'src/bogo-campaigns/bogo-campaigns.service';
 import { Product } from 'src/product/entities/product.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
@@ -125,6 +125,13 @@ export class CartService {
 
     if (!product) {
       throw new NotFoundException('Product not found');
+    }
+
+    // Inactive products must not be addable (e.g. stale links / search engines)
+    if (!product.isActive) {
+      throw new BadRequestException(
+        `${product.name} is no longer available.`,
+      );
     }
 
     const existingItem = cart.items?.find(

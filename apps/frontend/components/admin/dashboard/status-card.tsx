@@ -75,18 +75,19 @@ export function StatusCard({
       )}
     >
       {/* Left Section */}
-      <div className="flex items-center gap-2 sm:gap-2 relative z-10 w-full sm:w-auto lg:w-full 2xl:w-auto min-w-0">
-        <div className="p-1.5 rounded-md bg-white/50 dark:bg-black/20 shrink-0">
-          <Icon className={cn("w-4 h-4 sm:w-4 sm:h-4 2xl:w-5 2xl:h-5 shrink-0", color)} />
+      <div className="flex items-center gap-2 sm:gap-2 lg:gap-1.5 relative z-10 w-full sm:w-auto lg:w-full 2xl:w-auto min-w-0">
+        <div className="p-1.5 lg:p-1 rounded-md bg-white/50 dark:bg-black/20 shrink-0">
+          <Icon className={cn("w-3.5 h-3.5 lg:w-3 lg:h-3 2xl:w-4 2xl:h-4 shrink-0", color)} />
         </div>
-        <h4 className="min-w-0 text-xs sm:text-xs 2xl:text-base font-medium text-gray-800 dark:text-gray-200 truncate whitespace-nowrap">
+        {/* Wrap instead of truncate so narrow 7-column layouts show the full title */}
+        <h4 className="min-w-0 text-xs sm:text-xs lg:text-[11px] 2xl:text-base font-medium text-gray-800 dark:text-gray-200 leading-snug wrap-break-word">
           {title}
         </h4>
       </div>
 
       {/* Right Section */}
       <div className="flex items-center justify-between sm:justify-end lg:justify-between 2xl:justify-end gap-1 sm:gap-2 relative z-10 w-full sm:w-auto lg:w-full 2xl:w-auto">
-        <span className="text-sm sm:text-base 2xl:text-base font-bold text-gray-900 dark:text-white whitespace-nowrap drop-shadow-sm">
+        <span className="text-sm sm:text-base lg:text-sm 2xl:text-base font-bold text-gray-900 dark:text-white whitespace-nowrap drop-shadow-sm">
           {value}
         </span>
 

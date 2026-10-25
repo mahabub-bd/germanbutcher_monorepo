@@ -86,12 +86,25 @@ export async function fetchData<T>(endpoint: string): Promise<T> {
   try {
 
     const isProductData = endpoint.startsWith("products");
-    const response = await fetch(url, {
-      next: {
-        revalidate: isProductData ? 300 : 60,
-        tags: isProductData ? ["products"] : [],
-      },
-    });
+    // Product detail pages must never enter the Next.js Data Cache:
+    // with revalidate, a failed revalidation (e.g. product deactivated and
+    // the backend now 404s) serves the stale cached page indefinitely.
+    // no-store keeps deactivations effective immediately; the client-side
+    // 5s cache and the backend's query cache absorb the load.
+    const isProductDetail =
+      endpoint.startsWith("products/slug/") ||
+      Boolean(endpoint.match(/products\/\d+$/));
+    const response = await fetch(
+      url,
+      isProductDetail
+        ? { cache: "no-store" }
+        : {
+            next: {
+              revalidate: isProductData ? 300 : 60,
+              tags: isProductData ? ["products"] : [],
+            },
+          },
+    );
 
     if (!response.ok) {
       let errorMessage;

@@ -1005,6 +1005,12 @@ export class ProductService {
       throw new NotFoundException(`Product with slug '${slug}' not found`);
     }
 
+    // Storefront detail page — inactive products must 404 so stale
+    // links (search engines, old shares) can't be ordered from
+    if (!product.isActive) {
+      throw new NotFoundException(`Product with slug '${slug}' not found`);
+    }
+
     await this.withFlashSale([product]);
     return product;
   }
