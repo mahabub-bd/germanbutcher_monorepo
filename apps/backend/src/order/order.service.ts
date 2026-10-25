@@ -1974,6 +1974,8 @@ export class OrderService {
       shippedValue: 0,
       deliveredValue: 0,
       cancelledValue: 0,
+      onHold: 0,
+      onHoldValue: 0,
     };
 
     statusCounts.forEach((row) => {
@@ -2000,6 +2002,10 @@ export class OrderService {
         case OrderStatus.CANCELLED:
           statistics.cancelled = count;
           statistics.cancelledValue = value;
+          break;
+        case OrderStatus.ON_HOLD:
+          statistics.onHold = count;
+          statistics.onHoldValue = value;
           break;
       }
     });
@@ -2120,7 +2126,8 @@ export class OrderService {
     // Only PENDING and PROCESSING orders can be cancelled
     if (
       order.orderStatus !== OrderStatus.PENDING &&
-      order.orderStatus !== OrderStatus.PROCESSING
+      order.orderStatus !== OrderStatus.PROCESSING &&
+      order.orderStatus !== OrderStatus.ON_HOLD
     ) {
       throw new BadRequestException(
         `Cannot cancel order with status: ${order.orderStatus}`,

@@ -160,6 +160,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         const statusMessages: Record<string, string> = {
           [OrderStatus.PENDING]: "is pending",
           [OrderStatus.PROCESSING]: "is being processed",
+          [OrderStatus.ON_HOLD]: "has been put on hold",
           [OrderStatus.SHIPPED]: "has been shipped",
           [OrderStatus.DELIVERED]: "has been delivered",
           [OrderStatus.CANCELLED]: "has been cancelled",

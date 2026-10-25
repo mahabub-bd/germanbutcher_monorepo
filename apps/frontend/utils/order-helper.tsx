@@ -4,6 +4,7 @@ import {
   Clock,
   CreditCard,
   Package,
+  PauseCircle,
   RefreshCw,
   Smartphone,
   Truck,
@@ -22,6 +23,8 @@ const getOrderStatusColor = (status: string): string => {
       return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
     case OrderStatus.PROCESSING:
       return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+    case OrderStatus.ON_HOLD:
+      return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
     case OrderStatus.SHIPPED:
       return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
     case OrderStatus.DELIVERED:
@@ -72,6 +75,8 @@ const getStatusIcon = (status: string): React.ReactNode => {
       return <Clock className="size-3" />;
     case OrderStatus.PROCESSING:
       return <Package className="size-3" />;
+    case OrderStatus.ON_HOLD:
+      return <PauseCircle className="size-3" />;
     case OrderStatus.CANCELLED:
     case "failed":
       return <XCircle className="size-3" />;
@@ -96,6 +101,8 @@ const getStatusDotColor = (status: string): string => {
       return "bg-yellow-500";
     case OrderStatus.PROCESSING:
       return "bg-blue-500";
+    case OrderStatus.ON_HOLD:
+      return "bg-orange-500";
     case OrderStatus.SHIPPED:
       return "bg-purple-500";
     case OrderStatus.DELIVERED:

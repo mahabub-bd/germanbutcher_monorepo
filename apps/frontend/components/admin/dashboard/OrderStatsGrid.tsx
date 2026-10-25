@@ -6,6 +6,7 @@ import {
   Clock,
   ListChecks,
   Loader2,
+  PauseCircle,
   Truck,
 } from "lucide-react";
 import { StatusCard } from "./status-card";
@@ -23,6 +24,8 @@ interface OrderStatsGridProps {
     shippedValue: number;
     deliveredValue: number;
     cancelledValue: number;
+  onHold: number;
+  onHoldValue: number;
   };
 }
 
@@ -37,7 +40,7 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
     data.totalOrders > 0 ? (count / data.totalOrders) * 100 : 0;
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-3 lg:grid-cols-6 2xl:gap-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-3 lg:grid-cols-7 2xl:gap-4">
       {/* All Orders */}
       <StatusCard
         className="lg:gap-1 lg:px-2 lg:py-2"
@@ -104,6 +107,24 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
         badge={{
           text: `${percentOf(data.processing).toFixed(0)}%`,
           color: "info",
+        }}
+      />
+      {/* On Hold */}
+      <StatusCard
+        className="lg:gap-1 lg:px-2 lg:py-2"
+        title="On Hold"
+        value={data.onHold}
+        icon={PauseCircle}
+        color="text-orange-600 dark:text-orange-400"
+        gradient="from-orange-50 to-orange-100 dark:from-orange-950/20 dark:to-orange-900/10"
+        href="/admin/orders/on-hold?page=1&limit=10&orderStatus=on_hold"
+        progress={{
+          percent: percentOf(data.onHold),
+          barClass: "bg-orange-500",
+        }}
+        badge={{
+          text: `${percentOf(data.onHold).toFixed(0)}%`,
+          color: "warning",
         }}
       />
 
