@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpStatus,
   Param,
@@ -197,10 +198,19 @@ export class AddressesController {
     description: 'User not found or no addresses exist',
   })
   async findAddressesByUserId(
+    @GetUser() user: User,
     @Param('userId') userId: number,
     @Query('type') type?: AddressType,
   ): Promise<ApiResponseDto<Address[]>> {
-    const data = await this.addressesService.findByUserId(userId, type);
+    // Users may only list their own addresses; admins (roleId 1) any user's.
+    const isAdmin = user.roleId === 1;
+    if (!isAdmin && user.id !== +userId) {
+      throw new ForbiddenException(
+        'You can only access your own addresses',
+      );
+    }
+
+    const data = await this.addressesService.findByUserId(+userId, type);
     return {
       message: 'Addresses retrieved successfully',
       statusCode: HttpStatus.OK,

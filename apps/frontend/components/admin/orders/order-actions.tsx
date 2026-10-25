@@ -206,7 +206,11 @@ export function OrderActions({
       variant: "outline",
       accent: "orange",
       onClick: () => setShowRefundModal(true),
-      visible: can(MENU_URL, "canCreate") && canRefund,
+      visible:
+        can(MENU_URL, "canCreate") &&
+        // Backend enforces the refunds module permission on POST /payment/refund
+        can("/admin/reports/refunds", "canCreate") &&
+        canRefund,
     },
     {
       id: "print",

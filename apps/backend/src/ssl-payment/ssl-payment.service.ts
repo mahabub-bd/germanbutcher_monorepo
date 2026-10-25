@@ -116,7 +116,13 @@ export class SslPaymentService {
   ): Promise<{ success: boolean; redirectUrl: string; order: Order }> {
     try {
       console.log('Processing SSL payment success for order:', orderId);
-      console.log('SSL Payment Data:', sslPaymentData);
+      // Log only non-sensitive fields — full payloads contain customer PII.
+      console.log('SSL Payment Data:', {
+        tran_id: sslPaymentData?.tran_id,
+        val_id: sslPaymentData?.val_id ? '[present]' : undefined,
+        status: sslPaymentData?.status,
+        amount: sslPaymentData?.amount,
+      });
 
       const isValidPayment = await this.verifyPayment(sslPaymentData);
 
@@ -232,7 +238,14 @@ export class SslPaymentService {
     sslPaymentData: any,
   ): Promise<{ success: boolean; redirectUrl: string }> {
     try {
-      console.log(`❌ Payment failed for Order ${orderId}:`, sslPaymentData);
+      console.log(
+        `❌ Payment failed for Order ${orderId}:`,
+        JSON.stringify({
+          tran_id: sslPaymentData?.tran_id,
+          status: sslPaymentData?.status,
+          amount: sslPaymentData?.amount,
+        }),
+      );
 
       // Log the failure for tracking purposes
       console.log(`Failed Transaction ID: ${sslPaymentData.tran_id || 'N/A'}`);
@@ -262,7 +275,13 @@ export class SslPaymentService {
         val_id: sslPaymentData.val_id,
       });
 
-      console.log('🔍 SSL Validation Response:', validation);
+      // Trim to transaction identifiers — validation responses can carry
+      // card/method details that must not end up in logs.
+      console.log('🔍 SSL Validation Response:', {
+        status: validation?.status,
+        tran_id: validation?.tran_id,
+        amount: validation?.amount,
+      });
 
       const isValid =
         validation.status === 'VALID' &&
@@ -288,7 +307,11 @@ export class SslPaymentService {
 
   async handleIPN(ipnData: any): Promise<void> {
     try {
-      console.log('📡 Received IPN:', ipnData);
+      console.log('📡 Received IPN:', {
+        tran_id: ipnData?.tran_id,
+        status: ipnData?.status,
+        value_a: ipnData?.value_a,
+      });
 
       if (ipnData.status === 'VALID') {
         const orderId = ipnData.value_a;
@@ -335,7 +358,11 @@ export class SslPaymentService {
         refe_id: refundData.tran_id,
       });
 
-      console.log('SSLCommerz refund response:', response);
+      // Trim to status only — the full response carries bank references.
+      console.log('SSLCommerz refund response:', {
+        status: response?.status,
+        error: response?.error_message ?? response?.APIConnect,
+      });
 
       // Check for API connection errors
       if (

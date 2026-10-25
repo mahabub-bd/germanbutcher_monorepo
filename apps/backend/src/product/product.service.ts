@@ -11,7 +11,11 @@ import { AttachmentService } from 'src/attachment/attachment.service';
 import { Attachment } from 'src/attachment/entities/attachment.entity';
 import { Brand } from 'src/brand/entities/brand.entity';
 import { Category } from 'src/category/entities/category.entity';
-import { formatDhakaDate, resolveReportRange } from 'src/common/utils/report-date-range.util';
+import {
+  formatDhakaDate,
+  getTimeFilterRange,
+  resolveReportRange,
+} from 'src/common/utils/report-date-range.util';
 import { SwrCache } from 'src/common/utils/swr-cache';
 import { FlashSaleCampaignsService } from 'src/flash-sale-campaigns/flash-sale-campaigns.service';
 import { BogoCampaignsService } from 'src/bogo-campaigns/bogo-campaigns.service';
@@ -419,39 +423,6 @@ export class ProductService {
   /** Start date for a top-products time filter — mirrors the top-customers
    * semantics (rolling N-month windows, calendar month/year starts).
    * Returns an exclusive end bound only for last_month. */
-  private resolveBestsellerStartDate(timeFilter: string): {
-    start: Date;
-    end?: Date;
-  } | null {
-    const now = new Date();
-    switch (timeFilter) {
-      case 'last_month':
-        return {
-          start: new Date(now.getFullYear(), now.getMonth() - 1, 1),
-          end: new Date(now.getFullYear(), now.getMonth(), 1),
-        };
-      case 'this_month':
-        return { start: new Date(now.getFullYear(), now.getMonth(), 1) };
-      case 'last_3_months':
-        return {
-          start: new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()),
-        };
-      case 'last_6_months':
-        return {
-          start: new Date(now.getFullYear(), now.getMonth() - 6, now.getDate()),
-        };
-      case 'last_year':
-        return {
-          start: new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()),
-        };
-      case 'this_year':
-        return { start: new Date(now.getFullYear(), 0, 1) };
-      case 'all_time':
-      default:
-        return null;
-    }
-  }
-
   /** Relation-rich base query shared by both bestseller paths. */
   private buildBestsellerQuery(): SelectQueryBuilder<Product> {
     return this.productRepository
@@ -516,7 +487,7 @@ export class ProductService {
     isActive?: boolean,
     timeFilter: string = 'all_time',
   ): Promise<Product[]> {
-    const range = this.resolveBestsellerStartDate(timeFilter);
+    const range = getTimeFilterRange(timeFilter);
 
     // Sold quantity from delivered orders (no date window = all time).
     const salesWindow = this.productRepository.manager

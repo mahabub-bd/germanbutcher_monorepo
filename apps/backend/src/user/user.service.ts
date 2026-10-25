@@ -15,7 +15,11 @@ import { OtpService } from 'src/auth/otp.service';
 import { SmsService } from 'src/auth/sms.service';
 import { EmailService } from 'src/email/email.service';
 import { DateRangePreset } from 'src/common/enums';
-import { formatDhakaDate, resolveReportRange } from 'src/common/utils/report-date-range.util';
+import {
+  formatDhakaDate,
+  getTimeFilterRange,
+  resolveReportRange,
+} from 'src/common/utils/report-date-range.util';
 import { Role } from 'src/roles/entities/role.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -358,42 +362,10 @@ export class UserService {
     statusCode: number;
     data: any[];
   }> {
-    // Calculate date range based on time filter
-    const now = new Date();
-    let startDate: Date | null = null;
-    let endDate: Date | null = null;
-
-    switch (timeFilter) {
-      case 'last_month':
-        // Previous calendar month
-        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        endDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-      case 'this_month':
-        // First day of current month
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-      case 'last_3_months':
-        // 3 months ago from today
-        startDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-        break;
-      case 'last_6_months':
-        // 6 months ago from today
-        startDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
-        break;
-      case 'last_year':
-        // 1 year ago from today
-        startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-        break;
-      case 'this_year':
-        // First day of current year
-        startDate = new Date(now.getFullYear(), 0, 1);
-        break;
-      case 'all_time':
-      default:
-        startDate = null;
-        break;
-    }
+    // Dhaka (UTC+6) window via the shared helper; createdAt stores UTC.
+    const range = getTimeFilterRange(timeFilter);
+    const startDate = range?.start ?? null;
+    const endDate = range?.end ?? null;
 
     const orderJoinCondition = endDate
       ? "orders.orderStatus = 'delivered' AND orders.createdAt >= :startDate AND orders.createdAt < :endDate"

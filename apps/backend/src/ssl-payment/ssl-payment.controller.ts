@@ -9,17 +9,31 @@ import {
   Query,
   Redirect,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { InitiateRefundDto } from './dto/initiate-refund.dto';
 import { SslPaymentService } from './ssl-payment.service';
+
+/** Log only non-sensitive callback fields — never dump full payloads (PII). */
+function logCallback(label: string, data: Record<string, unknown>) {
+  console.log(label, {
+    tran_id: data?.tran_id,
+    val_id: data?.val_id ? '[present]' : undefined,
+    status: data?.status,
+    amount: data?.amount,
+  });
+}
 
 @Controller('payment')
 export class SslPaymentController {
   constructor(private readonly sslPaymentService: SslPaymentService) {}
 
   @Post('init')
-  @Header('Access-Control-Allow-Origin', '*')
+  @UseGuards(JwtAuthGuard)
   @Header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
   @Header(
     'Access-Control-Allow-Headers',
@@ -57,7 +71,7 @@ export class SslPaymentController {
   ) {
     try {
       console.log('SSL Payment Success - Order ID:', orderId);
-      console.log('SSL Payment Data:', sslPaymentData);
+      logCallback('SSL Payment Data:', sslPaymentData);
 
       const orderIdNum = parseInt(orderId);
 
@@ -93,7 +107,7 @@ export class SslPaymentController {
   ) {
     try {
       console.log('SSL Payment Success POST - Order ID:', orderId);
-      console.log('SSL Payment Data:', sslPaymentData);
+      logCallback('SSL Payment Data:', sslPaymentData);
 
       const orderIdNum = parseInt(orderId);
 
@@ -128,7 +142,7 @@ export class SslPaymentController {
   ) {
     try {
       console.log('SSL Payment Failed - Order ID:', orderId);
-      console.log('SSL Payment Data:', sslPaymentData);
+      logCallback('SSL Payment Data:', sslPaymentData);
 
       const orderIdNum = parseInt(orderId);
 
@@ -162,7 +176,7 @@ export class SslPaymentController {
     @Query() sslPaymentData: any,
   ) {
     console.log('SSL Payment Cancelled - Order ID:', orderId);
-    console.log('SSL Payment Data:', sslPaymentData);
+    logCallback('SSL Payment Data:', sslPaymentData);
 
     return {
       url: `${process.env.FRONTEND_URL}/payment/cancelled/${orderId}`,
@@ -174,7 +188,7 @@ export class SslPaymentController {
   @Header('Access-Control-Allow-Origin', '*')
   async ipnHandler(@Body() ipnData: any) {
     try {
-      console.log('Received IPN:', ipnData);
+      logCallback('Received IPN:', ipnData);
       await this.sslPaymentService.handleIPN(ipnData);
       return {
         status: 'success',
@@ -213,6 +227,9 @@ export class SslPaymentController {
   }
 
   @Post('refund')
+  // Refunds move real money — admin only (same permission as the refunds report).
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/refunds')
   @Header('Access-Control-Allow-Origin', '*')
   @Header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
   @Header(
