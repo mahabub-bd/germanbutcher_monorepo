@@ -145,8 +145,8 @@ const styles = StyleSheet.create({
 
 const formatCurrency = (num: number) =>
   num?.toLocaleString("en-BD", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   });
 
 export function MonthlyOrderPDF({ monthlyData, year, settings }: Props) {
@@ -194,8 +194,8 @@ export function MonthlyOrderPDF({ monthlyData, year, settings }: Props) {
         {monthlyData.map((item, index) => {
           const cancelRate =
             item.allOrderCount > 0
-              ? ((item.cancelOrderCount / item.allOrderCount) * 100).toFixed(1)
-              : "0.0";
+              ? Math.round((item.cancelOrderCount / item.allOrderCount) * 100)
+              : 0;
           return (
             <View
               key={`${item.year}-${item.month}-${index}`}
