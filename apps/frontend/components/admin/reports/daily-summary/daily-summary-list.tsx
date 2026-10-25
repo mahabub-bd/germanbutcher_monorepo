@@ -59,7 +59,8 @@ interface DailySummaryListProps {
   daily: DailyRow[];
 }
 
-const formatCurrency = (value: number, maximumFractionDigits = 2) =>
+// Whole-amount formatting: reports never show decimal fractions
+const formatCurrency = (value: number, maximumFractionDigits = 0) =>
   new Intl.NumberFormat("en-US", {
     minimumFractionDigits: maximumFractionDigits,
     maximumFractionDigits,

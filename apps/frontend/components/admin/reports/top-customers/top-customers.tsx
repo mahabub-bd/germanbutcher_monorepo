@@ -344,7 +344,7 @@ export default function TopCustomersReport({
                   {/* Total Spent */}
                   <TableCell className="text-right py-1.5 sm:py-2">
                     <span className="font-bold text-xs sm:text-sm">
-                      {formatCurrencyEnglish(customer.statistics.totalSpent)}
+                      {formatCurrencyEnglish(customer.statistics.totalSpent, 0)}
                     </span>
                   </TableCell>
 
@@ -353,7 +353,8 @@ export default function TopCustomersReport({
                     <span className="text-[10px] sm:text-xs text-muted-foreground">
                       {customer.statistics.totalOrders > 0
                         ? formatCurrencyEnglish(
-                          customer.statistics.averageOrderValue
+                          customer.statistics.averageOrderValue,
+                          0
                         )
                         : "—"}
                     </span>

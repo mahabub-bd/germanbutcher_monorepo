@@ -186,32 +186,32 @@ export default function MonthlyOrderReportList({
               monthlyData.map((item, index) => {
                 const cancelRate =
                   item.allOrderCount > 0
-                    ? ((item.cancelOrderCount / item.allOrderCount) * 100).toFixed(1)
-                    : "0.0";
+                    ? Math.round((item.cancelOrderCount / item.allOrderCount) * 100)
+                    : 0;
                 return (
                   <TableRow key={`${item.year}-${item.month}-${index}`}>
                     <TableCell>{item.year}</TableCell>
                     <TableCell className="capitalize">{item.month}</TableCell>
                     <TableCell className="text-right">{item.allOrderCount}</TableCell>
                     <TableCell className="text-right">
-                      {formatCurrencyEnglish(item.allOrderValue)}
+                      {formatCurrencyEnglish(item.allOrderValue, 0)}
                     </TableCell>
                     <TableCell className="text-right">{item.orderCount}</TableCell>
                     <TableCell className="text-right">
-                      {formatCurrencyEnglish(item.totalValue)}
+                      {formatCurrencyEnglish(item.totalValue, 0)}
                     </TableCell>
                     <TableCell className="text-right">
                       {item.cancelOrderCount}
                     </TableCell>
                     <TableCell className="text-right">
-                      {formatCurrencyEnglish(item.cancelValue)}
+                      {formatCurrencyEnglish(item.cancelValue, 0)}
                     </TableCell>
                     <TableCell className="text-right">
                       <span
                         className={
-                          parseFloat(cancelRate) > 10
+                          cancelRate > 10
                             ? "text-red-600 font-semibold"
-                            : parseFloat(cancelRate) > 5
+                            : cancelRate > 5
                               ? "text-orange-600 font-semibold"
                               : "text-green-600 font-semibold"
                         }

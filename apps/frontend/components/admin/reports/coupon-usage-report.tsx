@@ -123,12 +123,11 @@ export function CouponUsageReport({
     });
   };
 
-  const formatMoney = (value: number | string, decimals = 2) =>
+  // Whole-amount formatting: reports never show decimal fractions.
+  // The ASCII "BDT " prefix is used everywhere — the ৳ glyph is not supported
+  // by @react-pdf's built-in fonts.
+  const formatMoney = (value: number | string, decimals = 0) =>
     `BDT ${Number(value).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
-
-  // Amounts use the ASCII "BDT " prefix everywhere — the ৳ glyph is not
-  const formatMoneyPdf = (value: number | string) =>
-    `BDT ${Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const periodLabel = filters.fromDate || filters.toDate
     ? `Period: ${filters.fromDate ?? "start"} to ${filters.toDate ?? "today"}`
@@ -159,15 +158,15 @@ export function CouponUsageReport({
             row.couponCode,
             row.user?.name || "-",
             row.order?.orderNo || "-",
-            formatMoneyPdf(row.discountAmount),
-            formatMoneyPdf(row.orderTotal),
+            formatMoney(row.discountAmount),
+            formatMoney(row.orderTotal),
           ])}
           summary={
             stats
               ? [
                 { label: "Total Uses", value: String(stats.totalUses) },
-                { label: "Total Discount", value: formatMoneyPdf(stats.totalDiscountGiven) },
-                { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
+                { label: "Total Discount", value: formatMoney(stats.totalDiscountGiven) },
+                { label: "Total Order Value", value: formatMoney(stats.totalOrderValue) },
               ]
               : undefined
           }
