@@ -1,5 +1,4 @@
 
-
 # Base stage - minimal Alpine with Node.js only
 FROM node:24-alpine AS base
 
