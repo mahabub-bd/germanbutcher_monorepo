@@ -83,8 +83,9 @@ export function PeakTrafficResponseCard({
     requests: item.requestCount,
   }));
 
-  // 24 hourly buckets need thinner ticks on a half-width card.
-  const tickInterval = traffic.length > 12 ? 1 : 0;
+  // Let Recharts drop labels that would collide — 24 hourly buckets are too
+  // dense for a phone even when skipping every other tick.
+  const tickInterval = "preserveStartEnd" as const;
 
   return (
     <Card className="h-full rounded-sm">
@@ -128,50 +129,52 @@ export function PeakTrafficResponseCard({
             description="Hourly peaks will appear once requests are recorded"
           />
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart
-              data={chartData}
-              margin={{ top: 10, right: 8, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                opacity={0.2}
-              />
-              <XAxis
-                dataKey="hour"
-                axisLine={false}
-                tickLine={false}
-                tickMargin={10}
-                interval={tickInterval}
-                minTickGap={16}
-                tick={{ fontSize: 11, fill: "currentColor" }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tickMargin={10}
-                width={44}
-                tick={{ fontSize: 11, fill: "currentColor" }}
-              />
-              <Tooltip
-                cursor={{ fill: "currentColor", fillOpacity: 0.06 }}
-                content={<ChartTooltip valueLabel="Requests" />}
-              />
-              <Bar dataKey="requests" radius={[4, 4, 0, 0]} maxBarSize={26}>
-                {chartData.map((entry) => (
-                  <Cell
-                    key={entry.hour}
-                    fill={
-                      entry.requests === peakData?.requestCount
-                        ? PEAK_COLOR
-                        : BAR_COLOR
-                    }
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="min-h-72 flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  opacity={0.2}
+                />
+                <XAxis
+                  dataKey="hour"
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={10}
+                  interval={tickInterval}
+                  minTickGap={24}
+                  tick={{ fontSize: 11, fill: "currentColor" }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={10}
+                  width={44}
+                  tick={{ fontSize: 11, fill: "currentColor" }}
+                />
+                <Tooltip
+                  cursor={{ fill: "currentColor", fillOpacity: 0.06 }}
+                  content={<ChartTooltip valueLabel="Requests" />}
+                />
+                <Bar dataKey="requests" radius={[4, 4, 0, 0]} maxBarSize={26}>
+                  {chartData.map((entry) => (
+                    <Cell
+                      key={entry.hour}
+                      fill={
+                        entry.requests === peakData?.requestCount
+                          ? PEAK_COLOR
+                          : BAR_COLOR
+                      }
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         )}
       </CardContent>
     </Card>

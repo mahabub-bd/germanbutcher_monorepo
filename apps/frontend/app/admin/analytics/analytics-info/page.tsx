@@ -119,7 +119,7 @@ export default function AnalyticsPage() {
       <PageHeader
         className="mb-4"
         title="Analytics Dashboard"
-
+        description="Monitor API traffic, visitor behaviour, and response health"
         titleIcon={
           <span className="flex size-9 items-center justify-center rounded-xl bg-primaryColor/10 text-primaryColor ring-1 ring-primaryColor/15">
             <BarChart3 className="size-5" />
