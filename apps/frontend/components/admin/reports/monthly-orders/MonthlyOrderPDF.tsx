@@ -20,6 +20,12 @@ interface MonthlyData {
   totalValue: number;
   cancelOrderCount: number;
   cancelValue: number;
+  pendingOrderCount: number;
+  pendingValue: number;
+  processingOrderCount: number;
+  processingValue: number;
+  onHoldOrderCount: number;
+  onHoldValue: number;
 }
 
 interface Props {
@@ -149,10 +155,22 @@ export function MonthlyOrderPDF({ monthlyData, year, settings }: Props) {
     (sum, item) => sum + item.cancelValue,
     0
   );
+  const totalPending = monthlyData.reduce(
+    (sum, item) => sum + (item.pendingOrderCount || 0),
+    0
+  );
+  const totalProcessing = monthlyData.reduce(
+    (sum, item) => sum + (item.processingOrderCount || 0),
+    0
+  );
+  const totalOnHold = monthlyData.reduce(
+    (sum, item) => sum + (item.onHoldOrderCount || 0),
+    0
+  );
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" orientation="landscape" style={styles.page}>
         {/* Header */}
         <ReportPDFHeader settings={settings} />
 
@@ -171,6 +189,12 @@ export function MonthlyOrderPDF({ monthlyData, year, settings }: Props) {
           <Text style={styles.headerTextRight}>All Orders</Text>
           <Text style={styles.headerTextRight}>Amount</Text>
           <Text style={styles.headerTextRight}>Delivered</Text>
+          <Text style={styles.headerTextRight}>Amount</Text>
+          <Text style={styles.headerTextRight}>Pending</Text>
+          <Text style={styles.headerTextRight}>Amount</Text>
+          <Text style={styles.headerTextRight}>Processing</Text>
+          <Text style={styles.headerTextRight}>Amount</Text>
+          <Text style={styles.headerTextRight}>On Hold</Text>
           <Text style={styles.headerTextRight}>Amount</Text>
           <Text style={styles.headerTextRight}>Cancelled</Text>
           <Text style={styles.headerTextRight}>Amount</Text>
@@ -197,6 +221,24 @@ export function MonthlyOrderPDF({ monthlyData, year, settings }: Props) {
               <Text style={styles.cellRight}>{item.orderCount}</Text>
               <Text style={styles.cellRight}>
                 {formatCurrency(item.totalValue)}
+              </Text>
+              <Text style={styles.cellRight}>
+                {item.pendingOrderCount || 0}
+              </Text>
+              <Text style={styles.cellRight}>
+                {formatCurrency(item.pendingValue || 0)}
+              </Text>
+              <Text style={styles.cellRight}>
+                {item.processingOrderCount || 0}
+              </Text>
+              <Text style={styles.cellRight}>
+                {formatCurrency(item.processingValue || 0)}
+              </Text>
+              <Text style={styles.cellRight}>
+                {item.onHoldOrderCount || 0}
+              </Text>
+              <Text style={styles.cellRight}>
+                {formatCurrency(item.onHoldValue || 0)}
               </Text>
               <Text style={styles.cellRight}>{item.cancelOrderCount}</Text>
               <Text style={styles.cellRight}>
@@ -234,6 +276,18 @@ export function MonthlyOrderPDF({ monthlyData, year, settings }: Props) {
               <Text style={styles.summaryValue}>
                 {formatCurrency(totalValue)}
               </Text>
+            </View>
+            <View style={styles.summaryBox}>
+              <Text style={styles.summaryLabel}>Pending Orders</Text>
+              <Text style={styles.summaryValue}>{totalPending}</Text>
+            </View>
+            <View style={styles.summaryBox}>
+              <Text style={styles.summaryLabel}>Processing Orders</Text>
+              <Text style={styles.summaryValue}>{totalProcessing}</Text>
+            </View>
+            <View style={styles.summaryBox}>
+              <Text style={styles.summaryLabel}>On Hold Orders</Text>
+              <Text style={styles.summaryValue}>{totalOnHold}</Text>
             </View>
             <View style={styles.summaryBox}>
               <Text style={styles.summaryLabel}>Cancelled Orders</Text>

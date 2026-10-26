@@ -15,7 +15,15 @@ import {
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
-import { MapPin, PackageCheck, ShoppingCart, XCircle } from "lucide-react";
+import {
+  Clock,
+  MapPin,
+  PackageCheck,
+  PauseCircle,
+  RefreshCw,
+  ShoppingCart,
+  XCircle,
+} from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
@@ -28,6 +36,9 @@ interface Summary {
   totalOrders: number;
   deliveredOrders: number;
   cancelledOrders: number;
+  pendingOrders: number;
+  processingOrders: number;
+  onHoldOrders: number;
   totalValue: number;
   deliveredValue: number;
   totalAreas: number;
@@ -38,6 +49,9 @@ interface AreaRow {
   totalOrders: number;
   deliveredOrders: number;
   cancelledOrders: number;
+  pendingOrders: number;
+  processingOrders: number;
+  onHoldOrders: number;
   totalValue: number;
   deliveredValue: number;
 }
@@ -78,6 +92,9 @@ export default function AreaWiseOrdersList({
     a.totalOrders,
     a.deliveredOrders,
     a.cancelledOrders,
+    a.pendingOrders,
+    a.processingOrders,
+    a.onHoldOrders,
     formatCurrencyEnglish(a.totalValue),
     formatCurrencyEnglish(a.deliveredValue),
   ]);
@@ -86,6 +103,9 @@ export default function AreaWiseOrdersList({
     { label: "Total Orders", value: String(summary?.totalOrders ?? 0) },
     { label: "Delivered Orders", value: String(summary?.deliveredOrders ?? 0) },
     { label: "Cancelled Orders", value: String(summary?.cancelledOrders ?? 0) },
+    { label: "Pending Orders", value: String(summary?.pendingOrders ?? 0) },
+    { label: "Processing Orders", value: String(summary?.processingOrders ?? 0) },
+    { label: "On Hold Orders", value: String(summary?.onHoldOrders ?? 0) },
     { label: "Order Value", value: formatCurrencyEnglish(summary?.totalValue ?? 0) },
     { label: "Delivered Value", value: formatCurrencyEnglish(summary?.deliveredValue ?? 0) },
     { label: "Areas", value: String(summary?.totalAreas ?? 0) },
@@ -107,11 +127,14 @@ export default function AreaWiseOrdersList({
                   "Orders",
                   "Delivered",
                   "Cancelled",
+                  "Pending",
+                  "Processing",
+                  "On Hold",
                   "Order Value",
                   "Delivered Value",
                 ]}
-                flexes={[1.5, 0.8, 0.9, 0.9, 1.2, 1.2]}
-                alignRight={[1, 2, 3, 4, 5]}
+                flexes={[1.5, 0.7, 0.8, 0.8, 0.8, 0.8, 0.8, 1.1, 1.1]}
+                alignRight={[1, 2, 3, 4, 5, 6, 7, 8]}
                 rows={pdfRows}
                 summary={pdfSummary}
                 settings={settings}
@@ -148,6 +171,24 @@ export default function AreaWiseOrdersList({
           bgColor="green"
         />
         <StatsCard
+          icon={Clock}
+          title="Pending Orders"
+          value={summary?.pendingOrders ?? 0}
+          bgColor="orange"
+        />
+        <StatsCard
+          icon={RefreshCw}
+          title="Processing Orders"
+          value={summary?.processingOrders ?? 0}
+          bgColor="indigo"
+        />
+        <StatsCard
+          icon={PauseCircle}
+          title="On Hold Orders"
+          value={summary?.onHoldOrders ?? 0}
+          bgColor="amber"
+        />
+        <StatsCard
           icon={XCircle}
           title="Cancelled Orders"
           value={summary?.cancelledOrders ?? 0}
@@ -169,6 +210,9 @@ export default function AreaWiseOrdersList({
               <TableHead className="text-right">Orders</TableHead>
               <TableHead className="text-right">Delivered</TableHead>
               <TableHead className="text-right">Cancelled</TableHead>
+              <TableHead className="text-right">Pending</TableHead>
+              <TableHead className="text-right">Processing</TableHead>
+              <TableHead className="text-right">On Hold</TableHead>
               <TableHead className="text-right">Order Value</TableHead>
               <TableHead className="text-right">Delivered Value</TableHead>
             </TableRow>
@@ -177,7 +221,7 @@ export default function AreaWiseOrdersList({
             {areas.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={9}
                   className="text-center py-12 text-muted-foreground"
                 >
                   No orders found for this range
@@ -195,6 +239,15 @@ export default function AreaWiseOrdersList({
                   </TableCell>
                   <TableCell className="text-right">
                     {a.cancelledOrders}
+                  </TableCell>
+                  <TableCell className="text-right text-orange-600 dark:text-orange-400">
+                    {a.pendingOrders}
+                  </TableCell>
+                  <TableCell className="text-right text-blue-600 dark:text-blue-400">
+                    {a.processingOrders}
+                  </TableCell>
+                  <TableCell className="text-right text-violet-600 dark:text-violet-400">
+                    {a.onHoldOrders}
                   </TableCell>
                   <TableCell className="text-right">
                     {formatCurrencyEnglish(a.totalValue)}
