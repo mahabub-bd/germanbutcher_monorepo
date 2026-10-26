@@ -30,6 +30,9 @@ export default async function AreaWiseOrdersReportPage({
       totalOrders: number;
       deliveredOrders: number;
       cancelledOrders: number;
+      pendingOrders: number;
+      processingOrders: number;
+      onHoldOrders: number;
       totalValue: number;
       deliveredValue: number;
       totalAreas: number;
@@ -39,6 +42,9 @@ export default async function AreaWiseOrdersReportPage({
       totalOrders: number;
       deliveredOrders: number;
       cancelledOrders: number;
+      pendingOrders: number;
+      processingOrders: number;
+      onHoldOrders: number;
       totalValue: number;
       deliveredValue: number;
     }[];

@@ -20,7 +20,13 @@ import {
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
-import { ShoppingCart, XCircle } from "lucide-react";
+import {
+  Clock,
+  PauseCircle,
+  RefreshCw,
+  ShoppingCart,
+  XCircle,
+} from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -40,6 +46,12 @@ export interface MonthlyData {
   totalValue: number;
   cancelOrderCount: number;
   cancelValue: number;
+  pendingOrderCount: number;
+  pendingValue: number;
+  processingOrderCount: number;
+  processingValue: number;
+  onHoldOrderCount: number;
+  onHoldValue: number;
 }
 
 interface Props {
@@ -78,6 +90,30 @@ export default function MonthlyOrderReportList({
   );
   const totalCancelValue = monthlyData.reduce(
     (sum, item) => sum + item.cancelValue,
+    0
+  );
+  const totalPending = monthlyData.reduce(
+    (sum, item) => sum + (item.pendingOrderCount || 0),
+    0
+  );
+  const totalPendingValue = monthlyData.reduce(
+    (sum, item) => sum + (item.pendingValue || 0),
+    0
+  );
+  const totalProcessing = monthlyData.reduce(
+    (sum, item) => sum + (item.processingOrderCount || 0),
+    0
+  );
+  const totalProcessingValue = monthlyData.reduce(
+    (sum, item) => sum + (item.processingValue || 0),
+    0
+  );
+  const totalOnHold = monthlyData.reduce(
+    (sum, item) => sum + (item.onHoldOrderCount || 0),
+    0
+  );
+  const totalOnHoldValue = monthlyData.reduce(
+    (sum, item) => sum + (item.onHoldValue || 0),
     0
   );
 
@@ -148,6 +184,30 @@ export default function MonthlyOrderReportList({
             bgColor="green"
           />
           <StatsCard
+            title="Pending Orders"
+            value={formatCurrencyEnglish(totalPendingValue, 0)}
+            count={String(totalPending)}
+            description="Awaiting processing"
+            icon={Clock}
+            bgColor="orange"
+          />
+          <StatsCard
+            title="Processing Orders"
+            value={formatCurrencyEnglish(totalProcessingValue, 0)}
+            count={String(totalProcessing)}
+            description="Currently being processed"
+            icon={RefreshCw}
+            bgColor="indigo"
+          />
+          <StatsCard
+            title="On Hold Orders"
+            value={formatCurrencyEnglish(totalOnHoldValue, 0)}
+            count={String(totalOnHold)}
+            description="Temporarily on hold"
+            icon={PauseCircle}
+            bgColor="amber"
+          />
+          <StatsCard
             title="Cancelled Orders"
             value={formatCurrencyEnglish(totalCancelValue, 0)}
             count={String(totalCancelled)}
@@ -169,6 +229,12 @@ export default function MonthlyOrderReportList({
               <TableHead className="text-right">Amount</TableHead>
               <TableHead className="text-right">Delivered</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="text-right">Pending</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="text-right">Processing</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="text-right">On Hold</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
               <TableHead className="text-right">Cancelled</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead className="text-right">Cancel Rate (%)</TableHead>
@@ -178,7 +244,7 @@ export default function MonthlyOrderReportList({
             {monthlyData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={9}
+                  colSpan={15}
                   className="text-center py-8 text-muted-foreground"
                 >
                   No data found
@@ -198,9 +264,29 @@ export default function MonthlyOrderReportList({
                     <TableCell className="text-right">
                       {formatCurrencyEnglish(item.allOrderValue, 0)}
                     </TableCell>
-                    <TableCell className="text-right">{item.orderCount}</TableCell>
+                    <TableCell className="text-right text-green-600 dark:text-green-400">
+                      {item.orderCount}
+                    </TableCell>
                     <TableCell className="text-right">
                       {formatCurrencyEnglish(item.totalValue, 0)}
+                    </TableCell>
+                    <TableCell className="text-right text-orange-600 dark:text-orange-400">
+                      {item.pendingOrderCount || 0}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrencyEnglish(item.pendingValue || 0, 0)}
+                    </TableCell>
+                    <TableCell className="text-right text-blue-600 dark:text-blue-400">
+                      {item.processingOrderCount || 0}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrencyEnglish(item.processingValue || 0, 0)}
+                    </TableCell>
+                    <TableCell className="text-right text-violet-600 dark:text-violet-400">
+                      {item.onHoldOrderCount || 0}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrencyEnglish(item.onHoldValue || 0, 0)}
                     </TableCell>
                     <TableCell className="text-right">
                       {item.cancelOrderCount}

@@ -1823,6 +1823,9 @@ export class OrderService {
               COUNT(o.id) AS total_orders,
               COUNT(o.id) FILTER (WHERE o."orderStatus" = 'delivered') AS delivered_orders,
               COUNT(o.id) FILTER (WHERE o."orderStatus" = 'cancelled') AS cancelled_orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'pending') AS pending_orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'processing') AS processing_orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'on_hold') AS on_hold_orders,
               COALESCE(SUM(o."totalValue"), 0) AS total_value,
               COALESCE(SUM(o."totalValue") FILTER (WHERE o."orderStatus" = 'delivered'), 0) AS delivered_value
        FROM "order" o
@@ -1838,6 +1841,9 @@ export class OrderService {
       totalOrders: parseInt(row.total_orders, 10) || 0,
       deliveredOrders: parseInt(row.delivered_orders, 10) || 0,
       cancelledOrders: parseInt(row.cancelled_orders, 10) || 0,
+      pendingOrders: parseInt(row.pending_orders, 10) || 0,
+      processingOrders: parseInt(row.processing_orders, 10) || 0,
+      onHoldOrders: parseInt(row.on_hold_orders, 10) || 0,
       totalValue: parseFloat(row.total_value) || 0,
       deliveredValue: parseFloat(row.delivered_value) || 0,
     }));
@@ -1846,6 +1852,9 @@ export class OrderService {
       totalOrders: areas.reduce((sum, a) => sum + a.totalOrders, 0),
       deliveredOrders: areas.reduce((sum, a) => sum + a.deliveredOrders, 0),
       cancelledOrders: areas.reduce((sum, a) => sum + a.cancelledOrders, 0),
+      pendingOrders: areas.reduce((sum, a) => sum + a.pendingOrders, 0),
+      processingOrders: areas.reduce((sum, a) => sum + a.processingOrders, 0),
+      onHoldOrders: areas.reduce((sum, a) => sum + a.onHoldOrders, 0),
       totalValue: areas.reduce((sum, a) => sum + a.totalValue, 0),
       deliveredValue: areas.reduce((sum, a) => sum + a.deliveredValue, 0),
       totalAreas: areas.filter((a) => a.area !== 'Unknown').length,
@@ -1918,6 +1927,33 @@ export class OrderService {
       .orderBy('year, month_number', 'ASC')
       .getRawMany();
 
+    // Single grouped query for pending, processing and on-hold orders
+    const statusResult = await withYearFilter(
+      this.orderRepository
+        .createQueryBuilder('order')
+        .select([
+          `EXTRACT(YEAR FROM ${dhakaCreatedAt}) AS year`,
+          `TO_CHAR(${dhakaCreatedAt}, 'Month') AS month_name`,
+          `EXTRACT(MONTH FROM ${dhakaCreatedAt}) AS month_number`,
+          `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.PENDING}') AS pending_order_count`,
+          `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.PENDING}'), 0) AS pending_value`,
+          `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.PROCESSING}') AS processing_order_count`,
+          `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.PROCESSING}'), 0) AS processing_value`,
+          `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.ON_HOLD}') AS on_hold_order_count`,
+          `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.ON_HOLD}'), 0) AS on_hold_value`,
+        ])
+        .where('order.orderStatus IN (:...statuses)', {
+          statuses: [
+            OrderStatus.PENDING,
+            OrderStatus.PROCESSING,
+            OrderStatus.ON_HOLD,
+          ],
+        }),
+    )
+      .groupBy('year, month_name, month_number')
+      .orderBy('year, month_number', 'ASC')
+      .getRawMany();
+
     // Create maps for each query result
     const allOrdersMap = new Map();
     allOrdersResult.forEach((row) => {
@@ -1946,11 +1982,25 @@ export class OrderService {
       });
     });
 
+    const statusMap = new Map();
+    statusResult.forEach((row) => {
+      const key = `${row.year}-${row.month_number}`;
+      statusMap.set(key, {
+        pendingOrderCount: parseInt(row.pending_order_count) || 0,
+        pendingValue: parseFloat(row.pending_value || 0),
+        processingOrderCount: parseInt(row.processing_order_count) || 0,
+        processingValue: parseFloat(row.processing_value || 0),
+        onHoldOrderCount: parseInt(row.on_hold_order_count) || 0,
+        onHoldValue: parseFloat(row.on_hold_value || 0),
+      });
+    });
+
     // Get all unique month keys from all queries
     const allKeys = new Set([
       ...allOrdersMap.keys(),
       ...deliveredMap.keys(),
       ...cancelledMap.keys(),
+      ...statusMap.keys(),
     ]);
 
     // Combine the results
@@ -1969,18 +2019,33 @@ export class OrderService {
           cancelOrderCount: 0,
           cancelValue: 0,
         };
+        const statusData = statusMap.get(key) || {
+          pendingOrderCount: 0,
+          pendingValue: 0,
+          processingOrderCount: 0,
+          processingValue: 0,
+          onHoldOrderCount: 0,
+          onHoldValue: 0,
+        };
 
         return {
           year: parseInt(year),
           month: allOrdersResult.find((r) => `${r.year}-${r.month_number}` === key)?.month_name.trim() ||
                deliveredResult.find((r) => `${r.year}-${r.month_number}` === key)?.month_name.trim() ||
-               cancelledResult.find((r) => `${r.year}-${r.month_number}` === key)?.month_name.trim(),
+               cancelledResult.find((r) => `${r.year}-${r.month_number}` === key)?.month_name.trim() ||
+               statusResult.find((r) => `${r.year}-${r.month_number}` === key)?.month_name.trim(),
           allOrderCount: allData.allOrderCount,
           allOrderValue: allData.allOrderValue,
           orderCount: deliveredData.orderCount,
           totalValue: deliveredData.totalValue,
           cancelOrderCount: cancelData.cancelOrderCount,
           cancelValue: cancelData.cancelValue,
+          pendingOrderCount: statusData.pendingOrderCount,
+          pendingValue: statusData.pendingValue,
+          processingOrderCount: statusData.processingOrderCount,
+          processingValue: statusData.processingValue,
+          onHoldOrderCount: statusData.onHoldOrderCount,
+          onHoldValue: statusData.onHoldValue,
         };
       })
       .sort((a, b) => {
