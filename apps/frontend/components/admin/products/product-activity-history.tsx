@@ -99,7 +99,8 @@ function ActivityEntry({
         <History className="size-3.5 text-muted-foreground" />
       </span>
 
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Single-line layout on desktop; stacks vertically on mobile */}
+      <div className="flex flex-col items-start gap-1.5 md:flex-row md:flex-wrap md:items-center md:gap-2">
         <Badge className={`gap-1 border-0 ${meta.badgeClass}`}>
           {meta.icon}
           {meta.label}
@@ -108,41 +109,39 @@ function ActivityEntry({
           (entry.productId ? (
             <Link
               href={`/admin/products/${entry.productId}/view`}
-              className="text-sm font-medium hover:underline"
+              className="max-w-[220px] truncate text-sm font-medium hover:underline"
             >
               {entry.productName}
             </Link>
           ) : (
-            <span className="text-sm font-medium">{entry.productName}</span>
-          ))}
-        <span className="text-sm text-muted-foreground">
-          {formatDateTime(entry.createdAt)}
-        </span>
-      </div>
-
-      {changes.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {changes.map(([key, change]) => (
-            <span
-              key={key}
-              className="inline-flex items-center gap-1 rounded-md border bg-muted/50 px-2 py-0.5 text-xs"
-            >
-              <span className="text-muted-foreground">{key}:</span>
-              <span className="text-red-600 dark:text-red-400 line-through">
-                {formatStatusValue(key, change.from)}
-              </span>
-              <span className="text-muted-foreground">to</span>
-              <span className="text-emerald-600 dark:text-emerald-400">
-                {formatStatusValue(key, change.to)}
-              </span>
+            <span className="max-w-[220px] truncate text-sm font-medium">
+              {entry.productName}
             </span>
           ))}
-        </div>
-      )}
 
-      <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-        <User className="size-3" />
-        {entry.userName || "Unknown User"}
+        {changes.map(([key, change]) => (
+          <span
+            key={key}
+            className="inline-flex items-center gap-1 rounded-md border bg-muted/50 px-2 py-0.5 text-xs whitespace-nowrap"
+          >
+            <span className="text-muted-foreground">{key}:</span>
+            <span className="text-red-600 dark:text-red-400 line-through">
+              {formatStatusValue(key, change.from)}
+            </span>
+            <span className="text-muted-foreground">to</span>
+            <span className="text-emerald-600 dark:text-emerald-400">
+              {formatStatusValue(key, change.to)}
+            </span>
+          </span>
+        ))}
+
+        <span className="text-sm text-muted-foreground whitespace-nowrap md:ml-auto">
+          {formatDateTime(entry.createdAt)}
+        </span>
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
+          <User className="size-3 shrink-0" />
+          {entry.userName || "Unknown User"}
+        </span>
       </div>
     </li>
   );
