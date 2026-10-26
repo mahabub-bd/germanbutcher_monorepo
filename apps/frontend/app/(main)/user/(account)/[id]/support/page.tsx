@@ -44,7 +44,7 @@ export default async function SupportPage({
   } catch (error) {
     console.error("Error fetching support messages:", error);
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-100">
         <div className="text-center">
           <h1 className="mb-4 text-2xl font-bold text-gray-900">
             Unable to Load Support Messages

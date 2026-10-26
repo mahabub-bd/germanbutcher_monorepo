@@ -1,5 +1,7 @@
 "use client";
 
+import ProductActivityHistory from "@/components/admin/products/product-activity-history";
+import ProductHistoryCard from "@/components/admin/products/product-history-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +15,6 @@ import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { getDiscountedPrice, hasActiveDiscount } from "@/utils/product-utils";
 import type { Product } from "@/utils/types";
-import ProductActivityHistory from "@/components/admin/products/product-activity-history";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -965,58 +966,13 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
             {/* ── History ──────────────────────────────────────── */}
             <TabsContent value="history" className="mt-4">
-              <SectionCard title="Change Log">
-                <ProductActivityHistory productId={product.id} />
-              </SectionCard>
-              <div className="mt-4">
-              <SectionCard title="History">
-                <div className="space-y-4">
-                  {[
-                    {
-                      label: "Created by",
-                      name: product.createdBy?.name,
-                      photo: product.createdBy?.profilePhoto?.url,
-                      date: product.createdAt,
-                      dateLabel: "Created At",
-                    },
-                    {
-                      label: "Last updated by",
-                      name: product.updatedBy?.name,
-                      photo: product.updatedBy?.profilePhoto?.url,
-                      date: product.updatedAt,
-                      dateLabel: "Updated At",
-                    },
-                  ].map((entry, index) => (
-                    <div key={index} className="flex items-start gap-3">
-                      <div className="relative size-9 overflow-hidden rounded-full border bg-muted shrink-0">
-                        {entry.photo && (
-                          <Image
-                            src={entry.photo || FALLBACK_IMAGE}
-                            alt={entry.name || ""}
-                            fill
-                            sizes="36px"
-                            className="object-cover"
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">
-                          {entry.label}
-                        </p>
-                        <p className="text-sm font-medium truncate">
-                          {entry.name || "Unknown"}
-                        </p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-xs text-muted-foreground">
-                          {entry.dateLabel}
-                        </p>
-                        <p className="text-sm">{formatDateTime(entry.date)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
+              <div className="space-y-4">
+                <SectionCard title="Change Log">
+                  <ProductActivityHistory productId={product.id} />
+                </SectionCard>
+                <SectionCard title="History">
+                  <ProductHistoryCard product={product} />
+                </SectionCard>
               </div>
             </TabsContent>
           </Tabs>

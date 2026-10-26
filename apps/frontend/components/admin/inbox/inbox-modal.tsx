@@ -227,7 +227,7 @@ export function InboxModal({
       <PopoverContent
         className={cn(
           "w-[calc(100vw-2rem)] p-0",
-          "md:w-[680px]",
+          "md:w-170",
           "max-h-[80vh]",
           "overflow-hidden"
         )}

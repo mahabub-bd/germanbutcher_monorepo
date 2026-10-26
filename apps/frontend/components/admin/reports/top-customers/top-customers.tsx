@@ -173,53 +173,55 @@ export default function TopCustomersReport({
         </div>
       </div>
 
-      {/* Filters — shared single-row style (selects only, one line on md+) */}
-      <div className="grid grid-cols-2 gap-2 mb-6 md:flex md:flex-nowrap md:items-center md:gap-2">
-        <Select
-          value={limit.toString()}
-          onValueChange={(value) => updateFilter("limit", value)}
-        >
-          <SelectTrigger className="w-full md:w-37.5 md:shrink-0 h-9">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="5">Top 5</SelectItem>
-            <SelectItem value="10">Top 10</SelectItem>
-            <SelectItem value="20">Top 20</SelectItem>
-            <SelectItem value="50">Top 50</SelectItem>
-            <SelectItem value="100">Top 100</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Filters — card-style filter panel matching ReportDateFilters */}
+      <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
+        <div className="grid grid-cols-1 items-center gap-2.5 md:flex md:flex-nowrap md:items-center md:gap-3">
+          <Select
+            value={limit.toString()}
+            onValueChange={(value) => updateFilter("limit", value)}
+          >
+            <SelectTrigger className="w-full md:w-44 md:shrink-0 h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="5">Top 5</SelectItem>
+              <SelectItem value="10">Top 10</SelectItem>
+              <SelectItem value="20">Top 20</SelectItem>
+              <SelectItem value="50">Top 50</SelectItem>
+              <SelectItem value="100">Top 100</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select
-          value={sortBy}
-          onValueChange={(value) => updateFilter("sortBy", value)}
-        >
-          <SelectTrigger className="w-full md:w-37.5 md:shrink-0 h-9">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="orders">By Orders</SelectItem>
-            <SelectItem value="spending">By Spending</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select
+            value={sortBy}
+            onValueChange={(value) => updateFilter("sortBy", value)}
+          >
+            <SelectTrigger className="w-full md:w-44 md:shrink-0 h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="orders">By Orders</SelectItem>
+              <SelectItem value="spending">By Spending</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select
-          value={timeFilter}
-          onValueChange={(value) => updateFilter("timeFilter", value)}
-        >
-          <SelectTrigger className="w-full md:w-37.5 md:shrink-0 h-9">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="this_month">This Month</SelectItem>
-            <SelectItem value="last_3_months">Last 3 Months</SelectItem>
-            <SelectItem value="last_6_months">Last 6 Months</SelectItem>
-            <SelectItem value="last_year">Last Year</SelectItem>
-            <SelectItem value="this_year">This Year</SelectItem>
-            <SelectItem value="all_time">All Time</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select
+            value={timeFilter}
+            onValueChange={(value) => updateFilter("timeFilter", value)}
+          >
+            <SelectTrigger className="w-full md:w-44 md:shrink-0 h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="this_month">This Month</SelectItem>
+              <SelectItem value="last_3_months">Last 3 Months</SelectItem>
+              <SelectItem value="last_6_months">Last 6 Months</SelectItem>
+              <SelectItem value="last_year">Last Year</SelectItem>
+              <SelectItem value="this_year">This Year</SelectItem>
+              <SelectItem value="all_time">All Time</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Summary */}
