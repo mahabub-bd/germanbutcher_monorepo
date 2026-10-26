@@ -136,7 +136,7 @@ export default function OrderPaymentList({
             value={selectedOrderStatus || "all"}
             onValueChange={setSelectedOrderStatus}
           >
-            <SelectTrigger className="w-full md:w-37.5 md:shrink-0">
+            <SelectTrigger className="w-full md:w-44 md:shrink-0">
               <SelectValue placeholder="Order Status" />
             </SelectTrigger>
             <SelectContent>

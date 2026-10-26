@@ -159,7 +159,7 @@ export default function OrderReportList({
               value={selectedOrderStatus || "all"}
               onValueChange={setSelectedOrderStatus}
             >
-              <SelectTrigger className="w-full md:w-40 md:shrink-0">
+              <SelectTrigger className="w-full md:w-44 md:shrink-0">
                 <SelectValue placeholder="Order Status" />
               </SelectTrigger>
               <SelectContent>
@@ -185,7 +185,7 @@ export default function OrderReportList({
               value={selectedPaymentStatus || "all"}
               onValueChange={setSelectedPaymentStatus}
             >
-              <SelectTrigger className="w-full md:w-42.5 md:shrink-0">
+              <SelectTrigger className="w-full md:w-44 md:shrink-0">
                 <SelectValue placeholder="Payment Status" />
               </SelectTrigger>
               <SelectContent>
