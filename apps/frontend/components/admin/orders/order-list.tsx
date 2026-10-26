@@ -813,7 +813,7 @@ export function OrderList({
         <label className="text-xs text-muted-foreground">
           Order Status
         </label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {[
             "all",
             "pending",
@@ -845,7 +845,7 @@ export function OrderList({
         <label className="text-xs text-muted-foreground">
           Payment Method
         </label>
-        <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 max-h-40 overflow-y-auto">
           <button
             onClick={() => {
               setPaymentMethodFilter("");
@@ -881,7 +881,7 @@ export function OrderList({
         <label className="text-xs text-muted-foreground">
           Shipping Method
         </label>
-        <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 max-h-40 overflow-y-auto">
           <button
             onClick={() => {
               setShippingMethodFilter("");
