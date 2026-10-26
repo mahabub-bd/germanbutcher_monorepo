@@ -17,7 +17,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { CalendarDays, ShoppingCart, Wallet, XCircle } from "lucide-react";
+import {
+  CalendarDays,
+  Clock,
+  PauseCircle,
+  RefreshCw,
+  ShoppingCart,
+  Wallet,
+  XCircle,
+} from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -33,6 +41,12 @@ interface DailySummary {
   deliveredOrders: number;
   deliveredValue: number;
   cancelledOrders: number;
+  pendingOrders: number;
+  pendingValue: number;
+  processingOrders: number;
+  processingValue: number;
+  onHoldOrders: number;
+  onHoldValue: number;
   paidAmount: number;
   dueAmount: number;
 }
@@ -47,6 +61,10 @@ interface DailyRow {
   cancelledValue: number;
   pendingCount: number;
   pendingValue: number;
+  processingCount: number;
+  processingValue: number;
+  onHoldCount: number;
+  onHoldValue: number;
   paidAmount: number;
   dueAmount: number;
 }
@@ -69,6 +87,15 @@ const formatCurrency = (value: number, maximumFractionDigits = 0) =>
 // Percentage of total orders, rounded to a whole number
 const percentOf = (part: number, total: number) =>
   total > 0 ? Math.round((part / total) * 100) : 0;
+
+// Denominator for the status percentages: delivered + cancelled + pending +
+// processing + on hold, so the status shares add up to 100%
+const statusTotal = (row: DailyRow) =>
+  row.deliveredCount +
+  row.cancelledCount +
+  row.pendingCount +
+  row.processingCount +
+  row.onHoldCount;
 
 export default function DailySummaryList({
   fromDate,
@@ -98,13 +125,24 @@ export default function DailySummaryList({
     `${formatCurrency(row.orderValue)} / ${row.orderCount}`,
     `${formatCurrency(row.deliveredValue)} / ${row.deliveredCount} (${percentOf(
       row.deliveredCount,
-      row.orderCount
+      statusTotal(row)
     )}%)`,
     `${formatCurrency(row.cancelledValue)} / ${row.cancelledCount} (${percentOf(
       row.cancelledCount,
-      row.orderCount
+      statusTotal(row)
     )}%)`,
-    `${formatCurrency(row.pendingValue)} / ${row.pendingCount}`,
+    `${formatCurrency(row.pendingValue)} / ${row.pendingCount} (${percentOf(
+      row.pendingCount,
+      statusTotal(row)
+    )}%)`,
+    `${formatCurrency(row.processingValue)} / ${row.processingCount} (${percentOf(
+      row.processingCount,
+      statusTotal(row)
+    )}%)`,
+    `${formatCurrency(row.onHoldValue)} / ${row.onHoldCount} (${percentOf(
+      row.onHoldCount,
+      statusTotal(row)
+    )}%)`,
     formatCurrency(row.paidAmount),
     formatCurrency(row.dueAmount),
   ]);
@@ -116,6 +154,27 @@ export default function DailySummaryList({
       label: "Delivered",
       value: `${summary?.deliveredOrders ?? 0} (${percentOf(
         summary?.deliveredOrders ?? 0,
+        summary?.totalOrders ?? 0
+      )}%)`,
+    },
+    {
+      label: "Pending",
+      value: `${summary?.pendingOrders ?? 0} (${percentOf(
+        summary?.pendingOrders ?? 0,
+        summary?.totalOrders ?? 0
+      )}%)`,
+    },
+    {
+      label: "Processing",
+      value: `${summary?.processingOrders ?? 0} (${percentOf(
+        summary?.processingOrders ?? 0,
+        summary?.totalOrders ?? 0
+      )}%)`,
+    },
+    {
+      label: "On Hold",
+      value: `${summary?.onHoldOrders ?? 0} (${percentOf(
+        summary?.onHoldOrders ?? 0,
         summary?.totalOrders ?? 0
       )}%)`,
     },
@@ -147,12 +206,14 @@ export default function DailySummaryList({
                   "Orders",
                   "Delivered",
                   "Cancelled",
-                  "Pending/Processing",
+                  "Pending",
+                  "Processing",
+                  "On Hold",
                   "Paid",
                   "Due",
                 ]}
-                flexes={[1.2, 1.5, 1.5, 1.5, 1.5, 0.9, 1]}
-                alignRight={[1, 2, 3, 4, 5, 6]}
+                flexes={[1.2, 1.4, 1.4, 1.4, 1.4, 1.4, 1.4, 0.9, 1]}
+                alignRight={[1, 2, 3, 4, 5, 6, 7, 8]}
                 rows={pdfRows}
                 summary={pdfSummary}
                 settings={settings}
@@ -177,7 +238,7 @@ export default function DailySummaryList({
       />
 
       {/* Range summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <StatsCard
           icon={ShoppingCart}
           title="Total Orders"
@@ -193,6 +254,39 @@ export default function DailySummaryList({
           bgColor="green"
           description={`${percentOf(
             summary?.deliveredOrders ?? 0,
+            summary?.totalOrders ?? 0
+          )}% of total orders`}
+        />
+        <StatsCard
+          icon={Clock}
+          title="Pending"
+          value={formatCurrency(summary?.pendingValue ?? 0, 0)}
+          count={String(summary?.pendingOrders ?? 0)}
+          bgColor="orange"
+          description={`${percentOf(
+            summary?.pendingOrders ?? 0,
+            summary?.totalOrders ?? 0
+          )}% of total orders`}
+        />
+        <StatsCard
+          icon={RefreshCw}
+          title="Processing"
+          value={formatCurrency(summary?.processingValue ?? 0, 0)}
+          count={String(summary?.processingOrders ?? 0)}
+          bgColor="indigo"
+          description={`${percentOf(
+            summary?.processingOrders ?? 0,
+            summary?.totalOrders ?? 0
+          )}% of total orders`}
+        />
+        <StatsCard
+          icon={PauseCircle}
+          title="On Hold"
+          value={formatCurrency(summary?.onHoldValue ?? 0, 0)}
+          count={String(summary?.onHoldOrders ?? 0)}
+          bgColor="amber"
+          description={`${percentOf(
+            summary?.onHoldOrders ?? 0,
             summary?.totalOrders ?? 0
           )}% of total orders`}
         />
@@ -233,7 +327,9 @@ export default function DailySummaryList({
               <TableHead className="text-right">Orders</TableHead>
               <TableHead className="text-right">Delivered</TableHead>
               <TableHead className="text-right">Cancelled</TableHead>
-              <TableHead className="text-right">Pending/Processing</TableHead>
+              <TableHead className="text-right">Pending</TableHead>
+              <TableHead className="text-right">Processing</TableHead>
+              <TableHead className="text-right">On Hold</TableHead>
               <TableHead className="text-right">Paid</TableHead>
               <TableHead className="text-right">Due</TableHead>
             </TableRow>
@@ -242,7 +338,7 @@ export default function DailySummaryList({
             {daily.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={9}
                   className="text-center py-12 text-muted-foreground"
                 >
                   No orders found for this date range
@@ -260,17 +356,33 @@ export default function DailySummaryList({
                   <TableCell className="text-right text-green-600 dark:text-green-400 whitespace-nowrap">
                     {formatCurrency(row.deliveredValue)} / {row.deliveredCount}{" "}
                     <span className="text-xs text-muted-foreground">
-                      ({percentOf(row.deliveredCount, row.orderCount)}%)
+                      ({percentOf(row.deliveredCount, statusTotal(row))}%)
                     </span>
                   </TableCell>
                   <TableCell className="text-right text-red-600 dark:text-red-400 whitespace-nowrap">
                     {formatCurrency(row.cancelledValue)} / {row.cancelledCount}{" "}
                     <span className="text-xs text-muted-foreground">
-                      ({percentOf(row.cancelledCount, row.orderCount)}%)
+                      ({percentOf(row.cancelledCount, statusTotal(row))}%)
                     </span>
                   </TableCell>
                   <TableCell className="text-right text-orange-600 dark:text-orange-400 whitespace-nowrap">
-                    {formatCurrency(row.pendingValue)} / {row.pendingCount}
+                    {formatCurrency(row.pendingValue)} / {row.pendingCount}{" "}
+                    <span className="text-xs text-muted-foreground">
+                      ({percentOf(row.pendingCount, statusTotal(row))}%)
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                    {formatCurrency(row.processingValue)} /{" "}
+                    {row.processingCount}{" "}
+                    <span className="text-xs text-muted-foreground">
+                      ({percentOf(row.processingCount, statusTotal(row))}%)
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right text-violet-600 dark:text-violet-400 whitespace-nowrap">
+                    {formatCurrency(row.onHoldValue)} / {row.onHoldCount}{" "}
+                    <span className="text-xs text-muted-foreground">
+                      ({percentOf(row.onHoldCount, statusTotal(row))}%)
+                    </span>
                   </TableCell>
                   <TableCell className="text-right">
                     {formatCurrency(row.paidAmount)}
