@@ -43,6 +43,7 @@ import {
   CheckCircle,
   Eye,
   Filter,
+  History,
   MoreHorizontal,
   Package,
   Pencil,
@@ -679,7 +680,13 @@ export function ProductList({
               actionHref: "/admin/products/add",
             }
             : {})}
-        />
+        >
+          <Button asChild variant="outline">
+            <Link href="/admin/products/history">
+              <History className="mr-2 h-4 w-4" /> History
+            </Link>
+          </Button>
+        </PageHeader>
 
         {/* Summary tiles */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

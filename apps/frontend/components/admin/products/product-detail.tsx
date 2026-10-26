@@ -13,6 +13,7 @@ import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { getDiscountedPrice, hasActiveDiscount } from "@/utils/product-utils";
 import type { Product } from "@/utils/types";
+import ProductActivityHistory from "@/components/admin/products/product-activity-history";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -964,6 +965,10 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
             {/* ── History ──────────────────────────────────────── */}
             <TabsContent value="history" className="mt-4">
+              <SectionCard title="Change Log">
+                <ProductActivityHistory productId={product.id} />
+              </SectionCard>
+              <div className="mt-4">
               <SectionCard title="History">
                 <div className="space-y-4">
                   {[
@@ -1012,6 +1017,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                   ))}
                 </div>
               </SectionCard>
+              </div>
             </TabsContent>
           </Tabs>
         </div>

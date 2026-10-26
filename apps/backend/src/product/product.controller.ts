@@ -37,6 +37,7 @@ import { User } from 'src/user/entities/user.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { UserActivityService } from 'src/user-activity/user-activity.service';
 import { ProductService } from './product.service';
 
 @ApiTags('Products')
@@ -44,7 +45,10 @@ import { ProductService } from './product.service';
 @ApiBearerAuth('token')
 @SkipThrottle()
 export class ProductController {
-  constructor(private readonly productService: ProductService) { }
+  constructor(
+    private readonly productService: ProductService,
+    private readonly userActivityService: UserActivityService,
+  ) { }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @ModulePermissions('/admin/products')
@@ -738,6 +742,50 @@ export class ProductController {
       product,
     );
   }
+  @Get('history')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
+  @ApiOperation({
+    summary: 'Get product history',
+    description:
+      'Audit trail for every product: added, edited, activated/deactivated and deleted events, newest first.',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  async getProductHistory(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    const result = await this.userActivityService.getActivitiesPaginated(
+      +page,
+      +limit,
+      { entityType: 'products' },
+    );
+    return {
+      message: 'Product history retrieved successfully',
+      statusCode: HttpStatus.OK,
+      ...result,
+    };
+  }
+
+  @Get(':id/history')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
+  @ApiOperation({
+    summary: 'Get history of a single product',
+    description:
+      'Audit trail for one product: every add/edit/active-toggle/delete event recorded for it, newest first.',
+  })
+  @ApiOkResponse({ type: [ApiResponseDto] })
+  async getProductHistoryById(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.userActivityService.getAuditTrail('products', id);
+    return this.formatResponse(
+      'Product history retrieved successfully',
+      HttpStatus.OK,
+      data,
+    );
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Get product details',
