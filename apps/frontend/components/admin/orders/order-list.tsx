@@ -15,6 +15,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetClose,
@@ -37,6 +45,11 @@ import {
   formatDateTime,
   shortenArea,
 } from "@/lib/utils";
+import {
+  DISTRICT_AREAS,
+  DIVISION_DISTRICTS,
+  getDistrictsByDivision,
+} from "@/data/districts-areas";
 import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import {
   getOrderStatusColor,
@@ -67,6 +80,16 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+
+const DIVISIONS = Object.keys(DIVISION_DISTRICTS);
+
+// Same district → areas lookup the checkout page uses, sorted alphabetically
+const areasByDistrict = new Map(
+  DISTRICT_AREAS.map(({ district, areas }) => [
+    district,
+    [...new Set(areas)].sort((a, b) => a.localeCompare(b)),
+  ]),
+);
 
 interface OrderListProps {
   initialPage: number;
@@ -108,6 +131,12 @@ export function OrderList({
   const [areaFilter, setAreaFilter] = useState(
     getInitialParam("area") as string
   );
+  const [divisionFilter, setDivisionFilter] = useState(
+    getInitialParam("division") as string
+  );
+  const [cityFilter, setCityFilter] = useState(
+    getInitialParam("city") as string
+  );
 
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -146,9 +175,11 @@ export function OrderList({
     if (shippingMethodFilter)
       params.set("shippingMethodId", shippingMethodFilter);
     if (areaFilter) params.set("area", areaFilter);
+    if (divisionFilter) params.set("division", divisionFilter);
+    if (cityFilter) params.set("city", cityFilter);
 
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname, currentPage, totalPages, limit, searchQuery, statusFilter, paymentMethodFilter, shippingMethodFilter, areaFilter]);
+  }, [router, pathname, currentPage, totalPages, limit, searchQuery, statusFilter, paymentMethodFilter, shippingMethodFilter, areaFilter, divisionFilter, cityFilter]);
 
   const fetchOrders = useCallback(async () => {
     const seq = ++fetchSeqRef.current;
@@ -165,6 +196,8 @@ export function OrderList({
       if (shippingMethodFilter)
         params.append("shippingMethodId", shippingMethodFilter);
       if (areaFilter) params.append("area", areaFilter);
+      if (divisionFilter) params.append("division", divisionFilter);
+      if (cityFilter) params.append("city", cityFilter);
 
       const response = await fetchDataPagination<{
         data: Order[];
@@ -186,7 +219,7 @@ export function OrderList({
         setIsLoading(false);
       }
     }
-  }, [currentPage, limit, searchQuery, statusFilter, paymentMethodFilter, shippingMethodFilter, areaFilter]);
+  }, [currentPage, limit, searchQuery, statusFilter, paymentMethodFilter, shippingMethodFilter, areaFilter, divisionFilter, cityFilter]);
 
   // Initial load with URL params
   useEffect(() => {
@@ -218,6 +251,14 @@ export function OrderList({
     const areaFromUrl = searchParams?.get("area");
     if (areaFromUrl && areaFromUrl !== areaFilter) {
       setAreaFilter(areaFromUrl);
+    }
+    const divisionFromUrl = searchParams?.get("division");
+    if (divisionFromUrl && divisionFromUrl !== divisionFilter) {
+      setDivisionFilter(divisionFromUrl);
+    }
+    const cityFromUrl = searchParams?.get("city");
+    if (cityFromUrl && cityFromUrl !== cityFilter) {
+      setCityFilter(cityFromUrl);
     }
   }, [searchParams]);
 
@@ -272,6 +313,8 @@ export function OrderList({
     setPaymentMethodFilter("");
     setShippingMethodFilter("");
     setAreaFilter("");
+    setDivisionFilter("");
+    setCityFilter("");
     setCurrentPage(1);
   };
 
@@ -301,6 +344,8 @@ export function OrderList({
     if (shippingMethodFilter)
       params.set("shippingMethodId", shippingMethodFilter);
     if (areaFilter) params.set("area", areaFilter);
+    if (divisionFilter) params.set("division", divisionFilter);
+    if (cityFilter) params.set("city", cityFilter);
     return `/admin/order/${id}/${tab}?${params.toString()}`;
   };
 
@@ -314,7 +359,7 @@ export function OrderList({
   };
 
   const renderActiveFilters = () => {
-    const hasFilters = searchQuery || statusFilter || paymentMethodFilter || shippingMethodFilter || areaFilter;
+    const hasFilters = searchQuery || statusFilter || paymentMethodFilter || shippingMethodFilter || areaFilter || divisionFilter || cityFilter;
 
     if (!hasFilters) return null;
 
@@ -382,6 +427,43 @@ export function OrderList({
           >
             Area: {areaFilter}
             <button onClick={() => setAreaFilter("")} className="ml-1">
+              <XCircle className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
+
+        {divisionFilter && (
+          <Badge
+            variant="outline"
+            className="flex items-center gap-1 px-3 py-1"
+          >
+            Division: {divisionFilter}
+            <button
+              onClick={() => {
+                setDivisionFilter("");
+                setCityFilter("");
+                setAreaFilter("");
+              }}
+              className="ml-1"
+            >
+              <XCircle className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
+
+        {cityFilter && (
+          <Badge
+            variant="outline"
+            className="flex items-center gap-1 px-3 py-1"
+          >
+            City: {cityFilter}
+            <button
+              onClick={() => {
+                setCityFilter("");
+                setAreaFilter("");
+              }}
+              className="ml-1"
+            >
               <XCircle className="h-3 w-3" />
             </button>
           </Badge>
@@ -469,7 +551,9 @@ export function OrderList({
                           statusFilter ||
                           paymentMethodFilter ||
                           shippingMethodFilter ||
-                          areaFilter
+                          areaFilter ||
+                          divisionFilter ||
+                          cityFilter
                           ? "No orders match your search criteria."
                           : "There are no orders in the system yet."}
                       </p>
@@ -478,7 +562,9 @@ export function OrderList({
                       statusFilter ||
                       paymentMethodFilter ||
                       shippingMethodFilter ||
-                      areaFilter) && (
+                      areaFilter ||
+                      divisionFilter ||
+                      cityFilter) && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -714,7 +800,9 @@ export function OrderList({
     (statusFilter && statusFilter !== "all") ||
     paymentMethodFilter ||
     shippingMethodFilter ||
-    areaFilter;
+    areaFilter ||
+    divisionFilter ||
+    cityFilter;
 
   // Shared filter sections, rendered inside the desktop dropdown and the
   // mobile bottom sheet so both stay in sync.
@@ -824,20 +912,76 @@ export function OrderList({
         </div>
       </div>
 
-      {/* Area Filter */}
+      {/* Location Filter — cascading Division → City → Area, same data
+          source as checkout */}
+      <div className="space-y-2">
+        <label className="text-xs text-muted-foreground">
+          Division
+        </label>
+        <Select
+          value={divisionFilter}
+          onValueChange={(value) => {
+            if (value !== divisionFilter) {
+              // Reset downstream selections when the division changes
+              setCityFilter("");
+              setAreaFilter("");
+            }
+            setDivisionFilter(value);
+            setCurrentPage(1);
+          }}
+        >
+          <SelectTrigger className="h-8 w-full text-xs">
+            <SelectValue placeholder="Select Division" />
+          </SelectTrigger>
+          <SelectContent>
+            {DIVISIONS.map((division) => (
+              <SelectItem key={division} value={division}>
+                {division}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs text-muted-foreground">
+          City
+        </label>
+        <SearchableSelect
+          value={cityFilter}
+          onValueChange={(value) => {
+            if (value !== cityFilter) {
+              setAreaFilter("");
+            }
+            setCityFilter(value);
+            setCurrentPage(1);
+          }}
+          options={getDistrictsByDivision(divisionFilter)}
+          placeholder={
+            divisionFilter ? "Select City" : "Select Division first"
+          }
+          searchPlaceholder="Search city..."
+          disabled={!divisionFilter}
+          className="h-8 text-xs"
+        />
+      </div>
+
       <div className="space-y-2">
         <label className="text-xs text-muted-foreground">
           Area
         </label>
-        <Input
-          type="search"
-          placeholder="Filter by area..."
-          className="h-8 text-xs"
+        <SearchableSelect
           value={areaFilter}
-          onChange={(e) => {
-            setAreaFilter(e.target.value);
+          onValueChange={(value) => {
+            setAreaFilter(value);
             setCurrentPage(1);
           }}
+          options={areasByDistrict.get(cityFilter) ?? []}
+          placeholder={cityFilter ? "Select Area" : "Select City first"}
+          searchPlaceholder="Search area..."
+          emptyMessage="No area found."
+          disabled={!cityFilter}
+          className="h-8 text-xs"
         />
       </div>
     </>

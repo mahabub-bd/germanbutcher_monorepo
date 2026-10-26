@@ -49,6 +49,8 @@ export interface FindAllOrdersOptions {
   paymentMethodId?: number;
   shippingMethodId?: number;
   area?: string;
+  division?: string;
+  city?: string;
 }
 @Injectable()
 export class OrderService {
@@ -1021,6 +1023,8 @@ export class OrderService {
       paymentMethodId,
       shippingMethodId,
       area,
+      division,
+      city,
     }: Pick<
       FindAllOrdersOptions,
       | 'search'
@@ -1029,6 +1033,8 @@ export class OrderService {
       | 'paymentMethodId'
       | 'shippingMethodId'
       | 'area'
+      | 'division'
+      | 'city'
     >,
   ): void {
     if (search) {
@@ -1054,10 +1060,18 @@ export class OrderService {
         shippingMethodId,
       });
     }
-    // Free-text area on the joined address row; ILIKE for case-insensitive
-    // matching since Postgres LIKE is case-sensitive
+    // Free-text location fields on the joined address row; ILIKE for
+    // case-insensitive matching since Postgres LIKE is case-sensitive
     if (area) {
       qb.andWhere('address.area ILIKE :area', { area: `%${area}%` });
+    }
+    if (division) {
+      qb.andWhere('address.division ILIKE :division', {
+        division: `%${division}%`,
+      });
+    }
+    if (city) {
+      qb.andWhere('address.city ILIKE :city', { city: `%${city}%` });
     }
   }
 
@@ -1073,6 +1087,8 @@ export class OrderService {
       paymentMethodId,
       shippingMethodId,
       area,
+      division,
+      city,
       sort,
     } = options;
 
@@ -1115,6 +1131,8 @@ export class OrderService {
       paymentMethodId,
       shippingMethodId,
       area,
+      division,
+      city,
     });
 
     if (sort === 'date_asc') {
@@ -1138,6 +1156,8 @@ export class OrderService {
       paymentMethodId,
       shippingMethodId,
       area,
+      division,
+      city,
     });
 
     const [data, total] = await Promise.all([
