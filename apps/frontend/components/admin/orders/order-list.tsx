@@ -41,15 +41,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  formatCurrencyEnglish,
-  formatDateTime,
-  shortenArea,
-} from "@/lib/utils";
-import {
   DISTRICT_AREAS,
   DIVISION_DISTRICTS,
   getDistrictsByDivision,
 } from "@/data/districts-areas";
+import {
+  formatCurrencyEnglish,
+  formatDateTime,
+  shortenArea,
+} from "@/lib/utils";
 import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import {
   getOrderStatusColor,
