@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { CalendarDays, ShoppingCart, Wallet } from "lucide-react";
+import { CalendarDays, ShoppingCart, Wallet, XCircle } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -66,6 +66,10 @@ const formatCurrency = (value: number, maximumFractionDigits = 0) =>
     maximumFractionDigits,
   }).format(value || 0);
 
+// Percentage of total orders, rounded to a whole number
+const percentOf = (part: number, total: number) =>
+  total > 0 ? Math.round((part / total) * 100) : 0;
+
 export default function DailySummaryList({
   fromDate,
   toDate,
@@ -91,12 +95,15 @@ export default function DailySummaryList({
 
   const pdfRows = daily.map((row) => [
     row.date,
-    row.orderCount,
-    formatCurrency(row.orderValue),
-    row.deliveredCount,
-    formatCurrency(row.deliveredValue),
-    row.cancelledCount,
-    formatCurrency(row.cancelledValue),
+    `${formatCurrency(row.orderValue)} / ${row.orderCount}`,
+    `${formatCurrency(row.deliveredValue)} / ${row.deliveredCount} (${percentOf(
+      row.deliveredCount,
+      row.orderCount
+    )}%)`,
+    `${formatCurrency(row.cancelledValue)} / ${row.cancelledCount} (${percentOf(
+      row.cancelledCount,
+      row.orderCount
+    )}%)`,
     row.pendingCount,
     formatCurrency(row.pendingValue),
     formatCurrency(row.paidAmount),
@@ -106,6 +113,20 @@ export default function DailySummaryList({
   const pdfSummary = [
     { label: "Total Orders", value: String(summary?.totalOrders ?? 0) },
     { label: "Total Value", value: formatCurrency(summary?.totalValue ?? 0) },
+    {
+      label: "Delivered",
+      value: `${summary?.deliveredOrders ?? 0} (${percentOf(
+        summary?.deliveredOrders ?? 0,
+        summary?.totalOrders ?? 0
+      )}%)`,
+    },
+    {
+      label: "Cancelled",
+      value: `${summary?.cancelledOrders ?? 0} (${percentOf(
+        summary?.cancelledOrders ?? 0,
+        summary?.totalOrders ?? 0
+      )}%)`,
+    },
     { label: "Paid", value: formatCurrency(summary?.paidAmount ?? 0) },
     { label: "Due", value: formatCurrency(summary?.dueAmount ?? 0) },
   ];
@@ -125,18 +146,15 @@ export default function DailySummaryList({
                 headers={[
                   "Date",
                   "Orders",
-                  "Order Value",
                   "Delivered",
-                  "Delivered Value",
                   "Cancelled",
-                  "Cancelled Value",
                   "Pending/Processing",
                   "Pending Value",
                   "Paid",
                   "Due",
                 ]}
-                flexes={[1.2, 0.7, 1, 0.8, 1, 0.8, 0.9, 1.1, 1, 0.9, 1]}
-                alignRight={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+                flexes={[1.2, 1.5, 1.5, 1.5, 1.1, 1, 0.9, 1]}
+                alignRight={[1, 2, 3, 4, 5, 6, 7]}
                 rows={pdfRows}
                 summary={pdfSummary}
                 settings={settings}
@@ -161,7 +179,7 @@ export default function DailySummaryList({
       />
 
       {/* Range summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
         <StatsCard
           icon={ShoppingCart}
           title="Total Orders"
@@ -172,9 +190,27 @@ export default function DailySummaryList({
         <StatsCard
           icon={CalendarDays}
           title="Delivered"
-          value={summary?.deliveredOrders ?? 0}
-          count={formatCurrency(summary?.deliveredValue ?? 0, 0)}
+          value={formatCurrency(summary?.deliveredValue ?? 0, 0)}
+          count={String(summary?.deliveredOrders ?? 0)}
           bgColor="green"
+          description={`${percentOf(
+            summary?.deliveredOrders ?? 0,
+            summary?.totalOrders ?? 0
+          )}% of total orders`}
+        />
+        <StatsCard
+          icon={XCircle}
+          title="Cancelled"
+          value={formatCurrency(
+            daily.reduce((sum, row) => sum + (row.cancelledValue || 0), 0),
+            0
+          )}
+          count={String(summary?.cancelledOrders ?? 0)}
+          bgColor="red"
+          description={`${percentOf(
+            summary?.cancelledOrders ?? 0,
+            summary?.totalOrders ?? 0
+          )}% of total orders`}
         />
         <StatsCard
           icon={Wallet}
@@ -197,9 +233,7 @@ export default function DailySummaryList({
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead className="text-right">Orders</TableHead>
-              <TableHead className="text-right">Order Value</TableHead>
               <TableHead className="text-right">Delivered</TableHead>
-              <TableHead className="text-right">Delivered Value</TableHead>
               <TableHead className="text-right">Cancelled</TableHead>
               <TableHead className="text-right">Pending/Processing</TableHead>
               <TableHead className="text-right">Pending Value</TableHead>
@@ -211,7 +245,7 @@ export default function DailySummaryList({
             {daily.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={10}
+                  colSpan={8}
                   className="text-center py-12 text-muted-foreground"
                 >
                   No orders found for this date range
@@ -223,18 +257,20 @@ export default function DailySummaryList({
                   <TableCell className="font-medium whitespace-nowrap">
                     {row.date}
                   </TableCell>
-                  <TableCell className="text-right">{row.orderCount}</TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(row.orderValue)}
+                  <TableCell className="text-right whitespace-nowrap">
+                    {formatCurrency(row.orderValue)} / {row.orderCount}
                   </TableCell>
-                  <TableCell className="text-right text-green-600 dark:text-green-400">
-                    {row.deliveredCount}
+                  <TableCell className="text-right text-green-600 dark:text-green-400 whitespace-nowrap">
+                    {formatCurrency(row.deliveredValue)} / {row.deliveredCount}{" "}
+                    <span className="text-xs text-muted-foreground">
+                      ({percentOf(row.deliveredCount, row.orderCount)}%)
+                    </span>
                   </TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(row.deliveredValue)}
-                  </TableCell>
-                  <TableCell className="text-right text-red-600 dark:text-red-400">
-                    {row.cancelledCount}
+                  <TableCell className="text-right text-red-600 dark:text-red-400 whitespace-nowrap">
+                    {formatCurrency(row.cancelledValue)} / {row.cancelledCount}{" "}
+                    <span className="text-xs text-muted-foreground">
+                      ({percentOf(row.cancelledCount, row.orderCount)}%)
+                    </span>
                   </TableCell>
                   <TableCell className="text-right text-orange-600 dark:text-orange-400">
                     {row.pendingCount}
