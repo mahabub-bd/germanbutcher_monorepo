@@ -77,7 +77,7 @@ export function VisitorsChart({
         <ResponsiveContainer width="100%" height={240}>
           <BarChart
             data={chartData}
-            margin={{ top: 10, right: 8, left: -12, bottom: 0 }}
+            margin={{ top: 10, right: 8, left: 0, bottom: 0 }}
           >
             <defs>
               <linearGradient
