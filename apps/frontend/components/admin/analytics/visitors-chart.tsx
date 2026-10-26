@@ -1,9 +1,11 @@
 "use client";
 
+import { AnalyticsCardHeader, AnalyticsRangeBadge } from "@/components/admin/analytics/analytics-card-header";
+import { AnalyticsEmptyState } from "@/components/admin/analytics/analytics-empty-state";
+import { ChartTooltip } from "@/components/admin/analytics/chart-tooltip";
 import { Card, CardContent } from "@/components/ui/card";
-import { AnalyticsCardHeader } from "@/components/admin/analytics/analytics-card-header";
+import type { VisitorsData } from "@/utils/types";
 import { Users } from "lucide-react";
-import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -13,72 +15,51 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { VisitorsData } from "@/utils/types";
 
 interface VisitorsChartProps {
   data: VisitorsData[];
+  /** Aggregation window shown in the header, e.g. "30 days". */
+  rangeLabel?: string;
 }
 
 const VISITORS_COLOR = "#10b981"; // Emerald-500
 
-export function VisitorsChart({ data }: VisitorsChartProps) {
-  const [windowSize, setWindowSize] = useState({
-    width: typeof window !== "undefined" ? window.innerWidth : 1200,
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowSize({ width: window.innerWidth });
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // Calculate total visitors
+export function VisitorsChart({
+  data,
+  rangeLabel = "30 days",
+}: VisitorsChartProps) {
   const totalVisitors = data.reduce((sum, item) => sum + item.count, 0);
+  const bestDay = data.reduce(
+    (max, item) => (item.count > max.count ? item : max),
+    data[0] ?? { date: "", count: 0 },
+  );
 
-  // Map data to chart format
+  // 30 daily buckets otherwise print every label and collide on half-width
+  // cards — show roughly a dozen evenly-spaced ticks.
+  const tickInterval = data.length > 12 ? Math.ceil(data.length / 12) - 1 : 0;
+
   const chartData = data.map((item) => ({
     date: item.date,
     visitors: item.count,
   }));
-
-  const CustomTooltip = ({
-    active,
-    payload,
-    label,
-  }: {
-    active?: boolean;
-    payload?: unknown[];
-    label?: string;
-  }) => {
-    if (active && payload && payload.length) {
-      const entry = payload[0] as { value?: number };
-      return (
-        <div className="rounded-lg border bg-white dark:bg-gray-800 p-3 shadow-lg">
-          <div className="font-semibold mb-1 text-sm">{label}</div>
-          <div className="flex items-center justify-between text-sm gap-4">
-            <span className="text-gray-600 dark:text-gray-400">Visitors:</span>
-            <span className="font-semibold text-gray-900 dark:text-white">
-              {(entry.value ?? 0).toLocaleString()}
-            </span>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   if (!data || data.length === 0) {
     return (
       <Card className="h-full rounded-sm">
         <AnalyticsCardHeader
           title="Visitors Overview"
-          description="No data available"
+          description="Daily unique visitors"
           icon={Users}
           tone="green"
+          action={<AnalyticsRangeBadge label={rangeLabel} />}
         />
+        <CardContent>
+          <AnalyticsEmptyState
+            icon={Users}
+            title="No visitor data yet"
+            description="Daily visitor counts will appear once traffic is recorded"
+          />
+        </CardContent>
       </Card>
     );
   }
@@ -87,44 +68,75 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
     <Card className="h-full rounded-sm">
       <AnalyticsCardHeader
         title="Visitors Overview"
-        description={`${totalVisitors.toLocaleString()} total visitors`}
+        description={`${totalVisitors.toLocaleString()} unique visitors`}
         icon={Users}
         tone="green"
+        action={<AnalyticsRangeBadge label={rangeLabel} />}
       />
-      <CardContent>
-        <ResponsiveContainer width="100%" height={170}>
-          <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
+      <CardContent className="flex flex-1 flex-col gap-3">
+        <ResponsiveContainer width="100%" height={240}>
+          <BarChart
+            data={chartData}
+            margin={{ top: 10, right: 8, left: -12, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient
+                id="visitorsGradient"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <stop offset="0%" stopColor="#34d399" stopOpacity={0.95} />
+                <stop offset="100%" stopColor={VISITORS_COLOR} stopOpacity={1} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              vertical={false}
+              opacity={0.2}
+            />
             <XAxis
               dataKey="date"
               axisLine={false}
               tickLine={false}
-              tickMargin={5}
-              // Force every tick on desktop; auto-thin overlapping labels on mobile
-              interval={windowSize.width < 640 ? "preserveStartEnd" : 0}
-              minTickGap={windowSize.width < 640 ? 30 : 0}
-              angle={-45}
+              tickMargin={8}
+              interval={tickInterval}
+              minTickGap={20}
+              angle={-40}
               textAnchor="end"
-              height={45}
+              height={46}
               tick={{ fontSize: 11, fill: "currentColor" }}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
               tickMargin={10}
+              width={44}
               tick={{ fontSize: 11, fill: "currentColor" }}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip
+              cursor={{ fill: "currentColor", fillOpacity: 0.06 }}
+              content={<ChartTooltip valueLabel="Visitors" />}
+            />
             <Bar
               dataKey="visitors"
-              fill={VISITORS_COLOR}
+              fill="url(#visitorsGradient)"
               radius={[4, 4, 0, 0]}
-              barSize={
-                data.length > 20 ? 6 : windowSize.width < 640 ? 8 : 16
-              }
+              maxBarSize={36}
             />
           </BarChart>
         </ResponsiveContainer>
+
+        <div className="mt-auto flex items-center justify-between rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-xs">
+          <span className="text-muted-foreground">Best day</span>
+          <span className="font-semibold tabular-nums">
+            {bestDay.date || "—"}
+            <span className="ml-2 font-normal text-muted-foreground">
+              {bestDay.count.toLocaleString()} visitors
+            </span>
+          </span>
+        </div>
       </CardContent>
     </Card>
   );

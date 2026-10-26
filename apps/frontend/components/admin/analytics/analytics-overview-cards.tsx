@@ -20,6 +20,8 @@ interface AnalyticsOverviewCardsProps {
   requestsSeries?: number[];
   /** Daily visitor counts — drives the visitors/conversion sparklines. */
   visitorsSeries?: number[];
+  /** Fixed conversion window, e.g. "30d". */
+  conversionRangeLabel?: string;
 }
 
 export function AnalyticsOverviewCards({
@@ -27,11 +29,12 @@ export function AnalyticsOverviewCards({
   conversion,
   requestsSeries,
   visitorsSeries,
+  conversionRangeLabel = "30d",
 }: AnalyticsOverviewCardsProps) {
   // 8-across only on large desktops; laptops (xl) get 4x2 so the cards
   // keep readable widths
   return (
-    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-8">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-8">
       <OnlineNowCard />
       <StatsCard
         title="Total Requests"
@@ -47,6 +50,15 @@ export function AnalyticsOverviewCards({
         bgColor="green"
         sparklineData={visitorsSeries}
       />
+      {conversion && (
+        <StatsCard
+          title="Conversion"
+          value={`${conversion.conversionRate.toFixed(2)}%`}
+          icon={Percent}
+          bgColor="teal"
+          description={`${conversion.orders.toLocaleString()} orders / ${conversion.visitors.toLocaleString()} visitors · ${conversionRangeLabel}`}
+        />
+      )}
       <StatsCard
         title="Avg Response Time"
         value={`${data.avgResponseTime.toFixed(0)}ms`}
@@ -74,16 +86,6 @@ export function AnalyticsOverviewCards({
         description="Most accessed"
         bgColor="violet"
       />
-      {conversion && (
-        <StatsCard
-          title="Conversion"
-          value={`${conversion.conversionRate.toFixed(2)}%`}
-          icon={Percent}
-          bgColor="green"
-          description={`${conversion.orders.toLocaleString()} orders / ${conversion.visitors.toLocaleString()} visitors`}
-          sparklineData={visitorsSeries}
-        />
-      )}
     </div>
   );
 }
