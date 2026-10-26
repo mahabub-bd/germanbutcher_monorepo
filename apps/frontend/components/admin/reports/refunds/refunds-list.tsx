@@ -18,9 +18,44 @@ import {
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { getPaymentStatusColor, getStatusIcon } from "@/utils/order-helper";
-import { AlertTriangle, Ban, RotateCcw } from "lucide-react";
+import {
+  AlertTriangle,
+  Ban,
+  Calendar,
+  RotateCcw,
+  ShoppingCart,
+  Wallet,
+} from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+
+// Badge tints for date and amount cells, matching the other report tables
+const badgeTones = {
+  slate:
+    "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-400",
+  blue: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
+  green:
+    "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
+  red: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
+} as const;
+
+// Cell value inside a tinted pill with a leading icon
+const IconBadge = ({
+  icon: Icon,
+  tone,
+  children,
+}: {
+  icon: typeof Ban;
+  tone: string;
+  children: React.ReactNode;
+}) => (
+  <span
+    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-sm font-medium ${tone}`}
+  >
+    <Icon className="h-3.5 w-3.5" />
+    {children}
+  </span>
+);
 
 // Plain number formatting for the table/PDF — the ৳ symbol stays on the
 // stat cards only.
@@ -254,16 +289,26 @@ export default function RefundsList({
             ) : (
               orders.map((o) => (
                 <TableRow key={o.id} className="hover:bg-muted/50">
-                  <TableCell className="whitespace-nowrap">{o.date}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <IconBadge icon={Calendar} tone={badgeTones.slate}>
+                      {o.date}
+                    </IconBadge>
+                  </TableCell>
                   <TableCell className="font-medium">{o.orderNo}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    {amount(o.totalValue)}
+                  <TableCell className="text-right">
+                    <IconBadge icon={ShoppingCart} tone={badgeTones.blue}>
+                      {amount(o.totalValue)}
+                    </IconBadge>
                   </TableCell>
                   <TableCell className="text-right">
-                    {amount(o.paidAmount)}
+                    <IconBadge icon={Wallet} tone={badgeTones.green}>
+                      {amount(o.paidAmount)}
+                    </IconBadge>
                   </TableCell>
-                  <TableCell className="text-right font-medium text-red-600 dark:text-red-400">
-                    {amount(o.refundedAmount)}
+                  <TableCell className="text-right">
+                    <IconBadge icon={RotateCcw} tone={badgeTones.red}>
+                      {amount(o.refundedAmount)}
+                    </IconBadge>
                   </TableCell>
                   <TableCell className="pl-8">{paymentBadge(o.paymentStatus)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground max-w-60 truncate">

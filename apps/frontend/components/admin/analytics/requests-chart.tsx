@@ -38,9 +38,8 @@ export function RequestsChart({
     data[0] ?? { time: "", count: 0 },
   );
 
-  // With 24 hourly buckets a tick every other hour reads better than a
-  // cramped full scale on half-width cards.
-  const tickInterval = data.length > 12 ? Math.ceil(data.length / 12) - 1 : 0;
+  // 24 hourly buckets: keep roughly eight labels so phones stay readable.
+  const tickInterval = data.length > 12 ? Math.ceil(data.length / 8) - 1 : 0;
 
   if (!data || data.length === 0) {
     return (
@@ -76,7 +75,7 @@ export function RequestsChart({
         <ResponsiveContainer width="100%" height={240}>
           <AreaChart
             data={data}
-            margin={{ top: 10, right: 8, left: 0, bottom: 0 }}
+            margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
           >
             <defs>
               <linearGradient

@@ -21,6 +21,8 @@ import {
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import {
+  Calendar,
+  CalendarDays,
   Clock,
   PauseCircle,
   RefreshCw,
@@ -59,6 +61,39 @@ interface Props {
   availableYears: number[];
   selectedYear?: number;
 }
+
+// Color triplets for each status column: value text, % badge and progress bar,
+// matching daily-summary
+const tones = {
+  blue: {
+    text: "text-blue-600 dark:text-blue-400",
+    badge: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
+    bar: "bg-blue-500",
+  },
+  green: {
+    text: "text-green-600 dark:text-green-400",
+    badge:
+      "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
+    bar: "bg-green-500",
+  },
+  orange: {
+    text: "text-orange-600 dark:text-orange-400",
+    badge:
+      "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400",
+    bar: "bg-orange-500",
+  },
+  purple: {
+    text: "text-purple-600 dark:text-purple-400",
+    badge:
+      "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400",
+    bar: "bg-purple-500",
+  },
+  red: {
+    text: "text-red-600 dark:text-red-400",
+    badge: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
+    bar: "bg-red-500",
+  },
+} as const;
 
 export default function MonthlyOrderReportList({
   monthlyData,
@@ -225,26 +260,19 @@ export default function MonthlyOrderReportList({
             <TableRow>
               <TableHead>Year</TableHead>
               <TableHead>Month</TableHead>
-              <TableHead className="text-right">All Orders</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-right">Delivered</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-right">Pending</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-right">Processing</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-right">On Hold</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-right">Cancelled</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-right">Cancel Rate (%)</TableHead>
+              <TableHead>All Orders</TableHead>
+              <TableHead>Delivered</TableHead>
+              <TableHead>Pending</TableHead>
+              <TableHead>Processing</TableHead>
+              <TableHead>On Hold</TableHead>
+              <TableHead>Cancelled</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {monthlyData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={15}
+                  colSpan={8}
                   className="text-center py-8 text-muted-foreground"
                 >
                   No data found
@@ -252,61 +280,87 @@ export default function MonthlyOrderReportList({
               </TableRow>
             ) : (
               monthlyData.map((item, index) => {
-                const cancelRate =
-                  item.allOrderCount > 0
-                    ? Math.round((item.cancelOrderCount / item.allOrderCount) * 100)
-                    : 0;
                 return (
                   <TableRow key={`${item.year}-${item.month}-${index}`}>
-                    <TableCell>{item.year}</TableCell>
-                    <TableCell className="capitalize">{item.month}</TableCell>
-                    <TableCell className="text-right">{item.allOrderCount}</TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrencyEnglish(item.allOrderValue, 0)}
-                    </TableCell>
-                    <TableCell className="text-right text-green-600 dark:text-green-400">
-                      {item.orderCount}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrencyEnglish(item.totalValue, 0)}
-                    </TableCell>
-                    <TableCell className="text-right text-orange-600 dark:text-orange-400">
-                      {item.pendingOrderCount || 0}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrencyEnglish(item.pendingValue || 0, 0)}
-                    </TableCell>
-                    <TableCell className="text-right text-blue-600 dark:text-blue-400">
-                      {item.processingOrderCount || 0}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrencyEnglish(item.processingValue || 0, 0)}
-                    </TableCell>
-                    <TableCell className="text-right text-violet-600 dark:text-violet-400">
-                      {item.onHoldOrderCount || 0}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrencyEnglish(item.onHoldValue || 0, 0)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {item.cancelOrderCount}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrencyEnglish(item.cancelValue, 0)}
-                    </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>
                       <span
-                        className={
-                          cancelRate > 10
-                            ? "text-red-600 font-semibold"
-                            : cancelRate > 5
-                              ? "text-orange-600 font-semibold"
-                              : "text-green-600 font-semibold"
-                        }
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-sm font-medium ${tones.purple.badge}`}
                       >
-                        {cancelRate}%
+                        <Calendar className="h-3.5 w-3.5" />
+                        {item.year}
                       </span>
                     </TableCell>
+                    <TableCell className="pr-8">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-sm font-medium capitalize ${tones.blue.badge}`}
+                      >
+                        <CalendarDays className="h-3.5 w-3.5" />
+                        {item.month}
+                      </span>
+                    </TableCell>
+                    <TableCell
+                      className={`min-w-35 whitespace-nowrap pr-8 text-sm font-medium ${tones.blue.text}`}
+                    >
+                      {formatCurrencyEnglish(item.allOrderValue, 0)} /{" "}
+                      {item.allOrderCount}
+                    </TableCell>
+                    {[
+                      {
+                        value: item.totalValue,
+                        count: item.orderCount,
+                        tone: tones.green,
+                      },
+                      {
+                        value: item.pendingValue || 0,
+                        count: item.pendingOrderCount || 0,
+                        tone: tones.orange,
+                      },
+                      {
+                        value: item.processingValue || 0,
+                        count: item.processingOrderCount || 0,
+                        tone: tones.blue,
+                      },
+                      {
+                        value: item.onHoldValue || 0,
+                        count: item.onHoldOrderCount || 0,
+                        tone: tones.purple,
+                      },
+                      {
+                        value: item.cancelValue,
+                        count: item.cancelOrderCount,
+                        tone: tones.red,
+                      },
+                    ].map(({ value, count, tone }) => {
+                      const percent =
+                        item.allOrderCount > 0
+                          ? Math.round((count / item.allOrderCount) * 100)
+                          : 0;
+                      return (
+                        <TableCell
+                          key={`${item.year}-${item.month}-${tone.bar}`}
+                          className="min-w-35 whitespace-nowrap pr-8"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span
+                              className={`text-sm font-medium ${tone.text}`}
+                            >
+                              {formatCurrencyEnglish(value, 0)} / {count}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${tone.badge}`}
+                            >
+                              {percent}%
+                            </span>
+                          </div>
+                          <div className="mt-1 h-0.5 w-full overflow-hidden rounded-full bg-muted">
+                            <div
+                              className={`h-full rounded-full ${tone.bar}`}
+                              style={{ width: `${percent}%` }}
+                            />
+                          </div>
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
                 );
               })
