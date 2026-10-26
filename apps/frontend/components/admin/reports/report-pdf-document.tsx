@@ -36,20 +36,7 @@ interface Props {
 const styles = StyleSheet.create({
   page: { padding: 30, fontSize: 10, fontFamily: "Helvetica", color: "#111" },
 
-  // ----- Header -----
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottom: 1,
-    borderColor: "#8B0000",
-    paddingBottom: 10,
-    marginBottom: 10,
-  },
-  logo: { width: 55, height: 55 },
-  companyInfo: { flexDirection: "column" },
-  companyName: { fontSize: 14, fontWeight: "bold", color: "#8B0000" },
-  companyAddress: { fontSize: 9, marginTop: 2 },
+  // ----- Report title (company header lives in report-pdf-header.tsx) -----
   reportTitle: {
     fontSize: 16,
     fontWeight: "bold",
@@ -136,7 +123,7 @@ export function ReportTablePDF({
   return (
     <Document>
       <Page size="A4" orientation={orientation} style={styles.page}>
-        <ReportPDFHeader settings={settings} styles={styles} />
+        <ReportPDFHeader settings={settings} />
 
         <Text style={styles.reportTitle}>{title}</Text>
 

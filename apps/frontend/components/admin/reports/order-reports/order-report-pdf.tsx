@@ -8,8 +8,8 @@ import {
   View,
 } from "@react-pdf/renderer";
 
-import { ReportPDFHeader } from "../report-pdf-header";
 import type { BusinessSettings } from "@/utils/types";
+import { ReportPDFHeader } from "../report-pdf-header";
 
 interface Customer {
   name: string;
@@ -52,19 +52,6 @@ const styles = StyleSheet.create({
   page: { padding: 30, fontSize: 10, fontFamily: "Helvetica", color: "#111" },
 
   // ----- Header -----
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottom: 1,
-    borderColor: "#8B0000",
-    paddingBottom: 10,
-    marginBottom: 10,
-  },
-  logo: { width: 55, height: 55 },
-  companyInfo: { flexDirection: "column" },
-  companyName: { fontSize: 14, fontWeight: "bold", color: "#8B0000" },
-  companyAddress: { fontSize: 9, marginTop: 2 },
   reportTitle: {
     fontSize: 16,
     fontWeight: "bold",
@@ -153,7 +140,7 @@ export function OrderReportPDF({ orders, settings }: Props) {
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
-        <ReportPDFHeader settings={settings} styles={styles} />
+        <ReportPDFHeader settings={settings} />
 
         {/* Title */}
         <Text style={styles.reportTitle}>Sales Report</Text>
