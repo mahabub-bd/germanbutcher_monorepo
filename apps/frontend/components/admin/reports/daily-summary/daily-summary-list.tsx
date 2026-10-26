@@ -89,13 +89,14 @@ const percentOf = (part: number, total: number) =>
   total > 0 ? Math.round((part / total) * 100) : 0;
 
 // Denominator for the status percentages: delivered + cancelled + pending +
-// processing + on hold, so the status shares add up to 100%
+// processing + on hold, so the status shares add up to 100%. `|| 0` guards
+// against older API responses that lack the split status fields.
 const statusTotal = (row: DailyRow) =>
-  row.deliveredCount +
-  row.cancelledCount +
-  row.pendingCount +
-  row.processingCount +
-  row.onHoldCount;
+  (row.deliveredCount || 0) +
+  (row.cancelledCount || 0) +
+  (row.pendingCount || 0) +
+  (row.processingCount || 0) +
+  (row.onHoldCount || 0);
 
 export default function DailySummaryList({
   fromDate,
