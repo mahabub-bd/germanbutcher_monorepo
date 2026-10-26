@@ -40,7 +40,7 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
     data.totalOrders > 0 ? (count / data.totalOrders) * 100 : 0;
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-3 lg:grid-cols-7 2xl:gap-4">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-2 lg:grid-cols-7 2xl:gap-3">
       {/* All Orders */}
       <StatusCard
         className="lg:gap-1 lg:px-2 lg:py-2"

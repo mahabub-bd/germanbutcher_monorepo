@@ -51,6 +51,7 @@ interface DashboardStatsGridProps {
     shipped: number;
     delivered: number;
     cancelled: number;
+    onHold: number;
     pendingValue: number;
     processingValue: number;
     shippedValue: number;
@@ -297,7 +298,7 @@ export default function DashboardStatsGrid({
           />
         )}
 
-        {/* Order Distribution by Quantity - Donut Chart - All 5 Statuses */}
+        {/* Order Distribution by Quantity - Donut Chart - All 6 Statuses */}
         {statsData && (
           <PiePanel
             title="Order Distribution"
@@ -321,6 +322,15 @@ export default function DashboardStatsGrid({
                 percentage:
                   orderStatusTotal > 0
                     ? (statsData.processing / orderStatusTotal) * 100
+                    : 0,
+              },
+              {
+                name: "On Hold",
+                value: statsData.onHold,
+                color: "#f97316",
+                percentage:
+                  orderStatusTotal > 0
+                    ? (statsData.onHold / orderStatusTotal) * 100
                     : 0,
               },
               {

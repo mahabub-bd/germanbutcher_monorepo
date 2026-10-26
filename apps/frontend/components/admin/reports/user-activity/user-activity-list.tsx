@@ -10,6 +10,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -17,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { fetchDataPagination } from "@/utils/api-utils";
+import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import type { UserActivity } from "@/utils/types";
 import {
   Activity,
@@ -74,6 +81,10 @@ export function UserActivityList({
   const [actionFilter, setActionFilter] = useState(
     getInitialParam("action") as string
   );
+  const [entityTypeFilter, setEntityTypeFilter] = useState(
+    getInitialParam("entityType") as string
+  );
+  const [entityTypes, setEntityTypes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -104,8 +115,10 @@ export function UserActivityList({
     if (actionFilter && actionFilter !== "all")
       params.set("action", actionFilter);
 
+    if (entityTypeFilter) params.set("entityType", entityTypeFilter);
+
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname, currentPage, limit, actionFilter]);
+  }, [router, pathname, currentPage, limit, actionFilter, entityTypeFilter]);
 
   const fetchActivities = async () => {
     setIsLoading(true);
@@ -116,6 +129,8 @@ export function UserActivityList({
 
       if (actionFilter && actionFilter !== "all")
         params.append("action", actionFilter);
+
+      if (entityTypeFilter) params.append("entityType", entityTypeFilter);
 
       const response = await fetchDataPagination<{
         data: UserActivity[];
@@ -138,7 +153,14 @@ export function UserActivityList({
     fetchActivities();
     updateUrl();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, limit, actionFilter]);
+  }, [currentPage, limit, actionFilter, entityTypeFilter]);
+
+  // Populate the entity filter from values actually present in the audit logs.
+  useEffect(() => {
+    fetchProtectedData<string[]>("user-activities/entity-types")
+      .then(setEntityTypes)
+      .catch(() => setEntityTypes([]));
+  }, []);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -146,6 +168,7 @@ export function UserActivityList({
 
   const clearFilters = () => {
     setActionFilter("");
+    setEntityTypeFilter("");
     setCurrentPage(1);
   };
 
@@ -222,11 +245,11 @@ export function UserActivityList({
       <Activity className="h-10 w-10 text-muted-foreground mb-4" />
       <h3 className="text-lg font-semibold">No activities found</h3>
       <p className="text-sm text-muted-foreground mt-2">
-        {actionFilter
+        {actionFilter || entityTypeFilter
           ? "No activities match your filter criteria. Try different filters."
           : "No user activities have been recorded yet."}
       </p>
-      {actionFilter && (
+      {(actionFilter || entityTypeFilter) && (
         <Button variant="outline" className="mt-4" onClick={clearFilters}>
           Clear Filters
         </Button>
@@ -235,7 +258,7 @@ export function UserActivityList({
   );
 
   const renderActiveFilters = () => {
-    const hasFilters = actionFilter;
+    const hasFilters = actionFilter || entityTypeFilter;
 
     if (!hasFilters) return null;
 
@@ -248,6 +271,18 @@ export function UserActivityList({
           >
             Action: {actionFilter}
             <button onClick={() => setActionFilter("")} className="ml-1">
+              <XCircle className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
+
+        {entityTypeFilter && (
+          <Badge
+            variant="outline"
+            className="flex items-center gap-1 px-3 py-1"
+          >
+            Entity: {entityTypeFilter}
+            <button onClick={() => setEntityTypeFilter("")} className="ml-1">
               <XCircle className="h-3 w-3" />
             </button>
           </Badge>
@@ -267,7 +302,7 @@ export function UserActivityList({
 
   const renderTableView = () => (
     <div className="overflow-x-auto">
-      <Table className="min-w-[900px] [&_td]:py-2.5 [&_th]:pb-3 [&_th]:pt-0">
+      <Table className="min-w-225 [&_td]:py-2.5 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Date & Time</TableHead>
@@ -413,7 +448,7 @@ export function UserActivityList({
                   className="flex items-center gap-2 px-3"
                 >
                   <Filter className="h-4 w-4" />
-                  <span>Actions</span>
+                  <span>Filters</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -424,8 +459,9 @@ export function UserActivityList({
                 <div className="space-y-3">
                   {/* Header */}
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium">HTTP Actions</h4>
-                    {actionFilter && actionFilter !== "all" && (
+                    <h4 className="text-sm font-medium">Filters</h4>
+                    {((actionFilter && actionFilter !== "all") ||
+                      entityTypeFilter) && (
                       <button
                         onClick={clearFilters}
                         className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
@@ -460,6 +496,32 @@ export function UserActivityList({
                         )
                       )}
                     </div>
+                  </div>
+
+                  {/* Entity Type Filter */}
+                  <div className="space-y-2">
+                    <label className="text-xs text-muted-foreground">
+                      Entity Type
+                    </label>
+                    <Select
+                      value={entityTypeFilter || "all"}
+                      onValueChange={(value) => {
+                        setEntityTypeFilter(value === "all" ? "" : value);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All entities" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All entities</SelectItem>
+                        {entityTypes.map((entityType) => (
+                          <SelectItem key={entityType} value={entityType}>
+                            {entityType}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </DropdownMenuContent>

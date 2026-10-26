@@ -130,6 +130,16 @@ export class UserActivityService {
     return { data, total, page, limit, totalPages };
   }
 
+  async getDistinctEntityTypes(): Promise<string[]> {
+    // Raw SQL — QueryBuilder + DISTINCT raw select 500s here (camelCase
+    // columns need explicit quotes in Postgres).
+    const rows: { entityType: string }[] =
+      await this.userActivityRepository.query(
+        `SELECT DISTINCT "entityType" FROM "user_activity" WHERE "entityType" IS NOT NULL ORDER BY "entityType" ASC`,
+      );
+    return rows.map((r) => r.entityType);
+  }
+
   async getActivityById(id: number): Promise<UserActivity> {
     const activity = await this.userActivityRepository
       .createQueryBuilder('activity')
@@ -198,6 +208,7 @@ export class UserActivityService {
       .delete()
       .where('createdAt < :cutoffDate', { cutoffDate })
       .execute();
+
 
     return {
       deletedCount: result.affected || 0,

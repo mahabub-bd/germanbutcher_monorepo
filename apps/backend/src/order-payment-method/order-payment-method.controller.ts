@@ -20,8 +20,8 @@ import {
 } from '@nestjs/swagger';
 
 import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
-import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 
 import { ApiResponseDto } from 'src/common/types';
 

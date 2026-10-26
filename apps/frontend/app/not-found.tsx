@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Home, Search } from "lucide-react";
+import { ArrowLeft, Home, PackageSearch, Search } from "lucide-react";
 import Link from "next/link";
 
 export default function NotFound() {
@@ -34,7 +34,7 @@ export default function NotFound() {
               if (e.key === "Enter") {
                 const value = (e.target as HTMLInputElement).value;
                 if (value) {
-                  window.location.href = `/search?q=${encodeURIComponent(
+                  window.location.href = `/products/search/${encodeURIComponent(
                     value
                   )}`;
                 }
@@ -45,17 +45,26 @@ export default function NotFound() {
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-          <Button variant="default" asChild className="gap-2">
+          <Button asChild size="lg" className="gap-2 bg-primaryColor text-primary-foreground hover:bg-primaryColor/90">
+            <Link href="/products">
+              <PackageSearch className="h-4 w-4" />
+              Browse All Products
+            </Link>
+          </Button>
+          <Button variant="outline" asChild size="lg" className="gap-2">
             <Link href="/">
               <Home className="h-4 w-4" />
               Go to Homepage
             </Link>
           </Button>
-          <Button variant="outline" asChild className="gap-2">
-            <Link href="javascript:history.back()">
-              <ArrowLeft className="h-4 w-4" />
-              Go Back
-            </Link>
+          <Button
+            variant="ghost"
+            size="lg"
+            className="gap-2"
+            onClick={() => window.history.back()}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Go Back
           </Button>
         </div>
 
@@ -63,14 +72,6 @@ export default function NotFound() {
         <div className="mt-8">
           <h3 className="mb-3 text-sm font-medium">Popular Pages</h3>
           <div className="flex flex-wrap justify-center gap-2">
-            <Button
-              variant="link"
-              asChild
-              size="sm"
-              className="text-muted-foreground"
-            >
-              <Link href="/products">All Products</Link>
-            </Button>
             <Button
               variant="link"
               asChild

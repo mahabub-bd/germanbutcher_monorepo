@@ -179,6 +179,35 @@ export class UserActivityController {
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @ModulePermissions('/admin/audit-log')
+  @Get('entity-types')
+  @ApiOperation({
+    summary: 'Get distinct entity types from logged activities',
+    description:
+      'Returns the distinct entity types present in audit logs, for building filter dropdowns.',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Entity types retrieved successfully',
+    schema: {
+      example: {
+        message: 'Entity types retrieved successfully',
+        statusCode: 200,
+        data: ['orders', 'products', 'cart'],
+      },
+    },
+  })
+  async getEntityTypes(): Promise<ApiResponseDto<string[]>> {
+    const entityTypes = await this.userActivityService.getDistinctEntityTypes();
+
+    return {
+      message: 'Entity types retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data: entityTypes,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/audit-log')
   @Get('details/:id')
   @ApiOperation({
     summary: 'Get a specific user activity by ID',

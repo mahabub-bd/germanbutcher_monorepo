@@ -7,6 +7,15 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Dhaka",
     areas: [
+      "Majhira",
+      "Kadamtali",
+      "Momenbagh",
+      "Khamarbari",
+      "Pargendaria",
+      "Nirjhor",
+      "Kotowali",
+      "Dhaka Cantonment",
+      "Hemayetpur",
       "300 Feet",
       "Adabor",
       "Adarsha Nagar (Badda)",
@@ -137,6 +146,7 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
       "Dhaka University",
       "Dhakeshwari",
       "Dhamrai",
+      "Dhanmondi",
       "Dhanmondi - Rd 1",
       "Dhanmondi - Rd 10",
       "Dhanmondi - Rd 12",
@@ -306,12 +316,14 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
       "Merul Badda",
       "MES Colony",
       "MES colony",
+      "Badda",
       "Middle Badda",
       "Middle Bashabo",
       "Milgate",
       "Minto Road",
       "Mirbagh",
       "Mirhazirbagh",
+      "Mirpur",
       "Mirpur - 11",
       "Mirpur - 11.5",
       "Mirpur - 12",
@@ -329,6 +341,7 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
       "Mirpur Diabari",
       "Mirpur DOHS",
       "Mirpur Taltola",
+      "Mirpur Road Kallynpur",
       "Mitford",
       "Modhubagh",
       "Moghbazar",
@@ -500,8 +513,8 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
       "TT Para",
       "Turag",
       "TV gate",
+      "Uttara",
       "Ulan road",
-      "Uttar Badda",
       "Uttara Sector - 1",
       "Uttara Sector - 10",
       "Uttara Sector - 11",
@@ -540,6 +553,9 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Narayanganj",
     areas: [
+      "Chanmari",
+      "Deobhog",
+      "Bishwa Road",
       "Araihazar",
       "Bandar (Narayanganj)",
       "Bawaliapara (Narayangaj)",
@@ -577,6 +593,7 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Gazipur",
     areas: [
+      "Gazipur Sadar",
       "Ambagh (Gazipur)",
       "Bager bazar",
       "Barmi Sreepur (Gazipur)",
@@ -659,6 +676,7 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Gopalganj",
     areas: [
+      "Gobra",
       "Gopalganj Sadar",
       "Kasiani",
       "Kotalipara",
@@ -698,7 +716,12 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   },
   {
     district: "Madaripur",
-    areas: ["Kalkini", "Madaripur Sadar", "Rajoir", "Shibchar"],
+    areas: [
+      "Kalkini",
+      "Madaripur Sadar",
+      "Rajoir",
+      "Shibchar",
+    ],
   },
   {
     district: "Manikganj",
@@ -715,6 +738,8 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Mymensingh",
     areas: [
+      "Boundary Road",
+      "Town Hall Mor (Mymensingh)",
       "Agriculture University (Mymensingh)",
       "Akua",
       "Chorpara (Mymensingh)",
@@ -774,7 +799,13 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   },
   {
     district: "Rajbari",
-    areas: ["Baliakandi", "Goalunda", "Pangsha", "Rajbari Sadar", "Kalukhali"],
+    areas: [
+      "Baliakandi",
+      "Goalunda",
+      "Pangsha",
+      "Rajbari Sadar",
+      "Kalukhali",
+    ],
   },
   {
     district: "Shariatpur",
@@ -789,11 +820,18 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   },
   {
     district: "Sherpur",
-    areas: ["Jhenaigati", "Nakla", "Nalitabari", "Sherpur Sadar", "Sribordi"],
+    areas: [
+      "Jhenaigati",
+      "Nakla",
+      "Nalitabari",
+      "Sherpur Sadar",
+      "Sribordi",
+    ],
   },
   {
     district: "Tangail",
     areas: [
+      "Jummapara",
       "Bashail",
       "Bhuapur",
       "Delduar",
@@ -824,11 +862,17 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   },
   {
     district: "Chuadanga",
-    areas: ["Alamdanga", "Chuadanga Sadar", "Damurhuda", "Jibannagar"],
+    areas: [
+      "Alamdanga",
+      "Chuadanga Sadar",
+      "Damurhuda",
+      "Jibannagar",
+    ],
   },
   {
     district: "Jessore",
     areas: [
+      "Ghope",
       "Bagherpara",
       "Benapole",
       "Chowgacha",
@@ -854,6 +898,9 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Khulna",
     areas: [
+      "Kuet",
+      "Khulna University",
+      "Nirala",
       "Amadee Bazar",
       "Batiaghata",
       "Dacope",
@@ -894,11 +941,19 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   },
   {
     district: "Meherpur",
-    areas: ["Gangni", "Meherpur Sadar", "Mujibnagar"],
+    areas: [
+      "Gangni",
+      "Meherpur Sadar",
+      "Mujibnagar",
+    ],
   },
   {
     district: "Narail",
-    areas: ["Kalia", "Lohagara(Narail)", "Narail Sadar"],
+    areas: [
+      "Kalia",
+      "Lohagara(Narail)",
+      "Narail Sadar",
+    ],
   },
   {
     district: "Satkhira",
@@ -915,6 +970,7 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Bogra",
     areas: [
+      "Jaleswaritola",
       "Adamdighi (Bogra)",
       "Bogra Sadar",
       "Dhubchanchia",
@@ -942,7 +998,13 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   },
   {
     district: "Joypurhat",
-    areas: ["Akkelpur", "Joypurhat Sadar", "Kalai", "Khetlal", "Panchbibi"],
+    areas: [
+      "Akkelpur",
+      "Joypurhat Sadar",
+      "Kalai",
+      "Khetlal",
+      "Panchbibi",
+    ],
   },
   {
     district: "Naogaon",
@@ -994,6 +1056,12 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Rajshahi",
     areas: [
+      "Rajpara",
+      "Sapura",
+      "Hetemkha",
+      "Nordan More",
+      "Therokhadia",
+      "Kadirganj",
       "Bagha",
       "Bagmara (Rajshahi)",
       "Charghat",
@@ -1010,6 +1078,7 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Sirajganj",
     areas: [
+      "Mokterpara",
       "Belkuchi",
       "Chowhali",
       "Kamarkhanda",
@@ -1024,6 +1093,7 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Habiganj",
     areas: [
+      "Markuli",
       "Ajmeriganj",
       "Bahubal (Shayestaganj Hub)",
       "Baniachang",
@@ -1102,6 +1172,8 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Sylhet",
     areas: [
+      "Sylhet Sadar",
+      "MAG Osmani Medical College",
       "Akhalia",
       "Amberkhana (Sylhet)",
       "Balaganj",
@@ -1221,6 +1293,7 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Brahmanbaria",
     areas: [
+      "Collegepara (Brahmanbaria)",
       "Akhaura",
       "Ashuganj (Bhairab)",
       "Awliya Bazar (Brahmanbaria)",
@@ -1251,6 +1324,7 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Chandpur",
     areas: [
+      "Baburhat",
       "Chandpur Sadar",
       "Faridganj",
       "Haimchar",
@@ -1264,6 +1338,11 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Chittagong",
     areas: [
+      "Monsurabad",
+      "Aturardipu",
+      "Mehedibagh",
+      "Muradpur",
+      "Dewan Bazar",
       "Agrabad",
       "AK Khan",
       "Al- Amin Baria Madra",
@@ -1412,6 +1491,7 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Comilla",
     areas: [
+      "Cumilla Cantonment",
       "Barura",
       "Brahmanpara",
       "Burichang",
@@ -1464,6 +1544,7 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Feni",
     areas: [
+      "Rampur",
       "Chagalnayya",
       "Daganbhuiyan",
       "Feni Sadar",
@@ -1531,6 +1612,7 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   {
     district: "Dinajpur",
     areas: [
+      "Dinajpur Sadar",
       "Baluadanga (Dinajpur)",
       "Birampur",
       "Birganj",
@@ -1635,7 +1717,6 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
   },
 ];
 
-/** Districts grouped by division, using the exact dataset spellings above. */
 export const DIVISION_DISTRICTS: Record<string, string[]> = {
   Barisal: ["Barguna", "Barisal", "Bhola", "Jhalokathi", "Patuakhali", "Perojpur"],
   Chittagong: [

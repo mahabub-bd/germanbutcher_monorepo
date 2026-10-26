@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { PackageX } from "lucide-react";
+import Link from "next/link";
 
 export default function ProductNotFound() {
   return (
@@ -17,7 +17,7 @@ export default function ProductNotFound() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
             href="/products"
-            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primaryColor hover:bg-primaryColor/90 focus:outline-none focus:ring-2 focus:ring-primaryColor/30 transition-colors"
           >
             Browse All Products
           </Link>

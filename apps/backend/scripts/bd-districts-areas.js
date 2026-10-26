@@ -5,6 +5,15 @@ exports.DISTRICT_AREAS = [
     {
         district: "Dhaka",
         areas: [
+            "Majhira",
+            "Kadamtali",
+            "Momenbagh",
+            "Khamarbari",
+            "Pargendaria",
+            "Nirjhor",
+            "Kotowali",
+            "Dhaka Cantonment",
+            "Hemayetpur",
             "300 Feet",
             "Adabor",
             "Adarsha Nagar (Badda)",
@@ -135,6 +144,7 @@ exports.DISTRICT_AREAS = [
             "Dhaka University",
             "Dhakeshwari",
             "Dhamrai",
+            "Dhanmondi",
             "Dhanmondi - Rd 1",
             "Dhanmondi - Rd 10",
             "Dhanmondi - Rd 12",
@@ -304,12 +314,14 @@ exports.DISTRICT_AREAS = [
             "Merul Badda",
             "MES Colony",
             "MES colony",
+            "Badda",
             "Middle Badda",
             "Middle Bashabo",
             "Milgate",
             "Minto Road",
             "Mirbagh",
             "Mirhazirbagh",
+            "Mirpur",
             "Mirpur - 11",
             "Mirpur - 11.5",
             "Mirpur - 12",
@@ -327,6 +339,7 @@ exports.DISTRICT_AREAS = [
             "Mirpur Diabari",
             "Mirpur DOHS",
             "Mirpur Taltola",
+            "Mirpur Road Kallynpur",
             "Mitford",
             "Modhubagh",
             "Moghbazar",
@@ -498,8 +511,8 @@ exports.DISTRICT_AREAS = [
             "TT Para",
             "Turag",
             "TV gate",
+            "Uttara",
             "Ulan road",
-            "Uttar Badda",
             "Uttara Sector - 1",
             "Uttara Sector - 10",
             "Uttara Sector - 11",
@@ -538,6 +551,9 @@ exports.DISTRICT_AREAS = [
     {
         district: "Narayanganj",
         areas: [
+            "Chanmari",
+            "Deobhog",
+            "Bishwa Road",
             "Araihazar",
             "Bandar (Narayanganj)",
             "Bawaliapara (Narayangaj)",
@@ -575,6 +591,7 @@ exports.DISTRICT_AREAS = [
     {
         district: "Gazipur",
         areas: [
+            "Gazipur Sadar",
             "Ambagh (Gazipur)",
             "Bager bazar",
             "Barmi Sreepur (Gazipur)",
@@ -657,6 +674,7 @@ exports.DISTRICT_AREAS = [
     {
         district: "Gopalganj",
         areas: [
+            "Gobra",
             "Gopalganj Sadar",
             "Kasiani",
             "Kotalipara",
@@ -713,6 +731,8 @@ exports.DISTRICT_AREAS = [
     {
         district: "Mymensingh",
         areas: [
+            "Boundary Road",
+            "Town Hall Mor (Mymensingh)",
             "Agriculture University (Mymensingh)",
             "Akua",
             "Chorpara (Mymensingh)",
@@ -792,6 +812,7 @@ exports.DISTRICT_AREAS = [
     {
         district: "Tangail",
         areas: [
+            "Jummapara",
             "Bashail",
             "Bhuapur",
             "Delduar",
@@ -827,6 +848,7 @@ exports.DISTRICT_AREAS = [
     {
         district: "Jessore",
         areas: [
+            "Ghope",
             "Bagherpara",
             "Benapole",
             "Chowgacha",
@@ -852,6 +874,9 @@ exports.DISTRICT_AREAS = [
     {
         district: "Khulna",
         areas: [
+            "Kuet",
+            "Khulna University",
+            "Nirala",
             "Amadee Bazar",
             "Batiaghata",
             "Dacope",
@@ -913,6 +938,7 @@ exports.DISTRICT_AREAS = [
     {
         district: "Bogra",
         areas: [
+            "Jaleswaritola",
             "Adamdighi (Bogra)",
             "Bogra Sadar",
             "Dhubchanchia",
@@ -992,6 +1018,12 @@ exports.DISTRICT_AREAS = [
     {
         district: "Rajshahi",
         areas: [
+            "Rajpara",
+            "Sapura",
+            "Hetemkha",
+            "Nordan More",
+            "Therokhadia",
+            "Kadirganj",
             "Bagha",
             "Bagmara (Rajshahi)",
             "Charghat",
@@ -1008,6 +1040,7 @@ exports.DISTRICT_AREAS = [
     {
         district: "Sirajganj",
         areas: [
+            "Mokterpara",
             "Belkuchi",
             "Chowhali",
             "Kamarkhanda",
@@ -1022,6 +1055,7 @@ exports.DISTRICT_AREAS = [
     {
         district: "Habiganj",
         areas: [
+            "Markuli",
             "Ajmeriganj",
             "Bahubal (Shayestaganj Hub)",
             "Baniachang",
@@ -1100,6 +1134,8 @@ exports.DISTRICT_AREAS = [
     {
         district: "Sylhet",
         areas: [
+            "Sylhet Sadar",
+            "MAG Osmani Medical College",
             "Akhalia",
             "Amberkhana (Sylhet)",
             "Balaganj",
@@ -1219,6 +1255,7 @@ exports.DISTRICT_AREAS = [
     {
         district: "Brahmanbaria",
         areas: [
+            "Collegepara (Brahmanbaria)",
             "Akhaura",
             "Ashuganj (Bhairab)",
             "Awliya Bazar (Brahmanbaria)",
@@ -1249,6 +1286,7 @@ exports.DISTRICT_AREAS = [
     {
         district: "Chandpur",
         areas: [
+            "Baburhat",
             "Chandpur Sadar",
             "Faridganj",
             "Haimchar",
@@ -1262,6 +1300,11 @@ exports.DISTRICT_AREAS = [
     {
         district: "Chittagong",
         areas: [
+            "Monsurabad",
+            "Aturardipu",
+            "Mehedibagh",
+            "Muradpur",
+            "Dewan Bazar",
             "Agrabad",
             "AK Khan",
             "Al- Amin Baria Madra",
@@ -1410,6 +1453,7 @@ exports.DISTRICT_AREAS = [
     {
         district: "Comilla",
         areas: [
+            "Cumilla Cantonment",
             "Barura",
             "Brahmanpara",
             "Burichang",
@@ -1462,6 +1506,7 @@ exports.DISTRICT_AREAS = [
     {
         district: "Feni",
         areas: [
+            "Rampur",
             "Chagalnayya",
             "Daganbhuiyan",
             "Feni Sadar",
@@ -1529,6 +1574,7 @@ exports.DISTRICT_AREAS = [
     {
         district: "Dinajpur",
         areas: [
+            "Dinajpur Sadar",
             "Baluadanga (Dinajpur)",
             "Birampur",
             "Birganj",

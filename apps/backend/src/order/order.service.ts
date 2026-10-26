@@ -1,40 +1,40 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Address } from 'src/address/entities/address.entity';
-import { OrderStatus, PaymentStatus, CancellationReason } from 'src/common/enums';
 import {
   applyBogoDiscount,
   BogoCampaignsService,
 } from 'src/bogo-campaigns/bogo-campaigns.service';
 import { BogoUsageLogService } from 'src/bogo-usage-log/bogo-usage-log.service';
-import {  formatDhakaDate, getDateRangeFromPreset,  parseReportDate,} from 'src/common/utils/report-date-range.util';
+import { CancellationReason, OrderStatus, PaymentStatus } from 'src/common/enums';
+import { formatDhakaDate, getDateRangeFromPreset, parseReportDate, } from 'src/common/utils/report-date-range.util';
 import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { DeliveryMan } from 'src/delivery-man/entities/delivery-man.entity';
-import { FreeDeliveryCampaignsService } from 'src/free-delivery-campaigns/free-delivery-campaigns.service';
-import { FreeDeliveryUsageLogService } from 'src/free-delivery-usage-log/free-delivery-usage-log.service';
 import {
   computeFlashPrice,
   FlashSaleCampaignsService,
 } from 'src/flash-sale-campaigns/flash-sale-campaigns.service';
 import { FlashSaleUsageLogService } from 'src/flash-sale-usage-log/flash-sale-usage-log.service';
+import { FreeDeliveryCampaignsService } from 'src/free-delivery-campaigns/free-delivery-campaigns.service';
+import { FreeDeliveryUsageLogService } from 'src/free-delivery-usage-log/free-delivery-usage-log.service';
 
-import { EmailService } from 'src/email/email.service';
-import { NotificationService } from 'src/notification/notification.service';
 import { SmsService } from 'src/auth/sms.service';
 import { generateOrderConfirmationSMS } from 'src/auth/templates/order-confirmation-sms.template';
+import { DiscountType } from 'src/common/enums';
+import { CouponUsageLogService } from 'src/coupon-usage-log/coupon-usage-log.service';
+import { EmailService } from 'src/email/email.service';
+import { NotificationService } from 'src/notification/notification.service';
 import { OrderPaymentMethod } from 'src/order-payment-method/entities/order-payment-method.entity';
 import { OrderPaymentService } from 'src/order-payment/order-payment.service';
 import { Product } from 'src/product/entities/product.entity';
 import { ShippingMethod } from 'src/shipping-methods/entities/shipping-method.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Like, Repository, SelectQueryBuilder } from 'typeorm';
-import { CreateOrderDto } from './dto/create-order.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
+import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItem } from './entities/order-item.entity';
 import { OrderStatusTrack } from './entities/order-status-track.entity';
 import { Order } from './entities/order.entity';
-import { CouponUsageLogService } from 'src/coupon-usage-log/coupon-usage-log.service';
-import { DiscountType } from 'src/common/enums';
 
 /** System identifier of the offline payment method (order_payment_method.code) */
 const CASH_ON_DELIVERY_CODE = 'cash_on_delivery';
@@ -184,6 +184,12 @@ export class OrderService {
       if (!product)
         throw new NotFoundException(
           `Product with ID ${item.productId} not found`,
+        );
+
+      // Inactive products must not be orderable (e.g. stale links / old carts)
+      if (!product.isActive)
+        throw new BadRequestException(
+          `${product.name} is no longer available.`,
         );
 
       // Check stock first

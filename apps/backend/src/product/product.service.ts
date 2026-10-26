@@ -28,6 +28,10 @@ import { Supplier } from '../supplier/entities/supplier.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
+import {
+  ProductHistoryAction,
+} from 'src/product-history/entities/product-history.entity';
+import { ProductHistoryService } from 'src/product-history/product-history.service';
 
 interface FindAllOptions {
   page?: number;
@@ -67,6 +71,7 @@ export class ProductService {
     private attachmentService: AttachmentService,
     private flashSaleCampaignsService: FlashSaleCampaignsService,
     private bogoCampaignsService: BogoCampaignsService,
+    private productHistoryService: ProductHistoryService,
     @Inject(CACHE_MANAGER)
     private cacheManager: Cache,
   ) {}
@@ -152,6 +157,13 @@ export class ProductService {
 
     const saved = await this.productRepository.save(product);
     this.invalidateListCache();
+    await this.productHistoryService.logEntry({
+      productId: saved.id,
+      productName: saved.name,
+      action: ProductHistoryAction.CREATED,
+      snapshot: this.snapshotForHistory(saved),
+      user,
+    });
     return saved;
   }
 
@@ -1005,6 +1017,12 @@ export class ProductService {
       throw new NotFoundException(`Product with slug '${slug}' not found`);
     }
 
+    // Storefront detail page — inactive products must 404 so stale
+    // links (search engines, old shares) can't be ordered from
+    if (!product.isActive) {
+      throw new NotFoundException(`Product with slug '${slug}' not found`);
+    }
+
     await this.withFlashSale([product]);
     return product;
   }
@@ -1117,6 +1135,7 @@ export class ProductService {
     user: User,
   ): Promise<Product> {
     const product = await this.findOne(id);
+    const before = this.snapshotForHistory(product);
 
     if (updateDto.brandId)
       product.brand = await this.validateBrand(updateDto.brandId);
@@ -1153,6 +1172,7 @@ export class ProductService {
     product.updatedBy = user?.userId;
 
     const savedProduct = await this.productRepository.save(product);
+    await this.logUpdateHistory(product.id, savedProduct, before, user);
 
     // Clear relevant caches
     await this.cacheManager.del(`product_id_${id}`);
@@ -1162,14 +1182,74 @@ export class ProductService {
     return savedProduct;
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number, user?: User): Promise<void> {
     const product = await this.findOne(id);
+    await this.productHistoryService.logEntry({
+      productId: product.id,
+      productName: product.name,
+      action: ProductHistoryAction.DELETED,
+      snapshot: this.snapshotForHistory(product),
+      user,
+    });
     await this.productRepository.remove(product);
     this.invalidateListCache();
 
     if (product.attachment) {
       await this.attachmentService.deleteFile(product.attachment.id);
     }
+  }
+
+  private static readonly HISTORY_FIELDS = [
+    'name',
+    'productSku',
+    'sellingPrice',
+    'purchasePrice',
+    'stock',
+    'isActive',
+    'isFeatured',
+    'discountType',
+    'discountValue',
+    'discountStartDate',
+    'discountEndDate',
+  ];
+
+  private snapshotForHistory(product: Product): Record<string, unknown> {
+    const snap: Record<string, unknown> = {};
+    for (const field of ProductService.HISTORY_FIELDS) {
+      snap[field] = (product as unknown as Record<string, unknown>)[field] ?? null;
+    }
+    return snap;
+  }
+
+  /** Decide activated/deactivated/updated from the field diff and record it. */
+  private async logUpdateHistory(
+    productId: number,
+    saved: Product,
+    before: Record<string, unknown>,
+    user: User,
+  ): Promise<void> {
+    const after = this.snapshotForHistory(saved);
+    const changes: Record<string, { from: unknown; to: unknown }> = {};
+    for (const field of Object.keys(after)) {
+      if (String(before[field]) !== String(after[field])) {
+        changes[field] = { from: before[field] ?? null, to: after[field] ?? null };
+      }
+    }
+    if (Object.keys(changes).length === 0) return;
+    const onlyActiveToggle =
+      Object.keys(changes).length === 1 && 'isActive' in changes;
+    const action = onlyActiveToggle
+      ? saved.isActive
+        ? ProductHistoryAction.ACTIVATED
+        : ProductHistoryAction.DEACTIVATED
+      : ProductHistoryAction.UPDATED;
+    await this.productHistoryService.logEntry({
+      productId,
+      productName: saved.name,
+      action,
+      changes,
+      user,
+    });
   }
 
   private async validateBrand(id: number): Promise<Brand> {
