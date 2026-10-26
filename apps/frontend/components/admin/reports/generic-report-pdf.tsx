@@ -2,8 +2,6 @@
 
 import { fetchData } from "@/utils/api-utils";
 import type { BusinessSettings } from "@/utils/types";
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
 import {
   Document,
   Page,
@@ -11,6 +9,8 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 
 import { PdfDownloadButton } from "./pdf-download-button";
 import { ReportPDFHeader } from "./report-pdf-header";
@@ -49,19 +49,6 @@ interface GenericReportPDFProps {
 
 const styles = StyleSheet.create({
   page: { padding: 30, fontSize: 10, fontFamily: "Helvetica", color: "#111" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottom: 1,
-    borderColor: "#8B0000",
-    paddingBottom: 10,
-    marginBottom: 10,
-  },
-  logo: { width: 55, height: 55 },
-  companyInfo: { flexDirection: "column" },
-  companyName: { fontSize: 14, fontWeight: "bold", color: "#8B0000" },
-  companyAddress: { fontSize: 9, marginTop: 2 },
   reportTitle: {
     fontSize: 16,
     fontWeight: "bold",
@@ -137,7 +124,7 @@ export function GenericReportPDF({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <ReportPDFHeader settings={settings} styles={styles} />
+        <ReportPDFHeader settings={settings} />
         <Text style={styles.reportTitle}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
 

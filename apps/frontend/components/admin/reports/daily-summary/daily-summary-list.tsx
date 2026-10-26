@@ -104,8 +104,7 @@ export default function DailySummaryList({
       row.cancelledCount,
       row.orderCount
     )}%)`,
-    row.pendingCount,
-    formatCurrency(row.pendingValue),
+    `${formatCurrency(row.pendingValue)} / ${row.pendingCount}`,
     formatCurrency(row.paidAmount),
     formatCurrency(row.dueAmount),
   ]);
@@ -149,12 +148,11 @@ export default function DailySummaryList({
                   "Delivered",
                   "Cancelled",
                   "Pending/Processing",
-                  "Pending Value",
                   "Paid",
                   "Due",
                 ]}
-                flexes={[1.2, 1.5, 1.5, 1.5, 1.1, 1, 0.9, 1]}
-                alignRight={[1, 2, 3, 4, 5, 6, 7]}
+                flexes={[1.2, 1.5, 1.5, 1.5, 1.5, 0.9, 1]}
+                alignRight={[1, 2, 3, 4, 5, 6]}
                 rows={pdfRows}
                 summary={pdfSummary}
                 settings={settings}
@@ -236,7 +234,6 @@ export default function DailySummaryList({
               <TableHead className="text-right">Delivered</TableHead>
               <TableHead className="text-right">Cancelled</TableHead>
               <TableHead className="text-right">Pending/Processing</TableHead>
-              <TableHead className="text-right">Pending Value</TableHead>
               <TableHead className="text-right">Paid</TableHead>
               <TableHead className="text-right">Due</TableHead>
             </TableRow>
@@ -245,7 +242,7 @@ export default function DailySummaryList({
             {daily.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={7}
                   className="text-center py-12 text-muted-foreground"
                 >
                   No orders found for this date range
@@ -272,11 +269,8 @@ export default function DailySummaryList({
                       ({percentOf(row.cancelledCount, row.orderCount)}%)
                     </span>
                   </TableCell>
-                  <TableCell className="text-right text-orange-600 dark:text-orange-400">
-                    {row.pendingCount}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(row.pendingValue)}
+                  <TableCell className="text-right text-orange-600 dark:text-orange-400 whitespace-nowrap">
+                    {formatCurrency(row.pendingValue)} / {row.pendingCount}
                   </TableCell>
                   <TableCell className="text-right">
                     {formatCurrency(row.paidAmount)}
