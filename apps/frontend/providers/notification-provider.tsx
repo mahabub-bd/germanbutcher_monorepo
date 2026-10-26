@@ -141,6 +141,17 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
             duration: 5000,
           });
         });
+
+        // Admin-only: Listen for new inbox (contact) messages
+        newSocket.on("newMessage", (data: Notification) => {
+          setNotifications((prev) => [data, ...prev]);
+          playNotificationSound();
+
+          toast.success("New Message Received!", {
+            description: `${data.data.name || "Customer"}: ${(data.data.message || "").slice(0, 80)}`,
+            duration: 5000,
+          });
+        });
       }
 
       // Listen for order confirmation

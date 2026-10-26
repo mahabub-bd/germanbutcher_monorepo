@@ -166,7 +166,7 @@ export default function MonthlyOrderReportList({
 
       {/* Summary */}
       {monthlyData.length > 0 && (
-        <div className="mb-4 grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="mb-4 grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-3">
           <StatsCard
             title="All Orders"
             value={formatCurrencyEnglish(totalAllOrderValue, 0)}

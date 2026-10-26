@@ -74,6 +74,28 @@ export class NotificationService {
     });
   }
 
+  // Notify admins about a new contact message: realtime emit plus a
+  // persisted row in the admin feed (audience 'admin', no recipient user).
+  async notifyNewMessage(message: {
+    id: number;
+    name: string;
+    email: string;
+    subject?: string;
+    message: string;
+  }) {
+    this.notificationGateway.emitNewMessage(message);
+    await this.persist({
+      userId: null,
+      audience: 'admin',
+      type: 'newMessage',
+      title: 'New message received',
+      message: message.name
+        ? `${message.name}: ${message.message.slice(0, 100)}`
+        : message.message.slice(0, 100),
+      data: message,
+    });
+  }
+
   // Notify user about order confirmation
   async notifyOrderConfirmation(userId: string, order: OrderNotificationData) {
     const slim = this.slimOrder(order);

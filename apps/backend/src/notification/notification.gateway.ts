@@ -155,6 +155,16 @@ export class NotificationGateway
     });
   }
 
+  // Emit new contact-message notification to admins
+  emitNewMessage(message: any) {
+    this.logger.log(`[NEW_MESSAGE] Emitting new message notification: ${message.id}`);
+    this.server.to('admins').emit('newMessage', {
+      event: 'newMessage',
+      data: message,
+      timestamp: new Date(),
+    });
+  }
+
   // Emit order status update to specific user
   emitOrderStatusUpdate(userId: string, order: any) {
     this.logger.log(

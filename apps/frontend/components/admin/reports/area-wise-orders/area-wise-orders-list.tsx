@@ -157,7 +157,7 @@ export default function AreaWiseOrdersList({
         onApply={applyParams}
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 2xl:grid-cols-7 gap-4 mb-6">
         <StatsCard
           icon={ShoppingCart}
           title="Total Orders"

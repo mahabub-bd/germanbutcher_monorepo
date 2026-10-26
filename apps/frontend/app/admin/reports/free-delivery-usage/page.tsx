@@ -13,7 +13,7 @@ interface Props {
 export default async function FreeDeliveryUsageReportPage({ searchParams }: Props) {
   const resolvedParams = await searchParams;
   const preset =
-    typeof resolvedParams.preset === "string" ? resolvedParams.preset : undefined;
+    typeof resolvedParams.preset === "string" ? resolvedParams.preset : "this_month";
   const fromDate =
     typeof resolvedParams.fromDate === "string" ? resolvedParams.fromDate : undefined;
   const toDate =
