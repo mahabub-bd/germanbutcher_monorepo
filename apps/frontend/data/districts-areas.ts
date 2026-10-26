@@ -1716,3 +1716,91 @@ export const DISTRICT_AREAS: DistrictAreas[] = [
     ],
   },
 ];
+
+export const DIVISION_DISTRICTS: Record<string, string[]> = {
+  Barisal: ["Barguna", "Barisal", "Bhola", "Jhalokathi", "Patuakhali", "Perojpur"],
+  Chittagong: [
+    "Bandarban",
+    "Brahmanbaria",
+    "Chandpur",
+    "Chittagong",
+    "Comilla",
+    "Cox's Bazar",
+    "Feni",
+    "Khagrachari",
+    "Laksmipur",
+    "Noakhali",
+    "Rangamati",
+  ],
+  Dhaka: [
+    "Dhaka",
+    "Faridpur",
+    "Gazipur",
+    "Gopalganj",
+    "Kishoreganj",
+    "Madaripur",
+    "Manikganj",
+    "Munshiganj",
+    "Narayanganj",
+    "Norshingdi",
+    "Rajbari",
+    "Shariatpur",
+    "Tangail",
+  ],
+  Khulna: [
+    "Bagerhat",
+    "Chuadanga",
+    "Jessore",
+    "Jhenaidah",
+    "Khulna",
+    "Kushtia",
+    "Magura",
+    "Meherpur",
+    "Narail",
+    "Satkhira",
+  ],
+  Mymensingh: ["Jamalpur", "Mymensingh", "Netrokona", "Sherpur"],
+  Rajshahi: [
+    "Bogra",
+    "Chapai Nawabganj",
+    "Joypurhat",
+    "Naogaon",
+    "Natore",
+    "Pabna",
+    "Rajshahi",
+    "Sirajganj",
+  ],
+  Rangpur: [
+    "Dinajpur",
+    "Gaibandha",
+    "Kurigram",
+    "Lalmonirhat",
+    "Nilphamari",
+    "Panchagarh",
+    "Rangpur",
+    "Thakurgaon",
+  ],
+  Sylhet: ["Habiganj", "Moulvibazar", "Sunamganj", "Sylhet"],
+};
+
+// Division spellings used in some forms that differ from the keys above
+const divisionAliases: Record<string, string> = {
+  chattogram: "Chittagong",
+  barishal: "Barisal",
+};
+
+/** Cities (districts) of a division, alphabetically sorted. Empty when the
+ *  division is unknown. */
+export function getDistrictsByDivision(
+  division: string | null | undefined,
+): string[] {
+  if (!division) return [];
+  const lower = division.toLowerCase();
+  const canonical =
+    divisionAliases[lower] ??
+    (DIVISION_DISTRICTS[division] ? division : undefined) ??
+    Object.keys(DIVISION_DISTRICTS).find((k) => k.toLowerCase() === lower);
+  return [...(DIVISION_DISTRICTS[canonical ?? ""] ?? [])].sort((a, b) =>
+    a.localeCompare(b),
+  );
+}
