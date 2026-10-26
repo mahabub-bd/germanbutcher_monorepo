@@ -2049,10 +2049,11 @@ export class OrderService {
         };
       })
       .sort((a, b) => {
-        if (a.year !== b.year) return a.year - b.year;
+        // Newest first, so the current month sits at the top of the table
+        if (a.year !== b.year) return b.year - a.year;
         const monthA = new Date(`${a.month} 1, 2000`).getMonth();
         const monthB = new Date(`${b.month} 1, 2000`).getMonth();
-        return monthA - monthB;
+        return monthB - monthA;
       });
 
     return { monthlyData: formattedData };

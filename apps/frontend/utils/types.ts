@@ -1065,6 +1065,9 @@ export interface NotificationData {
   updatedAt?: Date;
   title?: string;
   message?: string;
+  // Contact-message notification fields
+  name?: string;
+  email?: string;
   // Broadcast notification fields
   type?: "offer" | "maintenance" | "announcement";
   severity?: "info" | "warning" | "critical";
@@ -1075,7 +1078,7 @@ export interface NotificationData {
 }
 
 export interface Notification {
-  event: 'newOrder' | 'orderConfirmation' | 'orderStatusUpdate' | 'paymentStatusUpdate' | 'notification' | 'broadcast';
+  event: 'newOrder' | 'newMessage' | 'orderConfirmation' | 'orderStatusUpdate' | 'paymentStatusUpdate' | 'notification' | 'broadcast';
   data: NotificationData;
   timestamp: Date;
   /** Present when the notification is backed by a persisted DB row. */

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import { ActionTaken, ContactStatus } from 'src/common/enums';
 import { EmailService } from 'src/email/email.service';
+import { NotificationService } from 'src/notification/notification.service';
 
 import { CreateContactMessageDto } from './dto/create-contact-message.dto';
 import { UpdateContactMessageDto } from './dto/update-contact-message.dto';
@@ -15,6 +16,7 @@ export class ContactMessageService {
     @InjectRepository(ContactMessage)
     private contactMessageRepository: Repository<ContactMessage>,
     private emailService: EmailService,
+    private notificationService: NotificationService,
   ) {}
 
   async create(
@@ -25,7 +27,21 @@ export class ContactMessageService {
       ...createContactMessageDto,
       userId: userId ?? null,
     });
-    return await this.contactMessageRepository.save(contactMessage);
+    const saved = await this.contactMessageRepository.save(contactMessage);
+
+    // Same realtime alert path as new orders — admins get a toast + bell entry
+    try {
+      await this.notificationService.notifyNewMessage({
+        id: saved.id,
+        name: saved.name,
+        email: saved.email,
+        message: saved.message,
+      });
+    } catch {
+      // Alerting must never fail the message creation
+    }
+
+    return saved;
   }
 
   /**

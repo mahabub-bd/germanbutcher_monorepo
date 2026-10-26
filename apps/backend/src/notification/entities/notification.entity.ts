@@ -33,7 +33,7 @@ export class Notification {
 
   /**
    * Event kind, matching the socket event names:
-   * newOrder | orderConfirmation | orderStatusUpdate | paymentStatusUpdate | notification | broadcast
+   * newOrder | newMessage | orderConfirmation | orderStatusUpdate | paymentStatusUpdate | notification | broadcast
    */
   @Column({ type: 'varchar', length: 50 })
   @Index()

@@ -23,7 +23,7 @@ export default async function ProductSalesReportPage({
   const toDate =
     typeof resolvedParams.toDate === "string" ? resolvedParams.toDate : undefined;
   const preset =
-    typeof resolvedParams.preset === "string" ? resolvedParams.preset : undefined;
+    typeof resolvedParams.preset === "string" ? resolvedParams.preset : "this_month";
 
   let reportData: {
     summary: {
