@@ -16,6 +16,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   Table,
   TableBody,
   TableCell,
@@ -96,6 +105,9 @@ export function OrderList({
   const [shippingMethodFilter, setShippingMethodFilter] = useState(
     getInitialParam("shippingMethodId") as string
   );
+  const [areaFilter, setAreaFilter] = useState(
+    getInitialParam("area") as string
+  );
 
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -106,6 +118,7 @@ export function OrderList({
     null
   );
   const [payingOrderId, setPayingOrderId] = useState<Order["id"] | null>(null);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   // Skip URL writes until the first fetch resolves: totalPages starts at 1,
   // so clamping a deep-linked ?page=N against it would rewrite it to page 1.
@@ -132,9 +145,10 @@ export function OrderList({
     if (paymentMethodFilter) params.set("paymentMethodId", paymentMethodFilter);
     if (shippingMethodFilter)
       params.set("shippingMethodId", shippingMethodFilter);
+    if (areaFilter) params.set("area", areaFilter);
 
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname, currentPage, totalPages, limit, searchQuery, statusFilter, paymentMethodFilter, shippingMethodFilter]);
+  }, [router, pathname, currentPage, totalPages, limit, searchQuery, statusFilter, paymentMethodFilter, shippingMethodFilter, areaFilter]);
 
   const fetchOrders = useCallback(async () => {
     const seq = ++fetchSeqRef.current;
@@ -150,6 +164,7 @@ export function OrderList({
       if (paymentMethodFilter) params.append("paymentMethodId", paymentMethodFilter);
       if (shippingMethodFilter)
         params.append("shippingMethodId", shippingMethodFilter);
+      if (areaFilter) params.append("area", areaFilter);
 
       const response = await fetchDataPagination<{
         data: Order[];
@@ -171,7 +186,7 @@ export function OrderList({
         setIsLoading(false);
       }
     }
-  }, [currentPage, limit, searchQuery, statusFilter, paymentMethodFilter, shippingMethodFilter]);
+  }, [currentPage, limit, searchQuery, statusFilter, paymentMethodFilter, shippingMethodFilter, areaFilter]);
 
   // Initial load with URL params
   useEffect(() => {
@@ -199,6 +214,10 @@ export function OrderList({
     }
     if (shippingMethodFromUrl && shippingMethodFromUrl !== shippingMethodFilter) {
       setShippingMethodFilter(shippingMethodFromUrl);
+    }
+    const areaFromUrl = searchParams?.get("area");
+    if (areaFromUrl && areaFromUrl !== areaFilter) {
+      setAreaFilter(areaFromUrl);
     }
   }, [searchParams]);
 
@@ -252,6 +271,7 @@ export function OrderList({
     setStatusFilter("");
     setPaymentMethodFilter("");
     setShippingMethodFilter("");
+    setAreaFilter("");
     setCurrentPage(1);
   };
 
@@ -280,6 +300,7 @@ export function OrderList({
     if (paymentMethodFilter) params.set("paymentMethodId", paymentMethodFilter);
     if (shippingMethodFilter)
       params.set("shippingMethodId", shippingMethodFilter);
+    if (areaFilter) params.set("area", areaFilter);
     return `/admin/order/${id}/${tab}?${params.toString()}`;
   };
 
@@ -293,7 +314,7 @@ export function OrderList({
   };
 
   const renderActiveFilters = () => {
-    const hasFilters = searchQuery || statusFilter || paymentMethodFilter || shippingMethodFilter;
+    const hasFilters = searchQuery || statusFilter || paymentMethodFilter || shippingMethodFilter || areaFilter;
 
     if (!hasFilters) return null;
 
@@ -349,6 +370,18 @@ export function OrderList({
               onClick={() => setShippingMethodFilter("")}
               className="ml-1"
             >
+              <XCircle className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
+
+        {areaFilter && (
+          <Badge
+            variant="outline"
+            className="flex items-center gap-1 px-3 py-1"
+          >
+            Area: {areaFilter}
+            <button onClick={() => setAreaFilter("")} className="ml-1">
               <XCircle className="h-3 w-3" />
             </button>
           </Badge>
@@ -435,7 +468,8 @@ export function OrderList({
                         {searchQuery ||
                           statusFilter ||
                           paymentMethodFilter ||
-                          shippingMethodFilter
+                          shippingMethodFilter ||
+                          areaFilter
                           ? "No orders match your search criteria."
                           : "There are no orders in the system yet."}
                       </p>
@@ -443,7 +477,8 @@ export function OrderList({
                     {(searchQuery ||
                       statusFilter ||
                       paymentMethodFilter ||
-                      shippingMethodFilter) && (
+                      shippingMethodFilter ||
+                      areaFilter) && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -675,6 +710,139 @@ export function OrderList({
     </div>
   );
 
+  const hasActiveFilters =
+    (statusFilter && statusFilter !== "all") ||
+    paymentMethodFilter ||
+    shippingMethodFilter ||
+    areaFilter;
+
+  // Shared filter sections, rendered inside the desktop dropdown and the
+  // mobile bottom sheet so both stay in sync.
+  const renderFilterSections = () => (
+    <>
+      {/* Status Filter */}
+      <div className="space-y-2">
+        <label className="text-xs text-muted-foreground">
+          Order Status
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            "all",
+            "pending",
+            "processing",
+            "shipped",
+            "delivered",
+            "cancelled",
+          ].map((status) => (
+            <button
+              key={status}
+              onClick={() => {
+                setStatusFilter(status);
+                setCurrentPage(1);
+              }}
+              className={`text-xs py-1.5 px-2 rounded-md border capitalize ${statusFilter === status ||
+                (!statusFilter && status === "all")
+                ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                }`}
+            >
+              {status}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Payment Method Filter */}
+      <div className="space-y-2">
+        <label className="text-xs text-muted-foreground">
+          Payment Method
+        </label>
+        <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+          <button
+            onClick={() => {
+              setPaymentMethodFilter("");
+              setCurrentPage(1);
+            }}
+            className={`text-xs py-1.5 px-2 rounded-md border capitalize ${!paymentMethodFilter
+              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+              }`}
+          >
+            all
+          </button>
+          {paymentMethods.map((method) => (
+            <button
+              key={method.id}
+              onClick={() => {
+                setPaymentMethodFilter(method.id.toString());
+                setCurrentPage(1);
+              }}
+              className={`text-xs py-1.5 px-2 rounded-md border capitalize truncate ${paymentMethodFilter === method.id.toString()
+                ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                }`}
+            >
+              {method.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Shipping Method Filter */}
+      <div className="space-y-2">
+        <label className="text-xs text-muted-foreground">
+          Shipping Method
+        </label>
+        <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+          <button
+            onClick={() => {
+              setShippingMethodFilter("");
+              setCurrentPage(1);
+            }}
+            className={`text-xs py-1.5 px-2 rounded-md border capitalize ${!shippingMethodFilter
+              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+              }`}
+          >
+            all
+          </button>
+          {shippingMethods.map((method) => (
+            <button
+              key={method.id}
+              onClick={() => {
+                setShippingMethodFilter(method.id.toString());
+                setCurrentPage(1);
+              }}
+              className={`text-xs py-1.5 px-2 rounded-md border capitalize truncate ${shippingMethodFilter === method.id.toString()
+                ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                }`}
+            >
+              {method.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Area Filter */}
+      <div className="space-y-2">
+        <label className="text-xs text-muted-foreground">
+          Area
+        </label>
+        <Input
+          type="search"
+          placeholder="Filter by area..."
+          className="h-8 text-xs"
+          value={areaFilter}
+          onChange={(e) => {
+            setAreaFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+        />
+      </div>
+    </>
+  );
+
   return (
     <div className="w-full space-y-2">
       <div className="space-y-2">
@@ -691,144 +859,89 @@ export function OrderList({
           </div>
 
           <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 px-3"
+            {/* Desktop: dropdown panel */}
+            <div className="hidden sm:block">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 px-3"
+                  >
+                    <Filter className="h-4 w-4" />
+                    <span>Filters</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-96 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
+                  sideOffset={8}
                 >
-                  <Filter className="h-4 w-4" />
-                  <span>Filters</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-96 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
-                sideOffset={8}
-              >
-                <div className="space-y-3">
-                  {/* Header */}
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium">Filters</h4>
-                    {(statusFilter && statusFilter !== "all") ||
-                      paymentMethodFilter ||
-                      shippingMethodFilter ? (
-                      <button
-                        onClick={clearFilters}
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        Clear all
-                      </button>
-                    ) : null}
-                  </div>
-
-                  {/* Status Filter */}
-                  <div className="space-y-2">
-                    <label className="text-xs text-muted-foreground">
-                      Order Status
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        "all",
-                        "pending",
-                        "processing",
-                        "shipped",
-                        "delivered",
-                        "cancelled",
-                      ].map((status) => (
+                  <div className="space-y-3">
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium">Filters</h4>
+                      {hasActiveFilters ? (
                         <button
-                          key={status}
-                          onClick={() => {
-                            setStatusFilter(status);
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border capitalize ${statusFilter === status ||
-                            (!statusFilter && status === "all")
-                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
+                          onClick={clearFilters}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                         >
-                          {status}
+                          Clear all
                         </button>
-                      ))}
+                      ) : null}
+                    </div>
+
+                    {/* Filter sections (shared with the mobile sheet) */}
+                    {renderFilterSections()}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Mobile: bottom sheet */}
+            <div className="sm:hidden">
+              <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 px-3"
+                  >
+                    <Filter className="h-4 w-4" />
+                    <span>Filters</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side="bottom"
+                  className="rounded-t-xl max-h-[85dvh]"
+                >
+                  <SheetHeader>
+                    <SheetTitle className="text-sm">Filters</SheetTitle>
+                  </SheetHeader>
+                  <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-2">
+                    <div className="space-y-3">
+                      {renderFilterSections()}
                     </div>
                   </div>
-
-                  {/* Payment Method Filter */}
-                  <div className="space-y-2">
-                    <label className="text-xs text-muted-foreground">
-                      Payment Method
-                    </label>
-                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-                      <button
-                        onClick={() => {
-                          setPaymentMethodFilter("");
-                          setCurrentPage(1);
-                        }}
-                        className={`text-xs py-1.5 px-2 rounded-md border capitalize ${!paymentMethodFilter
-                          ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                          : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
-                      >
-                        all
-                      </button>
-                      {paymentMethods.map((method) => (
-                        <button
-                          key={method.id}
-                          onClick={() => {
-                            setPaymentMethodFilter(method.id.toString());
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border capitalize truncate ${paymentMethodFilter === method.id.toString()
-                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          {method.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Shipping Method Filter */}
-                  <div className="space-y-2">
-                    <label className="text-xs text-muted-foreground">
-                      Shipping Method
-                    </label>
-                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-                      <button
-                        onClick={() => {
-                          setShippingMethodFilter("");
-                          setCurrentPage(1);
-                        }}
-                        className={`text-xs py-1.5 px-2 rounded-md border capitalize ${!shippingMethodFilter
-                          ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                          : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                          }`}
-                      >
-                        all
-                      </button>
-                      {shippingMethods.map((method) => (
-                        <button
-                          key={method.id}
-                          onClick={() => {
-                            setShippingMethodFilter(method.id.toString());
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border capitalize truncate ${shippingMethodFilter === method.id.toString()
-                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          {method.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <SheetFooter className="flex-row gap-2 pt-0!">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={clearFilters}
+                      disabled={!hasActiveFilters}
+                    >
+                      Clear all
+                    </Button>
+                    <SheetClose asChild>
+                      <Button size="sm" className="flex-1">
+                        Show Results
+                      </Button>
+                    </SheetClose>
+                  </SheetFooter>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </div>
 

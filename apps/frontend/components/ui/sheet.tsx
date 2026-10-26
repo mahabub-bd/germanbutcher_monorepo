@@ -75,7 +75,7 @@ function SheetContent({
       >
         {children}
         {showClose && (
-          <SheetPrimitive.Close className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-primaryColor to-secondaryColor text-white shadow-lg transition-all duration-200 hover:from-red-600 hover:to-red-700 hover:scale-110 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 active:scale-95 disabled:pointer-events-none group">
+          <SheetPrimitive.Close className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full bg-linear-to-br from-primaryColor to-secondaryColor text-white shadow-lg transition-all duration-200 hover:from-red-600 hover:to-red-700 hover:scale-110 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 active:scale-95 disabled:pointer-events-none group">
             <XIcon className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90" />
             <span className="sr-only">Close</span>
           </SheetPrimitive.Close>
@@ -139,5 +139,6 @@ export {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
+  SheetTrigger
 };
+

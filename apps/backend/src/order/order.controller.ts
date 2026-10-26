@@ -96,6 +96,12 @@ export class OrderController {
     type: Number,
     description: 'Filter by shipping method id',
   })
+  @ApiQuery({
+    name: 'area',
+    required: false,
+    type: String,
+    description: 'Filter by delivery area (partial match)',
+  })
   async getOrders(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
@@ -107,6 +113,7 @@ export class OrderController {
     paymentMethodId?: number,
     @Query('shippingMethodId', new ParseIntPipe({ optional: true }))
     shippingMethodId?: number,
+    @Query('area') area?: string,
   ): Promise<ApiResponseDto<Order[]>> {
     const options: FindAllOrdersOptions = {
       page,
@@ -117,6 +124,7 @@ export class OrderController {
       paymentStatus,
       paymentMethodId,
       shippingMethodId,
+      area,
     };
 
     const { data, total } = await this.orderService.getAllOrders(options);
