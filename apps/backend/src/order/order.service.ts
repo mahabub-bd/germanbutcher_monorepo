@@ -48,6 +48,7 @@ export interface FindAllOrdersOptions {
   paymentStatus?: PaymentStatus;
   paymentMethodId?: number;
   shippingMethodId?: number;
+  area?: string;
 }
 @Injectable()
 export class OrderService {
@@ -1019,6 +1020,7 @@ export class OrderService {
       paymentStatus,
       paymentMethodId,
       shippingMethodId,
+      area,
     }: Pick<
       FindAllOrdersOptions,
       | 'search'
@@ -1026,6 +1028,7 @@ export class OrderService {
       | 'paymentStatus'
       | 'paymentMethodId'
       | 'shippingMethodId'
+      | 'area'
     >,
   ): void {
     if (search) {
@@ -1051,6 +1054,11 @@ export class OrderService {
         shippingMethodId,
       });
     }
+    // Free-text area on the joined address row; ILIKE for case-insensitive
+    // matching since Postgres LIKE is case-sensitive
+    if (area) {
+      qb.andWhere('address.area ILIKE :area', { area: `%${area}%` });
+    }
   }
 
   async getAllOrders(
@@ -1064,6 +1072,7 @@ export class OrderService {
       paymentStatus,
       paymentMethodId,
       shippingMethodId,
+      area,
       sort,
     } = options;
 
@@ -1105,6 +1114,7 @@ export class OrderService {
       paymentStatus,
       paymentMethodId,
       shippingMethodId,
+      area,
     });
 
     if (sort === 'date_asc') {
@@ -1115,16 +1125,19 @@ export class OrderService {
     queryBuilder.skip(skip).take(limit);
 
     // Count query mirrors the list query's joins: the search filter references
-    // user columns, and a many-to-one left join cannot duplicate rows.
+    // user columns and the area filter references address columns, and a
+    // many-to-one left join cannot duplicate rows.
     const countBuilder = this.orderRepository
       .createQueryBuilder('order')
-      .leftJoin('order.user', 'user');
+      .leftJoin('order.user', 'user')
+      .leftJoin('order.address', 'address');
     this.applyOrderFilters(countBuilder, {
       search,
       orderStatus,
       paymentStatus,
       paymentMethodId,
       shippingMethodId,
+      area,
     });
 
     const [data, total] = await Promise.all([
