@@ -1,6 +1,10 @@
 "use client";
 
-import { AnalyticsCardHeader } from "@/components/admin/analytics/analytics-card-header";
+import {
+  AnalyticsCardHeader,
+  AnalyticsRangeBadge,
+} from "@/components/admin/analytics/analytics-card-header";
+import { AnalyticsEmptyState } from "@/components/admin/analytics/analytics-empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -11,11 +15,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Network } from "lucide-react";
 import type { TopEndpoint } from "@/utils/types";
+import { Network } from "lucide-react";
 
 interface TopEndpointsTableProps {
   data: TopEndpoint[];
+  /** Aggregation window shown in the header, e.g. "24 hours". */
+  rangeLabel?: string;
 }
 
 const getMethodColor = (method: string) => {
@@ -42,68 +48,99 @@ const getLatencyClass = (ms: number) => {
   return "text-red-600 dark:text-red-400";
 };
 
-export function TopEndpointsTable({ data }: TopEndpointsTableProps) {
+export function TopEndpointsTable({
+  data,
+  rangeLabel = "selected period",
+}: TopEndpointsTableProps) {
   const maxCount = Math.max(...data.map((d) => d.count), 1);
+  const totalRequests = data.reduce((sum, item) => sum + item.count, 0);
 
   return (
-    <Card>
+    <Card className="h-full rounded-sm">
       <AnalyticsCardHeader
         title="Top Endpoints"
         description="Most frequently accessed API endpoints"
         icon={Network}
         tone="indigo"
+        action={<AnalyticsRangeBadge label={rangeLabel} />}
       />
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8">#</TableHead>
-              <TableHead>Endpoint</TableHead>
-              <TableHead>Method</TableHead>
-              <TableHead className="w-40">Traffic share</TableHead>
-              <TableHead className="text-right">Requests</TableHead>
-              <TableHead className="text-right">Avg Time</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((endpoint, index) => (
-              <TableRow key={`${endpoint.endpoint}-${index}`}>
-                <TableCell className="text-muted-foreground tabular-nums">
-                  {index + 1}
-                </TableCell>
-                <TableCell
-                  className="max-w-50 truncate font-mono text-sm"
-                  title={endpoint.endpoint}
-                >
-                  {endpoint.endpoint}
-                </TableCell>
-                <TableCell>
-                  <Badge className={getMethodColor(endpoint.method)}>
-                    {endpoint.method}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="h-1.5 rounded-full bg-muted">
-                    <div
-                      className="h-1.5 rounded-full bg-primaryColor"
-                      style={{
-                        width: `${Math.round((endpoint.count / maxCount) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                </TableCell>
-                <TableCell className="text-right font-medium tabular-nums">
-                  {endpoint.count.toLocaleString()}
-                </TableCell>
-                <TableCell
-                  className={`text-right tabular-nums ${getLatencyClass(endpoint.avgResponseTime)}`}
-                >
-                  {endpoint.avgResponseTime.toFixed(0)}ms
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <CardContent className="flex flex-1 flex-col gap-3">
+        {data.length === 0 ? (
+          <AnalyticsEmptyState
+            icon={Network}
+            title="No endpoint data yet"
+            description="API traffic will appear here once requests are recorded"
+          />
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <Table className="min-w-[560px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-8">#</TableHead>
+                    <TableHead>Endpoint</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead className="hidden w-36 md:table-cell">
+                      Traffic share
+                    </TableHead>
+                    <TableHead className="text-right">Requests</TableHead>
+                    <TableHead className="text-right">Avg time</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.map((endpoint, index) => (
+                    <TableRow key={`${endpoint.endpoint}-${index}`}>
+                      <TableCell className="text-muted-foreground tabular-nums">
+                        {index + 1}
+                      </TableCell>
+                      <TableCell
+                        className="max-w-52 truncate font-mono text-sm"
+                        title={endpoint.endpoint}
+                      >
+                        {endpoint.endpoint}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getMethodColor(endpoint.method)}>
+                          {endpoint.method}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <div className="h-1.5 rounded-full bg-muted">
+                          <div
+                            className="h-1.5 rounded-full bg-primaryColor"
+                            style={{
+                              width: `${Math.round(
+                                (endpoint.count / maxCount) * 100,
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-medium tabular-nums">
+                        {endpoint.count.toLocaleString()}
+                      </TableCell>
+                      <TableCell
+                        className={`text-right tabular-nums ${getLatencyClass(endpoint.avgResponseTime)}`}
+                        title={`${endpoint.avgResponseTime.toFixed(0)}ms average response time`}
+                      >
+                        {endpoint.avgResponseTime.toFixed(0)}ms
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="mt-auto flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-xs">
+              <span className="text-muted-foreground">
+                Top {data.length} endpoints
+              </span>
+              <span className="font-semibold tabular-nums">
+                {totalRequests.toLocaleString()} requests
+              </span>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

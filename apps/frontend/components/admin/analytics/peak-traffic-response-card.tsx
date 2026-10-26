@@ -1,44 +1,56 @@
 "use client";
 
 import {
-  Card,
-  CardContent,
-  CardDescription,
-} from "@/components/ui/card";
-import { AnalyticsCardHeader } from "@/components/admin/analytics/analytics-card-header";
+  AnalyticsCardHeader,
+  AnalyticsRangeBadge,
+} from "@/components/admin/analytics/analytics-card-header";
+import { AnalyticsEmptyState } from "@/components/admin/analytics/analytics-empty-state";
+import { ChartTooltip } from "@/components/admin/analytics/chart-tooltip";
+import { Card, CardContent } from "@/components/ui/card";
+import type { PeakTraffic, ResponseTimes } from "@/utils/types";
 import { ArrowDown, ArrowUp, Clock } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import type { PeakTraffic, ResponseTimes } from "@/utils/types";
 
 interface PeakTrafficResponseCardProps {
   traffic: PeakTraffic[];
   responseTimes: ResponseTimes;
+  /** Aggregation window shown in the header, e.g. "7 days". */
+  rangeLabel?: string;
 }
 
 const BAR_COLOR = "#8b5cf6"; // Violet-500
+const PEAK_COLOR = "#800000"; // Brand maroon — highlights the busiest hour
 
 function ResponseTimeTile({
   label,
   value,
   icon,
-  className,
+  tone,
 }: {
   label: string;
   value: string;
   icon: ReactNode;
-  className?: string;
+  tone: "blue" | "green" | "red";
 }) {
+  const tones = {
+    blue: "border-blue-200/70 bg-blue-50/70 text-blue-600 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-400",
+    green:
+      "border-green-200/70 bg-green-50/70 text-green-600 dark:border-green-900/50 dark:bg-green-950/20 dark:text-green-400",
+    red: "border-red-200/70 bg-red-50/70 text-red-600 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400",
+  };
+
   return (
-    <div className={`flex items-center gap-2 rounded-lg p-2 ${className ?? ""}`}>
+    <div className={`flex items-center gap-2 rounded-xl border p-2.5 ${tones[tone]}`}>
       <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/70 dark:bg-white/10">
         {icon}
       </span>
@@ -55,25 +67,13 @@ function ResponseTimeTile({
 export function PeakTrafficResponseCard({
   traffic,
   responseTimes,
+  rangeLabel = "7 days",
 }: PeakTrafficResponseCardProps) {
-  const [windowSize, setWindowSize] = useState({
-    width: typeof window !== "undefined" ? window.innerWidth : 1200,
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowSize({ width: window.innerWidth });
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   // Find peak from data
   const peakData =
     traffic.length > 0
       ? traffic.reduce((max, item) =>
-          item.requestCount > max.requestCount ? item : max
+          item.requestCount > max.requestCount ? item : max,
         )
       : null;
 
@@ -83,31 +83,8 @@ export function PeakTrafficResponseCard({
     requests: item.requestCount,
   }));
 
-  const CustomTooltip = ({
-    active,
-    payload,
-    label,
-  }: {
-    active?: boolean;
-    payload?: unknown[];
-    label?: string;
-  }) => {
-    if (active && payload && payload.length) {
-      const entry = payload[0] as { value?: number };
-      return (
-        <div className="rounded-lg border bg-white dark:bg-gray-800 p-3 shadow-lg">
-          <div className="font-semibold mb-1 text-sm">{label}</div>
-          <div className="flex items-center justify-between text-sm gap-4">
-            <span className="text-gray-600 dark:text-gray-400">Requests:</span>
-            <span className="font-semibold text-gray-900 dark:text-white">
-              {(entry.value ?? 0).toLocaleString()}
-            </span>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
+  // 24 hourly buckets need thinner ticks on a half-width card.
+  const tickInterval = traffic.length > 12 ? 1 : 0;
 
   return (
     <Card className="h-full rounded-sm">
@@ -115,43 +92,46 @@ export function PeakTrafficResponseCard({
         title="Peak Traffic Hours"
         description={
           peakData
-            ? `Peak: ${peakData.hour} (${peakData.requestCount.toLocaleString()} requests)`
-            : "No data"
+            ? `Peak at ${peakData.hour} with ${peakData.requestCount.toLocaleString()} requests`
+            : "Hourly traffic distribution"
         }
         icon={Clock}
         tone="teal"
+        action={<AnalyticsRangeBadge label={rangeLabel} />}
       />
-      <CardContent className="space-y-4">
+      <CardContent className="flex flex-1 flex-col gap-4">
         <div className="grid grid-cols-3 gap-2">
           <ResponseTimeTile
             label="Average"
             value={`${responseTimes.avg}ms`}
-            icon={<Clock className="size-3.5 text-blue-600 dark:text-blue-400" />}
-            className="bg-blue-50 dark:bg-blue-950/20"
+            icon={<Clock className="size-3.5" />}
+            tone="blue"
           />
           <ResponseTimeTile
             label="Minimum"
             value={`${responseTimes.min}ms`}
-            icon={
-              <ArrowDown className="size-3.5 text-green-600 dark:text-green-400" />
-            }
-            className="bg-green-50 dark:bg-green-950/20"
+            icon={<ArrowDown className="size-3.5" />}
+            tone="green"
           />
           <ResponseTimeTile
             label="Maximum"
             value={`${responseTimes.max}ms`}
-            icon={<ArrowUp className="size-3.5 text-red-600 dark:text-red-400" />}
-            className="bg-red-50 dark:bg-red-950/20"
+            icon={<ArrowUp className="size-3.5" />}
+            tone="red"
           />
         </div>
 
         {traffic.length === 0 ? (
-          <CardDescription>No traffic data available</CardDescription>
+          <AnalyticsEmptyState
+            icon={Clock}
+            title="No traffic data available"
+            description="Hourly peaks will appear once requests are recorded"
+          />
         ) : (
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={300}>
             <BarChart
               data={chartData}
-              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              margin={{ top: 10, right: 8, left: -12, bottom: 0 }}
             >
               <CartesianGrid
                 strokeDasharray="3 3"
@@ -163,24 +143,33 @@ export function PeakTrafficResponseCard({
                 axisLine={false}
                 tickLine={false}
                 tickMargin={10}
-                // Force every tick on desktop; auto-thin overlapping labels on mobile
-                interval={windowSize.width < 640 ? "preserveStartEnd" : 0}
-                minTickGap={windowSize.width < 640 ? 30 : 0}
+                interval={tickInterval}
+                minTickGap={16}
                 tick={{ fontSize: 11, fill: "currentColor" }}
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
                 tickMargin={10}
+                width={44}
                 tick={{ fontSize: 11, fill: "currentColor" }}
               />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar
-                dataKey="requests"
-                fill={BAR_COLOR}
-                radius={[4, 4, 0, 0]}
-                barSize={traffic.length > 12 ? 8 : windowSize.width < 640 ? 8 : 16}
+              <Tooltip
+                cursor={{ fill: "currentColor", fillOpacity: 0.06 }}
+                content={<ChartTooltip valueLabel="Requests" />}
               />
+              <Bar dataKey="requests" radius={[4, 4, 0, 0]} maxBarSize={26}>
+                {chartData.map((entry) => (
+                  <Cell
+                    key={entry.hour}
+                    fill={
+                      entry.requests === peakData?.requestCount
+                        ? PEAK_COLOR
+                        : BAR_COLOR
+                    }
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         )}

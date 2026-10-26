@@ -27,6 +27,7 @@ export interface StatCardProps {
     | "indigo"
     | "violet"
     | "amber"
+    | "teal"
     | "red"
     | "default";
 
@@ -59,6 +60,8 @@ export default function StatsCard({
       "from-violet-50 to-violet-100 dark:from-violet-950/15 dark:to-violet-900/5",
     amber:
       "from-amber-50 to-amber-100 dark:from-amber-950/15 dark:to-amber-900/5",
+    teal:
+      "from-teal-50 to-teal-100 dark:from-teal-950/15 dark:to-teal-900/5",
     red: "from-red-50 to-red-100 dark:from-red-950/15 dark:to-red-900/5",
     default: "bg-white dark:bg-white/[0.03]",
   };
@@ -69,8 +72,8 @@ export default function StatsCard({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800",
-        "p-3 sm:p-4 bg-linear-to-br transition hover:shadow-sm",
+        "relative overflow-hidden rounded-xl border border-gray-200/80 dark:border-gray-800",
+        "p-3 sm:p-4 bg-linear-to-br transition duration-200 hover:-translate-y-0.5 hover:shadow-md",
         "flex flex-col w-full min-h-25",
         bgColorClasses[bgColor],
         className

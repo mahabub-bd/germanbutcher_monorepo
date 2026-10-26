@@ -10,7 +10,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { OrderSummary } from "@/utils/types";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -28,6 +28,14 @@ interface CombinedOrdersSalesChartProps {
 
 const ORDERS_COLOR = "hsl(215, 70%, 60%)"; // Blue for orders
 const SALES_COLOR = "hsl(145, 70%, 50%)"; // Green for sales
+
+// "January" -> 0, matching the month names TO_CHAR(, 'Month') returns
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+const monthIndex = (month?: string) =>
+  Math.max(0, MONTH_NAMES.indexOf(month ?? ""));
 
 export default function CombinedOrdersSalesChart({
   chartData,
@@ -47,11 +55,22 @@ export default function CombinedOrdersSalesChart({
 
   const isMobile = windowSize.width < 640;
 
-  // Mobile shows only the last 6 months so bars stay readable on small screens
-  const visibleData = isMobile ? chartData.slice(-6) : chartData;
+  // The backend returns months newest-first (for the report table). The chart
+  // reads left-to-right, so re-sort chronologically — oldest month on the left.
+  const sortedData = useMemo(
+    () =>
+      [...chartData].sort((a, b) => {
+        if (a.year !== b.year) return a.year - b.year;
+        return monthIndex(a.month) - monthIndex(b.month);
+      }),
+    [chartData]
+  );
 
-  const totalOrders = chartData.reduce((sum, item) => sum + item.orderCount, 0);
-  const totalSales = chartData.reduce((sum, item) => sum + item.totalValue, 0);
+  // Mobile shows only the last 6 months so bars stay readable on small screens
+  const visibleData = isMobile ? sortedData.slice(-6) : sortedData;
+
+  const totalOrders = sortedData.reduce((sum, item) => sum + item.orderCount, 0);
+  const totalSales = sortedData.reduce((sum, item) => sum + item.totalValue, 0);
 
   const CustomTooltip = ({
     active,

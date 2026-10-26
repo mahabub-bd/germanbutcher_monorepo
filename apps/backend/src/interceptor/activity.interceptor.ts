@@ -211,8 +211,13 @@ export class ActivityInterceptor implements NestInterceptor {
     let oldValue = null;
     let newValue = null;
 
-    if (action === 'PATCH' && req.body) {
-      oldValue = this.buildMatchingOldValue(req.oldRecord, req.body); // Same keys as the new value
+    if (action === 'PATCH' && req.body && Object.keys(req.body).length > 0) {
+      oldValue = this.buildMatchingOldValue(req.oldRecord, req.body, entityType, req.originalUrl); // Same keys as the new value
+      // The body may consist only of computed/DTO-only fields (e.g. cancel's
+      // reason) that match no column — fall back to the full old record
+      if (oldValue === null && req.oldRecord) {
+        oldValue = req.oldRecord;
+      }
       newValue = req.body;
     } else if (action === 'POST' && req.body) {
       newValue = req.body;
@@ -269,7 +274,7 @@ export class ActivityInterceptor implements NestInterceptor {
    * Build the old value with the same keys as the incoming PATCH body so
    * oldValue and newValue are directly comparable in the activity log.
    */
-  private buildMatchingOldValue(oldRecord: any, body: any): any {
+  private buildMatchingOldValue(oldRecord: any, body: any, entityType: string, requestUrl: string): any {
     if (!oldRecord || typeof oldRecord !== 'object') return null;
     if (!body || typeof body !== 'object') return null;
 
@@ -277,10 +282,7 @@ export class ActivityInterceptor implements NestInterceptor {
 
     for (const key of Object.keys(body)) {
       // The body may send a relation as `attachment` while the DB column is `attachmentId`
-      const oldKey =
-        key in oldRecord ? key :
-        `${key}Id` in oldRecord ? `${key}Id` :
-        null;
+      const oldKey = this.resolveOldKey(key, oldRecord, entityType, requestUrl);
 
       if (oldKey === null) continue; // Computed fields (hasDiscount, imageUrl, ...) have no column
 
@@ -288,6 +290,25 @@ export class ActivityInterceptor implements NestInterceptor {
     }
 
     return Object.keys(aligned).length > 0 ? aligned : null;
+  }
+
+  /**
+   * Map a PATCH body key to the DB column that holds its old value.
+   * Handles relations sent without the Id suffix and the order DTOs that
+   * send `status` while the column is `orderStatus`/`paymentStatus`.
+   */
+  private resolveOldKey(key: string, oldRecord: any, entityType: string, requestUrl: string): string | null {
+    if (key in oldRecord) return key;
+    if (`${key}Id` in oldRecord) return `${key}Id`;
+
+    if (entityType === 'orders' && key === 'status') {
+      if (requestUrl.includes('/payment-status')) {
+        return 'paymentStatus' in oldRecord ? 'paymentStatus' : null;
+      }
+      return 'orderStatus' in oldRecord ? 'orderStatus' : null;
+    }
+
+    return null;
   }
 
   /**

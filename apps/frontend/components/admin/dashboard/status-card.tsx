@@ -66,7 +66,7 @@ export function StatusCard({
     <Link
       href={href}
       className={cn(
-        "flex flex-col sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start 2xl:flex-row 2xl:items-center gap-2 sm:gap-2 p-2.5 sm:p-3 2xl:p-4 rounded-lg transition border relative overflow-hidden",
+        "flex flex-col sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start 2xl:flex-row 2xl:items-center gap-2 sm:gap-2 p-2.5 sm:p-2 2xl:py-4 2xl:px-2 rounded-lg transition border relative overflow-hidden",
         "border-gray-200 dark:border-gray-700",
         "hover:shadow-sm active:scale-[0.98] sm:hover:scale-[1.02]",
         "w-full",
