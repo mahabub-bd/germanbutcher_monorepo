@@ -16,41 +16,35 @@ import {
   Trash2,
   User,
 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
-interface ProductActivity {
+interface ProductHistoryEntry {
   id: number;
-  action: string;
-  entityId: number;
-  oldValue: Record<string, unknown> | null;
-  newValue: Record<string, unknown> | null;
-  message: string;
-  ipAddress: string | null;
-  userType: string;
-  status: string;
+  productId: number | null;
+  productName: string;
+  action: "created" | "updated" | "activated" | "deactivated" | "deleted";
+  changes: Record<string, { from: unknown; to: unknown }> | null;
+  snapshot: Record<string, unknown> | null;
+  userId: number | null;
+  userName: string | null;
   createdAt: string;
-  user?: { name?: string; email?: string } | null;
 }
 
-type EventKind =
-  | "added"
-  | "edited"
-  | "activated"
-  | "deactivated"
-  | "deleted";
+type EventKind = ProductHistoryEntry["action"];
 
 const KIND_META: Record<
   EventKind,
   { label: string; badgeClass: string; icon: React.ReactNode }
 > = {
-  added: {
+  created: {
     label: "Added",
     badgeClass:
       "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
     icon: <CirclePlus className="h-3 w-3" />,
   },
-  edited: {
+  updated: {
     label: "Edited",
     badgeClass:
       "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
@@ -76,16 +70,6 @@ const KIND_META: Record<
   },
 };
 
-function getEventKind(activity: ProductActivity): EventKind {
-  if (activity.action.startsWith("DELETE")) return "deleted";
-  if (activity.action.startsWith("POST")) return "added";
-  const newValue = activity.newValue ?? {};
-  if (typeof newValue.isActive === "boolean") {
-    return newValue.isActive ? "activated" : "deactivated";
-  }
-  return "edited";
-}
-
 function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "-";
   if (typeof value === "boolean") return value ? "Yes" : "No";
@@ -97,27 +81,15 @@ function formatStatusValue(key: string, value: unknown): string {
   return formatValue(value);
 }
 
-/** Fields that changed between oldValue and newValue, with from -> to. */
-function getChanges(activity: ProductActivity) {
-  const oldValue = activity.oldValue;
-  const newValue = activity.newValue;
-  if (!oldValue || !newValue) return [];
-  return Object.keys(newValue)
-    .filter((key) => key in oldValue)
-    .filter(
-      (key) => JSON.stringify(newValue[key]) !== JSON.stringify(oldValue[key]),
-    )
-    .map((key) => ({
-      key,
-      from: formatStatusValue(key, oldValue[key]),
-      to: formatStatusValue(key, newValue[key]),
-    }));
-}
-
-function ActivityEntry({ activity }: { activity: ProductActivity }) {
-  const kind = getEventKind(activity);
-  const meta = KIND_META[kind];
-  const changes = getChanges(activity);
+function ActivityEntry({
+  entry,
+  showProduct,
+}: {
+  entry: ProductHistoryEntry;
+  showProduct: boolean;
+}) {
+  const meta = KIND_META[entry.action];
+  const changes = Object.entries(entry.changes ?? {});
 
   return (
     <li className="relative pl-10 pb-6 last:pb-0">
@@ -132,27 +104,36 @@ function ActivityEntry({ activity }: { activity: ProductActivity }) {
           {meta.icon}
           {meta.label}
         </Badge>
+        {showProduct &&
+          (entry.productId ? (
+            <Link
+              href={`/admin/products/${entry.productId}/view`}
+              className="text-sm font-medium hover:underline"
+            >
+              {entry.productName}
+            </Link>
+          ) : (
+            <span className="text-sm font-medium">{entry.productName}</span>
+          ))}
         <span className="text-sm text-muted-foreground">
-          {formatDateTime(activity.createdAt)}
+          {formatDateTime(entry.createdAt)}
         </span>
       </div>
 
-      <p className="mt-1.5 text-sm">{activity.message}</p>
-
       {changes.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {changes.map((change) => (
+          {changes.map(([key, change]) => (
             <span
-              key={change.key}
+              key={key}
               className="inline-flex items-center gap-1 rounded-md border bg-muted/50 px-2 py-0.5 text-xs"
             >
-              <span className="text-muted-foreground">{change.key}:</span>
+              <span className="text-muted-foreground">{key}:</span>
               <span className="text-red-600 dark:text-red-400 line-through">
-                {change.from}
+                {formatStatusValue(key, change.from)}
               </span>
               <span className="text-muted-foreground">to</span>
               <span className="text-emerald-600 dark:text-emerald-400">
-                {change.to}
+                {formatStatusValue(key, change.to)}
               </span>
             </span>
           ))}
@@ -161,9 +142,7 @@ function ActivityEntry({ activity }: { activity: ProductActivity }) {
 
       <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
         <User className="size-3" />
-        {activity.user?.name || "Unknown User"}
-        <span className="text-muted-foreground/50">&bull;</span>
-        {activity.ipAddress || "unknown IP"}
+        {entry.userName || "Unknown User"}
       </div>
     </li>
   );
@@ -177,7 +156,7 @@ interface ProductActivityHistoryProps {
 export default function ProductActivityHistory({
   productId,
 }: ProductActivityHistoryProps) {
-  const [activities, setActivities] = useState<ProductActivity[]>([]);
+  const [entries, setEntries] = useState<ProductHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -189,27 +168,27 @@ export default function ProductActivityHistory({
     try {
       if (productId) {
         const response = await fetchDataPagination<{
-          data: ProductActivity[];
+          data: ProductHistoryEntry[];
         }>(`products/${productId}/history`);
-        setActivities(response.data ?? []);
+        setEntries(response.data ?? []);
       } else {
         const params = new URLSearchParams({
           page: currentPage.toString(),
           limit: PAGE_SIZE.toString(),
         });
         const response = await fetchDataPagination<{
-          data: ProductActivity[];
+          data: ProductHistoryEntry[];
           total: number;
           totalPages: number;
         }>(`products/history?${params.toString()}`);
-        setActivities(response.data ?? []);
+        setEntries(response.data ?? []);
         setTotalItems(response.total ?? 0);
         setTotalPages(response.totalPages ?? 1);
       }
     } catch (error) {
       console.error("Error fetching product history:", error);
       toast.error("Failed to load product history.");
-      setActivities([]);
+      setEntries([]);
     } finally {
       setIsLoading(false);
     }
@@ -237,7 +216,7 @@ export default function ProductActivityHistory({
         <div className="flex items-center justify-center py-10">
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
-      ) : activities.length === 0 ? (
+      ) : entries.length === 0 ? (
         <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-10 text-center">
           <History className="h-10 w-10 text-muted-foreground/50 mb-3" />
           <p className="text-sm text-muted-foreground">
@@ -246,8 +225,12 @@ export default function ProductActivityHistory({
         </div>
       ) : (
         <ul className="mt-2">
-          {activities.map((activity) => (
-            <ActivityEntry key={activity.id} activity={activity} />
+          {entries.map((entry) => (
+            <ActivityEntry
+              key={entry.id}
+              entry={entry}
+              showProduct={!productId}
+            />
           ))}
         </ul>
       )}

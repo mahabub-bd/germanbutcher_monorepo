@@ -23,7 +23,7 @@ import { UnitsService } from 'src/unit/unit.service';
 import { User } from 'src/user/entities/user.entity';
 import { Product } from './entities/product.entity';
 import { ProductController } from './product.controller';
-import { UserActivityModule } from 'src/user-activity/user-activity.module';
+import { ProductHistoryModule } from 'src/product-history/product-history.module';
 import { ProductService } from './product.service';
 
 @Module({
@@ -42,7 +42,7 @@ import { ProductService } from './product.service';
     CacheModule.register(),
     FlashSaleCampaignsModule,
     BogoCampaignsModule,
-    UserActivityModule,
+    ProductHistoryModule,
   ],
   controllers: [ProductController, CategoryController, BrandController],
   providers: [

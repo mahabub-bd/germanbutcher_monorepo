@@ -37,7 +37,10 @@ import { User } from 'src/user/entities/user.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { UserActivityService } from 'src/user-activity/user-activity.service';
+import {
+  ProductHistoryAction,
+} from 'src/product-history/entities/product-history.entity';
+import { ProductHistoryService } from 'src/product-history/product-history.service';
 import { ProductService } from './product.service';
 
 @ApiTags('Products')
@@ -47,7 +50,7 @@ import { ProductService } from './product.service';
 export class ProductController {
   constructor(
     private readonly productService: ProductService,
-    private readonly userActivityService: UserActivityService,
+    private readonly productHistoryService: ProductHistoryService,
   ) { }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -756,10 +759,9 @@ export class ProductController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ) {
-    const result = await this.userActivityService.getActivitiesPaginated(
+    const result = await this.productHistoryService.getHistoryPaginated(
       +page,
       +limit,
-      { entityType: 'products' },
     );
     return {
       message: 'Product history retrieved successfully',
@@ -778,7 +780,7 @@ export class ProductController {
   })
   @ApiOkResponse({ type: [ApiResponseDto] })
   async getProductHistoryById(@Param('id', ParseIntPipe) id: number) {
-    const data = await this.userActivityService.getAuditTrail('products', id);
+    const data = await this.productHistoryService.getProductHistory(id);
     return this.formatResponse(
       'Product history retrieved successfully',
       HttpStatus.OK,
