@@ -32,10 +32,14 @@ export default async function OrderReportPage({ searchParams }: Props) {
     typeof resolvedParams.toDate === "string"
       ? resolvedParams.toDate
       : undefined;
+  // Only fall back to a preset when the URL has no explicit date range,
+  // otherwise manual fromDate/toDate would be ignored below.
   const preset =
     typeof resolvedParams.preset === "string"
       ? resolvedParams.preset
-      : "this_month";
+      : fromDate || toDate
+        ? undefined
+        : "this_month";
   const orderStatus =
     typeof resolvedParams.orderStatus === "string"
       ? resolvedParams.orderStatus

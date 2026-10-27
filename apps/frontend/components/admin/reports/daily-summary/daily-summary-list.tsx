@@ -1,7 +1,8 @@
 "use client";
 
 import { PageHeader } from "@/components/admin/page-header";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
+import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
+import { ReportExcelButton, dateRangeSubtitle } from "@/components/admin/reports/download-excel-button";
 import {
   ReportDateFilters,
   type ReportFilterParams,
@@ -23,14 +24,8 @@ import {
   ArrowUpDown,
   Wallet,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
 
 interface DailySummary {
   totalOrders: number;
@@ -353,36 +348,52 @@ export default function DailySummaryList({
           title="Daily Summary Report"
         />
         {daily.length > 0 && mounted && (
-          <PDFDownloadLink
-            document={
-              <ReportTablePDF
-                title="Daily Summary Report"
-                orientation="landscape"
-                headers={[
-                  "Date",
-                  "Orders",
-                  "Delivered",
-                  "Cancelled",
-                  "Pending",
-                  "Processing",
-                  "On Hold",
-                  "Paid",
-                  "Due",
-                ]}
-                flexes={[1.2, 1.4, 1.4, 1.4, 1.4, 1.4, 1.4, 0.9, 1]}
-                alignRight={[1, 2, 3, 4, 5, 6, 7, 8]}
-                rows={pdfRows}
-                summary={pdfSummary}
-                settings={settings}
-              />
-            }
-            fileName={`daily-summary-report-${new Date().toISOString().split("T")[0]
-              }.pdf`}
-          >
-            {({ loading, error }) => (
-              <PdfDownloadButton loading={loading} error={error} />
-            )}
-          </PDFDownloadLink>
+          <div className="flex shrink-0 gap-2">
+            <ReportExcelButton
+              title="Daily Summary Report"
+              subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
+                            headers={[
+                "Date",
+                "Orders",
+                "Delivered",
+                "Cancelled",
+                "Pending",
+                "Processing",
+                "On Hold",
+                "Paid",
+                "Due",
+              ]}
+              rows={pdfRows}
+              summary={pdfSummary}
+              fileName="daily-summary-report"
+            />
+            <LazyPdfDownloadLink
+              document={
+                <ReportTablePDF
+                  title="Daily Summary Report"
+                  orientation="landscape"
+                  headers={[
+                    "Date",
+                    "Orders",
+                    "Delivered",
+                    "Cancelled",
+                    "Pending",
+                    "Processing",
+                    "On Hold",
+                    "Paid",
+                    "Due",
+                  ]}
+                  flexes={[1.2, 1.4, 1.4, 1.4, 1.4, 1.4, 1.4, 0.9, 1]}
+                  alignRight={[1, 2, 3, 4, 5, 6, 7, 8]}
+                  rows={pdfRows}
+                  summary={pdfSummary}
+                  settings={settings}
+                />
+              }
+              fileName={`daily-summary-report-${new Date().toISOString().split("T")[0]
+                }.pdf`}
+             />
+          </div>
         )}
       </div>
 

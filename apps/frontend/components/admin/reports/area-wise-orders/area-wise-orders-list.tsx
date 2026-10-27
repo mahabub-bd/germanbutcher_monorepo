@@ -2,7 +2,8 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
+import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
+import { ReportExcelButton, dateRangeSubtitle } from "@/components/admin/reports/download-excel-button";
 import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import {
@@ -24,13 +25,7 @@ import {
   ShoppingCart,
   XCircle,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
 
 interface Summary {
   totalOrders: number;
@@ -118,35 +113,51 @@ export default function AreaWiseOrdersList({
           title="Area Wise Order Report"
         />
         {areas.length > 0 && (
-          <PDFDownloadLink
-            document={
-              <ReportTablePDF
-                title="Area Wise Order Report"
-                headers={[
-                  "Area",
-                  "Orders",
-                  "Delivered",
-                  "Cancelled",
-                  "Pending",
-                  "Processing",
-                  "On Hold",
-                  "Order Value",
-                  "Delivered Value",
-                ]}
-                flexes={[1.5, 0.7, 0.8, 0.8, 0.8, 0.8, 0.8, 1.1, 1.1]}
-                alignRight={[1, 2, 3, 4, 5, 6, 7, 8]}
-                rows={pdfRows}
-                summary={pdfSummary}
-                settings={settings}
-              />
-            }
-            fileName={`area-wise-order-report-${new Date().toISOString().split("T")[0]
-              }.pdf`}
-          >
-            {({ loading, error }) => (
-              <PdfDownloadButton loading={loading} error={error} />
-            )}
-          </PDFDownloadLink>
+          <div className="flex shrink-0 gap-2">
+            <ReportExcelButton
+              title="Area Wise Order Report"
+              subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
+                            headers={[
+                "Area",
+                "Orders",
+                "Delivered",
+                "Cancelled",
+                "Pending",
+                "Processing",
+                "On Hold",
+                "Order Value",
+                "Delivered Value",
+              ]}
+              rows={pdfRows}
+              summary={pdfSummary}
+              fileName="area-wise-order-report"
+            />
+            <LazyPdfDownloadLink
+              document={
+                <ReportTablePDF
+                  title="Area Wise Order Report"
+                  headers={[
+                    "Area",
+                    "Orders",
+                    "Delivered",
+                    "Cancelled",
+                    "Pending",
+                    "Processing",
+                    "On Hold",
+                    "Order Value",
+                    "Delivered Value",
+                  ]}
+                  flexes={[1.5, 0.7, 0.8, 0.8, 0.8, 0.8, 0.8, 1.1, 1.1]}
+                  alignRight={[1, 2, 3, 4, 5, 6, 7, 8]}
+                  rows={pdfRows}
+                  summary={pdfSummary}
+                  settings={settings}
+                />
+              }
+              fileName={`area-wise-order-report-${new Date().toISOString().split("T")[0]
+                }.pdf`}
+             />
+          </div>
         )}
       </div>
 

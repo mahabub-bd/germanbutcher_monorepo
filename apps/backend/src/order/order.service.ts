@@ -37,6 +37,7 @@ import { CancelOrderDto } from './dto/cancel-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItem } from './entities/order-item.entity';
 import { OrderStatusTrack } from './entities/order-status-track.entity';
+import { OrderNote } from './entities/order-note.entity';
 import { Order } from './entities/order.entity';
 
 /** System identifier of the offline payment method (order_payment_method.code) */
@@ -84,6 +85,8 @@ export class OrderService {
 
     @InjectRepository(OrderStatusTrack)
     private readonly orderStatusTrackRepository: Repository<OrderStatusTrack>,
+    @InjectRepository(OrderNote)
+    private readonly orderNoteRepository: Repository<OrderNote>,
     private readonly emailService: EmailService,
     private readonly notificationService: NotificationService,
     private readonly smsService: SmsService,
@@ -709,6 +712,8 @@ export class OrderService {
         'coupon',
         'statusTracks',
         'statusTracks.updatedBy',
+        'notes',
+        'notes.createdBy',
         'deliveryMan',
       ],
     });
@@ -1281,6 +1286,31 @@ export class OrderService {
     return this.orderRepository.findOne({
       where: { id },
       relations: ['statusTracks', 'items', 'user', 'address', 'deliveryMan'],
+    });
+  }
+
+  /**
+   * Append a free-form note to an order. Notes are independent of status
+   * changes, so an order can accumulate any number of them over time.
+   */
+  async addOrderNote(id: number, note: string, user: User): Promise<OrderNote> {
+    const order = await this.orderRepository.findOneBy({ id });
+    if (!order) throw new NotFoundException(`Order with ID ${id} not found`);
+
+    const saved = await this.orderNoteRepository.save(
+      this.orderNoteRepository.create({
+        order,
+        note,
+        orderStatus: order.orderStatus,
+        createdBy: user?.userId,
+      }),
+    );
+
+    // save() returns the raw entity (createdBy is just the FK number), so
+    // reload with the relation so callers get the author's name.
+    return this.orderNoteRepository.findOneOrFail({
+      where: { id: saved.id },
+      relations: { createdBy: true },
     });
   }
 

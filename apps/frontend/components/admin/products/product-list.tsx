@@ -37,21 +37,18 @@ import { formatCurrencyEnglish, getUnitBadgeColor } from "@/lib/utils";
 import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
 import type { Brand, Category, Product } from "@/utils/types";
 import {
-  BadgeDollarSign,
+  ArrowLeftRight,
   Ban,
   Boxes,
   CheckCircle,
   Eye,
   Filter,
-  ArrowLeftRight,
   History,
   MoreHorizontal,
   Package,
   Pencil,
   Plus,
-  Scale,
   Search,
-  ShoppingCart,
   Trash2,
   XCircle
 } from "lucide-react";
@@ -533,80 +530,68 @@ export function ProductList({
   );
 
   const renderTableView = () => (
-    <div className="overflow-x-auto">
-      <Table>
+    <div className="min-w-0">
+      <Table className="table-fixed">
         <TableHeader>
           <TableRow>
-            <TableHead>Product</TableHead>
-            <TableHead className="text-right">Purchase Price</TableHead>
-            <TableHead className="text-right">Sale Price</TableHead>
-            <TableHead>Unit</TableHead>
-            <TableHead className="hidden md:table-cell">Brand</TableHead>
-            <TableHead className="hidden lg:table-cell">Category</TableHead>
-            <TableHead className="hidden md:table-cell text-center">
+            <TableHead className="w-[34%] xl:w-[28%] 2xl:w-[24%]">Product</TableHead>
+            <TableHead className="hidden w-[13%] text-right xl:table-cell 2xl:w-[12%]">Purchase Price</TableHead>
+            <TableHead className="w-[18%] text-right xl:w-[13%] 2xl:w-[11%]">Sale Price</TableHead>
+            <TableHead className="hidden w-[12%] 2xl:table-cell">Brand</TableHead>
+            <TableHead className="hidden w-[14%] xl:table-cell 2xl:w-[12%]">Category</TableHead>
+            <TableHead className="hidden w-[10%] text-center md:table-cell 2xl:w-[9%]">
               Stock
             </TableHead>
-            <TableHead className="hidden lg:table-cell text-center">
-              Sold
-            </TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead className="w-[12%] xl:w-[10%] 2xl:w-[10%]">Status</TableHead>
+            <TableHead className="w-[8%] text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {products.map((product) => (
             <TableRow key={product.id} className="hover:bg-muted/50">
-              <TableCell>
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex aspect-3/2 h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
-                    <ProductImage product={product} width={96} height={64} />
+              <TableCell className="overflow-hidden">
+                <div className="flex min-w-0 items-center gap-2 xl:gap-2.5">
+                  <span className="flex aspect-3/2 h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                    <ProductImage product={product} width={64} height={48} />
                   </span>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <Link
                       href={`/admin/products/${product.id}/view`}
-                      className="font-medium leading-tight hover:underline"
+                      title={product.name}
+                      className="block truncate font-medium leading-tight hover:underline"
                     >
                       {product.name}
                     </Link>
-                    <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                      {product?.productSku || "—"}
+                    <p className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden text-xs text-muted-foreground">
+                      <span className="truncate font-mono">
+                        {product?.productSku || "—"}
+                      </span>
+                      {product?.unit?.name && (
+                        <span
+                          className={`inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-medium capitalize ${getUnitBadgeColor(product.unit.name)}`}
+                        >
+                          {product.unit.name}
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="text-right text-muted-foreground">
-                <span className="inline-flex items-center justify-end gap-1.5">
-                  <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground/70" />
-                  {formatCurrencyEnglish(product?.purchasePrice)}
-                </span>
+              <TableCell className="hidden overflow-hidden text-ellipsis whitespace-nowrap text-right text-muted-foreground xl:table-cell">
+                {formatCurrencyEnglish(product?.purchasePrice)}
               </TableCell>
-              <TableCell className="text-right font-medium">
-                <span className="inline-flex items-center justify-end gap-1.5">
-                  <BadgeDollarSign className="h-3.5 w-3.5 text-green-600/70 dark:text-green-400/70" />
-                  {formatCurrencyEnglish(product?.sellingPrice)}
-                </span>
+              <TableCell className="overflow-hidden text-ellipsis whitespace-nowrap text-right font-medium">
+                {formatCurrencyEnglish(product?.sellingPrice)}
               </TableCell>
-              <TableCell>
-                {product?.unit?.name ? (
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getUnitBadgeColor(product.unit.name)}`}
-                  >
-                    <Scale className="h-3 w-3" />
-                    {product.unit.name}
-                  </span>
-                ) : (
-                  "-"
-                )}
+              <TableCell className="hidden overflow-hidden text-ellipsis whitespace-nowrap 2xl:table-cell">
+                <span title={product.brand?.name || "-"}>{product.brand?.name || "-"}</span>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
-                {product.brand?.name || "-"}
-              </TableCell>
-              <TableCell className="hidden lg:table-cell">
+              <TableCell className="hidden overflow-hidden text-ellipsis whitespace-nowrap xl:table-cell">
                 {product.category?.name || "-"}
               </TableCell>
               <TableCell className="hidden md:table-cell text-center">
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${product.stock === 0
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${product.stock === 0
                     ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                     : "bg-muted"
                     }`}
@@ -614,9 +599,9 @@ export function ProductList({
                   <Boxes className="h-3 w-3" />
                   {product.stock}
                 </span>
-              </TableCell>
-              <TableCell className="hidden lg:table-cell text-center">
-                {product.saleCount}
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {product.saleCount} sold
+                </p>
               </TableCell>
               <TableCell>
                 <ActiveStatusToggle

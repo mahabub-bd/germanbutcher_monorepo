@@ -29,12 +29,19 @@ import { PaymentMethodSelector } from "@/components/checkout/payment-method-sele
 import { ShippingInformation } from "@/components/checkout/shipping-information";
 import { ShippingMethodSelector } from "@/components/checkout/shipping-method-selector";
 import { useBogo } from "@/hooks/use-bogo";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { useFreeDelivery } from "@/hooks/use-free-delivery";
+import {
+  getEnabledAreas,
+  getEnabledCities,
+  getEnabledDivisions,
+} from "@/lib/delivery-coverage";
 import { postData } from "@/utils/api-utils";
 
 export default function CheckoutPage({ user }: { user?: UserType }) {
   const { getCartTotals, clearCart, cart, appliedCoupon } = useCartContext();
   const router = useRouter();
+  const settings = useBusinessSettings();
 
   const { originalSubtotal, discountedSubtotal, itemCount, productDiscounts } =
     getCartTotals();
@@ -299,13 +306,22 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
       if (!formData.address.trim()) {
         newErrors.address = "Address is required";
       }
-      if (!formData.area.trim()) {
+      // Only require fields that still have enabled options after
+      // delivery-coverage filtering.
+      const coverage = settings?.deliveryCoverage ?? null;
+      if (
+        getEnabledAreas(coverage, formData.city).length > 0 &&
+        !formData.area.trim()
+      ) {
         newErrors.area = "Area is required";
       }
-      if (!formData.city.trim()) {
+      if (
+        getEnabledCities(coverage, formData.division).length > 0 &&
+        !formData.city.trim()
+      ) {
         newErrors.city = "City is required";
       }
-      if (!formData.division) {
+      if (getEnabledDivisions(coverage).length > 0 && !formData.division) {
         newErrors.division = "Division is required";
       }
     }

@@ -1,7 +1,8 @@
 "use client";
 
 import { PageHeader } from "@/components/admin/page-header";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
+import { ReportExcelButton } from "@/components/admin/reports/download-excel-button";
+import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,17 +23,11 @@ import {
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { Award, Crown, Eye, ShoppingCart, TrendingUp, Users } from "lucide-react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import StatsCard from "../../dashboard/stats-card";
 import { TopCustomersPDF } from "./TopCustomersPDF";
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
 
 interface CustomerStatistics {
   totalOrders: number;
@@ -48,6 +43,8 @@ export interface TopCustomer {
   email: string;
   mobileNumber: string;
   isVerified: boolean;
+  /** Area from the customer's default saved address (null if none). */
+  area: string | null;
   statistics: CustomerStatistics;
 }
 
@@ -150,25 +147,42 @@ export default function TopCustomersReport({
           title="Top Customers Report"
           description="Best customers by orders and spending"
         />
-        <div className="shrink-0">
+        <div className="flex shrink-0 gap-2">
           {customers.length > 0 && mounted && (
-            <PDFDownloadLink
-              document={
-                <TopCustomersPDF
-                  customers={customers}
-                  sortBy={sortBy}
-                  timeFilterLabel={TIME_FILTER_LABELS[timeFilter]}
-                  settings={settings}
-                />
-              }
-              fileName={`top-customers-${timeFilter}-${new Date()
-                .toISOString()
-                .split("T")[0]}.pdf`}
-            >
-              {({ loading, error }) => (
-                <PdfDownloadButton loading={loading} error={error} />
-              )}
-            </PDFDownloadLink>
+            <>
+              <ReportExcelButton
+                title="Top Customers Report"
+                subtitle={`${TIME_FILTER_LABELS[timeFilter]} - Ranked by ${sortBy === "spending" ? "Spending" : "Orders"}`}
+                headers={["Rank", "Customer Name", "Mobile", "Area", "Orders", "Total Spent", "Avg Order"]}
+                rows={customers.map((customer, index) => [
+                  index + 1,
+                  customer.name,
+                  customer.mobileNumber,
+                  customer.area || "-",
+                  customer.statistics.totalOrders,
+                  customer.statistics.totalSpent,
+                  customer.statistics.averageOrderValue,
+                ])}
+                summary={[
+                  { label: "Time Filter", value: TIME_FILTER_LABELS[timeFilter] },
+                  { label: "Ranked By", value: sortBy === "spending" ? "Spending" : "Orders" },
+                ]}
+                fileName={`top-customers-${timeFilter}`}
+              />
+              <LazyPdfDownloadLink
+                document={
+                  <TopCustomersPDF
+                    customers={customers}
+                    sortBy={sortBy}
+                    timeFilterLabel={TIME_FILTER_LABELS[timeFilter]}
+                    settings={settings}
+                  />
+                }
+                fileName={`top-customers-${timeFilter}-${new Date()
+                  .toISOString()
+                  .split("T")[0]}.pdf`}
+              />
+            </>
           )}
         </div>
       </div>
@@ -225,7 +239,7 @@ export default function TopCustomersReport({
       </div>
 
       {/* Summary */}
-      <div className="mb-4 grid grid-cols-2 2xl:grid-cols-4 gap-3">
+      <div className="mb-4 grid grid-cols-2 xl:grid-cols-4 2xl:grid-cols-4 gap-3">
         <StatsCard
           title="Top Customers"
           value={String(customers.length)}
@@ -272,6 +286,9 @@ export default function TopCustomersReport({
               <TableHead className="hidden md:table-cell text-xs h-9 sm:h-10">
                 Contact
               </TableHead>
+              <TableHead className="hidden xl:table-cell text-xs h-9 sm:h-10">
+                Area
+              </TableHead>
               <TableHead className="text-center text-xs h-9 sm:h-10">
                 Orders
               </TableHead>
@@ -290,7 +307,7 @@ export default function TopCustomersReport({
             {customers.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="text-center py-6 sm:py-8 text-muted-foreground"
                 >
                   <Users className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-2 opacity-50" />
@@ -326,6 +343,13 @@ export default function TopCustomersReport({
                   <TableCell className="hidden md:table-cell py-1.5 sm:py-2">
                     <span className="text-[10px] sm:text-xs">
                       {customer.mobileNumber}
+                    </span>
+                  </TableCell>
+
+                  {/* Area */}
+                  <TableCell className="hidden xl:table-cell py-1.5 sm:py-2">
+                    <span className="text-[10px] sm:text-xs">
+                      {customer.area || "—"}
                     </span>
                   </TableCell>
 

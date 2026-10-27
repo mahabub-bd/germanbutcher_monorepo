@@ -2,6 +2,7 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { ReportPdfButton } from "@/components/admin/reports/generic-report-pdf";
+import { ReportExcelButton } from "@/components/admin/reports/download-excel-button";
 import { ReportDateFilters, type ReportFilterParams } from "@/components/admin/reports/report-date-filters";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -143,36 +144,61 @@ export function FreeDeliveryUsageReport({
         <PageHeader
           title="Free Delivery Usage Report"
         />
-        <ReportPdfButton
-          title="Free Delivery Usage Report"
-          subtitle={periodLabel}
-          fileName="free-delivery-usage-report"
-          columns={[
-            { header: "Date", width: 2 },
-            { header: "Customer", width: 1.6 },
-            { header: "Order No", width: 1.3 },
-            { header: "Campaign", width: 1.6 },
-            { header: "Waived", width: 1.1, align: "right" },
-            { header: "Total", width: 1.1, align: "right" },
-          ]}
-          rows={rows.map((row) => [
-            formatDateTime(row.createdAt),
-            row.user?.name || "-",
-            row.order?.orderNo || "-",
-            row.campaignName,
-            formatMoneyPdf(row.shippingWaived),
-            formatMoneyPdf(row.orderTotal),
-          ])}
-          summary={
-            stats
-              ? [
-                { label: "Total Uses", value: String(stats.totalUses) },
-                { label: "Shipping Waived", value: formatMoneyPdf(stats.totalShippingWaived) },
-                { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
-              ]
-              : undefined
-          }
-        />
+        <div className="flex shrink-0 gap-2">
+          <ReportExcelButton
+            title="Free Delivery Usage Report"
+            subtitle={periodLabel}
+                        headers={["Date", "Customer", "Order No", "Campaign", "Waived", "Total"]}
+            rows={rows.map((row) => [
+              formatDateTime(row.createdAt),
+              row.user?.name || "-",
+              row.order?.orderNo || "-",
+              row.campaignName,
+              formatMoneyPdf(row.shippingWaived),
+              formatMoneyPdf(row.orderTotal),
+            ])}
+            summary={
+              stats
+                ? [
+                  { label: "Total Uses", value: String(stats.totalUses) },
+                  { label: "Shipping Waived", value: formatMoneyPdf(stats.totalShippingWaived) },
+                  { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
+                ]
+                : undefined
+            }
+            fileName="free-delivery-usage-report"
+          />
+          <ReportPdfButton
+            title="Free Delivery Usage Report"
+            subtitle={periodLabel}
+            fileName="free-delivery-usage-report"
+            columns={[
+              { header: "Date", width: 2 },
+              { header: "Customer", width: 1.6 },
+              { header: "Order No", width: 1.3 },
+              { header: "Campaign", width: 1.6 },
+              { header: "Waived", width: 1.1, align: "right" },
+              { header: "Total", width: 1.1, align: "right" },
+            ]}
+            rows={rows.map((row) => [
+              formatDateTime(row.createdAt),
+              row.user?.name || "-",
+              row.order?.orderNo || "-",
+              row.campaignName,
+              formatMoneyPdf(row.shippingWaived),
+              formatMoneyPdf(row.orderTotal),
+            ])}
+            summary={
+              stats
+                ? [
+                  { label: "Total Uses", value: String(stats.totalUses) },
+                  { label: "Shipping Waived", value: formatMoneyPdf(stats.totalShippingWaived) },
+                  { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
+                ]
+                : undefined
+            }
+          />
+        </div>
       </div>
 
       <ReportDateFilters

@@ -105,6 +105,22 @@ export class BusinessSetting {
   })
   maintenanceEndsAt: Date | null;
 
+  @Column({ type: 'jsonb', nullable: true })
+  @ApiPropertyOptional({
+    example: {
+      divisions: [{ name: 'Dhaka', enabled: true }],
+      cities: [{ division: 'Dhaka', name: 'Dhaka', enabled: true }],
+      areas: [{ city: 'Dhaka', name: 'Badda', enabled: true }],
+    },
+    description:
+      'Delivery coverage: plain lists of divisions/cities/areas seeded from the BD dataset and fully editable (add/rename/delete/enable).',
+  })
+  deliveryCoverage: {
+    divisions: { name: string; enabled: boolean }[];
+    cities: { division: string; name: string; enabled: boolean }[];
+    areas: { city: string; name: string; enabled: boolean }[];
+  } | null;
+
   @ManyToOne(() => Attachment, { eager: true, nullable: true })
   @JoinColumn()
   @ApiProperty({

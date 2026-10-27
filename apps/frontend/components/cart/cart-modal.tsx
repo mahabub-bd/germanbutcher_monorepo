@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetFooter,
   SheetHeader,
@@ -140,11 +141,12 @@ export function CartModal({
 
       <SheetContent
         side="right"
+        showClose={false}
         className="flex h-full flex-col p-0 w-full sm:max-w-md lg:max-w-lg"
       >
         <SheetHeader className="border-b py-3 px-4 sm:py-4 sm:px-6">
           <div className="flex flex-col gap-2">
-            <div className="flex items-center">
+            <div className="flex items-center justify-between">
               <SheetTitle className="flex items-center gap-2 text-lg font-semibold">
 
                 <span>Your Cart</span>
@@ -154,6 +156,11 @@ export function CartModal({
                   </Badge>
                 )}
               </SheetTitle>
+              {/* Mockup-style close: soft tinted circle, brand-red X */}
+              <SheetClose className="flex size-9 items-center justify-center rounded-full bg-primaryColor/10 text-primaryColor transition-colors hover:bg-primaryColor/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-primaryColor/40">
+                <X className="size-4" />
+                <span className="sr-only">Close</span>
+              </SheetClose>
             </div>
 
             {itemCount > 0 && (

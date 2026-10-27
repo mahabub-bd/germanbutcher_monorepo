@@ -2,6 +2,7 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { ReportPdfButton } from "@/components/admin/reports/generic-report-pdf";
+import { ReportExcelButton } from "@/components/admin/reports/download-excel-button";
 import { ReportDateFilters, type ReportFilterParams } from "@/components/admin/reports/report-date-filters";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -144,36 +145,61 @@ export function FlashSaleUsageReport({
         <PageHeader
           title="Flash Sale Usage Report"
         />
-        <ReportPdfButton
-          title="Flash Sale Usage Report"
-          subtitle={periodLabel}
-          fileName="flash-sale-usage-report"
-          columns={[
-            { header: "Date", width: 2 },
-            { header: "Customer", width: 1.6 },
-            { header: "Order No", width: 1.3 },
-            { header: "Campaign", width: 1.6 },
-            { header: "Discount", width: 1.1, align: "right" },
-            { header: "Total", width: 1.1, align: "right" },
-          ]}
-          rows={rows.map((row) => [
-            formatDateTime(row.createdAt),
-            row.user?.name || "-",
-            row.order?.orderNo || "-",
-            row.campaignName,
-            formatMoneyPdf(row.discountAmount),
-            formatMoneyPdf(row.orderTotal),
-          ])}
-          summary={
-            stats
-              ? [
-                { label: "Total Uses", value: String(stats.totalUses) },
-                { label: "Discount Given", value: formatMoneyPdf(stats.totalDiscount) },
-                { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
-              ]
-              : undefined
-          }
-        />
+        <div className="flex shrink-0 gap-2">
+          <ReportExcelButton
+            title="Flash Sale Usage Report"
+            subtitle={periodLabel}
+                        headers={["Date", "Customer", "Order No", "Campaign", "Discount", "Total"]}
+            rows={rows.map((row) => [
+              formatDateTime(row.createdAt),
+              row.user?.name || "-",
+              row.order?.orderNo || "-",
+              row.campaignName,
+              formatMoneyPdf(row.discountAmount),
+              formatMoneyPdf(row.orderTotal),
+            ])}
+            summary={
+              stats
+                ? [
+                  { label: "Total Uses", value: String(stats.totalUses) },
+                  { label: "Discount Given", value: formatMoneyPdf(stats.totalDiscount) },
+                  { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
+                ]
+                : undefined
+            }
+            fileName="flash-sale-usage-report"
+          />
+          <ReportPdfButton
+            title="Flash Sale Usage Report"
+            subtitle={periodLabel}
+            fileName="flash-sale-usage-report"
+            columns={[
+              { header: "Date", width: 2 },
+              { header: "Customer", width: 1.6 },
+              { header: "Order No", width: 1.3 },
+              { header: "Campaign", width: 1.6 },
+              { header: "Discount", width: 1.1, align: "right" },
+              { header: "Total", width: 1.1, align: "right" },
+            ]}
+            rows={rows.map((row) => [
+              formatDateTime(row.createdAt),
+              row.user?.name || "-",
+              row.order?.orderNo || "-",
+              row.campaignName,
+              formatMoneyPdf(row.discountAmount),
+              formatMoneyPdf(row.orderTotal),
+            ])}
+            summary={
+              stats
+                ? [
+                  { label: "Total Uses", value: String(stats.totalUses) },
+                  { label: "Discount Given", value: formatMoneyPdf(stats.totalDiscount) },
+                  { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
+                ]
+                : undefined
+            }
+          />
+        </div>
       </div>
 
       <ReportDateFilters

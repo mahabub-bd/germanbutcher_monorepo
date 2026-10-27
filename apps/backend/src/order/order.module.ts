@@ -17,6 +17,7 @@ import { Product } from 'src/product/entities/product.entity';
 import { ShippingMethod } from 'src/shipping-methods/entities/shipping-method.entity';
 import { User } from 'src/user/entities/user.entity';
 import { OrderItem } from './entities/order-item.entity';
+import { OrderNote } from './entities/order-note.entity';
 import { OrderStatusTrack } from './entities/order-status-track.entity';
 import { Order } from './entities/order.entity';
 import { OrderController } from './order.controller';
@@ -41,6 +42,7 @@ import { StockMovementModule } from 'src/stock-movement/stock-movement.module';
       Product,
       OrderPayment,
       OrderStatusTrack,
+      OrderNote,
       DeliveryMan,
     ]),
     EmailModule,

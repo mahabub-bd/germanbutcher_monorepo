@@ -20,6 +20,8 @@ interface DatePickerProps {
   minDate?: Date;
   maxDate?: Date;
   className?: string;
+  /** Hide the leading calendar icon (e.g. in compact filter bars). */
+  showIcon?: boolean;
 }
 
 export function DatePicker({
@@ -29,6 +31,7 @@ export function DatePicker({
   minDate,
   maxDate,
   className,
+  showIcon = true,
 }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(
     value ? new Date(value) : undefined
@@ -61,7 +64,7 @@ export function DatePicker({
             className
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
+          {showIcon && <CalendarIcon className="mr-2 h-4 w-4" />}
           {date ? format(date, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>

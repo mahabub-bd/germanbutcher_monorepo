@@ -351,6 +351,12 @@ export interface BusinessSettings {
   maintenanceMessage: string | null;
   maintenanceStartsAt: string | null;
   maintenanceEndsAt: string | null;
+  /** Delivery coverage lists (seeded from the BD dataset, fully editable). */
+  deliveryCoverage: {
+    divisions: { name: string; enabled: boolean }[];
+    cities: { division: string; name: string; enabled: boolean }[];
+    areas: { city: string; name: string; enabled: boolean }[];
+  } | null;
 }
 
 export interface MenuItem {
@@ -795,6 +801,15 @@ export interface StatusTrack {
   updatedAt: string;
   updatedBy: User;
 }
+export interface OrderNote {
+  id: number;
+  note: string;
+  /** Order status when the note was written */
+  orderStatus: Order["orderStatus"];
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: User | null;
+}
 export interface Order {
   id: number;
   orderNo: string;
@@ -814,6 +829,7 @@ export interface Order {
   items: OrderItem[];
   payments?: OrderPayment[];
   statusTracks: StatusTrack[];
+  notes?: OrderNote[];
   coupon: Coupon | null;
   deliveryMan?: DeliveryMan | null;
   /** BOGO campaign usages attached by the backend on order detail (display-only) */

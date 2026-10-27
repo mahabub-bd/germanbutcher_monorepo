@@ -13,7 +13,6 @@ import {
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchData, formPostData, patchData } from "@/utils/api-utils";
 import type { BusinessSettings } from "@/utils/types";
@@ -35,6 +34,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { LoadingIndicator } from "../loading-indicator";
+import { SwitchCard } from "../helper";
 
 interface BusinessSettingsForm {
   businessName: string;
@@ -50,6 +50,7 @@ interface BusinessSettingsForm {
   maintenanceStartsAt: string; // datetime-local string or ""
   maintenanceEndsAt: string; // datetime-local string or ""
 }
+
 
 const EMPTY_FORM: BusinessSettingsForm = {
   businessName: "",
@@ -458,7 +459,7 @@ export function BusinessSettingsCard() {
 
       {/* Edit modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Business Settings</DialogTitle>
             <DialogDescription>
@@ -570,28 +571,20 @@ export function BusinessSettingsCard() {
             ))}
 
             {/* Maintenance mode */}
-            <div className="rounded-lg border p-3 space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <Label htmlFor="business-maintenance-mode">
-                    Maintenance Mode
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Takes the storefront offline with a &quot;back soon&quot;
-                    page. Admin stays accessible.
-                  </p>
-                </div>
-                <Switch
-                  id="business-maintenance-mode"
-                  checked={draft.maintenanceMode}
-                  onCheckedChange={(checked) =>
-                    setDraft((prev) => ({
-                      ...prev,
-                      maintenanceMode: checked,
-                    }))
-                  }
-                />
-              </div>
+            <div className="space-y-3">
+              <SwitchCard
+                label="Maintenance Mode"
+                description={
+                  'Takes the storefront offline with a "back soon" page. Admin stays accessible.'
+                }
+                checked={draft.maintenanceMode}
+                onCheckedChange={(checked) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    maintenanceMode: checked,
+                  }))
+                }
+              />
 
               {draft.maintenanceMode && (
                 <div className="space-y-3">

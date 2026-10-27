@@ -518,7 +518,7 @@ export class ProductController {
   @ApiOperation({
     summary: 'Get all products (minimal fields)',
     description:
-      'Returns every product as id/name plus its category id/name — no pagination. Optionally filter by category (child categories included) and active status.',
+      'Returns every product as id/name plus its category id/name — no pagination. Optionally filter by category (child categories included), supplier, and active status.',
   })
   @ApiQuery({
     name: 'category',
@@ -564,17 +564,17 @@ export class ProductController {
       },
     },
   })
-  @CacheKey('products_all_minimal')
-  @CacheTTL(60000)
   async getAllProductsMinimal(
     @Query('category') categoryId: number,
     @Query('isActive') isActive: boolean,
     @Query('search') search: string,
+    @Query('supplier') supplierId: number,
   ) {
     const products = await this.productService.findAllMinimal({
       categoryId,
       isActive,
       search,
+      supplierId,
     });
     return this.formatResponse(
       'Products retrieved successfully',

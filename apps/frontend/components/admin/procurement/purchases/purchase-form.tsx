@@ -25,6 +25,12 @@ import { z } from "zod";
 import { SectionCard } from "@/components/admin/products/form/section-card";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Form,
   FormField,
   FormItem,
@@ -41,12 +47,20 @@ import {
 } from "@/components/ui/select";
 
 import { DatePicker } from "@/components/ui/date-picker";
-import { fetchProtectedData, patchData, postData } from "@/utils/api-utils";
+import { fetchData, fetchProtectedData, patchData, postData } from "@/utils/api-utils";
 import { purchaseSchema } from "@/utils/form-validation";
-import type { Product, Purchase, Supplier } from "@/utils/types";
+import type { Purchase, Supplier } from "@/utils/types";
+import { Search } from "lucide-react";
 import { LoadingIndicator } from "../../loading-indicator";
 
 type PurchaseFormValues = z.output<typeof purchaseSchema>;
+
+/** Minimal product shape returned by the non-paginated products/all API. */
+interface ProductMini {
+  id: number;
+  name: string;
+  purchasePrice: number;
+}
 
 interface PurchaseFormProps {
   mode: "create" | "edit";
@@ -57,9 +71,12 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductMini[]>([]);
   const [selectedSupplierId, setSelectedSupplierId] = useState<number>();
   const [isProductsLoading, setIsProductsLoading] = useState(false);
+  // Index of the item row currently picking a product.
+  const [pickerFor, setPickerFor] = useState<number | null>(null);
+  const [pickerSearch, setPickerSearch] = useState("");
 
   const form = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema) as Resolver<PurchaseFormValues>,
@@ -96,8 +113,8 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
 
         if (purchase?.supplier?.id) {
           setIsProductsLoading(true);
-          const supplierProducts = await fetchProtectedData<Product[]>(
-            `products?supplier=${purchase.supplier.id}`
+          const supplierProducts = await fetchData<ProductMini[]>(
+            `products/all?supplier=${purchase.supplier.id}`
           );
           setProducts(supplierProducts);
         }
@@ -116,8 +133,8 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
   const handleSupplierChange = async (supplierId: number) => {
     try {
       setIsProductsLoading(true);
-      const products = await fetchProtectedData<Product[]>(
-        `products?supplier=${supplierId}`
+      const products = await fetchData<ProductMini[]>(
+        `products/all?supplier=${supplierId}`
       );
       setProducts(products);
       setSelectedSupplierId(supplierId);
@@ -221,9 +238,15 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
               <Button
                 type="button"
                 size="sm"
-                onClick={() =>
-                  append({ productId: 1, quantity: 1, unitPrice: 0 })
-                }
+                onClick={() => {
+                  append({
+                    productId: undefined as unknown as number,
+                    quantity: 1,
+                    unitPrice: 0,
+                  });
+                  setPickerFor(fields.length);
+                  setPickerSearch("");
+                }}
                 disabled={!selectedSupplierId || isProductsLoading}
               >
                 {isProductsLoading ? (
@@ -235,11 +258,29 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
               </Button>
             }
           >
-            <div className="space-y-4">
-              {fields.map((field, index) => (
+            {!selectedSupplierId ? (
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
+                <Users className="mb-2 h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm font-medium">
+                  Select a supplier first
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  The product list loads based on the chosen supplier.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {fields.map((field, index) => {
+                  const productId = form.watch(`items.${index}.productId`);
+                  const selectedProduct = products.find(
+                    (p) => p.id === productId
+                  );
+                  const quantity = form.watch(`items.${index}.quantity`) || 0;
+                  const unitPrice = form.watch(`items.${index}.unitPrice`) || 0;
+                  return (
                 <div
                   key={field.id}
-                  className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
+                  className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_0.6fr_0.8fr_0.8fr_auto] sm:items-end"
                 >
                   <FormField
                     control={form.control}
@@ -249,48 +290,31 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
                         <FormLabel>
                           Product <span className="text-destructive">*</span>
                         </FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            const productId = Number(value);
-                            field.onChange(productId);
-                            const selectedProduct = products.find(
-                              (p) => p.id === productId
-                            );
-                            if (selectedProduct) {
-                              form.setValue(
-                                `items.${index}.unitPrice`,
-                                selectedProduct.purchasePrice
-                              );
-                            }
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 w-full justify-start font-normal"
+                          disabled={isProductsLoading}
+                          onClick={() => {
+                            setPickerFor(index);
+                            setPickerSearch("");
                           }}
-                          value={field.value?.toString()}
-                          disabled={!selectedSupplierId || isProductsLoading}
                         >
-                          <SelectTrigger className="w-full">
-                            <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            <SelectValue
-                              placeholder={
-                                isProductsLoading
-                                  ? "Loading products..."
-                                  : "Select product"
-                              }
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {isProductsLoading ? (
-                              <LoadingIndicator message="Loading products..." />
-                            ) : (
-                              products.map((product) => (
-                                <SelectItem
-                                  key={product.id}
-                                  value={product.id.toString()}
-                                >
-                                  {product.name}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
+                          <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="truncate">
+                            {selectedProduct
+                              ? selectedProduct.name
+                              : isProductsLoading
+                                ? "Loading products..."
+                                : "Pick a product"}
+                          </span>
+                        </Button>
+                        {/* Selected product id (hidden bound field) */}
+                        <input
+                          type="hidden"
+                          value={field.value ?? ""}
+                          readOnly
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -327,7 +351,14 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
                     </FormLabel>
                     <div className="flex h-9 w-full items-center gap-2 rounded-md border border-input bg-muted/40 px-3 text-sm">
                       <Banknote className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      {form.watch(`items.${index}.unitPrice`).toFixed(2)}
+                      {unitPrice.toFixed(2)}
+                    </div>
+                  </FormItem>
+
+                  <FormItem>
+                    <FormLabel>Line Total</FormLabel>
+                    <div className="flex h-9 w-full items-center gap-2 rounded-md border border-input bg-muted/30 px-3 text-sm font-semibold">
+                      {(quantity * unitPrice).toFixed(2)}
                     </div>
                   </FormItem>
 
@@ -342,8 +373,10 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              ))}
-            </div>
+                );
+              })}
+              </div>
+            )}
           </SectionCard>
 
           <SectionCard
@@ -478,6 +511,76 @@ export function PurchaseForm({ mode, purchase }: PurchaseFormProps) {
             </Button>
           </div>
         </div>
+
+        {/* Product picker modal — full supplier catalog, searchable */}
+        <Dialog
+          open={pickerFor !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPickerFor(null);
+              setPickerSearch("");
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Select Product</DialogTitle>
+            </DialogHeader>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                autoFocus
+                value={pickerSearch}
+                onChange={(e) => setPickerSearch(e.target.value)}
+                placeholder="Search products..."
+                className="pl-9"
+              />
+            </div>
+            <div className="max-h-[50vh] space-y-1 overflow-y-auto">
+              {isProductsLoading ? (
+                <LoadingIndicator message="Loading products..." />
+              ) : (() => {
+                  const filtered = products.filter((p) =>
+                    p.name.toLowerCase().includes(pickerSearch.toLowerCase())
+                  );
+                  if (filtered.length === 0) {
+                    return (
+                      <p className="py-6 text-center text-sm text-muted-foreground">
+                        No products match “{pickerSearch}”.
+                      </p>
+                    );
+                  }
+                  return filtered.map((product) => (
+                    <button
+                      key={product.id}
+                      type="button"
+                      onClick={() => {
+                        if (pickerFor === null) return;
+                        form.setValue(
+                          `items.${pickerFor}.productId`,
+                          product.id,
+                          { shouldValidate: true }
+                        );
+                        form.setValue(
+                          `items.${pickerFor}.unitPrice`,
+                          product.purchasePrice
+                        );
+                        setPickerFor(null);
+                        setPickerSearch("");
+                      }}
+                      className="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted/60"
+                    >
+                      <span className="truncate font-medium">{product.name}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        ৳ {product.purchasePrice.toFixed(2)}
+                      </span>
+                      <Plus className="size-4 shrink-0 text-muted-foreground" />
+                    </button>
+                  ));
+                })()}
+            </div>
+          </DialogContent>
+        </Dialog>
       </form>
     </Form>
   );

@@ -2,6 +2,7 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { ReportPdfButton } from "@/components/admin/reports/generic-report-pdf";
+import { ReportExcelButton } from "@/components/admin/reports/download-excel-button";
 import { ReportDateFilters, type ReportFilterParams } from "@/components/admin/reports/report-date-filters";
 import { PaginationComponent } from "@/components/common/pagination";
 import {
@@ -141,36 +142,61 @@ export function CouponUsageReport({
         <PageHeader
           title="Coupon Usage Report"
         />
-        <ReportPdfButton
-          title="Coupon Usage Report"
-          subtitle={periodLabel}
-          fileName="coupon-usage-report"
-          columns={[
-            { header: "Date", width: 2 },
-            { header: "Coupon", width: 1.1 },
-            { header: "Customer", width: 1.6 },
-            { header: "Order No", width: 1.3 },
-            { header: "Discount", width: 1, align: "right" },
-            { header: "Order Total", width: 1, align: "right" },
-          ]}
-          rows={rows.map((row) => [
-            formatDateTime(row.createdAt),
-            row.couponCode,
-            row.user?.name || "-",
-            row.order?.orderNo || "-",
-            formatMoney(row.discountAmount),
-            formatMoney(row.orderTotal),
-          ])}
-          summary={
-            stats
-              ? [
-                { label: "Total Uses", value: String(stats.totalUses) },
-                { label: "Total Discount", value: formatMoney(stats.totalDiscountGiven) },
-                { label: "Total Order Value", value: formatMoney(stats.totalOrderValue) },
-              ]
-              : undefined
-          }
-        />
+        <div className="flex shrink-0 gap-2">
+          <ReportExcelButton
+            title="Coupon Usage Report"
+            subtitle={periodLabel}
+                        headers={["Date", "Coupon", "Customer", "Order No", "Discount", "Order Total"]}
+            rows={rows.map((row) => [
+              formatDateTime(row.createdAt),
+              row.couponCode,
+              row.user?.name || "-",
+              row.order?.orderNo || "-",
+              formatMoney(row.discountAmount),
+              formatMoney(row.orderTotal),
+            ])}
+            summary={
+              stats
+                ? [
+                  { label: "Total Uses", value: String(stats.totalUses) },
+                  { label: "Total Discount", value: formatMoney(stats.totalDiscountGiven) },
+                  { label: "Total Order Value", value: formatMoney(stats.totalOrderValue) },
+                ]
+                : undefined
+            }
+            fileName="coupon-usage-report"
+          />
+          <ReportPdfButton
+            title="Coupon Usage Report"
+            subtitle={periodLabel}
+            fileName="coupon-usage-report"
+            columns={[
+              { header: "Date", width: 2 },
+              { header: "Coupon", width: 1.1 },
+              { header: "Customer", width: 1.6 },
+              { header: "Order No", width: 1.3 },
+              { header: "Discount", width: 1, align: "right" },
+              { header: "Order Total", width: 1, align: "right" },
+            ]}
+            rows={rows.map((row) => [
+              formatDateTime(row.createdAt),
+              row.couponCode,
+              row.user?.name || "-",
+              row.order?.orderNo || "-",
+              formatMoney(row.discountAmount),
+              formatMoney(row.orderTotal),
+            ])}
+            summary={
+              stats
+                ? [
+                  { label: "Total Uses", value: String(stats.totalUses) },
+                  { label: "Total Discount", value: formatMoney(stats.totalDiscountGiven) },
+                  { label: "Total Order Value", value: formatMoney(stats.totalOrderValue) },
+                ]
+                : undefined
+            }
+          />
+        </div>
       </div>
 
       <ReportDateFilters

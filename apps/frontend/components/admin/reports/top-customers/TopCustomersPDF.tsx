@@ -16,6 +16,7 @@ interface TopCustomer {
   name: string;
   email: string;
   mobileNumber: string;
+  area: string | null;
   statistics: {
     totalOrders: number;
     totalSpent: number;
@@ -211,6 +212,7 @@ export function TopCustomersPDF({
           <Text style={styles.headerTextRank}>Rank</Text>
           <Text style={styles.tableHeaderText}>Customer Name</Text>
           <Text style={styles.tableHeaderText}>Mobile</Text>
+          <Text style={styles.tableHeaderText}>Area</Text>
           <Text style={styles.headerTextOrders}>Orders</Text>
           <Text style={styles.headerTextRight}>Total Spent</Text>
           <Text style={styles.headerTextRight}>Avg Order</Text>
@@ -225,6 +227,7 @@ export function TopCustomersPDF({
             <Text style={styles.cellRank}>{index + 1}</Text>
             <Text style={styles.cell}>{customer.name}</Text>
             <Text style={styles.cell}>{customer.mobileNumber}</Text>
+            <Text style={styles.cell}>{customer.area || "-"}</Text>
             <Text style={styles.cellOrders}>
               {customer.statistics.totalOrders}
             </Text>

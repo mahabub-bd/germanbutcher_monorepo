@@ -131,6 +131,16 @@ const formatCurrency = (num: number) =>
     maximumFractionDigits: 2,
   })}`;
 
+const formatDate = (date: string) =>
+  new Date(date).toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
 export function OrderReportPDF({ orders, settings }: Props) {
   const totalValue = orders.reduce((a, b) => a + b.totalValue, 0);
   const totalDiscount = orders.reduce((a, b) => a + b.totalDiscount, 0);
@@ -148,6 +158,7 @@ export function OrderReportPDF({ orders, settings }: Props) {
         {/* Table Header */}
         <View style={styles.tableHeader}>
           <Text style={[styles.tableHeaderText, { flex: 0.5 }]}>#</Text>
+          <Text style={styles.tableHeaderText}>Date</Text>
           <Text style={styles.tableHeaderText}>Order No</Text>
           <Text style={styles.tableHeaderText}>Status</Text>
           <Text style={styles.tableHeaderText}>Payment</Text>
@@ -163,6 +174,7 @@ export function OrderReportPDF({ orders, settings }: Props) {
             style={[styles.row, i % 2 === 0 ? styles.altRow : {}]}
           >
             <Text style={[styles.cell, { flex: 0.5 }]}>{i + 1}</Text>
+            <Text style={styles.cell}>{formatDate(o.orderDate)}</Text>
             <Text style={styles.cell}>{o.orderNo}</Text>
             <Text style={styles.cell}>{o.orderStatus}</Text>
             <Text style={styles.cell}>{o.paymentStatus}</Text>

@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsObject, IsOptional, IsString } from 'class-validator';
 
 export class UpdateBusinessSettingsDto {
   @ApiPropertyOptional({
@@ -119,4 +119,21 @@ export class UpdateBusinessSettingsDto {
   @IsOptional()
   @IsString()
   maintenanceEndsAt?: string;
+
+  @ApiPropertyOptional({
+    example: {
+      divisions: [{ name: 'Dhaka', enabled: true }],
+      cities: [{ division: 'Dhaka', name: 'Dhaka', enabled: true }],
+      areas: [{ city: 'Dhaka', name: 'Badda', enabled: true }],
+    },
+    description:
+      'Delivery coverage: plain lists of divisions/cities/areas seeded from the BD dataset and fully editable (add/rename/delete/enable).',
+  })
+  @IsOptional()
+  @IsObject()
+  deliveryCoverage?: {
+    divisions: { name: string; enabled: boolean }[];
+    cities: { division: string; name: string; enabled: boolean }[];
+    areas: { city: string; name: string; enabled: boolean }[];
+  } | null;
 }

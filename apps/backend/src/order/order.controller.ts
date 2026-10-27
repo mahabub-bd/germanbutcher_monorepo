@@ -33,6 +33,7 @@ import { DateRangePreset, OrderStatus, PaymentStatus } from '../common/enums/ind
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
 import { Order } from './entities/order.entity';
+import { OrderNote } from './entities/order-note.entity';
 import { FindAllOrdersOptions, OrderService } from './order.service';
 
 @ApiTags('Orders')
@@ -255,6 +256,38 @@ export class OrderController {
     return {
       message: 'Order Status Updated successfully',
       statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/orders')
+  @Post(':id/notes')
+  @ApiOperation({ summary: 'Add a note to an order' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiBody({
+    schema: {
+      example: { note: 'Customer called — wants delivery after 5pm' },
+    },
+  })
+  async addNote(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('note') note: string,
+    @Req() req: Request,
+  ): Promise<ApiResponseDto<OrderNote>> {
+    if (!note || !note.trim()) {
+      throw new BadRequestException('Note text is required');
+    }
+
+    const data = await this.orderService.addOrderNote(
+      id,
+      note.trim(),
+      req.user as User,
+    );
+
+    return {
+      message: 'Order note added successfully',
+      statusCode: HttpStatus.CREATED,
       data,
     };
   }

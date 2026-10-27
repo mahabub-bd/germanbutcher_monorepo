@@ -734,7 +734,7 @@ export function OrderList({
                             </>
                           ) : (
                             <>
-                              <Pencil className="mr-2 h-4 w-4" /> Edit Order
+                              <Pencil className="mr-2 h-4 w-4" /> Update Order
                             </>
                           )}
                         </DropdownMenuItem>

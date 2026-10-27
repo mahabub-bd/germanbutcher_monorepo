@@ -4,6 +4,7 @@ import { CustomerInfo } from "@/components/admin/orders/customer-info";
 import { DeliveryManSection } from "@/components/admin/orders/delivery-man-section";
 import { OrderActions } from "@/components/admin/orders/order-actions";
 import { OrderItems } from "@/components/admin/orders/order-items";
+import { OrderNotes } from "@/components/admin/orders/order-notes";
 import { OrderSummary } from "@/components/admin/orders/order-summary";
 import { OrderTimeline } from "@/components/admin/orders/order-timeline";
 import { PaymentHistory } from "@/components/admin/orders/payment-history";
@@ -84,6 +85,8 @@ export default function OrderView({
           <OrderItems items={currentOrder.items} />
 
           <OrderTimeline order={currentOrder} />
+
+          <OrderNotes order={currentOrder} compact />
 
           <PaymentHistory payments={currentOrder.payments ?? []} />
         </div>

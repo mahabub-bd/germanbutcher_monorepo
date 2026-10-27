@@ -3,7 +3,8 @@
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
+import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
+import { ReportExcelButton } from "@/components/admin/reports/download-excel-button";
 import {
   Table,
   TableBody,
@@ -21,12 +22,6 @@ import {
   TrendingUp,
   Warehouse,
 } from "lucide-react";
-import dynamic from "next/dynamic";
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
 
 interface Summary {
   totalProducts: number;
@@ -75,30 +70,35 @@ export default function InventoryList({
           title="Inventory Report"
         />
         {products.length > 0 && (
-          <PDFDownloadLink
-            document={
-              <ReportTablePDF
-                title="Inventory Report"
-                headers={[
-                  "Product",
-                  "Stock",
-                  "Purchase Price",
-                  "Selling Price",
-                ]}
-                flexes={[2, 0.8, 1.2, 1.2]}
-                alignRight={[1, 2, 3]}
-                rows={pdfRows}
-                summary={pdfSummary}
-                settings={settings}
-              />
-            }
-            fileName={`inventory-report-${new Date().toISOString().split("T")[0]
-              }.pdf`}
-          >
-            {({ loading, error }) => (
-              <PdfDownloadButton loading={loading} error={error} />
-            )}
-          </PDFDownloadLink>
+          <div className="flex shrink-0 gap-2">
+            <ReportExcelButton
+              title="Inventory Report"
+              headers={["Product", "Stock", "Purchase Price", "Selling Price"]}
+              rows={pdfRows}
+              summary={pdfSummary}
+              fileName="inventory-report"
+            />
+            <LazyPdfDownloadLink
+              document={
+                <ReportTablePDF
+                  title="Inventory Report"
+                  headers={[
+                    "Product",
+                    "Stock",
+                    "Purchase Price",
+                    "Selling Price",
+                  ]}
+                  flexes={[2, 0.8, 1.2, 1.2]}
+                  alignRight={[1, 2, 3]}
+                  rows={pdfRows}
+                  summary={pdfSummary}
+                  settings={settings}
+                />
+              }
+              fileName={`inventory-report-${new Date().toISOString().split("T")[0]
+                }.pdf`}
+             />
+          </div>
         )}
       </div>
 

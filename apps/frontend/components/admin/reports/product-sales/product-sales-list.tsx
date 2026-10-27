@@ -2,9 +2,10 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
+import { ReportExcelButton, dateRangeSubtitle } from "@/components/admin/reports/download-excel-button";
+import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
 import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import {
   Table,
   TableBody,
@@ -16,13 +17,7 @@ import {
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { Package, ShoppingCart, TrendingUp } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
 
 interface Summary {
   totalRevenue: number;
@@ -96,32 +91,45 @@ export default function ProductSalesList({
           title="Product Sales Report"
         />
         {products.length > 0 && (
-          <PDFDownloadLink
-            document={
-              <ReportTablePDF
-                title="Product Sales Report"
-                headers={[
-                  "#",
-                  "Product",
-                  "Qty Sold",
-                  "Orders",
-                  "Revenue",
-                  "Current Stock",
-                ]}
-                flexes={[0.5, 2, 0.9, 0.9, 1.2, 1]}
-                alignRight={[0, 2, 3, 4, 5]}
-                rows={pdfRows}
-                summary={pdfSummary}
-                settings={settings}
-              />
-            }
-            fileName={`product-sales-report-${new Date().toISOString().split("T")[0]
-              }.pdf`}
-          >
-            {({ loading, error }) => (
-              <PdfDownloadButton loading={loading} error={error} />
-            )}
-          </PDFDownloadLink>
+          <div className="flex shrink-0 gap-2">
+            <ReportExcelButton
+              title="Product Sales Report"
+              subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
+                            headers={[
+                "#",
+                "Product",
+                "Qty Sold",
+                "Orders",
+                "Revenue",
+                "Current Stock",
+              ]}
+              rows={pdfRows}
+              summary={pdfSummary}
+              fileName="product-sales-report"
+            />
+            <LazyPdfDownloadLink
+              document={
+                <ReportTablePDF
+                  title="Product Sales Report"
+                  headers={[
+                    "#",
+                    "Product",
+                    "Qty Sold",
+                    "Orders",
+                    "Revenue",
+                    "Current Stock",
+                  ]}
+                  flexes={[0.5, 2, 0.9, 0.9, 1.2, 1]}
+                  alignRight={[0, 2, 3, 4, 5]}
+                  rows={pdfRows}
+                  summary={pdfSummary}
+                  settings={settings}
+                />
+              }
+              fileName={`product-sales-report-${new Date().toISOString().split("T")[0]
+                }.pdf`}
+             />
+          </div>
         )}
       </div>
 

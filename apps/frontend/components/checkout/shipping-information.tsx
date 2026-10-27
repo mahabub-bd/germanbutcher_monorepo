@@ -11,19 +11,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Address, User as UserType } from "@/utils/types";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
-  DISTRICT_AREAS,
-  getDistrictsByDivision,
-} from "@/data/districts-areas";
+  getEnabledAreas,
+  getEnabledCities,
+  getEnabledDivisions,
+} from "@/lib/delivery-coverage";
+import type { Address, User as UserType } from "@/utils/types";
 import { MapPin } from "lucide-react";
-
-const areasByDistrict = new Map(
-  DISTRICT_AREAS.map(({ district, areas }) => [
-    district,
-    [...new Set(areas)].sort((a, b) => a.localeCompare(b)),
-  ]),
-);
+import { useEffect } from "react";
 
 interface ShippingInformationProps {
   formData: {
@@ -49,6 +45,39 @@ export function ShippingInformation({
   showAddressForm,
   errors,
 }: ShippingInformationProps) {
+  const settings = useBusinessSettings();
+  const coverage = settings?.deliveryCoverage ?? null;
+  // Only coverage-enabled options are selectable; a field with no enabled
+  // options left is hidden entirely.
+  const enabledDivisions = getEnabledDivisions(coverage);
+  const enabledCities = getEnabledCities(coverage, formData.division);
+  const enabledAreas = getEnabledAreas(coverage, formData.city);
+  const showDivisionField = enabledDivisions.length > 0;
+  const showCityField = enabledCities.length > 0;
+  const showAreaField = enabledAreas.length > 0;
+
+  // Pre-select when only one option is servable (e.g. Dhaka-only coverage).
+  useEffect(() => {
+    if (!showAddressForm) return;
+    if (showDivisionField && !formData.division && enabledDivisions.length === 1) {
+      onChange("division", enabledDivisions[0]);
+    }
+  }, [showAddressForm, showDivisionField, enabledDivisions, formData.division, onChange]);
+
+  useEffect(() => {
+    if (!showAddressForm) return;
+    if (showCityField && !formData.city && enabledCities.length === 1) {
+      onChange("city", enabledCities[0]);
+    }
+  }, [showAddressForm, showCityField, enabledCities, formData.city, onChange]);
+
+  useEffect(() => {
+    if (!showAddressForm) return;
+    if (showAreaField && !formData.area && enabledAreas.length === 1) {
+      onChange("area", enabledAreas[0]);
+    }
+  }, [showAddressForm, showAreaField, enabledAreas, formData.area, onChange]);
+
   const handleAddressSelect = (address: Address) => {
     onAddressSelect(address.id, address);
   };
@@ -78,82 +107,93 @@ export function ShippingInformation({
 
         {showAddressForm && (
           <div className="grid md:grid-cols-2 grid-cols-1 gap-4 text-md">
-            <div>
-              <Label htmlFor="division">Division *</Label>
-              <Select
-                value={formData.division}
-                onValueChange={(value) => {
-                  if (value !== formData.division) {
-                    onChange("city", "");
-                    onChange("area", "");
-                  }
-                  onChange("division", value);
-                }}
-              >
-                <SelectTrigger
-                  id="division"
-                  aria-invalid={!!errors?.division}
-                  className="mt-1 w-full"
+            {showDivisionField && (
+              <div>
+                <Label htmlFor="division">Division *</Label>
+                <Select
+                  value={formData.division}
+                  onValueChange={(value) => {
+                    if (value !== formData.division) {
+                      onChange("city", "");
+                      onChange("area", "");
+                    }
+                    onChange("division", value);
+                  }}
                 >
-                  <SelectValue placeholder="Select Division" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Dhaka">Dhaka</SelectItem>
-                  <SelectItem value="Chittagong">Chittagong</SelectItem>
-                  <SelectItem value="Rajshahi">Rajshahi</SelectItem>
-                  <SelectItem value="Khulna">Khulna</SelectItem>
-                  <SelectItem value="Barisal">Barisal</SelectItem>
-                  <SelectItem value="Sylhet">Sylhet</SelectItem>
-                  <SelectItem value="Rangpur">Rangpur</SelectItem>
-                  <SelectItem value="Mymensingh">Mymensingh</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors?.division && (
-                <p className="mt-1 text-xs text-red-500">{errors.division}</p>
-              )}
-            </div>
+                  <SelectTrigger
+                    id="division"
+                    aria-invalid={!!errors?.division}
+                    className="mt-1 w-full"
+                  >
+                    <SelectValue placeholder="Select Division" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {enabledDivisions.map((division) => (
+                      <SelectItem key={division} value={division}>
+                        {division}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors?.division && (
+                  <p className="mt-1 text-xs text-red-500">{errors.division}</p>
+                )}
+              </div>
+            )}
 
-            <div>
-              <Label htmlFor="city">City *</Label>
-              <SearchableSelect
-                value={formData.city}
-                onValueChange={(value) => {
-                  if (value !== formData.city) {
-                    onChange("area", "");
+            {showCityField && (
+              <div>
+                <Label htmlFor="city">City *</Label>
+                <SearchableSelect
+                  value={formData.city}
+                  onValueChange={(value) => {
+                    if (value !== formData.city) {
+                      onChange("area", "");
+                    }
+                    onChange("city", value);
+                  }}
+                  options={enabledCities}
+                  placeholder={
+                    showDivisionField
+                      ? formData.division
+                        ? "Select City"
+                        : "Select Division first"
+                      : "Select City"
                   }
-                  onChange("city", value);
-                }}
-                options={getDistrictsByDivision(formData.division)}
-                placeholder={
-                  formData.division ? "Select City" : "Select Division first"
-                }
-                searchPlaceholder="Search city..."
-                disabled={!formData.division}
-                className="mt-1"
-              />
-              {errors?.city && (
-                <p className="mt-1 text-xs text-red-500">{errors.city}</p>
-              )}
-            </div>
+                  searchPlaceholder="Search city..."
+                  disabled={showDivisionField && !formData.division}
+                  className="mt-1"
+                />
+                {errors?.city && (
+                  <p className="mt-1 text-xs text-red-500">{errors.city}</p>
+                )}
+              </div>
+            )}
 
-            <div>
-              <Label htmlFor="area">Area *</Label>
-              <SearchableSelect
-                value={formData.area}
-                onValueChange={(value) => onChange("area", value)}
-                options={areasByDistrict.get(formData.city) ?? []}
-                placeholder={
-                  formData.city ? "Select Area" : "Select City first"
-                }
-                searchPlaceholder="Search area..."
-                emptyMessage="No area found."
-                disabled={!formData.city}
-                className="mt-1"
-              />
-              {errors?.area && (
-                <p className="mt-1 text-xs text-red-500">{errors.area}</p>
-              )}
-            </div>
+            {showAreaField && (
+              <div>
+                <Label htmlFor="area">Area *</Label>
+                <SearchableSelect
+                  value={formData.area}
+                  onValueChange={(value) => onChange("area", value)}
+                  options={enabledAreas}
+                  placeholder={
+                    showCityField
+                      ? formData.city
+                        ? "Select Area"
+                        : "Select City first"
+                      : "Select Area"
+                  }
+                  searchPlaceholder="Search area..."
+                  emptyMessage="No area found."
+                  disabled={showCityField && !formData.city}
+                  className="mt-1"
+                />
+                {errors?.area && (
+                  <p className="mt-1 text-xs text-red-500">{errors.area}</p>
+                )}
+              </div>
+            )}
 
             <div>
               <Label htmlFor="address">Address *</Label>

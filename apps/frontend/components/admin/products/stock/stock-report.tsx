@@ -47,7 +47,6 @@ import {
 import type { Brand, Category, Product, Supplier } from "@/utils/types";
 import {
   ArrowLeftRight,
-  BadgeDollarSign,
   Boxes,
   Filter,
   Loader2,
@@ -55,10 +54,7 @@ import {
   PackageMinus,
   PackagePlus,
   Search,
-  ShoppingCart,
   SlidersHorizontal,
-  TrendingDown,
-  TrendingUp,
   XCircle,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -516,20 +512,16 @@ export function StockReport({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Product</TableHead>
-            <TableHead className="hidden md:table-cell">Category</TableHead>
-            <TableHead className="hidden md:table-cell">Brand</TableHead>
-            <TableHead className="hidden lg:table-cell">Supplier</TableHead>
+            <TableHead className="w-full max-w-0">Product</TableHead>
+            <TableHead className="hidden xl:table-cell">Category</TableHead>
+            <TableHead className="hidden xl:table-cell">Brand</TableHead>
+            <TableHead className="hidden 2xl:table-cell">Supplier</TableHead>
             <TableHead className="hidden md:table-cell text-center">
               Stock
             </TableHead>
-            <TableHead className="text-right">Purchase Price</TableHead>
-            <TableHead className="text-right">Sale Price</TableHead>
+            <TableHead className="text-right">Price</TableHead>
             <TableHead className="hidden lg:table-cell text-right">
-              Total Value (Purchase)
-            </TableHead>
-            <TableHead className="hidden lg:table-cell text-right">
-              Total Value (Sale)
+              Stock Value
             </TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -537,10 +529,10 @@ export function StockReport({
         <TableBody>
           {products.map((product) => (
             <TableRow key={product.id} className="hover:bg-muted/50">
-              <TableCell>
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex aspect-3/2 h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
-                    <ProductImage product={product} width={96} height={64} />
+              <TableCell className="w-full max-w-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="flex aspect-3/2 h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                    <ProductImage product={product} width={64} height={48} />
                   </span>
                   <div className="min-w-0">
                     <p className="font-medium leading-tight">
@@ -552,18 +544,18 @@ export function StockReport({
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell className="hidden whitespace-nowrap md:table-cell">
                 {product.category?.name || "—"}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell className="hidden whitespace-nowrap xl:table-cell">
                 {product.brand?.name || "—"}
               </TableCell>
-              <TableCell className="hidden lg:table-cell">
+              <TableCell className="hidden whitespace-nowrap 2xl:table-cell">
                 {product.supplier?.name || "—"}
               </TableCell>
               <TableCell className="hidden md:table-cell text-center">
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${product.stock === 0
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${product.stock === 0
                     ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                     : "bg-muted"
                     }`}
@@ -572,35 +564,28 @@ export function StockReport({
                   {product.stock}
                 </span>
               </TableCell>
-              <TableCell className="text-right text-muted-foreground">
-                <span className="inline-flex items-center justify-end gap-1.5">
-                  <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground/70" />
-                  {formatCurrencyEnglish(product.purchasePrice)}
-                </span>
-              </TableCell>
-              <TableCell className="text-right font-medium">
-                <span className="inline-flex items-center justify-end gap-1.5">
-                  <BadgeDollarSign className="h-3.5 w-3.5 text-green-600/70 dark:text-green-400/70" />
+              <TableCell className="text-right">
+                <span className="font-medium">
                   {formatCurrencyEnglish(product.sellingPrice)}
                 </span>
+                <p className="text-xs text-muted-foreground">
+                  Cost: {formatCurrencyEnglish(product.purchasePrice)}
+                </p>
               </TableCell>
-              <TableCell className="hidden lg:table-cell text-right text-muted-foreground">
-                <span className="inline-flex items-center justify-end gap-1.5">
-                  <TrendingDown className="h-3.5 w-3.5 text-muted-foreground/70" />
-                  {formatCurrencyEnglish(
-                    product.totalValueByPurchasePrice ||
-                    product.stock * product.purchasePrice
-                  )}
-                </span>
-              </TableCell>
-              <TableCell className="hidden lg:table-cell text-right font-medium">
-                <span className="inline-flex items-center justify-end gap-1.5">
-                  <TrendingUp className="h-3.5 w-3.5 text-green-600/70 dark:text-green-400/70" />
+              <TableCell className="hidden lg:table-cell text-right">
+                <span className="font-medium">
                   {formatCurrencyEnglish(
                     product.totalValueBySalePrice ||
                     product.stock * product.sellingPrice
                   )}
                 </span>
+                <p className="text-xs text-muted-foreground">
+                  Cost:{" "}
+                  {formatCurrencyEnglish(
+                    product.totalValueByPurchasePrice ||
+                    product.stock * product.purchasePrice
+                  )}
+                </p>
               </TableCell>
               <TableCell className="text-right">
                 <div className="inline-flex items-center justify-end gap-1.5">
@@ -611,7 +596,7 @@ export function StockReport({
                     onClick={() => openAdjustDialog(product)}
                   >
                     <SlidersHorizontal className="h-3.5 w-3.5" />
-                    <span className="hidden xl:inline">Adjust</span>
+                    <span className="hidden 2xl:inline">Adjust</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -620,7 +605,7 @@ export function StockReport({
                     onClick={() => setMovementsProduct(product)}
                   >
                     <ArrowLeftRight className="h-3.5 w-3.5" />
-                    <span className="hidden xl:inline">Stock Movements</span>
+                    <span className="hidden 2xl:inline">Stock Movements</span>
                   </Button>
                 </div>
               </TableCell>
