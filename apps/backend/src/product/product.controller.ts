@@ -36,6 +36,7 @@ import { ApiResponseDto } from 'src/common/types';
 import { User } from 'src/user/entities/user.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
+import { StockAdjustDto } from './dto/stock-adjust.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import {
   ProductHistoryAction,
@@ -758,13 +759,25 @@ export class ProductController {
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({
+    name: 'action',
+    required: false,
+    enum: ProductHistoryAction,
+    description: 'Filter history by event type',
+  })
   async getProductHistory(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Query('action') action?: ProductHistoryAction,
   ) {
+    // Ignore unknown values so a bad query param doesn't 500.
+    const isValidAction = action
+      ? Object.values(ProductHistoryAction).includes(action)
+      : true;
     const result = await this.productHistoryService.getHistoryPaginated(
       +page,
       +limit,
+      isValidAction ? action : undefined,
     );
     return {
       message: 'Product history retrieved successfully',
@@ -819,6 +832,32 @@ export class ProductController {
       'Stock movements retrieved successfully',
       HttpStatus.OK,
       data,
+    );
+  }
+
+  @Post(':id/stock-adjust')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
+  @ApiOperation({
+    summary: 'Manually adjust product stock',
+    description:
+      'Adds or removes stock outside the purchase/order flow. Positive quantity adds, negative removes. Recorded as an adjustment stock movement.',
+  })
+  @ApiBody({ type: StockAdjustDto })
+  async adjustStock(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: StockAdjustDto,
+    @Req() req: Request,
+  ) {
+    const product = await this.productService.adjustStock(
+      id,
+      dto,
+      req.user as User,
+    );
+    return this.formatResponse(
+      'Stock adjusted successfully',
+      HttpStatus.OK,
+      product,
     );
   }
 

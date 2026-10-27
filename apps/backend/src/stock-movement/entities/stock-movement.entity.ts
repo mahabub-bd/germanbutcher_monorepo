@@ -15,6 +15,8 @@ export enum StockMovementType {
   ORDER_SALE = 'order_sale',
   /** Stock restored because an order was cancelled. */
   ORDER_CANCEL = 'order_cancel',
+  /** Manual stock correction (not a purchase or order event). */
+  ADJUSTMENT = 'adjustment',
 }
 
 /** Per-product stock movement ledger: one row per stock change, with

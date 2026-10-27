@@ -51,19 +51,28 @@ export class ProductHistoryService {
     }
   }
 
-  async getHistoryPaginated(page: number = 1, limit: number = 15): Promise<{
+  async getHistoryPaginated(
+    page: number = 1,
+    limit: number = 15,
+    action?: ProductHistoryAction,
+  ): Promise<{
     data: ProductHistory[];
     total: number;
     page: number;
     limit: number;
     totalPages: number;
   }> {
-    const [data, total] = await this.historyRepository
+    const queryBuilder = this.historyRepository
       .createQueryBuilder('history')
       .orderBy('history.createdAt', 'DESC')
       .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
+      .take(limit);
+
+    if (action) {
+      queryBuilder.andWhere('history.action = :action', { action });
+    }
+
+    const [data, total] = await queryBuilder.getManyAndCount();
 
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }

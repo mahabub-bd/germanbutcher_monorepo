@@ -13,6 +13,7 @@ import {
   PackagePlus,
   RefreshCw,
   ShoppingCart,
+  SlidersHorizontal,
   Undo2,
   User,
 } from "lucide-react";
@@ -24,7 +25,7 @@ interface StockMovementEntry {
   id: number;
   productId: number | null;
   productName: string;
-  type: "purchase" | "purchase_reversal" | "order_sale" | "order_cancel";
+  type: "purchase" | "purchase_reversal" | "order_sale" | "order_cancel" | "adjustment";
   quantity: number;
   stockBefore: number;
   stockAfter: number;
@@ -64,6 +65,12 @@ const KIND_META: Record<
     badgeClass:
       "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
     icon: <Undo2 className="h-3 w-3" />,
+  },
+  adjustment: {
+    label: "Adjustment",
+    badgeClass:
+      "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-400",
+    icon: <SlidersHorizontal className="h-3 w-3" />,
   },
 };
 

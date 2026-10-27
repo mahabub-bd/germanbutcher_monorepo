@@ -1,5 +1,6 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -26,12 +27,15 @@ import { User } from 'src/user/entities/user.entity';
 import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
 import { Supplier } from '../supplier/entities/supplier.entity';
 import { CreateProductDto } from './dto/create-product.dto';
+import { StockAdjustDto } from './dto/stock-adjust.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
 import {
   ProductHistoryAction,
 } from 'src/product-history/entities/product-history.entity';
 import { ProductHistoryService } from 'src/product-history/product-history.service';
+import { StockMovementType } from 'src/stock-movement/entities/stock-movement.entity';
+import { StockMovementService } from 'src/stock-movement/stock-movement.service';
 
 interface FindAllOptions {
   page?: number;
@@ -72,6 +76,7 @@ export class ProductService {
     private flashSaleCampaignsService: FlashSaleCampaignsService,
     private bogoCampaignsService: BogoCampaignsService,
     private productHistoryService: ProductHistoryService,
+    private stockMovementService: StockMovementService,
     @Inject(CACHE_MANAGER)
     private cacheManager: Cache,
   ) {}
@@ -1197,6 +1202,48 @@ export class ProductService {
     if (product.attachment) {
       await this.attachmentService.deleteFile(product.attachment.id);
     }
+  }
+
+  /** Manual stock correction: adds or removes units outside the normal
+   * purchase/order flow. Always recorded as an ADJUSTMENT movement. */
+  async adjustStock(
+    id: number,
+    dto: StockAdjustDto,
+    user: User,
+  ): Promise<Product> {
+    if (dto.quantity === 0) {
+      throw new BadRequestException('Adjustment quantity cannot be zero');
+    }
+
+    const product = await this.productRepository.findOneBy({ id });
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    const stockBefore = product.stock;
+    const stockAfter = stockBefore + dto.quantity;
+    if (stockAfter < 0) {
+      throw new BadRequestException(
+        `Adjustment would make stock negative (current: ${stockBefore})`,
+      );
+    }
+
+    product.stock = stockAfter;
+    await this.productRepository.save(product);
+    this.invalidateListCache();
+
+    await this.stockMovementService.record({
+      product,
+      type: StockMovementType.ADJUSTMENT,
+      quantity: dto.quantity,
+      stockBefore,
+      stockAfter,
+      referenceType: 'adjustment',
+      note: dto.note,
+      user: user ? { userId: user.userId, name: user.name } : null,
+    });
+
+    return product;
   }
 
   private static readonly HISTORY_FIELDS = [
