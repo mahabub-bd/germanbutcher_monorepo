@@ -24,6 +24,7 @@ import { User } from 'src/user/entities/user.entity';
 import { Product } from './entities/product.entity';
 import { ProductController } from './product.controller';
 import { ProductHistoryModule } from 'src/product-history/product-history.module';
+import { StockMovementModule } from 'src/stock-movement/stock-movement.module';
 import { ProductService } from './product.service';
 
 @Module({
@@ -43,6 +44,7 @@ import { ProductService } from './product.service';
     FlashSaleCampaignsModule,
     BogoCampaignsModule,
     ProductHistoryModule,
+    StockMovementModule,
   ],
   controllers: [ProductController, CategoryController, BrandController],
   providers: [

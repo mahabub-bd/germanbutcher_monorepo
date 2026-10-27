@@ -43,6 +43,7 @@ import {
   CheckCircle,
   Eye,
   Filter,
+  ArrowLeftRight,
   History,
   MoreHorizontal,
   Package,
@@ -681,6 +682,11 @@ export function ProductList({
             }
             : {})}
         >
+          <Button asChild variant="outline">
+            <Link href="/admin/products/stock-movements">
+              <ArrowLeftRight className="mr-2 h-4 w-4" /> Stock Movements
+            </Link>
+          </Button>
           <Button asChild variant="outline">
             <Link href="/admin/products/history">
               <History className="mr-2 h-4 w-4" /> History

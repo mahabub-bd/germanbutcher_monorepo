@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PaginatedResponseDto } from 'src/common/dto/paginated-response.dto';
+import { StockMovementType } from 'src/stock-movement/entities/stock-movement.entity';
+import { StockMovementService } from 'src/stock-movement/stock-movement.service';
 import { Between, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { Product } from '../product/entities/product.entity';
 import { Supplier } from '../supplier/entities/supplier.entity';
@@ -37,6 +39,7 @@ export class PurchasesService {
     private readonly productRepository: Repository<Product>,
     @InjectRepository(Supplier)
     private readonly supplierRepository: Repository<Supplier>,
+    private readonly stockMovementService: StockMovementService,
   ) {}
 
   async create(
@@ -221,7 +224,7 @@ export class PurchasesService {
 
     // Handle items update
     if (updatePurchaseDto.items) {
-      await this.handleItemsUpdate(purchase, updatePurchaseDto.items);
+      await this.handleItemsUpdate(purchase, updatePurchaseDto.items, user);
     }
 
     // Handle total value update
@@ -260,6 +263,7 @@ export class PurchasesService {
         purchase,
         originalStatus,
         updatePurchaseDto.status,
+        user,
       );
     }
 
@@ -273,7 +277,7 @@ export class PurchasesService {
 
     // Revert stock if purchase was delivered
     if (purchase.status === 'delivered') {
-      await this.adjustStock(purchase.items, -1);
+      await this.adjustStock(purchase.items, -1, purchase);
     }
 
     await this.purchaseRepository.remove(purchase);
@@ -288,7 +292,11 @@ export class PurchasesService {
     return 'due';
   }
 
-  private async handleItemsUpdate(purchase: Purchase, newItems: any[]) {
+  private async handleItemsUpdate(
+    purchase: Purchase,
+    newItems: any[],
+    user?: User,
+  ) {
     // Remove existing items
     await this.purchaseItemRepository.delete({ purchase: { id: purchase.id } });
 
@@ -318,7 +326,7 @@ export class PurchasesService {
 
     // Adjust stock if purchase was delivered
     if (purchase.status === 'delivered') {
-      await this.adjustStock(purchase.items, 1);
+      await this.adjustStock(purchase.items, 1, purchase, user);
     }
   }
 
@@ -326,24 +334,48 @@ export class PurchasesService {
     purchase: Purchase,
     originalStatus: string,
     newStatus: string,
+    user?: User,
   ) {
     purchase.status = newStatus;
 
     if (newStatus === 'delivered' && originalStatus !== 'delivered') {
-      await this.adjustStock(purchase.items, 1);
+      await this.adjustStock(purchase.items, 1, purchase, user);
     } else if (originalStatus === 'delivered' && newStatus !== 'delivered') {
-      await this.adjustStock(purchase.items, -1);
+      await this.adjustStock(purchase.items, -1, purchase, user);
     }
   }
 
-  private async adjustStock(items: PurchaseItem[], multiplier: number) {
+  private async adjustStock(
+    items: PurchaseItem[],
+    multiplier: number,
+    purchase?: Purchase,
+    user?: User,
+  ) {
     for (const item of items) {
       const product = await this.productRepository.findOneBy({
         id: item.product.id,
       });
       if (product) {
+        const stockBefore = product.stock;
         product.stock += item.quantity * multiplier;
         await this.productRepository.save(product);
+
+        await this.stockMovementService.record({
+          product,
+          type:
+            multiplier >= 0
+              ? StockMovementType.PURCHASE
+              : StockMovementType.PURCHASE_REVERSAL,
+          quantity: item.quantity * multiplier,
+          stockBefore,
+          stockAfter: product.stock,
+          referenceType: 'purchase',
+          referenceId: purchase?.id,
+          note: purchase?.purchaseNumber
+            ? `Purchase ${purchase.purchaseNumber}`
+            : undefined,
+          user: user ? { userId: user.userId, name: user.name } : null,
+        });
       }
     }
   }

@@ -36,11 +36,14 @@ import { ApiResponseDto } from 'src/common/types';
 import { User } from 'src/user/entities/user.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
+import { StockAdjustDto } from './dto/stock-adjust.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import {
   ProductHistoryAction,
 } from 'src/product-history/entities/product-history.entity';
 import { ProductHistoryService } from 'src/product-history/product-history.service';
+import { StockMovementType } from 'src/stock-movement/entities/stock-movement.entity';
+import { StockMovementService } from 'src/stock-movement/stock-movement.service';
 import { ProductService } from './product.service';
 
 @ApiTags('Products')
@@ -51,6 +54,7 @@ export class ProductController {
   constructor(
     private readonly productService: ProductService,
     private readonly productHistoryService: ProductHistoryService,
+    private readonly stockMovementService: StockMovementService,
   ) { }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -755,19 +759,106 @@ export class ProductController {
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({
+    name: 'action',
+    required: false,
+    enum: ProductHistoryAction,
+    description: 'Filter history by event type',
+  })
   async getProductHistory(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Query('action') action?: ProductHistoryAction,
   ) {
+    // Ignore unknown values so a bad query param doesn't 500.
+    const isValidAction = action
+      ? Object.values(ProductHistoryAction).includes(action)
+      : true;
     const result = await this.productHistoryService.getHistoryPaginated(
       +page,
       +limit,
+      isValidAction ? action : undefined,
     );
     return {
       message: 'Product history retrieved successfully',
       statusCode: HttpStatus.OK,
       ...result,
     };
+  }
+
+  @Get('stock-movements')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
+  @ApiOperation({
+    summary: 'Get stock movements',
+    description:
+      'Stock movement ledger across all products: purchase additions, purchase reversals and cancelled-order restocks, newest first.',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 15 })
+  @ApiQuery({ name: 'productId', required: false, type: Number })
+  @ApiQuery({ name: 'type', required: false, enum: StockMovementType })
+  async getStockMovements(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 15,
+    @Query('productId') productId?: number,
+    @Query('type') type?: StockMovementType,
+  ) {
+    const result = await this.stockMovementService.getMovementsPaginated(
+      +page,
+      +limit,
+      productId ? +productId : undefined,
+      type,
+    );
+    return {
+      message: 'Stock movements retrieved successfully',
+      statusCode: HttpStatus.OK,
+      ...result,
+    };
+  }
+
+  @Get(':id/stock-movements')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
+  @ApiOperation({
+    summary: 'Get stock movements of a single product',
+    description:
+      'Stock movement ledger for one product: every addition, reversal and cancelled-order restock, newest first.',
+  })
+  @ApiOkResponse({ type: [ApiResponseDto] })
+  async getProductStockMovements(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.stockMovementService.getProductMovements(id);
+    return this.formatResponse(
+      'Stock movements retrieved successfully',
+      HttpStatus.OK,
+      data,
+    );
+  }
+
+  @Post(':id/stock-adjust')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
+  @ApiOperation({
+    summary: 'Manually adjust product stock',
+    description:
+      'Adds or removes stock outside the purchase/order flow. Positive quantity adds, negative removes. Recorded as an adjustment stock movement.',
+  })
+  @ApiBody({ type: StockAdjustDto })
+  async adjustStock(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: StockAdjustDto,
+    @Req() req: Request,
+  ) {
+    const product = await this.productService.adjustStock(
+      id,
+      dto,
+      req.user as User,
+    );
+    return this.formatResponse(
+      'Stock adjusted successfully',
+      HttpStatus.OK,
+      product,
+    );
   }
 
   @Get(':id/history')

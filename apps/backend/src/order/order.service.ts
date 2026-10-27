@@ -19,6 +19,9 @@ import { FreeDeliveryCampaignsService } from 'src/free-delivery-campaigns/free-d
 import { FreeDeliveryUsageLogService } from 'src/free-delivery-usage-log/free-delivery-usage-log.service';
 
 import { SmsService } from 'src/auth/sms.service';
+import { StockMovementType } from 'src/stock-movement/entities/stock-movement.entity';
+import { StockMovementService } from 'src/stock-movement/stock-movement.service';
+
 import { generateOrderConfirmationSMS } from 'src/auth/templates/order-confirmation-sms.template';
 import { DiscountType } from 'src/common/enums';
 import { CouponUsageLogService } from 'src/coupon-usage-log/coupon-usage-log.service';
@@ -91,6 +94,7 @@ export class OrderService {
     private readonly flashSaleUsageLogService: FlashSaleUsageLogService,
     private readonly bogoCampaignsService: BogoCampaignsService,
     private readonly bogoUsageLogService: BogoUsageLogService,
+    private readonly stockMovementService: StockMovementService,
   ) {}
 
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -254,9 +258,22 @@ export class OrderService {
       totalDiscount += itemTotalDiscount;
 
       // Update product stock and sale count
+      const stockBefore = product.stock;
       product.stock -= item.quantity;
       product.saleCount += item.quantity;
       await this.productRepository.save(product);
+
+      // The order row is saved later, so reference by order number here
+      await this.stockMovementService.record({
+        product,
+        type: StockMovementType.ORDER_SALE,
+        quantity: -item.quantity,
+        stockBefore,
+        stockAfter: product.stock,
+        referenceType: 'order',
+        note: `Order ${orderNo}`,
+        user,
+      });
 
       // Store pricing details for this item
       itemPricingDetails.push({
@@ -2273,9 +2290,22 @@ export class OrderService {
     // Increment product stock for each item in the cancelled order
     for (const item of order.items) {
       if (item.product) {
+        const stockBefore = item.product.stock;
         item.product.stock += item.quantity;
         item.product.saleCount = Math.max(0, item.product.saleCount - item.quantity);
         await this.productRepository.save(item.product);
+
+        await this.stockMovementService.record({
+          product: item.product,
+          type: StockMovementType.ORDER_CANCEL,
+          quantity: item.quantity,
+          stockBefore,
+          stockAfter: item.product.stock,
+          referenceType: 'order',
+          referenceId: order.id,
+          note: `Order ${order.orderNo} cancelled: ${reason}`,
+          user,
+        });
 
         this.logger.log(
           `Restored ${item.quantity} units of product ${item.product.name} (ID: ${item.product.id})`,

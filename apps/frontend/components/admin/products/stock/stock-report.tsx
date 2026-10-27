@@ -10,6 +10,14 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -28,20 +36,27 @@ import {
 } from "@/components/ui/table";
 
 import { PaginationComponent } from "@/components/common/pagination";
+import StockMovementHistory from "@/components/admin/products/stock-movement-history";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import {
   fetchData,
   fetchDataPagination,
   fetchProtectedData,
+  postData,
 } from "@/utils/api-utils";
 import type { Brand, Category, Product, Supplier } from "@/utils/types";
 import {
+  ArrowLeftRight,
   BadgeDollarSign,
   Boxes,
   Filter,
+  Loader2,
   Package,
+  PackageMinus,
+  PackagePlus,
   Search,
   ShoppingCart,
+  SlidersHorizontal,
   TrendingDown,
   TrendingUp,
   XCircle,
@@ -99,6 +114,59 @@ export function StockReport({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
   const [totalPages, setTotalPages] = useState(1);
+  // Product whose stock movements are shown in the dialog
+  const [movementsProduct, setMovementsProduct] = useState<Product | null>(
+    null
+  );
+  // Stock adjustment dialog state
+  const [adjustProduct, setAdjustProduct] = useState<Product | null>(null);
+  const [adjustMode, setAdjustMode] = useState<"add" | "remove">("add");
+  const [adjustQty, setAdjustQty] = useState("");
+  const [adjustNote, setAdjustNote] = useState("");
+  const [isAdjusting, setIsAdjusting] = useState(false);
+
+  const openAdjustDialog = (product: Product) => {
+    setAdjustMode("add");
+    setAdjustQty("");
+    setAdjustNote("");
+    setAdjustProduct(product);
+  };
+
+  const handleAdjustSubmit = async () => {
+    if (!adjustProduct) return;
+
+    const qty = parseInt(adjustQty, 10);
+    if (!adjustQty || isNaN(qty) || qty <= 0) {
+      toast.error("Please enter a quantity greater than 0.");
+      return;
+    }
+
+    setIsAdjusting(true);
+    try {
+      const response = await postData<{
+        statusCode: number;
+        message: string;
+      }>(`products/${adjustProduct.id}/stock-adjust`, {
+        quantity: adjustMode === "remove" ? -qty : qty,
+        note: adjustNote.trim() || undefined,
+      });
+
+      if (response?.statusCode === 200 || response?.statusCode === 201) {
+        toast.success(
+          `Stock ${adjustMode === "remove" ? "reduced" : "added"} for ${adjustProduct.name}.`
+        );
+        setAdjustProduct(null);
+        fetchProducts();
+      } else {
+        toast.error(response?.message || "Failed to adjust stock.");
+      }
+    } catch (error) {
+      console.error("Error adjusting stock:", error);
+      toast.error("Failed to adjust stock.");
+    } finally {
+      setIsAdjusting(false);
+    }
+  };
 
   const updateUrl = useCallback(() => {
     const params = new URLSearchParams();
@@ -463,6 +531,7 @@ export function StockReport({
             <TableHead className="hidden lg:table-cell text-right">
               Total Value (Sale)
             </TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -532,6 +601,28 @@ export function StockReport({
                     product.stock * product.sellingPrice
                   )}
                 </span>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="inline-flex items-center justify-end gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => openAdjustDialog(product)}
+                  >
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                    <span className="hidden xl:inline">Adjust</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => setMovementsProduct(product)}
+                  >
+                    <ArrowLeftRight className="h-3.5 w-3.5" />
+                    <span className="hidden xl:inline">Stock Movements</span>
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
@@ -630,6 +721,134 @@ export function StockReport({
           </div>
         </div>
       </div>
+
+      {/* Stock movements dialog for a single product */}
+      <Dialog
+        open={!!movementsProduct}
+        onOpenChange={(open) => !open && setMovementsProduct(null)}
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowLeftRight className="size-4 text-primary" />
+              Stock Movements — {movementsProduct?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Every stock change for this product: purchases in, sales out,
+              reversals and cancelled-order restocks.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto -mx-1 px-1">
+            {movementsProduct && (
+              <StockMovementHistory productId={movementsProduct.id} />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Stock adjustment dialog for a single product */}
+      <Dialog
+        open={!!adjustProduct}
+        onOpenChange={(open) => !open && setAdjustProduct(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <SlidersHorizontal className="size-4 text-primary" />
+              Adjust Stock — {adjustProduct?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Current stock:{" "}
+              <span className="font-semibold text-foreground">
+                {adjustProduct?.stock ?? 0}
+              </span>
+              . Manual corrections are recorded in the stock movement ledger as
+              adjustments.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Add / Remove toggle */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={adjustMode === "add" ? "default" : "outline"}
+                onClick={() => setAdjustMode("add")}
+              >
+                <PackagePlus className="mr-2 h-4 w-4" /> Add
+              </Button>
+              <Button
+                type="button"
+                variant={adjustMode === "remove" ? "default" : "outline"}
+                onClick={() => setAdjustMode("remove")}
+              >
+                <PackageMinus className="mr-2 h-4 w-4" /> Remove
+              </Button>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Quantity *</label>
+              <Input
+                type="number"
+                min="1"
+                placeholder="0"
+                value={adjustQty}
+                onChange={(e) => setAdjustQty(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Reason / Note
+              </label>
+              <Input
+                type="text"
+                placeholder="e.g. Damaged items, stock count correction"
+                value={adjustNote}
+                onChange={(e) => setAdjustNote(e.target.value)}
+              />
+            </div>
+
+            {adjustQty && parseInt(adjustQty, 10) > 0 && (
+              <p className="text-sm text-muted-foreground">
+                New stock will be{" "}
+                <span className="font-semibold text-foreground">
+                  {adjustMode === "remove"
+                    ? Math.max(
+                        0,
+                        (adjustProduct?.stock ?? 0) -
+                          parseInt(adjustQty, 10)
+                      )
+                    : (adjustProduct?.stock ?? 0) + parseInt(adjustQty, 10)}
+                </span>
+                .
+              </p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAdjustProduct(null)}
+              disabled={isAdjusting}
+            >
+              Cancel
+              </Button>
+            <Button onClick={handleAdjustSubmit} disabled={isAdjusting}>
+              {isAdjusting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <SlidersHorizontal className="mr-2 h-4 w-4" />
+                  Apply
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

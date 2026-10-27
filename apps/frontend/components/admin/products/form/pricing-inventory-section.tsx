@@ -24,7 +24,9 @@ export function PricingInventorySection({
 }: PricingInventorySectionProps) {
   return (
     <SectionCard icon={Banknote} title="Pricing & Inventory">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+      {/* No stock field: stock only moves via purchases and cancelled
+          orders, never by direct edit here. */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <FormField
           control={control}
           name="purchasePrice"
@@ -70,21 +72,6 @@ export function PricingInventorySection({
                     field.onChange(isNaN(value) ? 0 : value);
                   }}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={control}
-          name="stock"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Stock Quantity <span className="text-destructive">*</span>
-              </FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="0" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

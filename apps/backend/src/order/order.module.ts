@@ -26,6 +26,7 @@ import { NotificationModule } from 'src/notification/notification.module';
 import { SmsModule } from 'src/auth/sms.module';
 import { DeliveryManModule } from 'src/delivery-man/delivery-man.module';
 import { CouponUsageLogModule } from 'src/coupon-usage-log/coupon-usage-log.module';
+import { StockMovementModule } from 'src/stock-movement/stock-movement.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { CouponUsageLogModule } from 'src/coupon-usage-log/coupon-usage-log.modu
     FlashSaleUsageLogModule,
     FreeDeliveryCampaignsModule,
     FreeDeliveryUsageLogModule,
+    StockMovementModule,
   ],
   controllers: [OrderController],
   providers: [OrderService, OrderPaymentService],
