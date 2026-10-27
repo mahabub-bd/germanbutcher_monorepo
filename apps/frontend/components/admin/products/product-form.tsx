@@ -341,8 +341,12 @@ export function ProductForm({
         }
       }
 
+      // Stock is managed through purchases and cancelled orders only, so it
+      // is never sent from this form (prevents overwriting live stock).
+      const { stock: _stock, ...productFields } = data;
+
       const productData = {
-        ...data,
+        ...productFields,
         unitId: data.unitId.toString(),
         supplierId: data.supplierId.toString(),
         attachment: attachmentId,

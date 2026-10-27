@@ -41,6 +41,8 @@ import {
   ProductHistoryAction,
 } from 'src/product-history/entities/product-history.entity';
 import { ProductHistoryService } from 'src/product-history/product-history.service';
+import { StockMovementType } from 'src/stock-movement/entities/stock-movement.entity';
+import { StockMovementService } from 'src/stock-movement/stock-movement.service';
 import { ProductService } from './product.service';
 
 @ApiTags('Products')
@@ -51,6 +53,7 @@ export class ProductController {
   constructor(
     private readonly productService: ProductService,
     private readonly productHistoryService: ProductHistoryService,
+    private readonly stockMovementService: StockMovementService,
   ) { }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -768,6 +771,55 @@ export class ProductController {
       statusCode: HttpStatus.OK,
       ...result,
     };
+  }
+
+  @Get('stock-movements')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
+  @ApiOperation({
+    summary: 'Get stock movements',
+    description:
+      'Stock movement ledger across all products: purchase additions, purchase reversals and cancelled-order restocks, newest first.',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 15 })
+  @ApiQuery({ name: 'productId', required: false, type: Number })
+  @ApiQuery({ name: 'type', required: false, enum: StockMovementType })
+  async getStockMovements(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 15,
+    @Query('productId') productId?: number,
+    @Query('type') type?: StockMovementType,
+  ) {
+    const result = await this.stockMovementService.getMovementsPaginated(
+      +page,
+      +limit,
+      productId ? +productId : undefined,
+      type,
+    );
+    return {
+      message: 'Stock movements retrieved successfully',
+      statusCode: HttpStatus.OK,
+      ...result,
+    };
+  }
+
+  @Get(':id/stock-movements')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/products')
+  @ApiOperation({
+    summary: 'Get stock movements of a single product',
+    description:
+      'Stock movement ledger for one product: every addition, reversal and cancelled-order restock, newest first.',
+  })
+  @ApiOkResponse({ type: [ApiResponseDto] })
+  async getProductStockMovements(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.stockMovementService.getProductMovements(id);
+    return this.formatResponse(
+      'Stock movements retrieved successfully',
+      HttpStatus.OK,
+      data,
+    );
   }
 
   @Get(':id/history')

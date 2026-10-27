@@ -94,7 +94,7 @@ function ActivityEntry({
   return (
     <li className="relative pl-10 pb-6 last:pb-0">
       {/* Timeline line + dot */}
-      <span className="absolute left-[15px] top-6 bottom-0 w-px bg-border last:hidden" />
+      <span className="absolute left-3.75 top-6 bottom-0 w-px bg-border last:hidden" />
       <span className="absolute left-2 top-1 flex size-7 items-center justify-center rounded-full border bg-muted">
         <History className="size-3.5 text-muted-foreground" />
       </span>
@@ -109,12 +109,12 @@ function ActivityEntry({
           (entry.productId ? (
             <Link
               href={`/admin/products/${entry.productId}/view`}
-              className="max-w-[220px] truncate text-sm font-medium hover:underline"
+              className="max-w-55 truncate text-sm font-medium hover:underline"
             >
               {entry.productName}
             </Link>
           ) : (
-            <span className="max-w-[220px] truncate text-sm font-medium">
+            <span className="max-w-55cate text-sm font-medium">
               {entry.productName}
             </span>
           ))}

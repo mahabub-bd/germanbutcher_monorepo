@@ -1,6 +1,7 @@
 "use client";
 
 import ProductActivityHistory from "@/components/admin/products/product-activity-history";
+import StockMovementHistory from "@/components/admin/products/stock-movement-history";
 import ProductHistoryCard from "@/components/admin/products/product-history-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import type { Product } from "@/utils/types";
 import {
   AlertTriangle,
   ArrowLeft,
+  ArrowLeftRight,
   Box,
   Building2,
   Calendar,
@@ -684,6 +686,13 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 <History className="size-4" />
                 History
               </TabsTrigger>
+              <TabsTrigger
+                value="stockMovements"
+                className="gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 h-auto shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-primary dark:data-[state=active]:bg-transparent"
+              >
+                <ArrowLeftRight className="size-4" />
+                Stock Movements
+              </TabsTrigger>
             </TabsList>
 
             {/* ── Overview ─────────────────────────────────────── */}
@@ -974,6 +983,13 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                   <ProductHistoryCard product={product} />
                 </SectionCard>
               </div>
+            </TabsContent>
+
+            {/* ── Stock Movements ──────────────────────────────── */}
+            <TabsContent value="stockMovements" className="mt-4">
+              <SectionCard title="Stock Movements">
+                <StockMovementHistory productId={product.id} />
+              </SectionCard>
             </TabsContent>
           </Tabs>
         </div>

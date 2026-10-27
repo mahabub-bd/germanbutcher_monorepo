@@ -10,6 +10,13 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -28,6 +35,7 @@ import {
 } from "@/components/ui/table";
 
 import { PaginationComponent } from "@/components/common/pagination";
+import StockMovementHistory from "@/components/admin/products/stock-movement-history";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import {
   fetchData,
@@ -36,6 +44,7 @@ import {
 } from "@/utils/api-utils";
 import type { Brand, Category, Product, Supplier } from "@/utils/types";
 import {
+  ArrowLeftRight,
   BadgeDollarSign,
   Boxes,
   Filter,
@@ -99,6 +108,10 @@ export function StockReport({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
   const [totalPages, setTotalPages] = useState(1);
+  // Product whose stock movements are shown in the dialog
+  const [movementsProduct, setMovementsProduct] = useState<Product | null>(
+    null
+  );
 
   const updateUrl = useCallback(() => {
     const params = new URLSearchParams();
@@ -463,6 +476,7 @@ export function StockReport({
             <TableHead className="hidden lg:table-cell text-right">
               Total Value (Sale)
             </TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -532,6 +546,17 @@ export function StockReport({
                     product.stock * product.sellingPrice
                   )}
                 </span>
+              </TableCell>
+              <TableCell className="text-right">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setMovementsProduct(product)}
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5" />
+                  <span className="hidden xl:inline">Stock Movements</span>
+                </Button>
               </TableCell>
             </TableRow>
           ))}
@@ -630,6 +655,30 @@ export function StockReport({
           </div>
         </div>
       </div>
+
+      {/* Stock movements dialog for a single product */}
+      <Dialog
+        open={!!movementsProduct}
+        onOpenChange={(open) => !open && setMovementsProduct(null)}
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowLeftRight className="size-4 text-primary" />
+              Stock Movements — {movementsProduct?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Every stock change for this product: purchases in, sales out,
+              reversals and cancelled-order restocks.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto -mx-1 px-1">
+            {movementsProduct && (
+              <StockMovementHistory productId={movementsProduct.id} />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
