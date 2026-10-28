@@ -360,12 +360,14 @@ export class ProductService {
     categoryId?: number;
     isActive?: boolean;
     search?: string;
+    supplierId?: number;
   }): Promise<
     {
       id: number;
       name: string;
       slug: string | null;
       sellingPrice: number;
+      purchasePrice: number;
       discountType: string | null;
       discountValue: number | null;
       weight: number | null;
@@ -375,7 +377,7 @@ export class ProductService {
       categoryName: string;
     }[]
   > {
-    const { categoryId, isActive, search } = options;
+    const { categoryId, isActive, search, supplierId } = options;
 
     const query = this.productRepository
       .createQueryBuilder('product')
@@ -387,6 +389,7 @@ export class ProductService {
         'product.name AS name',
         'product.slug AS slug',
         'product."sellingPrice" AS "sellingPrice"',
+        'product."purchasePrice" AS "purchasePrice"',
         'product."discountType" AS "discountType"',
         'product."discountValue" AS "discountValue"',
         'product."weight" AS "weight"',
@@ -411,12 +414,18 @@ export class ProductService {
         search: `%${search}%`,
       });
     }
+    if (supplierId) {
+      query.leftJoin('product.supplier', 'supplier').andWhere(
+        'supplier.id = :supplierId',
+        { supplierId },
+      );
+    }
 
     const rows: Record<string, string | null>[] = await query
       .cache(
         `products_minimal_${categoryId ?? 'all'}_${isActive ?? 'all'}_${
           search ?? ''
-        }`,
+        }_${supplierId ?? 'all'}`,
         30000,
       )
       .getRawMany();
@@ -426,6 +435,7 @@ export class ProductService {
       name: row.name,
       slug: row.slug,
       sellingPrice: parseFloat(row.sellingPrice) || 0,
+      purchasePrice: parseFloat(row.purchasePrice) || 0,
       discountType: row.discountType,
       discountValue:
         row.discountValue === null ? null : parseFloat(row.discountValue),

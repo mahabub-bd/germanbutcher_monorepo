@@ -256,6 +256,7 @@ export function ReportDateFilters({
             onChange={handleStartDate}
             placeholder="From Date"
             maxDate={endDate}
+            showIcon={false}
           />
         </div>
         <div className="md:flex-1 md:max-w-48 md:min-w-0">
@@ -265,6 +266,7 @@ export function ReportDateFilters({
             onChange={handleEndDate}
             placeholder="To Date"
             minDate={startDate}
+            showIcon={false}
           />
         </div>
 

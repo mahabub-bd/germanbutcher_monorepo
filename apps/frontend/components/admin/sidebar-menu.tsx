@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { IconRenderer } from "../common/IconRenderer";
 
@@ -158,12 +158,27 @@ export function SidebarMenu({
     }));
   };
 
+  // A menu item should only highlight for its best match: when several menu
+  // URLs prefix the current path (e.g. /admin/crm and /admin/crm/customers),
+  // only the longest one counts as active.
+  const bestMatchUrl = useMemo(() => {
+    const urls = menuData.flatMap((item: MenuItem) => [
+      item?.url,
+      ...(item?.children ?? []).map((subItem) => subItem?.url),
+    ]);
+    return urls
+      .filter(
+        (url): url is string =>
+          !!url && (pathname === url || pathname.startsWith(`${url}/`))
+      )
+      .sort((a, b) => b.length - a.length)[0];
+  }, [menuData, pathname]);
+
+  const isActiveMenu = (url?: string) => !!url && url === bestMatchUrl;
+
   const isSubMenuActive = (item: MenuItem) => {
     if (!item?.children) return false;
-    return item.children.some(
-      (subItem) =>
-        pathname === subItem?.url || pathname.startsWith(`${subItem?.url}/`)
-    );
+    return item.children.some((subItem) => isActiveMenu(subItem?.url));
   };
 
   // Generate skeleton menu items for loading state (top-level rows only)
@@ -244,9 +259,7 @@ export function SidebarMenu({
             {isLoading
               ? renderSkeletonMenu()
               : menuData?.map((item: MenuItem) => {
-                const isActive =
-                  pathname === item?.url ||
-                  pathname.startsWith(`${item?.url}/`);
+                const isActive = isActiveMenu(item?.url);
                 const hasSubMenu =
                   item?.children && item?.children?.length > 0;
                 const isSubActive = isSubMenuActive(item);
@@ -326,9 +339,7 @@ export function SidebarMenu({
                     {hasSubMenu && !collapsed && isOpen && (
                       <div className="ml-6 mt-1 border-l border-primaryColor/20 pl-3 space-y-1">
                         {item?.children.map((subItem) => {
-                          const isSubItemActive =
-                            pathname === subItem.url ||
-                            pathname.startsWith(`${subItem.url}/`);
+                          const isSubItemActive = isActiveMenu(subItem.url);
 
                           return (
                             <Link

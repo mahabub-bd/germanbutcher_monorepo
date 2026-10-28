@@ -18,6 +18,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { OrderItem } from './order-item.entity';
+import { OrderNote } from './order-note.entity';
 import { OrderStatusTrack } from './order-status-track.entity';
 
 @Entity()
@@ -111,6 +112,10 @@ export class Order {
 
   @OneToMany(() => OrderStatusTrack, (track) => track.order, { cascade: true })
   statusTracks: OrderStatusTrack[];
+
+  @ApiPropertyOptional({ type: () => [OrderNote] })
+  @OneToMany(() => OrderNote, (note) => note.order)
+  notes?: OrderNote[];
 
   @ApiPropertyOptional({ type: () => DeliveryMan })
   @ManyToOne(() => DeliveryMan, { nullable: true })

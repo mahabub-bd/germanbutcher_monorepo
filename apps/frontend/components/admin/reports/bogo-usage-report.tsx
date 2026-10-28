@@ -2,6 +2,7 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { ReportPdfButton } from "@/components/admin/reports/generic-report-pdf";
+import { ReportExcelButton } from "@/components/admin/reports/download-excel-button";
 import { ReportDateFilters, type ReportFilterParams } from "@/components/admin/reports/report-date-filters";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -146,39 +147,66 @@ export function BogoUsageReport({
         <PageHeader
           title="BOGO Usage Report"
         />
-        <ReportPdfButton
-          title="BOGO Usage Report"
-          subtitle={periodLabel}
-          fileName="bogo-usage-report"
-          columns={[
-            { header: "Date", width: 2 },
-            { header: "Customer", width: 1.5 },
-            { header: "Order No", width: 1.2 },
-            { header: "Campaign", width: 1.5 },
-            { header: "Free Units", width: 0.9, align: "right" },
-            { header: "Discount", width: 1.1, align: "right" },
-            { header: "Total", width: 1.1, align: "right" },
-          ]}
-          rows={rows.map((row) => [
-            formatDateTime(row.createdAt),
-            row.user?.name || "-",
-            row.order?.orderNo || "-",
-            row.campaignName,
-            String(row.freeUnits ?? 0),
-            formatMoneyPdf(row.discountAmount),
-            formatMoneyPdf(row.orderTotal),
-          ])}
-          summary={
-            stats
-              ? [
-                { label: "Total Uses", value: String(stats.totalUses) },
-                { label: "Discount Given", value: formatMoneyPdf(stats.totalDiscount) },
-                { label: "Free Units Given", value: String(stats.totalFreeUnits) },
-                { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
-              ]
-              : undefined
-          }
-        />
+        <div className="flex shrink-0 gap-2">
+          <ReportExcelButton
+            title="BOGO Usage Report"
+            subtitle={periodLabel}
+                        headers={["Date", "Customer", "Order No", "Campaign", "Free Units", "Discount", "Total"]}
+            rows={rows.map((row) => [
+              formatDateTime(row.createdAt),
+              row.user?.name || "-",
+              row.order?.orderNo || "-",
+              row.campaignName,
+              String(row.freeUnits ?? 0),
+              formatMoneyPdf(row.discountAmount),
+              formatMoneyPdf(row.orderTotal),
+            ])}
+            summary={
+              stats
+                ? [
+                  { label: "Total Uses", value: String(stats.totalUses) },
+                  { label: "Discount Given", value: formatMoneyPdf(stats.totalDiscount) },
+                  { label: "Free Units Given", value: String(stats.totalFreeUnits) },
+                  { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
+                ]
+                : undefined
+            }
+            fileName="bogo-usage-report"
+          />
+          <ReportPdfButton
+            title="BOGO Usage Report"
+            subtitle={periodLabel}
+            fileName="bogo-usage-report"
+            columns={[
+              { header: "Date", width: 2 },
+              { header: "Customer", width: 1.5 },
+              { header: "Order No", width: 1.2 },
+              { header: "Campaign", width: 1.5 },
+              { header: "Free Units", width: 0.9, align: "right" },
+              { header: "Discount", width: 1.1, align: "right" },
+              { header: "Total", width: 1.1, align: "right" },
+            ]}
+            rows={rows.map((row) => [
+              formatDateTime(row.createdAt),
+              row.user?.name || "-",
+              row.order?.orderNo || "-",
+              row.campaignName,
+              String(row.freeUnits ?? 0),
+              formatMoneyPdf(row.discountAmount),
+              formatMoneyPdf(row.orderTotal),
+            ])}
+            summary={
+              stats
+                ? [
+                  { label: "Total Uses", value: String(stats.totalUses) },
+                  { label: "Discount Given", value: formatMoneyPdf(stats.totalDiscount) },
+                  { label: "Free Units Given", value: String(stats.totalFreeUnits) },
+                  { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
+                ]
+                : undefined
+            }
+          />
+        </div>
       </div>
 
       <ReportDateFilters

@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { AssignDeliveryMan } from "@/components/admin/delivery-man/assign-delivery-man";
+import { OrderNotes } from "@/components/admin/orders/order-notes";
+import { OrderTimeline } from "@/components/admin/orders/order-timeline";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,19 +30,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Timeline,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
-  TimelineItem,
-  TimelineSeparator,
-} from "@/components/ui/timeline";
-import { formatDateTime } from "@/lib/utils";
 import { patchData } from "@/utils/api-utils";
-import { getStatusDotColor, getStatusIcon } from "@/utils/order-helper";
 import { refreshDashboard } from "@/utils/revalidatePath";
-import { OrderStatus, type Order } from "@/utils/types";
+import type { Order } from "@/utils/types";
 import { Section } from "../helper";
 
 const orderUpdateSchema = z.object({
@@ -160,88 +152,13 @@ export function OrderForm({ order, onSuccess, onCancel }: OrderFormProps) {
     }
   };
 
-  const generateOrderTimeline = () => {
-    const allStatuses = [
-      OrderStatus.PENDING,
-      OrderStatus.PROCESSING,
-      OrderStatus.SHIPPED,
-      OrderStatus.DELIVERED,
-      OrderStatus.CANCELLED,
-    ];
-
-    const currentStatus = order.orderStatus.toLowerCase();
-
-    if (currentStatus === OrderStatus.CANCELLED) {
-      return [OrderStatus.PENDING, OrderStatus.CANCELLED];
-    }
-
-    if (currentStatus === OrderStatus.ON_HOLD) {
-      return [OrderStatus.PENDING, OrderStatus.ON_HOLD];
-    }
-
-    const statusIndex = allStatuses.findIndex(
-      (status) => status === currentStatus
-    );
-    if (statusIndex >= 0) {
-      return allStatuses.slice(0, statusIndex + 1);
-    }
-
-    return [currentStatus];
-  };
-
-  const getStatusTimestamp = (status: string) => {
-    const statusTrack = order.statusTracks.find(
-      (track) => track.status.toLowerCase() === status.toLowerCase()
-    );
-    return statusTrack ? statusTrack.createdAt : null;
-  };
-
-  const getStatusNote = (status: string) => {
-    const statusTrack = order.statusTracks.find(
-      (track) => track.status.toLowerCase() === status.toLowerCase()
-    );
-    return statusTrack ? statusTrack.note : null;
-  };
-
-  const getStatusUpdatedBy = (status: string) => {
-    const statusTrack = order.statusTracks.find(
-      (track) => track.status.toLowerCase() === status.toLowerCase()
-    );
-    return statusTrack ? statusTrack.updatedBy : null;
-  };
-
-  const isStatusActive = (status: string) => {
-    const currentStatus = order.orderStatus.toLowerCase();
-
-    if (currentStatus === OrderStatus.CANCELLED) {
-      return status === OrderStatus.PENDING || status === OrderStatus.CANCELLED;
-    }
-
-    if (currentStatus === OrderStatus.ON_HOLD) {
-      return status === OrderStatus.PENDING || status === OrderStatus.ON_HOLD;
-    }
-
-    const allStatuses = [
-      OrderStatus.PENDING,
-      OrderStatus.PROCESSING,
-      OrderStatus.SHIPPED,
-      OrderStatus.DELIVERED,
-    ];
-
-    const statusIndex = allStatuses.indexOf(status as OrderStatus);
-    const currentIndex = allStatuses.indexOf(currentStatus as OrderStatus);
-
-    return statusIndex <= currentIndex;
-  };
-
-  const timelineStatuses = generateOrderTimeline();
   const availableStatusOptions = getAvailableStatusOptions();
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <div className="p-6 space-y-6 mx-auto w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 items-start lg:grid-cols-2 gap-6">
             {/* ✅ Update Order Status Section */}
             <Section title="Update Order Status">
               <div className="grid grid-cols-1 gap-6">
@@ -308,7 +225,7 @@ export function OrderForm({ order, onSuccess, onCancel }: OrderFormProps) {
                         <Textarea
                           {...field}
                           placeholder="Add a note for this status update (e.g. 'Package ready for shipment')"
-                          className="w-full min-h-[80px]"
+                          className="w-full min-h-20"
                         />
                       </FormControl>
                       <FormMessage />
@@ -318,104 +235,15 @@ export function OrderForm({ order, onSuccess, onCancel }: OrderFormProps) {
               </div>
             </Section>
 
-            {/* Timeline */}
-            <Section title="Order Status Timeline">
-              <div className="pl-2">
-                {order.statusTracks.length > 0 ? (
-                  <Timeline>
-                    {timelineStatuses.map((status, index) => {
-                      const isActive = isStatusActive(status);
-                      const timestamp = getStatusTimestamp(status);
-                      const note = getStatusNote(status);
-                      const updatedBy = getStatusUpdatedBy(status);
-
-                      return (
-                        <TimelineItem key={status}>
-                          <TimelineSeparator>
-                            <TimelineDot
-                              className={
-                                isActive
-                                  ? getStatusDotColor(status)
-                                  : "bg-gray-300"
-                              }
-                            />
-                            {index < timelineStatuses.length - 1 && (
-                              <TimelineConnector
-                                className={isActive ? "" : "bg-gray-300"}
-                              />
-                            )}
-                          </TimelineSeparator>
-                          <TimelineContent>
-                            <div className="ml-4">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  {isActive && getStatusIcon(status)}
-                                  <h4
-                                    className={`text-sm font-medium ${
-                                      !isActive ? "text-gray-400" : ""
-                                    }`}
-                                  >
-                                    {status.charAt(0).toUpperCase() +
-                                      status.slice(1)}
-                                  </h4>
-                                </div>
-                                {timestamp ? (
-                                  <span className="text-xs text-muted-foreground">
-                                    {formatDateTime(timestamp)}
-                                  </span>
-                                ) : (
-                                  isActive && (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs"
-                                    >
-                                      {status === order.orderStatus
-                                        ? "Current"
-                                        : ""}
-                                    </Badge>
-                                  )
-                                )}
-                              </div>
-                              {note && (
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {note}
-                                </p>
-                              )}
-                              {updatedBy ? (
-                                <div className="flex items-center mt-1 text-xs text-muted-foreground">
-                                  <User className="h-3 w-3 mr-1" />
-                                  Updated by: {updatedBy.name || "User"}
-                                </div>
-                              ) : (
-                                <div className="flex items-center mt-1 text-xs text-muted-foreground">
-                                  <User className="h-3 w-3 mr-1" />
-                                  Created by: {order.user.name || "User"}
-                                </div>
-                              )}
-                            </div>
-                          </TimelineContent>
-                        </TimelineItem>
-                      );
-                    })}
-                  </Timeline>
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    No status updates available.
-                  </p>
-                )}
-              </div>
-            </Section>
-          </div>
-
-          {/* Delivery Man Assignment Section */}
-          <Section title="Delivery Man Assignment">
+            {/* Delivery Man Assignment — right column, beside order status */}
+            <Section title="Delivery Man Assignment">
             <div className="space-y-3">
               {currentOrder.deliveryMan ? (
-                <div className="relative overflow-hidden rounded-lg border-2 border-blue-500/20 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 dark:from-blue-950/20 dark:to-indigo-950/20">
-                  <div className="absolute top-0 right-0 h-16 w-16 bg-gradient-to-bl from-blue-500/10 to-transparent" />
+                <div className="relative overflow-hidden rounded-lg border-2 border-blue-500/20 bg-linear-to-r from-blue-50 to-indigo-50 p-4 dark:from-blue-950/20 dark:to-indigo-950/20">
+                  <div className="absolute top-0 right-0 h-16 w-16 bg-linear-to-bl from-blue-500/10 to-transparent" />
                   <div className="relative flex items-start justify-between">
                     <div className="flex items-start gap-3">
-                      <div className="rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 shadow-lg">
+                      <div className="rounded-full bg-linear-to-br from-blue-500 to-indigo-600 p-2.5 shadow-lg">
                         <User className="h-4 w-4 text-white" />
                       </div>
                       <div>
@@ -465,6 +293,15 @@ export function OrderForm({ order, onSuccess, onCancel }: OrderFormProps) {
               </div>
             </div>
           </Section>
+
+            {/* Timeline — same component as the order details page */}
+            <div className="lg:col-span-2">
+              <OrderTimeline order={order} />
+            </div>
+          </div>
+
+          {/* Order Notes — multiple free-form notes, independent of status */}
+          <OrderNotes order={order} />
 
           {/* ✅ Existing sections below untouched */}
           {/* Payment Information, Order Information, Order Items, etc. */}

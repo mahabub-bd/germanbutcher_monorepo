@@ -71,7 +71,7 @@ export class ContactMessageService {
   }
 
   async findAll(query: ContactMessageQueryDto) {
-    const { page = 1, limit = 10, status, search } = query;
+    const { page = 1, limit = 10, status, source, priority, search } = query;
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.contactMessageRepository
@@ -82,6 +82,18 @@ export class ContactMessageService {
     // Filter by status
     if (status) {
       queryBuilder.andWhere('contact_message.contactStatus = :status', { status });
+    }
+
+    // Filter by source channel (website, facebook, phone, ...)
+    if (source) {
+      queryBuilder.andWhere('contact_message.source = :source', { source });
+    }
+
+    // Filter by priority (low, medium, high)
+    if (priority) {
+      queryBuilder.andWhere('contact_message.priority = :priority', {
+        priority,
+      });
     }
 
     // Search by name or email

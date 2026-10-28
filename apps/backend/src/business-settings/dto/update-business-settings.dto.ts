@@ -1,5 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsPositive,
+  IsString,
+} from 'class-validator';
 
 export class UpdateBusinessSettingsDto {
   @ApiPropertyOptional({
@@ -119,4 +126,57 @@ export class UpdateBusinessSettingsDto {
   @IsOptional()
   @IsString()
   maintenanceEndsAt?: string;
+
+  @ApiPropertyOptional({
+    example: {
+      divisions: [{ name: 'Dhaka', enabled: true }],
+      cities: [{ division: 'Dhaka', name: 'Dhaka', enabled: true }],
+      areas: [{ city: 'Dhaka', name: 'Badda', enabled: true }],
+    },
+    description:
+      'Delivery coverage: plain lists of divisions/cities/areas seeded from the BD dataset and fully editable (add/rename/delete/enable).',
+  })
+  @IsOptional()
+  @IsObject()
+  deliveryCoverage?: {
+    divisions: { name: string; enabled: boolean }[];
+    cities: { division: string; name: string; enabled: boolean }[];
+    areas: { city: string; name: string; enabled: boolean }[];
+  } | null;
+
+  @ApiPropertyOptional({
+    example: 20000,
+    description: 'Total delivered spend (৳) at which a customer becomes VIP',
+  })
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  vipMinSpent?: number | null;
+
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Delivered order count at which a customer becomes VIP',
+  })
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  vipMinOrders?: number | null;
+
+  @ApiPropertyOptional({
+    example: 90,
+    description: 'Days without an order before a buyer becomes At Risk',
+  })
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  atRiskDays?: number | null;
+
+  @ApiPropertyOptional({
+    example: 30,
+    description: 'Days since signup a customer counts as New',
+  })
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  newDays?: number | null;
 }

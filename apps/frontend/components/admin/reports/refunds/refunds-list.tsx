@@ -2,7 +2,8 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
+import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
+import { ReportExcelButton, dateRangeSubtitle } from "@/components/admin/reports/download-excel-button";
 import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,6 @@ import {
   ShoppingCart,
   Wallet,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
 // Badge tints for date and amount cells, matching the other report tables
@@ -64,11 +64,6 @@ const amount = (value: number) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
 
 interface Summary {
   cancelledOrders: number;
@@ -160,33 +155,47 @@ export default function RefundsList({
           title="Refund & Cancelled Orders Report"
         />
         {orders.length > 0 && (
-          <PDFDownloadLink
-            document={
-              <ReportTablePDF
-                title="Refund & Cancelled Orders Report"
-                headers={[
-                  "Date",
-                  "Order No",
-                  "Value",
-                  "Paid",
-                  "Refunded",
-                  "Payment Status",
-                  "Reason",
-                ]}
-                flexes={[1.1, 1.3, 0.9, 0.9, 0.9, 1.2, 1.8]}
-                alignRight={[2, 3, 4]}
-                rows={pdfRows}
-                summary={pdfSummary}
-                settings={settings}
-              />
-            }
-            fileName={`refund-report-${new Date().toISOString().split("T")[0]
-              }.pdf`}
-          >
-            {({ loading, error }) => (
-              <PdfDownloadButton loading={loading} error={error} />
-            )}
-          </PDFDownloadLink>
+          <div className="flex shrink-0 gap-2">
+            <ReportExcelButton
+              title="Refund & Cancelled Orders Report"
+              subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
+                            headers={[
+                "Date",
+                "Order No",
+                "Value",
+                "Paid",
+                "Refunded",
+                "Payment Status",
+                "Reason",
+              ]}
+              rows={pdfRows}
+              summary={pdfSummary}
+              fileName="refund-report"
+            />
+            <LazyPdfDownloadLink
+              document={
+                <ReportTablePDF
+                  title="Refund & Cancelled Orders Report"
+                  headers={[
+                    "Date",
+                    "Order No",
+                    "Value",
+                    "Paid",
+                    "Refunded",
+                    "Payment Status",
+                    "Reason",
+                  ]}
+                  flexes={[1.1, 1.3, 0.9, 0.9, 0.9, 1.2, 1.8]}
+                  alignRight={[2, 3, 4]}
+                  rows={pdfRows}
+                  summary={pdfSummary}
+                  settings={settings}
+                />
+              }
+              fileName={`refund-report-${new Date().toISOString().split("T")[0]
+                }.pdf`}
+             />
+          </div>
         )}
       </div>
 

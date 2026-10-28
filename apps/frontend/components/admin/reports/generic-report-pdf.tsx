@@ -9,16 +9,10 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 
-import { PdfDownloadButton } from "./pdf-download-button";
+import { LazyPdfDownloadLink } from "./lazy-pdf-download-link";
 import { ReportPDFHeader } from "./report-pdf-header";
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
 
 export interface ReportPdfColumn {
   header: string;
@@ -238,7 +232,7 @@ export function ReportPdfButton({
   if (!mounted || disabled || rows.length === 0) return null;
 
   return (
-    <PDFDownloadLink
+    <LazyPdfDownloadLink
       document={
         <GenericReportPDF
           title={title}
@@ -250,10 +244,6 @@ export function ReportPdfButton({
         />
       }
       fileName={`${fileName}-${new Date().toISOString().split("T")[0]}.pdf`}
-    >
-      {({ loading, error }) => (
-        <PdfDownloadButton loading={loading} error={error} />
-      )}
-    </PDFDownloadLink>
+    />
   );
 }

@@ -3,11 +3,13 @@
 import { OrderStatus } from "@/common/enums";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
+import { ReportExcelButton, dateRangeSubtitle } from "@/components/admin/reports/download-excel-button";
+import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
 import {
   ReportDateFilters,
   type ReportFilterParams,
 } from "@/components/admin/reports/report-date-filters";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -25,19 +27,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import {
+  formatCurrencyEnglish,
+  formatDateTime,
+  shortenArea,
+} from "@/lib/utils";
 import { PaymentStatus } from "@/utils/types";
 import { Eye, ShoppingCart, Wallet } from "lucide-react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { OrderReportPDF } from "./order-report-pdf";
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
 
 interface Customer {
   name: string;
@@ -137,14 +137,37 @@ export default function OrderReportList({
           />
         </div>
         {orders.length > 0 && mounted && (
-          <PDFDownloadLink
-            document={<OrderReportPDF orders={orders} settings={settings} />}
-            fileName={`order-report-${new Date().toISOString().split("T")[0]}.pdf`}
-          >
-            {({ loading, error }) => (
-              <PdfDownloadButton loading={loading} error={error} />
-            )}
-          </PDFDownloadLink>
+          <div className="flex shrink-0 gap-2">
+            <ReportExcelButton
+              title="Sales Report"
+              subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
+              headers={["#", "Date", "Order No", "Customer", "Mobile", "Area", "Status", "Payment", "Total", "Discount", "Paid"]}
+              rows={orders.map((o, i) => [
+                i + 1,
+                formatDateTime(o.orderDate),
+                o.orderNo,
+                o.customer?.name || "N/A",
+                o.customer?.mobileNumber || "N/A",
+                o.shippingAddress?.area || "N/A",
+                o.orderStatus,
+                o.paymentStatus,
+                o.totalValue,
+                o.totalDiscount,
+                o.paidAmount,
+              ])}
+              summary={[
+                { label: "Total Orders", value: String(totalOrders) },
+                { label: "Total Value", value: formatCurrencyEnglish(totalValue, 0) },
+                { label: "Total Discount", value: formatCurrencyEnglish(totalDiscount, 0) },
+                { label: "Total Paid", value: formatCurrencyEnglish(totalPaid, 0) },
+              ]}
+              fileName="sales-report"
+            />
+            <LazyPdfDownloadLink
+              document={<OrderReportPDF orders={orders} settings={settings} />}
+              fileName={`order-report-${new Date().toISOString().split("T")[0]}.pdf`}
+            />
+          </div>
         )}
       </div>
 
@@ -215,7 +238,7 @@ export default function OrderReportList({
 
       {/* Summary */}
       {orders.length > 0 && (
-        <div className="mb-4 grid grid-cols-2 2xl:grid-cols-4 gap-3">
+        <div className="mb-4 grid grid-cols-2 xl:grid-cols-4 2xl:grid-cols-4 gap-3">
           <StatsCard
             title="Total Orders"
             value={formatCurrencyEnglish(totalValue, 0)}
@@ -256,11 +279,14 @@ export default function OrderReportList({
         <Table>
           <TableHeader>
             <TableRow>
-
+              <TableHead>Date</TableHead>
               <TableHead>Order No</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead className="hidden md:table-cell">Mobile</TableHead>
+              <TableHead className="hidden xl:table-cell">Area</TableHead>
               <TableHead>Order Status</TableHead>
               <TableHead>Payment Status</TableHead>
-              <TableHead>Date</TableHead>
+
               <TableHead>Total</TableHead>
               <TableHead>Paid</TableHead>
               <TableHead className="text-right">Action</TableHead>
@@ -270,7 +296,7 @@ export default function OrderReportList({
             {orders.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={10}
                   className="text-center py-6 text-muted-foreground"
                 >
                   No orders found
@@ -279,15 +305,41 @@ export default function OrderReportList({
             ) : (
               orders.map((o) => (
                 <TableRow key={o.orderNo}>
-
-                  <TableCell>{o.orderNo}</TableCell>
-                  <TableCell>{o.orderStatus}</TableCell>
-                  <TableCell>{o.paymentStatus}</TableCell>
                   <TableCell className="whitespace-nowrap">
                     <span className="text-sm text-muted-foreground">
                       {formatDateTime(o.orderDate)}
                     </span>
                   </TableCell>
+                  <TableCell>{o.orderNo}</TableCell>
+                  <TableCell>
+                    <span className="font-medium">
+                      {o.customer?.name || "N/A"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {o.customer?.mobileNumber ? (
+                      <a
+                        href={`tel:${o.customer.mobileNumber}`}
+                        className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        {o.customer.mobileNumber}
+                      </a>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">N/A</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="hidden xl:table-cell">
+                    <Badge
+                      variant="secondary"
+                      className="max-w-40 truncate border-transparent bg-violet-100 font-normal text-sm text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
+                      title={o.shippingAddress?.area || undefined}
+                    >
+                      {shortenArea(o.shippingAddress?.area || "N/A")}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{o.orderStatus}</TableCell>
+                  <TableCell>{o.paymentStatus}</TableCell>
+
                   <TableCell>{formatCurrencyEnglish(o.totalValue)}</TableCell>
                   <TableCell>{formatCurrencyEnglish(o.paidAmount)}</TableCell>
                   <TableCell className="text-right">

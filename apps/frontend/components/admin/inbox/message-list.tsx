@@ -22,34 +22,42 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { deleteData, fetchDataPagination, fetchProtectedData, postData } from "@/utils/api-utils";
+import { deleteData, fetchDataPagination, fetchProtectedData, patchData, postData } from "@/utils/api-utils";
 import type { ContactMessage } from "@/utils/types";
 import { ActionTaken } from "@/utils/types";
 import {
   AlertCircle,
+  ArrowLeft,
   Ban,
   Calendar,
   CheckCircle,
   Clock,
   Eye,
+  AtSign,
   FileText,
   Filter,
+  Flag,
+  Globe,
   Info,
   Mail,
+  MessageCircle,
   MessageSquare,
   MoreHorizontal,
   Package,
   Phone,
   PhoneCall,
+  Plus,
   RefreshCw,
   Search,
   Send,
-  Settings,
+  Share2,
   ShoppingCart,
   Tag,
   Trash2,
+  User,
   XCircle,
 } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -64,314 +72,155 @@ export enum ContactStatus {
   CLOSED = "closed",
 }
 
-// Status Update Modal Component (defined outside to prevent re-renders)
-interface StatusUpdateModalProps {
-  isOpen: boolean;
-  message: ContactMessage | null;
-  selectedAction: ActionTaken | "";
-  selectedStatus: ContactStatus;
-  responseNotes: string;
-  isUpdating: boolean;
-  onClose: () => void;
-  onUpdateStatus: (status: ContactStatus) => void;
-  onSendMessage: () => void;
-  onActionChange: (action: ActionTaken | "") => void;
-  onNotesChange: (notes: string) => void;
-  responseNotesRef: React.RefObject<HTMLTextAreaElement | null>;
-  formatDate: (date: string) => string;
+export enum ContactSource {
+  WEBSITE = "website",
+  FACEBOOK = "facebook",
+  PHONE = "phone",
+  EMAIL = "email",
+  WHATSAPP = "whatsapp",
+  OTHER = "other",
 }
 
-// Radio indicator used by the selectable status / action cards
-function RadioDot({ selected }: { selected: boolean }) {
+export enum ContactPriority {
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+}
+
+const PRIORITY_BADGES: Record<
+  ContactPriority,
+  { label: string; color: string; dot: string }
+> = {
+  [ContactPriority.LOW]: {
+    label: "Low",
+    color:
+      "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
+    dot: "bg-emerald-500 dark:bg-emerald-400",
+  },
+  [ContactPriority.MEDIUM]: {
+    label: "Medium",
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
+    dot: "bg-amber-500 dark:bg-amber-400",
+  },
+  [ContactPriority.HIGH]: {
+    label: "High",
+    color: "bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400",
+    dot: "bg-rose-500 dark:bg-rose-400",
+  },
+};
+
+const STATUS_BADGES: Record<
+  ContactStatus,
+  { label: string; color: string; dot: string }
+> = {
+  [ContactStatus.PENDING]: {
+    label: "Pending",
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
+    dot: "bg-amber-500 dark:bg-amber-400",
+  },
+  [ContactStatus.IN_PROGRESS]: {
+    label: "In Progress",
+    color: "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
+    dot: "bg-blue-500 dark:bg-blue-400",
+  },
+  [ContactStatus.RESOLVED]: {
+    label: "Resolved",
+    color:
+      "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
+    dot: "bg-emerald-500 dark:bg-emerald-400",
+  },
+  [ContactStatus.CLOSED]: {
+    label: "Closed",
+    color:
+      "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-400",
+    dot: "bg-slate-400 dark:bg-slate-500",
+  },
+};
+
+/** Soft, borderless pill with a status dot — used for status and priority. */
+function TicketBadge({
+  label,
+  color,
+  dot,
+}: {
+  label: string;
+  color: string;
+  dot: string;
+}) {
   return (
-    <span
-      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${selected
-          ? "border-blue-500"
-          : "border-gray-300 dark:border-neutral-600"
-        }`}
+    <Badge
+      variant="outline"
+      className={`gap-1.5 rounded-full border-0 px-2.5 py-0.5 font-medium ${color}`}
     >
-      {selected && <span className="h-2 w-2 rounded-full bg-blue-500" />}
-    </span>
+      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden="true" />
+      {label}
+    </Badge>
   );
 }
 
-function StatusUpdateModal({
-  isOpen,
-  message,
-  selectedAction,
-  selectedStatus,
-  responseNotes,
-  isUpdating,
-  onClose,
-  onUpdateStatus,
-  onSendMessage,
-  onActionChange,
-  onNotesChange,
-  responseNotesRef,
-  formatDate,
-}: StatusUpdateModalProps) {
-  if (!isOpen || !message) return null;
-
-  const statusOptions: Array<{
-    value: ContactStatus;
-    label: string;
-    description: string;
-    icon: React.ReactNode;
-    iconBg: string;
-    iconColor: string;
-  }> = [
-      {
-        value: ContactStatus.PENDING,
-        label: "Pending",
-        description: "Waiting for response",
-        icon: <Clock className="h-4 w-4" />,
-        iconBg: "bg-amber-100 dark:bg-amber-900/40",
-        iconColor: "text-amber-600 dark:text-amber-400",
-      },
-      {
-        value: ContactStatus.IN_PROGRESS,
-        label: "In Progress",
-        description: "Currently working on it",
-        icon: <AlertCircle className="h-4 w-4" />,
-        iconBg: "bg-blue-100 dark:bg-blue-900/40",
-        iconColor: "text-blue-600 dark:text-blue-400",
-      },
-      {
-        value: ContactStatus.RESOLVED,
-        label: "Resolved",
-        description: "Issue has been resolved",
-        icon: <CheckCircle className="h-4 w-4" />,
-        iconBg: "bg-green-100 dark:bg-green-900/40",
-        iconColor: "text-green-600 dark:text-green-400",
-      },
-      {
-        value: ContactStatus.CLOSED,
-        label: "Closed",
-        description: "Conversation is closed",
-        icon: <XCircle className="h-4 w-4" />,
-        iconBg: "bg-red-100 dark:bg-red-900/40",
-        iconColor: "text-red-600 dark:text-red-400",
-      },
-    ];
-
-  const actionOptions: Array<{
-    value: ActionTaken | "";
-    label: string;
-    description: string;
-    icon: React.ReactNode;
-  }> = [
-      { value: "", label: "None", description: "No action", icon: <Ban className="h-4 w-4" /> },
-      { value: ActionTaken.REPLIED_VIA_EMAIL, label: "Email", description: "Send an email", icon: <Send className="h-4 w-4" /> },
-      { value: ActionTaken.CALLED_CUSTOMER, label: "Called", description: "Made a call", icon: <PhoneCall className="h-4 w-4" /> },
-      { value: ActionTaken.PROVIDED_PRODUCT_INFO, label: "Info", description: "Provide information", icon: <Package className="h-4 w-4" /> },
-      { value: ActionTaken.ISSUE_RESOLVED, label: "Resolved", description: "Mark as resolved", icon: <CheckCircle className="h-4 w-4" /> },
-      { value: ActionTaken.ORDER_PLACED, label: "Order", description: "Create an order", icon: <ShoppingCart className="h-4 w-4" /> },
-      { value: ActionTaken.REFUND_PROCESSED, label: "Refund", description: "Process a refund", icon: <RefreshCw className="h-4 w-4" /> },
-      { value: ActionTaken.OTHER, label: "Other", description: "Other action", icon: <FileText className="h-4 w-4" /> },
-    ];
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-neutral-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center">
-              <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Update Status</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{message.name}</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            disabled={isUpdating}
-            className="p-2 border border-gray-200 dark:border-neutral-700 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
-          >
-            <XCircle className="h-4 w-4 text-gray-500" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {/* Customer Info */}
-          <div className="bg-linear-to-br from-blue-50 to-indigo-50 dark:from-neutral-800 dark:to-neutral-850 rounded-xl p-4 border border-blue-100 dark:border-neutral-700">
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 bg-linear-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shrink-0">
-                <span className="text-base font-bold text-white">{message.name.charAt(0).toUpperCase()}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h4 className="font-bold text-base text-gray-900 dark:text-white">{message.name}</h4>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-0.5 text-xs text-gray-600 dark:text-gray-400">
-                      <a href={`mailto:${message.email}`} className="flex items-center gap-1 hover:text-blue-600">
-                        <Mail className="h-3 w-3" />
-                        <span className="truncate">{message.email}</span>
-                      </a>
-                      {message.mobile && (
-                        <a href={`tel:${message.mobile}`} className="flex items-center gap-1 hover:text-blue-600">
-                          <Phone className="h-3 w-3" />
-                          <span>{message.mobile}</span>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                  <span className="flex items-center gap-1.5 shrink-0 text-xs text-gray-500 dark:text-gray-400">
-                    <Calendar className="h-3.5 w-3.5" />
-                    {formatDate(message.createdAt)}
-                  </span>
-                </div>
-                <div className="mt-3 bg-white dark:bg-neutral-900 rounded-lg px-3.5 py-3 border border-gray-100 dark:border-neutral-700 flex gap-2.5">
-                  <span className="text-xl leading-none text-gray-300 dark:text-neutral-600 font-serif select-none" aria-hidden>&ldquo;</span>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 italic line-clamp-3">
-                    {message.message}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Current Status */}
-          <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
-              <AlertCircle className="h-6 w-6 text-amber-500" />
-            </div>
-            <div>
-              <p className="text-xs text-amber-700 dark:text-amber-400">Current Status</p>
-              <p className="text-base font-bold text-amber-700 dark:text-amber-300">{message.contactStatus.replace("_", " ")}</p>
-            </div>
-          </div>
-
-          {/* Status & Action Cards */}
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* New Status */}
-            <div className="rounded-xl border border-gray-200 dark:border-neutral-700 p-4">
-              <div className="flex items-start gap-2.5 mb-3">
-                <div className="w-7 h-7 bg-blue-100 dark:bg-blue-900/40 rounded-lg flex items-center justify-center shrink-0">
-                  <Tag className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">New Status</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Select a new status for this conversation</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                {statusOptions.map((option) => {
-                  const isSelected = selectedStatus === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      onClick={() => onUpdateStatus(option.value)}
-                      disabled={isUpdating}
-                      className={`flex items-center gap-2 p-3 rounded-xl border text-left transition-all ${isSelected
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-500"
-                        : "border-gray-200 dark:border-neutral-700 hover:border-blue-300 hover:bg-gray-50 dark:hover:bg-neutral-800"
-                        }`}
-                    >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${option.iconBg}`}>
-                        <span className={option.iconColor}>{option.icon}</span>
-                      </div>
-                      <span className="flex-1 min-w-0">
-                        <span className="block text-sm font-semibold text-gray-900 dark:text-white truncate">{option.label}</span>
-                        <span className="block text-[11px] text-gray-500 dark:text-gray-400 truncate">{option.description}</span>
-                      </span>
-                      <RadioDot selected={isSelected} />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Action */}
-            <div className="rounded-xl border border-gray-200 dark:border-neutral-700 p-4">
-              <div className="flex items-start gap-2.5 mb-3">
-                <div className="w-7 h-7 bg-blue-100 dark:bg-blue-900/40 rounded-lg flex items-center justify-center shrink-0">
-                  <Settings className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">Action</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Choose an action to take</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                {actionOptions.map((option) => {
-                  const isSelected = selectedAction === option.value;
-                  return (
-                    <button
-                      key={option.label}
-                      onMouseDown={(e) => { e.preventDefault(); onActionChange(option.value); }}
-                      disabled={isUpdating}
-                      className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all ${isSelected
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-500"
-                        : "border-gray-200 dark:border-neutral-700 hover:border-blue-300 hover:bg-gray-50 dark:hover:bg-neutral-800"
-                        }`}
-                    >
-                      <span className={`shrink-0 ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"}`}>
-                        {option.icon}
-                      </span>
-                      <span className="flex-1 min-w-0">
-                        <span className="block text-xs font-semibold text-gray-900 dark:text-white truncate">{option.label}</span>
-                        <span className="block text-[11px] text-gray-500 dark:text-gray-400 truncate">{option.description}</span>
-                      </span>
-                      <RadioDot selected={isSelected} />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
-                <span className="w-6 h-6 bg-blue-100 dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                  <FileText className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                </span>
-                Response Notes
-              </label>
-              <span className="text-xs text-gray-400">{responseNotes.length} chars</span>
-            </div>
-            <textarea
-              ref={responseNotesRef}
-              value={responseNotes}
-              onChange={(e) => onNotesChange(e.target.value)}
-              disabled={isUpdating}
-              placeholder="Add details about your response..."
-              rows={3}
-              className="w-full px-3 py-2.5 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y disabled:opacity-50"
-            />
-          </div>
-
-          {/* Loading */}
-          {isUpdating && (
-            <div className="flex items-center justify-center gap-2 py-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-              <span className="text-xs font-medium text-blue-900 dark:text-blue-100">Updating...</span>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-3 border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 flex items-center justify-between gap-2">
-          <p className="flex items-center gap-1.5 text-xs text-gray-500">
-            <Info className="h-3.5 w-3.5" />
-            Click status to save
-          </p>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={onClose} disabled={isUpdating}>Cancel</Button>
-            <Button size="sm" onClick={onSendMessage} disabled={isUpdating || !responseNotes.trim()}>
-              <Send className="mr-2 h-4 w-4" />
-              Send Message
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+/** "2 hours ago" style — falls back to date for anything older than a week. */
+const timeAgo = (dateString: string) => {
+  const seconds = Math.floor(
+    (Date.now() - new Date(dateString).getTime()) / 1000
   );
-}
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} day${days !== 1 ? "s" : ""} ago`;
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
 
+/** Display ticket number: id 1 → #TK-1001, id 42 → #TK-1042. */
+const ticketNo = (id: number) => `#TK-${1000 + id}`;
+
+const SOURCE_ICONS: Record<ContactSource, React.ComponentType<{ className?: string }>> = {
+  [ContactSource.WEBSITE]: Globe,
+  [ContactSource.FACEBOOK]: AtSign,
+  [ContactSource.PHONE]: Phone,
+  [ContactSource.EMAIL]: Mail,
+  [ContactSource.WHATSAPP]: MessageCircle,
+  [ContactSource.OTHER]: MoreHorizontal,
+};
+
+const SOURCE_BADGES: Record<ContactSource, { label: string; color: string }> = {
+  [ContactSource.WEBSITE]: {
+    label: "Website",
+    color:
+      "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  },
+  [ContactSource.FACEBOOK]: {
+    label: "Facebook",
+    color:
+      "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800",
+  },
+  [ContactSource.PHONE]: {
+    label: "Phone",
+    color:
+      "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+  },
+  [ContactSource.EMAIL]: {
+    label: "Email",
+    color:
+      "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
+  },
+  [ContactSource.WHATSAPP]: {
+    label: "WhatsApp",
+    color:
+      "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800",
+  },
+  [ContactSource.OTHER]: {
+    label: "Other",
+    color:
+      "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800",
+  },
+};
 interface ContactMessageListProps {
   initialPage: number;
   initialLimit: number;
@@ -401,6 +250,12 @@ export function ContactMessageList({
   const [statusFilter, setStatusFilter] = useState(
     getInitialParam("status") as string
   );
+  const [sourceFilter, setSourceFilter] = useState(
+    getInitialParam("source") as string
+  );
+  const [priorityFilter, setPriorityFilter] = useState(
+    getInitialParam("priority") as string
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(
@@ -411,20 +266,23 @@ export function ContactMessageList({
   const [limit] = useState(initialLimit);
   const [totalPages, setTotalPages] = useState(1);
 
-  const [isStatusUpdateModalOpen, setIsStatusUpdateModalOpen] = useState(false);
-  const [selectedMessageForStatusUpdate, setSelectedMessageForStatusUpdate] =
-    useState<ContactMessage | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-
-  // Status update form state
-  const [selectedActionTaken, setSelectedActionTaken] = useState<ActionTaken | "">("");
-  const [selectedStatus, setSelectedStatus] = useState<ContactStatus>(ContactStatus.PENDING);
-  const [responseNotes, setResponseNotes] = useState("");
-  const responseNotesRef = useRef<HTMLTextAreaElement>(null);
+  const [replyNotes, setReplyNotes] = useState("");
 
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedMessageForDetail, setSelectedMessageForDetail] =
     useState<ContactMessage | null>(null);
+
+  // Admin-logged ticket (phone / Facebook / WhatsApp walk-in inquiries)
+  const [isAddTicketOpen, setIsAddTicketOpen] = useState(false);
+  const [addTicketForm, setAddTicketForm] = useState({
+    name: "",
+    email: "",
+    mobile: "",
+    message: "",
+    source: ContactSource.PHONE,
+  });
+  const [isAddingTicket, setIsAddingTicket] = useState(false);
 
   // Statistics state
   const [statistics, setStatistics] = useState<{
@@ -453,8 +311,12 @@ export function ContactMessageList({
     if (searchQuery) params.set("search", searchQuery);
     if (statusFilter && statusFilter !== "all")
       params.set("status", statusFilter);
+    if (sourceFilter && sourceFilter !== "all")
+      params.set("source", sourceFilter);
+    if (priorityFilter && priorityFilter !== "all")
+      params.set("priority", priorityFilter);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname, currentPage, limit, searchQuery, statusFilter]);
+  }, [router, pathname, currentPage, limit, searchQuery, statusFilter, sourceFilter, priorityFilter]);
 
   const fetchStatistics = async () => {
     setIsLoadingStats(true);
@@ -487,6 +349,10 @@ export function ContactMessageList({
       if (searchQuery) params.append("search", searchQuery);
       if (statusFilter && statusFilter !== "all")
         params.append("status", statusFilter);
+      if (sourceFilter && sourceFilter !== "all")
+        params.append("source", sourceFilter);
+      if (priorityFilter && priorityFilter !== "all")
+        params.append("priority", priorityFilter);
 
       const response = await fetchDataPagination<{
         data: ContactMessage[];
@@ -514,7 +380,7 @@ export function ContactMessageList({
   useEffect(() => {
     fetchMessages();
     updateUrl();
-  }, [currentPage, limit, searchQuery, statusFilter]);
+  }, [currentPage, limit, searchQuery, statusFilter, sourceFilter, priorityFilter]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -541,39 +407,93 @@ export function ContactMessageList({
     }
   };
 
-  const handleStatusUpdateClick = (message: ContactMessage) => {
-    setSelectedMessageForStatusUpdate(message);
-    setSelectedActionTaken(message.actionTaken || "");
-    setSelectedStatus(message.contactStatus as ContactStatus);
-    setResponseNotes(message.responseNotes || "");
-    setIsStatusUpdateModalOpen(true);
-  };
-
   const handleViewDetails = (message: ContactMessage) => {
     setSelectedMessageForDetail(message);
+    setReplyNotes("");
     setIsDetailModalOpen(true);
   };
 
-  const handleStatusUpdate = async (newStatus: ContactStatus) => {
-    setSelectedStatus(newStatus);
+  const updateDetailMessage = (updated: ContactMessage) => {
+    setSelectedMessageForDetail(updated);
+    setMessages((prev) =>
+      prev.map((msg) => (msg.id === updated.id ? updated : msg))
+    );
   };
 
-  const handleSendMessage = async () => {
-    if (!selectedMessageForStatusUpdate || !responseNotes.trim()) return;
+  const handleStatusChange = async (status: ContactStatus) => {
+    if (!selectedMessageForDetail) return;
+    setIsUpdatingStatus(true);
+    try {
+      await patchData(`contact-messages/${selectedMessageForDetail.id}`, {
+        contactStatus: status,
+      });
+      updateDetailMessage({
+        ...selectedMessageForDetail,
+        contactStatus: status,
+      });
+      await fetchStatistics();
+      toast.success(`Ticket marked as ${status.replace("_", " ")}.`);
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status.");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleSourceChange = async (source: ContactSource) => {
+    if (!selectedMessageForDetail) return;
+    setIsUpdatingStatus(true);
+    try {
+      await patchData(`contact-messages/${selectedMessageForDetail.id}`, {
+        source,
+      });
+      updateDetailMessage({ ...selectedMessageForDetail, source });
+      toast.success(`Source set to ${source}.`);
+    } catch (error) {
+      console.error("Error updating source:", error);
+      toast.error("Failed to update source.");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handlePriorityChange = async (priority: ContactPriority) => {
+    if (!selectedMessageForDetail) return;
+    setIsUpdatingStatus(true);
+    try {
+      await patchData(`contact-messages/${selectedMessageForDetail.id}`, {
+        priority,
+      });
+      updateDetailMessage({ ...selectedMessageForDetail, priority });
+      toast.success(`Priority set to ${priority}.`);
+    } catch (error) {
+      console.error("Error updating priority:", error);
+      toast.error("Failed to update priority.");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  // Sends the admin reply by email and stores it as the response note.
+  const handleSendReply = async () => {
+    if (!selectedMessageForDetail || !replyNotes.trim()) return;
 
     setIsUpdatingStatus(true);
     try {
-      await postData(`contact-messages/${selectedMessageForStatusUpdate.id}/reply`, {
-        responseNotes: responseNotes.trim(),
-        contactStatus: selectedStatus,
-      });
-      await fetchMessages();
+      const result = await postData<{ data: ContactMessage }>(
+        `contact-messages/${selectedMessageForDetail.id}/reply`,
+        { responseNotes: replyNotes.trim() }
+      );
+      const updated = (result as any)?.data ?? result;
+      if (updated?.id) {
+        updateDetailMessage(updated as ContactMessage);
+      } else {
+        await fetchMessages();
+      }
       await fetchStatistics();
-      toast.success("Message sent successfully");
-      setIsStatusUpdateModalOpen(false);
-      setSelectedMessageForStatusUpdate(null);
-      setSelectedActionTaken("");
-      setResponseNotes("");
+      toast.success("Reply sent successfully");
+      setReplyNotes("");
     } catch (error) {
       console.error("Error sending contact response:", error);
       toast.error("Failed to send message. Please try again.");
@@ -585,7 +505,53 @@ export function ContactMessageList({
   const clearFilters = () => {
     setSearchQuery("");
     setStatusFilter("");
+    setSourceFilter("");
+    setPriorityFilter("");
     setCurrentPage(1);
+  };
+
+  const handleAddTicket = async () => {
+    const { name, email, mobile, message, source } = addTicketForm;
+    if (!name.trim() || !email.trim() || !mobile.trim() || !message.trim()) {
+      toast.error("All fields are required.");
+      return;
+    }
+    setIsAddingTicket(true);
+    try {
+      await postData("contact-messages", {
+        name: name.trim(),
+        email: email.trim(),
+        mobile: mobile.trim(),
+        message: message.trim(),
+        source,
+      });
+      toast.success("Ticket added.");
+      setIsAddTicketOpen(false);
+      setAddTicketForm({
+        name: "",
+        email: "",
+        mobile: "",
+        message: "",
+        source: ContactSource.PHONE,
+      });
+      await fetchMessages();
+      await fetchStatistics();
+    } catch (error) {
+      console.error("Error adding ticket:", error);
+      toast.error("Failed to add ticket.");
+    } finally {
+      setIsAddingTicket(false);
+    }
+  };
+
+
+  const getPriorityBadge = (priority: ContactMessage["priority"]) => {
+    if (!priority) return null;
+    const config = PRIORITY_BADGES[priority as ContactPriority];
+    if (!config) return null;
+    return (
+      <TicketBadge label={config.label} color={config.color} dot={config.dot} />
+    );
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -593,92 +559,18 @@ export function ContactMessageList({
     setCurrentPage(1);
   };
 
-  const getActionTakenBadge = (actionTaken: ActionTaken | null | undefined) => {
-    if (!actionTaken) return null;
-
-    const actionConfig: Record<ActionTaken, { icon: React.ReactNode; label: string; color: string }> = {
-      replied_via_email: {
-        icon: <Send className="h-3 w-3" />,
-        label: "Replied via Email",
-        color: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
-      },
-      called_customer: {
-        icon: <PhoneCall className="h-3 w-3" />,
-        label: "Called Customer",
-        color: "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
-      },
-      provided_product_info: {
-        icon: <Package className="h-3 w-3" />,
-        label: "Provided Product Info",
-        color: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
-      },
-      issue_resolved: {
-        icon: <CheckCircle className="h-3 w-3" />,
-        label: "Issue Resolved",
-        color: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800",
-      },
-      order_placed: {
-        icon: <ShoppingCart className="h-3 w-3" />,
-        label: "Order Placed",
-        color: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
-      },
-      refund_processed: {
-        icon: <RefreshCw className="h-3 w-3" />,
-        label: "Refund Processed",
-        color: "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
-      },
-      other: {
-        icon: <FileText className="h-3 w-3" />,
-        label: "Other",
-        color: "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800",
-      },
-    };
-
-    const config = actionConfig[actionTaken];
-    return (
-      <Badge variant="outline" className={`flex items-center gap-1 ${config.color}`}>
-        {config.icon}
-        {config.label}
-      </Badge>
-    );
-  };
-
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case ContactStatus.PENDING:
-        return (
-          <Badge variant="secondary" className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            Pending
-          </Badge>
-        );
-      case ContactStatus.IN_PROGRESS:
-        return (
-          <Badge variant="default" className="flex items-center gap-1">
-            <AlertCircle className="h-3 w-3" />
-            In Progress
-          </Badge>
-        );
-      case ContactStatus.RESOLVED:
-        return (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 text-green-600 border-green-600"
-          >
-            <CheckCircle className="h-3 w-3" />
-            Resolved
-          </Badge>
-        );
-      case ContactStatus.CLOSED:
-        return (
-          <Badge variant="destructive" className="flex items-center gap-1">
-            <XCircle className="h-3 w-3" />
-            Closed
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+    const config = STATUS_BADGES[status as ContactStatus];
+    if (!config) {
+      return (
+        <Badge variant="secondary" className="rounded-full border-0 capitalize">
+          {status?.replace("_", " ")}
+        </Badge>
+      );
     }
+    return (
+      <TicketBadge label={config.label} color={config.color} dot={config.dot} />
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -805,6 +697,28 @@ export function ContactMessageList({
             </button>
           </Badge>
         )}
+        {sourceFilter && sourceFilter !== "all" && (
+          <Badge
+            variant="outline"
+            className="flex items-center gap-1 px-3 py-1"
+          >
+            Source: {sourceFilter}
+            <button onClick={() => setSourceFilter("")} className="ml-1">
+              <XCircle className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
+        {priorityFilter && priorityFilter !== "all" && (
+          <Badge
+            variant="outline"
+            className="flex items-center gap-1 px-3 py-1 capitalize"
+          >
+            Priority: {priorityFilter}
+            <button onClick={() => setPriorityFilter("")} className="ml-1">
+              <XCircle className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
         <Button
           variant="ghost"
           size="sm"
@@ -817,104 +731,130 @@ export function ContactMessageList({
     );
   };
 
-  const renderTableView = () => (
 
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead className="hidden md:table-cell">Contact Info</TableHead>
-          <TableHead>Message</TableHead>
-          <TableHead className="hidden lg:table-cell">Status</TableHead>
-          <TableHead className="hidden lg:table-cell">Date</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {messages.map((message) => (
-          <TableRow key={message.id}>
-            <TableCell className="font-medium">
-              <div>
-                <div className="font-semibold">{message.name}</div>
-                <div className="text-xs text-muted-foreground md:hidden">
-                  {message.email}
-                </div>
-              </div>
-            </TableCell>
-            <TableCell className="hidden md:table-cell">
-              <div className="space-y-1">
-                <div className="flex items-center gap-1 text-sm">
-                  <Mail className="h-3 w-3" />
-                  {message.email}
-                </div>
-                {message.mobile && (
-                  <div className="flex items-center gap-1 text-sm">
-                    <Phone className="h-3 w-3" />
-                    {message.mobile}
-                  </div>
+  // Card-style ticket list (first line of the message acts as the subject).
+  const renderTicketList = () => (
+    <div className="rounded-xl border border-gray-200 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden bg-white dark:bg-neutral-900">
+      {messages.map((message) => {
+        const firstLine = message.message.split("\n")[0] ?? "";
+        const subject = firstLine.length > 70 ? `${firstLine.slice(0, 70)}…` : firstLine;
+        const preview = message.message.length > 120 ? `${message.message.slice(0, 120)}…` : message.message;
+
+        return (
+          <div
+            key={message.id}
+            onClick={() => handleViewDetails(message)}
+            className="flex items-start gap-4 px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/60 cursor-pointer transition-colors"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-sm font-bold text-blue-700 dark:text-blue-300">
+              {message.name?.charAt(0).toUpperCase() || "?"}
+            </span>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                {subject}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                {preview}
+              </p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5 flex items-center gap-1.5 flex-wrap">
+                <span className="font-medium">{ticketNo(message.id)}</span>
+                <span>•</span>
+                <span>{message.name}</span>
+                {message.source && (
+                  <>
+                    <span>•</span>
+                    <span className="capitalize">{message.source}</span>
+                  </>
                 )}
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="max-w-xs truncate" title={message.message}>
-                {message.message}
-              </div>
-            </TableCell>
-            <TableCell className="hidden lg:table-cell">
-              {getStatusBadge(message.contactStatus)}
-            </TableCell>
-            <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
-              {formatDate(message.createdAt)}
-            </TableCell>
-            <TableCell className="text-right">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Open menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleViewDetails(message)}>
-                    <Eye className="mr-2 h-4 w-4" /> View Details
-                  </DropdownMenuItem>
-                  {can(MENU_URL, "canEdit") && (
-                    <DropdownMenuItem
-                      onClick={() => handleStatusUpdateClick(message)}
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4" /> Update Status
-                    </DropdownMenuItem>
-                  )}
-                  {can(MENU_URL, "canDelete") && (
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(message)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+              </p>
+            </div>
 
+            <div className="shrink-0 flex flex-col items-end gap-1.5">
+              <span className="text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                {timeAgo(message.createdAt)}
+              </span>
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                {getPriorityBadge(message.priority)}
+                {getStatusBadge(message.contactStatus)}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 
   return (
     <>
       <div className="w-full ">
         <PageHeader
-          title="Contact Messages"
-          description="Manage customer inquiries and messages"
+          title="Support Tickets"
+          description="Customer inquiries from all channels — assign, prioritize and resolve"
         />
 
         {renderStatisticsCards()}
 
+        {/* Status tabs (mockup style) */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          {[
+            {
+              value: "all",
+              label: "All",
+              count: statistics.total,
+              colors: "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900",
+              activeColors: "bg-slate-800 text-white hover:bg-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-200",
+            },
+            {
+              value: ContactStatus.PENDING,
+              label: "Open",
+              count: statistics.byStatus.pending,
+              colors: "bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70",
+              activeColors: "bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-400 dark:text-amber-950 dark:hover:bg-amber-400",
+            },
+            {
+              value: ContactStatus.IN_PROGRESS,
+              label: "In Progress",
+              count: statistics.byStatus.in_progress,
+              colors: "bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/70",
+              activeColors: "bg-blue-600 text-white hover:bg-blue-600 dark:bg-blue-400 dark:text-blue-950 dark:hover:bg-blue-400",
+            },
+            {
+              value: ContactStatus.RESOLVED,
+              label: "Resolved",
+              count: statistics.byStatus.resolved,
+              colors: "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/70",
+              activeColors: "bg-emerald-600 text-white hover:bg-emerald-600 dark:bg-emerald-400 dark:text-emerald-950 dark:hover:bg-emerald-400",
+            },
+            {
+              value: ContactStatus.CLOSED,
+              label: "Closed",
+              count: statistics.byStatus.closed,
+              colors: "bg-rose-50 text-rose-800 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/70",
+              activeColors: "bg-rose-600 text-white hover:bg-rose-600 dark:bg-rose-400 dark:text-rose-950 dark:hover:bg-rose-400",
+            },
+          ].map((tab) => {
+            const active =
+              statusFilter === tab.value ||
+              (tab.value === "all" && !statusFilter);
+            return (
+              <button
+                key={tab.value}
+                onClick={() => {
+                  setStatusFilter(tab.value === "all" ? "" : tab.value);
+                  setCurrentPage(1);
+                }}
+                aria-pressed={active}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 ${active ? tab.activeColors : tab.colors}`}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            );
+          })}
+        </div>
+
         <div className="space-y-4">
-          <div className="flex flex-row justify-between gap-2">
+          <div className="flex flex-row justify-between gap-2 pt-3">
             <div className="relative w-full sm:max-w-xs min-w-0">
               <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -926,6 +866,15 @@ export function ContactMessageList({
               />
             </div>
             <div className="flex items-center gap-2">
+              {can(MENU_URL, "canCreate") && (
+                <Button
+                  size="sm"
+                  onClick={() => setIsAddTicketOpen(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Ticket
+                </Button>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -1012,6 +961,78 @@ export function ContactMessageList({
                         </button>
                       </div>
                     </div>
+
+                    {/* Source channel */}
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">
+                        Source
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {Object.values(ContactSource).map((source) => (
+                          <button
+                            key={source}
+                            onClick={() => {
+                              setSourceFilter(source);
+                              setCurrentPage(1);
+                            }}
+                            className={`text-xs py-1.5 px-2 rounded-md border capitalize ${sourceFilter === source
+                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                              }`}
+                          >
+                            {source}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => {
+                            setSourceFilter("");
+                            setCurrentPage(1);
+                          }}
+                          className={`text-xs py-1.5 px-2 rounded-md border ${sourceFilter === ""
+                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
+                        >
+                          All
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Priority */}
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">
+                        Priority
+                      </label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {Object.values(ContactPriority).map((priority) => (
+                          <button
+                            key={priority}
+                            onClick={() => {
+                              setPriorityFilter(priority);
+                              setCurrentPage(1);
+                            }}
+                            className={`text-xs py-1.5 px-2 rounded-md border capitalize ${priorityFilter === priority
+                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                              }`}
+                          >
+                            {priority}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => {
+                            setPriorityFilter("");
+                            setCurrentPage(1);
+                          }}
+                          className={`text-xs py-1.5 px-2 rounded-md border ${priorityFilter === ""
+                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
+                        >
+                          All
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1025,7 +1046,7 @@ export function ContactMessageList({
           ) : messages.length === 0 ? (
             renderEmptyState()
           ) : (
-            <div className="mt-6">{renderTableView()}</div>
+            <div className="mt-6">{renderTicketList()}</div>
           )}
         </div>
 
@@ -1051,184 +1072,488 @@ export function ContactMessageList({
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleDelete}
       />
-      <StatusUpdateModal
-        isOpen={isStatusUpdateModalOpen}
-        message={selectedMessageForStatusUpdate}
-        selectedAction={selectedActionTaken}
-        selectedStatus={selectedStatus}
-        responseNotes={responseNotes}
-        isUpdating={isUpdatingStatus}
-        onClose={() => {
-          setIsStatusUpdateModalOpen(false);
-          setSelectedActionTaken("");
-          setResponseNotes("");
-        }}
-        onUpdateStatus={handleStatusUpdate}
-        onSendMessage={handleSendMessage}
-        onActionChange={setSelectedActionTaken}
-        onNotesChange={setResponseNotes}
-        responseNotesRef={responseNotesRef}
-        formatDate={formatDate}
-      />
+
+      {/* Add Ticket Dialog */}
+      {isAddTicketOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-neutral-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  Add Ticket
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Log an inquiry that arrived by phone, Facebook, WhatsApp, etc.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAddTicketOpen(false)}
+                className="p-2 border border-gray-200 dark:border-neutral-700 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800"
+              >
+                <XCircle className="h-4 w-4 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Source</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {Object.values(ContactSource).map((source) => (
+                    <button
+                      key={source}
+                      type="button"
+                      onClick={() =>
+                        setAddTicketForm({ ...addTicketForm, source })
+                      }
+                      className={`text-xs py-2 px-2 rounded-md border capitalize ${addTicketForm.source === source
+                        ? "bg-blue-50 border-blue-500 text-blue-600 dark:bg-blue-950/40"
+                        : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                        }`}
+                    >
+                      {source}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Name</label>
+                <Input
+                  value={addTicketForm.name}
+                  onChange={(e) =>
+                    setAddTicketForm({ ...addTicketForm, name: e.target.value })
+                  }
+                  placeholder="Customer name"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Email</label>
+                <Input
+                  type="email"
+                  value={addTicketForm.email}
+                  onChange={(e) =>
+                    setAddTicketForm({ ...addTicketForm, email: e.target.value })
+                  }
+                  placeholder="customer@example.com"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Mobile</label>
+                <Input
+                  value={addTicketForm.mobile}
+                  onChange={(e) =>
+                    setAddTicketForm({
+                      ...addTicketForm,
+                      mobile: e.target.value,
+                    })
+                  }
+                  placeholder="+8801XXXXXXXXX"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Message</label>
+                <textarea
+                  value={addTicketForm.message}
+                  onChange={(e) =>
+                    setAddTicketForm({
+                      ...addTicketForm,
+                      message: e.target.value,
+                    })
+                  }
+                  rows={4}
+                  placeholder="What the customer asked..."
+                  className="w-full px-3 py-2.5 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-3 border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAddTicketOpen(false)}
+                disabled={isAddingTicket}
+              >
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleAddTicket} disabled={isAddingTicket}>
+                {isAddingTicket ? "Saving..." : "Save Ticket"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Message Detail Modal */}
       {isDetailModalOpen && selectedMessageForDetail && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white dark:bg-neutral-900 border-b px-6 py-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Message Details</h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsDetailModalOpen(false)}
-              >
-                <XCircle className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Customer Info */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                  Customer Information
-                </h4>
-                <div className="space-y-2">
-                  <div className="flex items-start gap-3">
-                    <span className="text-sm font-medium min-w-25">Name:</span>
-                    <span className="text-sm">{selectedMessageForDetail.name}</span>
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl w-full max-w-7xl max-h-[94vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white dark:bg-neutral-900 border-b px-6 py-4 flex items-center justify-between z-10 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsDetailModalOpen(false)}
+                  aria-label="Back"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
+                  <MessageSquare className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                      {ticketNo(selectedMessageForDetail.id)}
+                    </h3>
+                    {getPriorityBadge(selectedMessageForDetail.priority)}
                   </div>
-                  <div className="flex items-start gap-3">
-                    <Mail className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                    <a
-                      href={`mailto:${selectedMessageForDetail.email}`}
-                      className="text-sm text-blue-600 hover:underline"
-                    >
-                      {selectedMessageForDetail.email}
-                    </a>
-                  </div>
-                  {selectedMessageForDetail.mobile && (
-                    <div className="flex items-start gap-3">
-                      <Phone className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                      <a
-                        href={`tel:${selectedMessageForDetail.mobile}`}
-                        className="text-sm text-blue-600 hover:underline"
-                      >
-                        {selectedMessageForDetail.mobile}
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Message */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                  Message
-                </h4>
-                <div className="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4">
-                  <p className="text-sm whitespace-pre-wrap">
-                    {selectedMessageForDetail.message}
+                  <p className="text-xs text-gray-400">
+                    Created on {formatDate(selectedMessageForDetail.createdAt)}
                   </p>
                 </div>
               </div>
-
-              {/* Status and Dates */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                  Status & Timeline
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-xs text-muted-foreground block mb-1">
-                      Current Status
-                    </span>
-                    {getStatusBadge(selectedMessageForDetail.contactStatus)}
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground block mb-1">
-                      Received
-                    </span>
-                    <span className="text-sm">
-                      {formatDate(selectedMessageForDetail.createdAt)}
-                    </span>
-                  </div>
-                </div>
-                {selectedMessageForDetail.updatedAt !== selectedMessageForDetail.createdAt && (
-                  <div className="text-xs text-muted-foreground">
-                    Last updated: {formatDate(selectedMessageForDetail.updatedAt)}
-                  </div>
-                )}
-              </div>
-
-              {/* Action Taken */}
-              {selectedMessageForDetail.actionTaken && (
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                    Action Taken
-                  </h4>
-                  <div>
-                    {getActionTakenBadge(selectedMessageForDetail.actionTaken)}
-                  </div>
-                </div>
-              )}
-
-              {/* Response Notes */}
-              {selectedMessageForDetail.responseNotes && (
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                    Response Notes
-                  </h4>
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                    <p className="text-sm whitespace-pre-wrap">
-                      {selectedMessageForDetail.responseNotes}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Handler Info */}
-              {selectedMessageForDetail.handledBy && (
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                    Assigned Handler
-                  </h4>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">
-                      {selectedMessageForDetail.handledBy}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Quick Actions */}
-              <div className="flex flex-wrap gap-3 pt-4 border-t">
-                {can(MENU_URL, "canEdit") && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setIsDetailModalOpen(false);
-                      handleStatusUpdateClick(selectedMessageForDetail);
-                    }}
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Update Status
-                  </Button>
-                )}
+              <div className="flex items-center gap-2">
                 {can(MENU_URL, "canDelete") && (
                   <Button
                     variant="outline"
                     size="sm"
+                    className="text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/40"
                     onClick={() => {
                       setIsDetailModalOpen(false);
                       handleDeleteClick(selectedMessageForDetail);
                     }}
-                    className="text-red-600 hover:text-red-700"
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Message
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
                   </Button>
                 )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsDetailModalOpen(false)}
+                  aria-label="Close"
+                >
+                  <XCircle className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-6 grid lg:grid-cols-3 gap-5">
+              {/* LEFT — main ticket area */}
+              <div className="lg:col-span-2 space-y-5">
+                {/* Customer card */}
+                <div className="rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50/60 dark:bg-neutral-800/50 p-4 flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-base font-bold text-blue-700 dark:text-blue-300">
+                      {selectedMessageForDetail.name?.charAt(0).toUpperCase() || "?"}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-base font-bold text-gray-900 dark:text-white truncate">
+                        {selectedMessageForDetail.name}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        <a
+                          href={`mailto:${selectedMessageForDetail.email}`}
+                          className="flex items-center gap-1 hover:text-blue-600"
+                        >
+                          <Mail className="h-3 w-3" />
+                          {selectedMessageForDetail.email}
+                        </a>
+                        {selectedMessageForDetail.mobile && (
+                          <>
+                            <span className="text-gray-300">|</span>
+                            <a
+                              href={`tel:${selectedMessageForDetail.mobile}`}
+                              className="flex items-center gap-1 hover:text-blue-600"
+                            >
+                              <Phone className="h-3 w-3" />
+                              {selectedMessageForDetail.mobile}
+                            </a>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <p className="text-[10px] text-gray-400">Request Time</p>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        {formatDate(selectedMessageForDetail.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status / Source / Priority controls */}
+                <div className="rounded-xl border border-gray-200 dark:border-neutral-700 p-4 space-y-4">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 w-20 shrink-0">
+                      <FileText className="h-4 w-4 text-gray-400" /> Status
+                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {Object.values(ContactStatus).map((status) => {
+                        const active =
+                          selectedMessageForDetail.contactStatus === status;
+                        return (
+                          <button
+                            key={status}
+                            onClick={() => handleStatusChange(status)}
+                            disabled={isUpdatingStatus || !can(MENU_URL, "canEdit")}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm transition-colors disabled:opacity-50 ${active
+                              ? "bg-blue-50 border-blue-400 text-blue-600 dark:bg-blue-950/40 font-medium"
+                              : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:border-blue-300"
+                              }`}
+                          >
+                            {active && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            )}
+                            {status === ContactStatus.PENDING
+                              ? "Open"
+                              : status === ContactStatus.IN_PROGRESS
+                                ? "In progress"
+                                : status}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 w-20 shrink-0">
+                      <Share2 className="h-4 w-4 text-gray-400" /> Source
+                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {Object.values(ContactSource).map((source) => {
+                        const active = selectedMessageForDetail.source === source;
+                        const Icon = SOURCE_ICONS[source];
+                        return (
+                          <button
+                            key={source}
+                            onClick={() => handleSourceChange(source)}
+                            disabled={isUpdatingStatus || !can(MENU_URL, "canEdit")}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm capitalize transition-colors disabled:opacity-50 ${active
+                              ? "bg-teal-50 border-teal-400 text-teal-700 dark:bg-teal-950/40 font-medium"
+                              : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:border-teal-300"
+                              }`}
+                          >
+                            {active && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            )}
+                            <Icon className="h-3.5 w-3.5" />
+                            {source}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 w-20 shrink-0">
+                      <Flag className="h-4 w-4 text-gray-400" /> Priority
+                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {Object.values(ContactPriority).map((priority) => {
+                        const active =
+                          (selectedMessageForDetail.priority ?? "medium") ===
+                          priority;
+                        return (
+                          <button
+                            key={priority}
+                            onClick={() => handlePriorityChange(priority)}
+                            disabled={isUpdatingStatus || !can(MENU_URL, "canEdit")}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm capitalize transition-colors disabled:opacity-50 ${active
+                              ? "bg-amber-50 border-amber-400 text-amber-700 dark:bg-amber-950/40 font-medium"
+                              : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:border-amber-300"
+                              }`}
+                          >
+                            {active && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            )}
+                            {priority}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+              {/* Conversation */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  Conversation
+                </h4>
+
+                {/* Customer message */}
+                <div className="flex items-start gap-2.5">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 dark:bg-neutral-700 text-xs font-bold text-gray-600 dark:text-gray-300">
+                    {selectedMessageForDetail.name?.charAt(0).toUpperCase() || "?"}
+                  </span>
+                  <div className="flex-1 min-w-0 rounded-xl bg-gray-50 dark:bg-neutral-800 border border-gray-100 dark:border-neutral-700 px-4 py-3">
+                    <p className="text-xs font-semibold text-gray-900 dark:text-white">
+                      {selectedMessageForDetail.name}
+                      <span className="ml-2 font-normal text-gray-400">
+                        {timeAgo(selectedMessageForDetail.createdAt)}
+                      </span>
+                    </p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap mt-1">
+                      {selectedMessageForDetail.message}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Admin reply (latest response) */}
+                {selectedMessageForDetail.responseNotes && (
+                  <div className="flex items-start gap-2.5">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-xs font-bold text-blue-700 dark:text-blue-300">
+                      MH
+                    </span>
+                    <div className="flex-1 min-w-0 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 px-4 py-3">
+                      <p className="text-xs font-semibold text-gray-900 dark:text-white">
+                        Support
+                        {selectedMessageForDetail.handledBy
+                          ? ` (${selectedMessageForDetail.handledBy})`
+                          : ""}
+                        <span className="ml-2 font-normal text-gray-400">
+                          {timeAgo(selectedMessageForDetail.updatedAt)}
+                        </span>
+                      </p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap mt-1">
+                        {selectedMessageForDetail.responseNotes}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Reply box */}
+              {can(MENU_URL, "canEdit") && (
+                <div className="rounded-xl border border-gray-200 dark:border-neutral-700 overflow-hidden">
+                  <div className="px-4 pt-3 flex items-center gap-4 border-b border-gray-100 dark:border-neutral-800">
+                    <span className="text-sm font-semibold text-blue-600 border-b-2 border-blue-600 pb-2">
+                      Reply
+                    </span>
+                  </div>
+                  <div className="p-3">
+                    <textarea
+                      value={replyNotes}
+                      onChange={(e) => setReplyNotes(e.target.value)}
+                      disabled={isUpdatingStatus}
+                      rows={3}
+                      placeholder="Type your reply — it will be emailed to the customer..."
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y disabled:opacity-50"
+                    />
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-[11px] text-gray-400">
+                        Emails the customer and saves the response.
+                      </span>
+                      <Button
+                        size="sm"
+                        onClick={handleSendReply}
+                        disabled={isUpdatingStatus || !replyNotes.trim()}
+                      >
+                        <Send className="mr-2 h-4 w-4" />
+                        Send Reply
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              </div>
+
+              {/* RIGHT — sidebar */}
+              <div className="space-y-5">
+                {/* Ticket Information */}
+                <div className="rounded-xl border border-gray-200 dark:border-neutral-700 p-4">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white mb-3">
+                    <Info className="h-4 w-4 text-blue-500" /> Ticket Information
+                  </h4>
+                  <dl className="space-y-2.5 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                        <MessageSquare className="h-3.5 w-3.5" /> Ticket ID
+                      </dt>
+                      <dd className="font-medium text-gray-900 dark:text-white">
+                        {ticketNo(selectedMessageForDetail.id)}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-gray-500 dark:text-gray-400">Status</dt>
+                      <dd>{getStatusBadge(selectedMessageForDetail.contactStatus)}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                        <Flag className="h-3.5 w-3.5" /> Priority
+                      </dt>
+                      <dd>{getPriorityBadge(selectedMessageForDetail.priority)}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                        <Share2 className="h-3.5 w-3.5" /> Source
+                      </dt>
+                      <dd>
+                        <span className="text-sm capitalize text-gray-900 dark:text-white">
+                          {selectedMessageForDetail.source ?? "—"}
+                        </span>
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                        <Calendar className="h-3.5 w-3.5" /> Created At
+                      </dt>
+                      <dd className="text-xs text-gray-700 dark:text-gray-300">
+                        {formatDate(selectedMessageForDetail.createdAt)}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                        <RefreshCw className="h-3.5 w-3.5" /> Updated At
+                      </dt>
+                      <dd className="text-xs text-gray-700 dark:text-gray-300">
+                        {formatDate(selectedMessageForDetail.updatedAt)}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                {/* Customer */}
+                <div className="rounded-xl border border-gray-200 dark:border-neutral-700 p-4">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white mb-3">
+                    <User className="h-4 w-4 text-blue-500" /> Customer
+                  </h4>
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-sm font-bold text-blue-700 dark:text-blue-300">
+                      {selectedMessageForDetail.name?.charAt(0).toUpperCase() || "?"}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                        {selectedMessageForDetail.name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {selectedMessageForDetail.email}
+                      </p>
+                      {selectedMessageForDetail.mobile && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {selectedMessageForDetail.mobile}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {selectedMessageForDetail.userId && (
+                    <Link
+                      href={`/admin/crm/customers/${selectedMessageForDetail.userId}`}
+                      className="mt-3 flex items-center justify-between rounded-lg border border-gray-200 dark:border-neutral-700 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800"
+                    >
+                      <span className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-gray-400" />
+                        View Customer Profile
+                      </span>
+                      <span className="text-gray-400">›</span>
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
           </div>

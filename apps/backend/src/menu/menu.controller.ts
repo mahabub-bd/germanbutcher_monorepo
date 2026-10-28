@@ -77,6 +77,12 @@ export class MenuController {
     description: 'Filter by admin menu status',
   })
   @ApiQuery({
+    name: 'isMainMenu',
+    required: false,
+    type: Boolean,
+    description: 'Filter by main menu status',
+  })
+  @ApiQuery({
     name: 'isActive',
     required: false,
     type: Boolean,
@@ -128,6 +134,7 @@ export class MenuController {
     @Query('search') search: string,
     @Query('page') page = '1',
     @Query('limit') limit = '10',
+    @Query('isMainMenu') isMainMenu: string,
     @Res() res: Response,
   ) {
     try {
@@ -139,6 +146,12 @@ export class MenuController {
             : undefined;
       const isActiveBool =
         isActive === 'true' ? true : isActive === 'false' ? false : undefined;
+      const isMainMenuBool =
+        isMainMenu === 'true'
+          ? true
+          : isMainMenu === 'false'
+            ? false
+            : undefined;
 
       const pageNum = Math.max(parseInt(page, 10), 1);
       const limitNum = Math.max(parseInt(limit, 10), 1);
@@ -149,6 +162,7 @@ export class MenuController {
         search,
         pageNum,
         limitNum,
+        isMainMenuBool,
       );
 
       res.status(HttpStatus.OK).json({

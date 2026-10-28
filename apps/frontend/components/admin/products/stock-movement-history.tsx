@@ -2,13 +2,23 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatDateTime } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
 import {
   ArrowRight,
+  Calendar,
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Package,
   PackageMinus,
   PackagePlus,
   RefreshCw,
@@ -41,108 +51,154 @@ type MovementKind = StockMovementEntry["type"];
 
 const KIND_META: Record<
   MovementKind,
-  { label: string; badgeClass: string; icon: React.ReactNode }
+  { label: string; iconClass: string; badgeClass: string; icon: React.ReactNode }
 > = {
   purchase: {
     label: "Purchase",
+    iconClass: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
     badgeClass:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
-    icon: <PackagePlus className="h-3 w-3" />,
+      "bg-emerald-100 text-emerald-700 border-0 dark:bg-emerald-500/15 dark:text-emerald-400",
+    icon: <PackagePlus className="h-4 w-4" />,
   },
   purchase_reversal: {
     label: "Purchase Reversed",
-    badgeClass: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
-    icon: <PackageMinus className="h-3 w-3" />,
+    iconClass: "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400",
+    badgeClass: "bg-red-100 text-red-700 border-0 dark:bg-red-500/15 dark:text-red-400",
+    icon: <PackageMinus className="h-4 w-4" />,
   },
   order_sale: {
     label: "Sale",
-    badgeClass:
-      "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
-    icon: <ShoppingCart className="h-3 w-3" />,
+    iconClass: "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400",
+    badgeClass: "bg-blue-100 text-blue-700 border-0 dark:bg-blue-500/15 dark:text-blue-400",
+    icon: <ShoppingCart className="h-4 w-4" />,
   },
   order_cancel: {
     label: "Order Cancelled",
+    iconClass: "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400",
     badgeClass:
-      "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
-    icon: <Undo2 className="h-3 w-3" />,
+      "bg-amber-100 text-amber-700 border-0 dark:bg-amber-500/15 dark:text-amber-400",
+    icon: <Undo2 className="h-4 w-4" />,
   },
   adjustment: {
     label: "Adjustment",
+    iconClass: "bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400",
     badgeClass:
-      "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-400",
-    icon: <SlidersHorizontal className="h-3 w-3" />,
+      "bg-violet-100 text-violet-700 border-0 dark:bg-violet-500/15 dark:text-violet-400",
+    icon: <SlidersHorizontal className="h-4 w-4" />,
   },
 };
 
-function MovementEntry({
+function formatReference(entry: StockMovementEntry) {
+  if (!entry.referenceType) return null;
+  const label = entry.referenceType
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+  return entry.referenceId ? `${label} #${entry.referenceId}` : label;
+}
+
+function MovementRow({
   entry,
+  index,
   showProduct,
 }: {
   entry: StockMovementEntry;
+  index: number;
   showProduct: boolean;
 }) {
   const meta = KIND_META[entry.type];
   const isIncrease = entry.quantity > 0;
+  const reference = formatReference(entry);
 
   return (
-    <li className="relative pl-10 pb-6 last:pb-0">
-      {/* Timeline line + dot */}
-      <span className="absolute left-[15px] top-6 bottom-0 w-px bg-border last:hidden" />
-      <span className="absolute left-2 top-1 flex size-7 items-center justify-center rounded-full border bg-muted">
-        {meta.icon}
-      </span>
-
-      {/* Single-line layout on desktop; stacks vertically on mobile */}
-      <div className="flex flex-col items-start gap-1.5 md:flex-row md:flex-wrap md:items-center md:gap-2">
-        <Badge className={`gap-1 border-0 ${meta.badgeClass}`}>
-          {meta.icon}
-          {meta.label}
-        </Badge>
+    <TableRow className="border-b">
+      <TableCell className="py-3 pl-4 text-sm text-muted-foreground sm:pl-6">
+        {index}
+      </TableCell>
+      <TableCell className="py-3">
+        <div className="flex items-center gap-2">
+          <span
+            className={`flex size-9 shrink-0 items-center justify-center rounded-full ${meta.iconClass}`}
+          >
+            {meta.icon}
+          </span>
+          <Badge className={`px-2.5 py-1 text-xs font-semibold ${meta.badgeClass}`}>
+            {meta.label}
+          </Badge>
+        </div>
+      </TableCell>
+      <TableCell className="py-3">
         <span
-          className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold whitespace-nowrap ${
+          className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ${
             isIncrease
-              ? "text-emerald-600 dark:text-emerald-400"
-              : "text-red-600 dark:text-red-400"
+              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
+              : "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400"
           }`}
         >
           {isIncrease ? "+" : ""}
           {entry.quantity}
         </span>
-        <span className="inline-flex items-center gap-1 rounded-md border bg-muted/50 px-2 py-0.5 text-xs whitespace-nowrap">
-          <span className="text-muted-foreground">Stock:</span>
-          {entry.stockBefore}
-          <ArrowRight className="size-3 text-muted-foreground" />
-          <span className="font-medium">{entry.stockAfter}</span>
-        </span>
-        {showProduct &&
-          (entry.productId ? (
+      </TableCell>
+      <TableCell className="py-3">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-sm font-medium text-muted-foreground">
+            {entry.stockBefore}
+          </span>
+          <ArrowRight className="size-3.5 text-muted-foreground" />
+          <span
+            className={`inline-flex items-center rounded-md px-2 py-0.5 text-sm font-bold ${
+              isIncrease
+                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
+                : "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400"
+            }`}
+          >
+            {entry.stockAfter}
+          </span>
+        </div>
+      </TableCell>
+      {showProduct && (
+        <TableCell className="max-w-40 truncate py-3">
+          {entry.productId ? (
             <Link
               href={`/admin/products/${entry.productId}/view`}
-              className="max-w-[220px] truncate text-sm font-medium hover:underline"
+              className="font-bold hover:underline"
             >
               {entry.productName}
             </Link>
           ) : (
-            <span className="max-w-[220px] truncate text-sm font-medium">
-              {entry.productName}
-            </span>
-          ))}
-
-        {entry.note && (
-          <span className="max-w-[260px] truncate text-xs text-muted-foreground">
-            {entry.note}
-          </span>
+            <span className="font-bold">{entry.productName}</span>
+          )}
+        </TableCell>
+      )}
+      <TableCell className="hidden max-w-80 py-3 xl:table-cell">
+        {/* Prefer the backend note (already contains the order/purchase number
+            and reason); the generated "Order #id" label is only a fallback. */}
+        {entry.note || reference ? (
+          <p className="truncate">{entry.note ?? reference}</p>
+        ) : (
+          <span className="text-muted-foreground">—</span>
         )}
-
-        <span className="text-sm text-muted-foreground whitespace-nowrap md:ml-auto">
-          {formatDateTime(entry.createdAt)}
-        </span>
-        <span className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
-          <User className="size-3 shrink-0" />
+      </TableCell>
+      <TableCell className="py-3">
+        <div className="space-y-1">
+          <span className="flex items-center gap-1.5 text-muted-foreground">
+            <Calendar className="size-3.5 shrink-0" />
+            {formatDateTime(entry.createdAt)}
+          </span>
+          {/* User column is hidden below xl; show it here instead */}
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground xl:hidden">
+            <User className="size-3 shrink-0" />
+            {entry.userName || "System"}
+          </span>
+        </div>
+      </TableCell>
+      <TableCell className="hidden py-3 pr-4 sm:pr-6 xl:table-cell">
+        <span className="flex items-center gap-1.5 text-muted-foreground">
+          <User className="size-3.5 shrink-0" />
           {entry.userName || "System"}
         </span>
-      </div>
-    </li>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -197,44 +253,93 @@ export default function StockMovementHistory({
   }, [fetchMovements]);
 
   return (
-    <div className="space-y-4">
+    <div className="rounded-2xl border bg-card shadow-sm">
+      {/* Card header (all-products page only; product view is already inside a titled section) */}
       {!productId && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {totalItems} stock{" "}
-            {totalItems === 1 ? "movement" : "movements"} across all products
-          </p>
-          <Button variant="outline" size="sm" onClick={fetchMovements}>
+        <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
+              <Package className="size-5" />
+            </span>
+            <h2 className="text-lg font-bold sm:text-xl">
+              <span className="text-blue-600 dark:text-blue-400">
+                {totalItems}
+              </span>{" "}
+              stock {totalItems === 1 ? "movement" : "movements"} across all
+              products
+            </h2>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchMovements}
+            className="rounded-lg"
+          >
             <RefreshCw className="mr-2 h-4 w-4" /> Refresh
           </Button>
         </div>
       )}
 
+      {/* Table */}
       {isLoading ? (
         <div className="flex items-center justify-center py-10">
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
       ) : entries.length === 0 ? (
-        <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-10 text-center">
-          <PackagePlus className="h-10 w-10 text-muted-foreground/50 mb-3" />
+        <div className="flex flex-col items-center justify-center border-t border-dashed p-10 text-center">
+          <PackagePlus className="mb-3 h-10 w-10 text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground">
             No stock movements recorded yet.
           </p>
         </div>
       ) : (
-        <ul className="mt-2">
-          {entries.map((entry) => (
-            <MovementEntry
-              key={entry.id}
-              entry={entry}
-              showProduct={!productId}
-            />
-          ))}
-        </ul>
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead className="py-3 pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:pl-6">
+                #
+              </TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Type
+              </TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Qty
+              </TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Stock (Before → After)
+              </TableHead>
+              {!productId && (
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Product
+                </TableHead>
+              )}
+              <TableHead className="hidden text-xs font-semibold uppercase tracking-wide text-muted-foreground xl:table-cell">
+                Reference
+              </TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Date &amp; Time
+              </TableHead>
+              <TableHead className="hidden pr-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:pr-6 xl:table-cell">
+                User
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {entries.map((entry, idx) => (
+              <MovementRow
+                key={entry.id}
+                entry={entry}
+                index={idx + 1}
+                showProduct={!productId}
+              />
+            ))}
+          </TableBody>
+        </Table>
       )}
 
+      {/* Pagination */}
       {!productId && totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end gap-2 border-t p-4">
           <Button
             variant="outline"
             size="sm"

@@ -1,9 +1,9 @@
 "use client";
 
 import { PageHeader } from "@/components/admin/page-header";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
+import { ReportExcelButton } from "@/components/admin/reports/download-excel-button";
+import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -21,18 +21,20 @@ import {
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
-import { Award, Crown, Eye, ShoppingCart, TrendingUp, Users } from "lucide-react";
-import dynamic from "next/dynamic";
-import Link from "next/link";
+import {
+  BarChart3,
+  Crown,
+  Phone,
+  ShoppingBag,
+  ShoppingCart,
+  TrendingUp,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import StatsCard from "../../dashboard/stats-card";
 import { TopCustomersPDF } from "./TopCustomersPDF";
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
 
 interface CustomerStatistics {
   totalOrders: number;
@@ -48,6 +50,8 @@ export interface TopCustomer {
   email: string;
   mobileNumber: string;
   isVerified: boolean;
+  /** Area from the customer's default saved address (null if none). */
+  area: string | null;
   statistics: CustomerStatistics;
 }
 
@@ -117,32 +121,6 @@ export default function TopCustomersReport({
   );
   const avgOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
 
-  const getRankBadge = (index: number) => {
-    if (index === 0)
-      return (
-        <Badge className="bg-yellow-500 text-white h-5 sm:h-6">
-          <Award className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />1
-        </Badge>
-      );
-    if (index === 1)
-      return (
-        <Badge className="bg-gray-400 text-white h-5 sm:h-6">
-          <Award className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />2
-        </Badge>
-      );
-    if (index === 2)
-      return (
-        <Badge className="bg-amber-600 text-white h-5 sm:h-6">
-          <Award className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />3
-        </Badge>
-      );
-    return (
-      <Badge variant="outline" className="h-5 sm:h-6 text-[10px] sm:text-xs">
-        {index + 1}
-      </Badge>
-    );
-  };
-
   return (
     <div className="w-full">
       <div className="flex items-start justify-between gap-4">
@@ -150,25 +128,42 @@ export default function TopCustomersReport({
           title="Top Customers Report"
           description="Best customers by orders and spending"
         />
-        <div className="shrink-0">
+        <div className="flex shrink-0 gap-2">
           {customers.length > 0 && mounted && (
-            <PDFDownloadLink
-              document={
-                <TopCustomersPDF
-                  customers={customers}
-                  sortBy={sortBy}
-                  timeFilterLabel={TIME_FILTER_LABELS[timeFilter]}
-                  settings={settings}
-                />
-              }
-              fileName={`top-customers-${timeFilter}-${new Date()
-                .toISOString()
-                .split("T")[0]}.pdf`}
-            >
-              {({ loading, error }) => (
-                <PdfDownloadButton loading={loading} error={error} />
-              )}
-            </PDFDownloadLink>
+            <>
+              <ReportExcelButton
+                title="Top Customers Report"
+                subtitle={`${TIME_FILTER_LABELS[timeFilter]} - Ranked by ${sortBy === "spending" ? "Spending" : "Orders"}`}
+                headers={["Rank", "Customer Name", "Mobile", "Area", "Orders", "Total Spent", "Avg Order"]}
+                rows={customers.map((customer, index) => [
+                  index + 1,
+                  customer.name,
+                  customer.mobileNumber,
+                  customer.area || "-",
+                  customer.statistics.totalOrders,
+                  customer.statistics.totalSpent,
+                  customer.statistics.averageOrderValue,
+                ])}
+                summary={[
+                  { label: "Time Filter", value: TIME_FILTER_LABELS[timeFilter] },
+                  { label: "Ranked By", value: sortBy === "spending" ? "Spending" : "Orders" },
+                ]}
+                fileName={`top-customers-${timeFilter}`}
+              />
+              <LazyPdfDownloadLink
+                document={
+                  <TopCustomersPDF
+                    customers={customers}
+                    sortBy={sortBy}
+                    timeFilterLabel={TIME_FILTER_LABELS[timeFilter]}
+                    settings={settings}
+                  />
+                }
+                fileName={`top-customers-${timeFilter}-${new Date()
+                  .toISOString()
+                  .split("T")[0]}.pdf`}
+              />
+            </>
           )}
         </div>
       </div>
@@ -225,7 +220,7 @@ export default function TopCustomersReport({
       </div>
 
       {/* Summary */}
-      <div className="mb-4 grid grid-cols-2 2xl:grid-cols-4 gap-3">
+      <div className="mb-4 grid grid-cols-2 xl:grid-cols-4 2xl:grid-cols-4 gap-3">
         <StatsCard
           title="Top Customers"
           value={String(customers.length)}
@@ -265,24 +260,20 @@ export default function TopCustomersReport({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12.5 sm:w-15 text-xs h-9 sm:h-10">
+              <TableHead className="w-12.5 sm:w-15 text-xs sm:text-sm font-bold h-9 sm:h-10">
                 Rank
               </TableHead>
-              <TableHead className="text-xs h-9 sm:h-10">Customer</TableHead>
-              <TableHead className="hidden md:table-cell text-xs h-9 sm:h-10">
+              <TableHead className="text-xs sm:text-sm font-bold h-9 sm:h-10">Customer</TableHead>
+              <TableHead className="hidden md:table-cell text-xs sm:text-sm font-bold h-9 sm:h-10">
                 Contact
               </TableHead>
-              <TableHead className="text-center text-xs h-9 sm:h-10">
-                Orders
+              <TableHead className="hidden xl:table-cell text-xs sm:text-sm font-bold h-9 sm:h-10">
+                Area
               </TableHead>
-              <TableHead className="text-right text-xs h-9 sm:h-10">
-                Spent
-              </TableHead>
-              <TableHead className="text-right text-xs h-9 sm:h-10 hidden lg:table-cell">
+              <TableHead className="text-center text-xs sm:text-sm font-bold h-9 sm:h-10">Orders</TableHead>
+              <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10">Spent</TableHead>
+              <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10 hidden lg:table-cell">
                 Avg
-              </TableHead>
-              <TableHead className="text-right text-xs h-9 sm:h-10 w-12.5 sm:w-15">
-                View
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -299,10 +290,16 @@ export default function TopCustomersReport({
               </TableRow>
             ) : (
               customers.map((customer, index) => (
-                <TableRow key={customer.id}>
+                <TableRow
+                  key={customer.id}
+                  className="cursor-pointer"
+                  onClick={() =>
+                    router.push(`/admin/customer/${customer.id}/view`)
+                  }
+                >
                   {/* Rank */}
-                  <TableCell className="py-1.5 sm:py-2">
-                    {getRankBadge(index)}
+                  <TableCell className="py-1.5 sm:py-2 text-xs sm:text-sm">
+                    {index + 1}
                   </TableCell>
 
                   {/* Customer */}
@@ -314,7 +311,7 @@ export default function TopCustomersReport({
                       {customer.isVerified && (
                         <Badge
                           variant="default"
-                          className="text-[10px] sm:text-xs h-3.5 sm:h-4 px-1"
+                          className="text-[10px] 2xl:text-xs h-3.5 sm:h-4 px-1"
                         >
                           ✓
                         </Badge>
@@ -324,19 +321,26 @@ export default function TopCustomersReport({
 
                   {/* Contact */}
                   <TableCell className="hidden md:table-cell py-1.5 sm:py-2">
-                    <span className="text-[10px] sm:text-xs">
-                      {customer.mobileNumber}
+                    <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm">
+                      <Phone className="h-3.5 w-3.5 shrink-0" />{customer.mobileNumber}
+                    </Badge>
+                  </TableCell>
+
+                  {/* Area */}
+                  <TableCell className="hidden xl:table-cell py-1.5 sm:py-2">
+                    <span className="text-xs sm:text-sm">
+                      {customer.area || "—"}
                     </span>
                   </TableCell>
 
                   {/* Orders */}
                   <TableCell className="text-center py-1.5 sm:py-2">
                     <div className="flex flex-col items-center">
-                      <span className="font-bold text-xs sm:text-sm">
-                        {customer.statistics.totalOrders}
-                      </span>
+                      <Badge variant="secondary" className="h-5 px-1.5 text-xs sm:text-sm font-bold">
+                        <ShoppingBag className="h-3.5 w-3.5" />{customer.statistics.totalOrders}
+                      </Badge>
                       {customer.statistics.pendingOrders > 0 && (
-                        <span className="text-[10px] sm:text-xs text-yellow-600">
+                        <span className="text-xs sm:text-sm text-yellow-600">
                           {customer.statistics.pendingOrders}p
                         </span>
                       )}
@@ -345,35 +349,21 @@ export default function TopCustomersReport({
 
                   {/* Total Spent */}
                   <TableCell className="text-right py-1.5 sm:py-2">
-                    <span className="font-bold text-xs sm:text-sm">
-                      {formatCurrencyEnglish(customer.statistics.totalSpent, 0)}
-                    </span>
+                    <Badge variant="secondary" className="h-5 px-1.5 text-xs sm:text-sm font-bold">
+                      <Wallet className="h-3.5 w-3.5" />{formatCurrencyEnglish(customer.statistics.totalSpent)}
+                    </Badge>
                   </TableCell>
 
                   {/* Average */}
                   <TableCell className="text-right py-1.5 sm:py-2 hidden lg:table-cell">
-                    <span className="text-[10px] sm:text-xs text-muted-foreground">
+                    <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm font-normal text-muted-foreground">
+                      <BarChart3 className="h-3.5 w-3.5" />
                       {customer.statistics.totalOrders > 0
                         ? formatCurrencyEnglish(
-                          customer.statistics.averageOrderValue,
-                          0
+                          customer.statistics.averageOrderValue
                         )
                         : "—"}
-                    </span>
-                  </TableCell>
-
-                  {/* Actions */}
-                  <TableCell className="text-right py-1.5 sm:py-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 sm:h-7 sm:w-7 p-0"
-                      asChild
-                    >
-                      <Link href={`/admin/customer/${customer.id}/view`}>
-                        <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                      </Link>
-                    </Button>
+                    </Badge>
                   </TableCell>
                 </TableRow>
               ))

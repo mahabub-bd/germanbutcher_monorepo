@@ -3,7 +3,8 @@
 import { OrderStatus } from "@/common/enums";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
+import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
+import { ReportExcelButton, dateRangeSubtitle } from "@/components/admin/reports/download-excel-button";
 import {
   ReportDateFilters,
   type ReportFilterParams,
@@ -27,16 +28,10 @@ import {
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { CheckCircle, CreditCard, Eye, Layers } from "lucide-react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PaymentReportPDF } from "./PaymentReportPDF";
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
 
 interface PaymentMethod {
   name: string;
@@ -115,14 +110,36 @@ export default function OrderPaymentList({
           title="Payment Transactions"
         />
         {payments.length > 0 && mounted && (
-          <PDFDownloadLink
-            document={<PaymentReportPDF payments={payments} settings={settings} />}
-            fileName={`order-payments-${new Date().toISOString().split("T")[0]}.pdf`}
-          >
-            {({ loading, error }) => (
-              <PdfDownloadButton loading={loading} error={error} />
-            )}
-          </PDFDownloadLink>
+          <div className="flex shrink-0 gap-2">
+            <ReportExcelButton
+              title="Payment Transactions"
+              subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
+                            headers={["#", "Payment No", "Date", "Amount", "Method", "Order No"]}
+              rows={payments.map((p, i) => [
+                i + 1,
+                p.paymentNumber,
+                p.paymentDate,
+                parseFloat(p.amount),
+                p.paymentMethod.name,
+                p.order.orderNo,
+              ])}
+              summary={[
+                { label: "Total Payments", value: String(payments.length) },
+                {
+                  label: "Total Amount",
+                  value: formatCurrencyEnglish(
+                    payments.reduce((sum, p) => sum + parseFloat(p.amount), 0),
+                    0
+                  ),
+                },
+              ]}
+              fileName="order-payments"
+            />
+            <LazyPdfDownloadLink
+              document={<PaymentReportPDF payments={payments} settings={settings} />}
+              fileName={`order-payments-${new Date().toISOString().split("T")[0]}.pdf`}
+             />
+          </div>
         )}
       </div>
 

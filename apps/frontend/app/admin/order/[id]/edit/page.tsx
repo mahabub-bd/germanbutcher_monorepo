@@ -49,7 +49,7 @@ export default function EditOrderPage() {
     <div className="md:p-4 p-2 space-y-6 rounded-sm">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <CardTitle>Edit Order</CardTitle>
+            <CardTitle>Update Order</CardTitle>
           </div>
           <Button className="bg-primaryColor text-white hover:bg-primaryColor/90" asChild>
             <Link href={`/admin/orders`}>

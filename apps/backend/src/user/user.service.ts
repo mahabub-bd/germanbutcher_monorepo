@@ -8,7 +8,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 
-import { DeepPartial, Repository } from 'typeorm';
+import { Address } from 'src/address/entities/address.entity';
+import { DeepPartial, In, Repository } from 'typeorm';
 
 import { instanceToPlain } from 'class-transformer';
 import { OtpService } from 'src/auth/otp.service';
@@ -426,12 +427,29 @@ export class UserService {
 
     const rawResults = await baseQuery.getRawMany();
 
+    // Customer area from their saved address — default address wins,
+    // otherwise the first address that has one.
+    const userIds = rawResults.map((row) => row.id);
+    const areaByUser = new Map<number, string>();
+    if (userIds.length > 0) {
+      const addresses = await this.userRepository.manager.find(Address, {
+        where: { userId: In(userIds) },
+        order: { isDefault: 'DESC', id: 'ASC' },
+      });
+      for (const address of addresses) {
+        if (address.area && !areaByUser.has(address.userId)) {
+          areaByUser.set(address.userId, address.area);
+        }
+      }
+    }
+
     const topCustomers = rawResults.map((row) => ({
       id: row.id,
       name: row.name,
       email: row.email,
       mobileNumber: row.mobileNumber,
       isVerified: row.isVerified,
+      area: areaByUser.get(row.id) ?? null,
       createdAt: row.createdAt,
       lastLoginAt: row.lastLoginAt,
       profilePhoto: row.profilePhotoId

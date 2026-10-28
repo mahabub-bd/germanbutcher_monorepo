@@ -2,7 +2,8 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
+import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
+import { ReportExcelButton, dateRangeSubtitle } from "@/components/admin/reports/download-excel-button";
 import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import { Badge } from "@/components/ui/badge";
@@ -17,13 +18,7 @@ import {
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { PackageCheck, Truck, Users } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
 
 interface Summary {
   totalDeliveries: number;
@@ -92,7 +87,16 @@ export default function DeliverymanPerformanceList({
           title="Deliveryman Performance Report"
         />
         {deliveryMen.length > 0 && (
-          <PDFDownloadLink
+          <div className="flex shrink-0 gap-2">
+            <ReportExcelButton
+              title="Deliveryman Performance Report"
+              subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
+                            headers={["Name", "Mobile", "Status", "Deliveries", "Delivered Value"]}
+              rows={pdfRows}
+              summary={pdfSummary}
+              fileName="deliveryman-performance-report"
+            />
+            <LazyPdfDownloadLink
             document={
               <ReportTablePDF
                 title="Deliveryman Performance Report"
@@ -112,11 +116,8 @@ export default function DeliverymanPerformanceList({
             }
             fileName={`deliveryman-performance-report-${new Date().toISOString().split("T")[0]
               }.pdf`}
-          >
-            {({ loading, error }) => (
-              <PdfDownloadButton loading={loading} error={error} />
-            )}
-          </PDFDownloadLink>
+           />
+          </div>
         )}
       </div>
 

@@ -2,7 +2,8 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
+import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
+import { ReportExcelButton } from "@/components/admin/reports/download-excel-button";
 import {
   Select,
   SelectContent,
@@ -29,15 +30,9 @@ import {
   ShoppingCart,
   XCircle,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { MonthlyOrderPDF } from "./MonthlyOrderPDF";
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
 
 export interface MonthlyData {
   year: number;
@@ -160,20 +155,59 @@ export default function MonthlyOrderReportList({
           title="Monthly Order Summary"
         />
         {monthlyData.length > 0 && mounted && (
-          <PDFDownloadLink
-            document={
-              <MonthlyOrderPDF
-                monthlyData={monthlyData}
-                year={selectedYear}
-                settings={settings}
-              />
-            }
-            fileName={`monthly-order-report-${selectedYear ?? "all"}-${new Date().toISOString().split("T")[0]}.pdf`}
-          >
-            {({ loading, error }) => (
-              <PdfDownloadButton loading={loading} error={error} />
-            )}
-          </PDFDownloadLink>
+          <div className="flex shrink-0 gap-2">
+            <ReportExcelButton
+              title="Monthly Order Summary"
+              subtitle={selectedYear ? `Year: ${selectedYear}` : "All Years"}
+                            headers={[
+                "Year",
+                "Month",
+                "All Orders",
+                "All Amount",
+                "Delivered",
+                "Delivered Amount",
+                "Pending",
+                "Pending Amount",
+                "Processing",
+                "Processing Amount",
+                "On Hold",
+                "On Hold Amount",
+                "Cancelled",
+                "Cancelled Amount",
+                "Cancel Rate (%)",
+              ]}
+              rows={monthlyData.map((item) => [
+                item.year,
+                item.month,
+                item.allOrderCount,
+                item.allOrderValue,
+                item.orderCount,
+                item.totalValue,
+                item.pendingOrderCount || 0,
+                item.pendingValue || 0,
+                item.processingOrderCount || 0,
+                item.processingValue || 0,
+                item.onHoldOrderCount || 0,
+                item.onHoldValue || 0,
+                item.cancelOrderCount || 0,
+                item.cancelValue || 0,
+                item.allOrderCount > 0
+                  ? Math.round((item.cancelOrderCount / item.allOrderCount) * 100)
+                  : 0,
+              ])}
+              fileName={`monthly-order-report-${selectedYear ?? "all"}`}
+            />
+            <LazyPdfDownloadLink
+              document={
+                <MonthlyOrderPDF
+                  monthlyData={monthlyData}
+                  year={selectedYear}
+                  settings={settings}
+                />
+              }
+              fileName={`monthly-order-report-${selectedYear ?? "all"}-${new Date().toISOString().split("T")[0]}.pdf`}
+             />
+          </div>
         )}
       </div>
 

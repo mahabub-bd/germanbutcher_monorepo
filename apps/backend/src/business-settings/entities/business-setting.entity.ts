@@ -105,6 +105,54 @@ export class BusinessSetting {
   })
   maintenanceEndsAt: Date | null;
 
+  @Column({ type: 'jsonb', nullable: true })
+  @ApiPropertyOptional({
+    example: {
+      divisions: [{ name: 'Dhaka', enabled: true }],
+      cities: [{ division: 'Dhaka', name: 'Dhaka', enabled: true }],
+      areas: [{ city: 'Dhaka', name: 'Badda', enabled: true }],
+    },
+    description:
+      'Delivery coverage: plain lists of divisions/cities/areas seeded from the BD dataset and fully editable (add/rename/delete/enable).',
+  })
+  deliveryCoverage: {
+    divisions: { name: string; enabled: boolean }[];
+    cities: { division: string; name: string; enabled: boolean }[];
+    areas: { city: string; name: string; enabled: boolean }[];
+  } | null;
+
+  // ── CRM segment rules ────────────────────────────────────────────────
+  // All nullable — when unset the CRM code falls back to its defaults
+  // (see CRM_SEGMENT_RULES in crm.service.ts).
+
+  @Column({ type: 'int', nullable: true })
+  @ApiPropertyOptional({
+    example: 20000,
+    description: 'Total delivered spend (৳) at which a customer becomes VIP',
+  })
+  vipMinSpent: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Delivered order count at which a customer becomes VIP',
+  })
+  vipMinOrders: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  @ApiPropertyOptional({
+    example: 90,
+    description: 'Days without an order before a buyer becomes At Risk',
+  })
+  atRiskDays: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  @ApiPropertyOptional({
+    example: 30,
+    description: 'Days since signup a customer counts as New',
+  })
+  newDays: number | null;
+
   @ManyToOne(() => Attachment, { eager: true, nullable: true })
   @JoinColumn()
   @ApiProperty({

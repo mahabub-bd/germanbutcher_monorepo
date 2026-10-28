@@ -3,7 +3,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
@@ -29,12 +29,65 @@ import { PaymentMethodSelector } from "@/components/checkout/payment-method-sele
 import { ShippingInformation } from "@/components/checkout/shipping-information";
 import { ShippingMethodSelector } from "@/components/checkout/shipping-method-selector";
 import { useBogo } from "@/hooks/use-bogo";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { useFreeDelivery } from "@/hooks/use-free-delivery";
+import {
+  getEnabledAreas,
+  getEnabledCities,
+  getEnabledDivisions,
+} from "@/lib/delivery-coverage";
 import { postData } from "@/utils/api-utils";
 
 export default function CheckoutPage({ user }: { user?: UserType }) {
-  const { getCartTotals, clearCart, cart, appliedCoupon } = useCartContext();
+  const { getCartTotals, clearCart, removeItem, cart, appliedCoupon } =
+    useCartContext();
   const router = useRouter();
+  const settings = useBusinessSettings();
+
+  // Sold-out items left in the cart block order placement — remove them
+  // automatically (with a toast) so the shopper never hits a dead end.
+  const outOfStockItems = (cart?.items ?? []).filter(
+    (item) => (item.product.stock || 0) === 0
+  );
+  const autoRemovedIdsRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    const pending = outOfStockItems.filter(
+      (item) => !autoRemovedIdsRef.current.has(item.product.id)
+    );
+    if (pending.length === 0) return;
+    pending.forEach((item) => autoRemovedIdsRef.current.add(item.product.id));
+    (async () => {
+      try {
+        for (const item of pending) {
+          await removeItem(item.id || item.product.id);
+        }
+        toast.warning(
+          `${pending.map((item) => item.product.name).join(", ")} ${
+            pending.length === 1 ? "is" : "are"
+          } out of stock and removed from your cart.`
+        );
+      } catch {
+        pending.forEach((item) =>
+          autoRemovedIdsRef.current.delete(item.product.id)
+        );
+      }
+    })();
+  }, [outOfStockItems, removeItem]);
+
+  const [isRemovingOutOfStock, setIsRemovingOutOfStock] = useState(false);
+  const handleRemoveOutOfStock = async () => {
+    setIsRemovingOutOfStock(true);
+    try {
+      for (const item of outOfStockItems) {
+        await removeItem(item.id || item.product.id);
+      }
+      toast.success("Out-of-stock items removed from your cart");
+    } catch {
+      toast.error("Failed to remove out-of-stock items");
+    } finally {
+      setIsRemovingOutOfStock(false);
+    }
+  };
 
   const { originalSubtotal, discountedSubtotal, itemCount, productDiscounts } =
     getCartTotals();
@@ -299,13 +352,22 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
       if (!formData.address.trim()) {
         newErrors.address = "Address is required";
       }
-      if (!formData.area.trim()) {
+      // Only require fields that still have enabled options after
+      // delivery-coverage filtering.
+      const coverage = settings?.deliveryCoverage ?? null;
+      if (
+        getEnabledAreas(coverage, formData.city).length > 0 &&
+        !formData.area.trim()
+      ) {
         newErrors.area = "Area is required";
       }
-      if (!formData.city.trim()) {
+      if (
+        getEnabledCities(coverage, formData.division).length > 0 &&
+        !formData.city.trim()
+      ) {
         newErrors.city = "City is required";
       }
-      if (!formData.division) {
+      if (getEnabledDivisions(coverage).length > 0 && !formData.division) {
         newErrors.division = "Division is required";
       }
     }
@@ -392,10 +454,33 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
       router.push(`/order-confirmation/${response.data!.id}`);
     } catch (error) {
       console.error("Order submission error:", error);
-      if (error instanceof Error) {
-        toast.error(
-          error.message || "Failed to place order. Please try again."
-        );
+      const message =
+        error instanceof Error ? error.message : "";
+
+      // The backend rejects orders containing sold-out products
+      // ("<name> is out of stock. We're restocking soon!"). Remove those
+      // items automatically so the next Place Order click succeeds.
+      const rejectedItems = (cart?.items ?? []).filter((item) =>
+        message.includes(`${item.product.name} is out of stock`)
+      );
+      if (rejectedItems.length > 0) {
+        try {
+          for (const item of rejectedItems) {
+            await removeItem(item.id || item.product.id);
+          }
+          toast.warning(message || "Some items are out of stock", {
+            description: `${rejectedItems
+              .map((item) => item.product.name)
+              .join(", ")} removed from your cart. Press Place Order again.`,
+          });
+          return;
+        } catch (removeError) {
+          console.error("Failed to auto-remove out-of-stock items:", removeError);
+        }
+      }
+
+      if (message) {
+        toast.error(message || "Failed to place order. Please try again.");
       } else {
         toast.error("Failed to place order. Please try again.");
       }
@@ -499,6 +584,9 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
                 shippingMethods={shippingMethods}
                 paymentMethods={paymentMethods}
                 user={user}
+                outOfStockNames={outOfStockItems.map((item) => item.product.name)}
+                onRemoveOutOfStock={handleRemoveOutOfStock}
+                isRemovingOutOfStock={isRemovingOutOfStock}
               />
             </div>
           </div>
@@ -530,6 +618,9 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
                 shippingMethods={shippingMethods}
                 paymentMethods={paymentMethods}
                 user={user}
+                outOfStockNames={outOfStockItems.map((item) => item.product.name)}
+                onRemoveOutOfStock={handleRemoveOutOfStock}
+                isRemovingOutOfStock={isRemovingOutOfStock}
               />
             </div>
           </div>

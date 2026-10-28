@@ -26,32 +26,47 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
-  DISTRICT_AREAS,
-  getDistrictsByDivision,
-} from "@/data/districts-areas";
+  getEnabledAreas,
+  getEnabledCities,
+  getEnabledDivisions,
+} from "@/lib/delivery-coverage";
 import { patchData, postData } from "@/utils/api-utils";
 import { serverRevalidate } from "@/utils/revalidatePath";
 import { Address } from "@/utils/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const addressSchema = z.object({
-  address: z.string().min(1, "Address is required").trim(),
-  area: z.string().min(1, "Area is required").trim(),
-  division: z.string().min(1, "Division is required"),
-  city: z.string().min(1, "City is required").trim(),
-  type: z.enum(["shipping", "billing"], {
-      error: (issue) => issue.input === undefined ? "Please select an address type" : undefined
-}),
-  isDefault: z.boolean(),
-});
+const buildAddressSchema = (
+  showDivision: boolean,
+  showCity: boolean,
+  showArea: boolean,
+) =>
+  z.object({
+    address: z.string().min(1, "Address is required").trim(),
+    // Disabled fields are optional — the admin turns them off in
+    // Business Settings and then the form never sends them.
+    area: showArea
+      ? z.string().min(1, "Area is required").trim()
+      : z.string().optional(),
+    division: showDivision
+      ? z.string().min(1, "Division is required")
+      : z.string().optional(),
+    city: showCity
+      ? z.string().min(1, "City is required").trim()
+      : z.string().optional(),
+    type: z.enum(["shipping", "billing"], {
+        error: (issue) => issue.input === undefined ? "Please select an address type" : undefined
+  }),
+    isDefault: z.boolean(),
+  });
 
-type AddressFormData = z.infer<typeof addressSchema>;
+type AddressFormData = z.infer<ReturnType<typeof buildAddressSchema>>;
 
 interface AddressDialogProps {
   userId: string;
@@ -62,24 +77,6 @@ interface AddressDialogProps {
   onSuccess?: () => void;
 }
 
-const bangladeshDivisions = [
-  "Dhaka",
-  "Chattogram",
-  "Khulna",
-  "Barishal",
-  "Sylhet",
-  "Rajshahi",
-  "Rangpur",
-  "Mymensingh",
-] as const;
-
-const areasByDistrict = new Map(
-  DISTRICT_AREAS.map(({ district, areas }) => [
-    district,
-    [...new Set(areas)].sort((a, b) => a.localeCompare(b)),
-  ]),
-);
-
 export default function AddressDialog({
   userId,
   open,
@@ -88,8 +85,22 @@ export default function AddressDialog({
   mode,
   onSuccess,
 }: AddressDialogProps) {
+  const settings = useBusinessSettings();
+  const coverage = settings?.deliveryCoverage ?? null;
+  // Only coverage-enabled options are selectable; a field with no enabled
+  // options left is hidden entirely.
+  const enabledDivisions = getEnabledDivisions(coverage);
+  const enabledCities = getEnabledCities(coverage, null);
+  const enabledAreas = getEnabledAreas(coverage, null);
+
   const form = useForm<AddressFormData>({
-    resolver: zodResolver(addressSchema),
+    resolver: zodResolver(
+      buildAddressSchema(
+        enabledDivisions.length > 0,
+        enabledCities.length > 0,
+        enabledAreas.length > 0
+      )
+    ),
     defaultValues: {
       address: "",
       area: "",
@@ -103,6 +114,36 @@ export default function AddressDialog({
   const { isSubmitting } = form.formState;
   const selectedDistrict = form.watch("city");
   const selectedDivision = form.watch("division");
+  const selectedArea = form.watch("area");
+  // Re-filter once a parent value is picked (cities depend on division,
+  // areas on city).
+  const scopedCities = getEnabledCities(coverage, selectedDivision);
+  const scopedAreas = getEnabledAreas(coverage, selectedDistrict);
+  const showDivisionField = enabledDivisions.length > 0;
+  const showCityField = scopedCities.length > 0;
+  const showAreaField = scopedAreas.length > 0;
+
+  // Pre-select when only one option is servable (e.g. Dhaka-only coverage).
+  useEffect(() => {
+    if (!open) return;
+    if (showDivisionField && !selectedDivision && enabledDivisions.length === 1) {
+      form.setValue("division", enabledDivisions[0]);
+    }
+  }, [open, showDivisionField, enabledDivisions, selectedDivision, form]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (showCityField && !selectedDistrict && scopedCities.length === 1) {
+      form.setValue("city", scopedCities[0]);
+    }
+  }, [open, showCityField, scopedCities, selectedDistrict, form]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (showAreaField && !selectedArea && scopedAreas.length === 1) {
+      form.setValue("area", scopedAreas[0]);
+    }
+  }, [open, showAreaField, scopedAreas, selectedArea, form]);
 
   useEffect(() => {
     if (open) {
@@ -177,6 +218,7 @@ export default function AddressDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <div className="grid grid-cols-1 gap-4">
+              {showDivisionField && (
               <FormField
                 control={form.control}
                 name="division"
@@ -201,7 +243,7 @@ export default function AddressDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {bangladeshDivisions.map((division) => (
+                        {enabledDivisions.map((division) => (
                           <SelectItem key={division} value={division}>
                             {division}
                           </SelectItem>
@@ -212,7 +254,9 @@ export default function AddressDialog({
                   </FormItem>
                 )}
               />
+              )}
 
+              {showCityField && (
               <FormField
                 control={form.control}
                 name="city"
@@ -222,7 +266,7 @@ export default function AddressDialog({
                       City <span className="text-red-500">*</span>
                     </FormLabel>
                     <SearchableSelect
-                      value={field.value}
+                      value={field.value ?? ""}
                       onValueChange={(value) => {
                         if (value !== field.value) {
                           form.setValue("area", "", {
@@ -231,20 +275,24 @@ export default function AddressDialog({
                         }
                         field.onChange(value);
                       }}
-                      options={getDistrictsByDivision(selectedDivision)}
+                      options={scopedCities}
                       placeholder={
-                        selectedDivision
-                          ? "Select city"
-                          : "Select division first"
+                        showDivisionField
+                          ? selectedDivision
+                            ? "Select city"
+                            : "Select division first"
+                          : "Select city"
                       }
                       searchPlaceholder="Search city..."
-                      disabled={!selectedDivision}
+                      disabled={showDivisionField && !selectedDivision}
                     />
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              )}
 
+              {showAreaField && (
               <FormField
                 control={form.control}
                 name="area"
@@ -254,22 +302,25 @@ export default function AddressDialog({
                       Area <span className="text-red-500">*</span>
                     </FormLabel>
                     <SearchableSelect
-                      value={field.value}
+                      value={field.value ?? ""}
                       onValueChange={field.onChange}
-                      options={areasByDistrict.get(selectedDistrict) ?? []}
+                      options={scopedAreas}
                       placeholder={
-                        selectedDistrict
-                          ? "Select area"
-                          : "Select City first"
+                        showCityField
+                          ? selectedDistrict
+                            ? "Select area"
+                            : "Select City first"
+                          : "Select area"
                       }
                       searchPlaceholder="Search area..."
                       emptyMessage="No area found."
-                      disabled={!selectedDistrict}
+                      disabled={showCityField && !selectedDistrict}
                     />
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              )}
 
               <FormField
                 control={form.control}

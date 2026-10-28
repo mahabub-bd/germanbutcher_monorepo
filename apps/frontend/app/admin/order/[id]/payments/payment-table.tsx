@@ -54,9 +54,6 @@ export function PaymentsTable({ payments }: PaymentsTableProps) {
       <TableCell className="text-muted-foreground">
         {payment.sslPaymentId || "-"}
       </TableCell>
-      <TableCell className="text-muted-foreground">
-        {payment.notes || "-"}
-      </TableCell>
       <TableCell>{payment.createdBy?.name || "System"}</TableCell>
       <TableCell>
         <StatusBadge status="completed" />
@@ -115,7 +112,6 @@ export function PaymentsTable({ payments }: PaymentsTableProps) {
           <TableHead>Date</TableHead>
           <TableHead>Method</TableHead>
           <TableHead>Reference</TableHead>
-          <TableHead>Note</TableHead>
           <TableHead>Updated By</TableHead>
           <TableHead>Status</TableHead>
         </TableRow>
@@ -125,7 +121,7 @@ export function PaymentsTable({ payments }: PaymentsTableProps) {
           payments.map(renderPaymentRow)
         ) : (
           <TableRow>
-            <TableCell colSpan={8} className="text-center py-8">
+            <TableCell colSpan={7} className="text-center py-8">
               No payments found
             </TableCell>
           </TableRow>

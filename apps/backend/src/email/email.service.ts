@@ -305,4 +305,39 @@ export class EmailService {
       generateNewOrderAlertHTML(data),
     );
   }
+
+  /**
+   * Generic plain-text campaign email (CRM blasts). Plain text is rendered
+   * with line breaks preserved inside a minimal branded wrapper. Throws on
+   * failure — campaign delivery tracks per-recipient outcomes itself.
+   */
+  async sendCampaignEmail(
+    to: string,
+    toName: string,
+    subject: string,
+    textBody: string,
+  ): Promise<void> {
+    const escaped = textBody
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    const htmlBody = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#222;white-space:pre-wrap">${escaped}</div>`;
+
+    await this.client.sendMail({
+      from: {
+        address: this.fromAddress,
+        name: this.fromName,
+      },
+      to: [
+        {
+          email_address: {
+            address: to,
+            name: toName,
+          },
+        },
+      ],
+      subject,
+      htmlbody: htmlBody,
+    });
+  }
 }

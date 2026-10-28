@@ -57,10 +57,10 @@ export function EditOrderModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[92vh] max-w-[96vw] 2xl:max-w-375 flex-col gap-0 overflow-hidden p-0">
+      <DialogContent className="flex max-h-[92vh] max-w-[96vw] sm:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-375 flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="border-b px-6 py-4 pr-12">
           <DialogTitle>
-            Edit Order{order ? ` #${order.orderNo}` : ""}
+            Update Order{order ? ` #${order.orderNo}` : ""}
           </DialogTitle>
           <DialogDescription>
             Update the order status and delivery assignment.

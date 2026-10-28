@@ -14,20 +14,23 @@ export class CreateAddressDto {
   @IsNotEmpty({ message: 'Address cannot be empty' })
   address: string;
 
-  @ApiProperty({ example: 'Badda', required: true })
+  // Area/Division/City are optional: the admin can turn any of these
+  // fields off in Business Settings, and then the storefront never
+  // sends them. The DB columns are nullable.
+  @ApiProperty({ example: 'Badda', required: false })
+  @IsOptional()
   @IsString({ message: 'Area must be a string' })
-  @IsNotEmpty({ message: 'Area cannot be empty' })
-  area: string;
+  area?: string;
 
-  @ApiProperty({ example: 'Dhaka', required: true })
+  @ApiProperty({ example: 'Dhaka', required: false })
+  @IsOptional()
   @IsString({ message: 'Division must be a string' })
-  @IsNotEmpty({ message: 'Division cannot be empty' })
-  division: string;
+  division?: string;
 
-  @ApiProperty({ example: 'Dhaka', required: true })
+  @ApiProperty({ example: 'Dhaka', required: false })
+  @IsOptional()
   @IsString({ message: 'City must be a string' })
-  @IsNotEmpty({ message: 'City cannot be empty' })
-  city: string;
+  city?: string;
 
   @ApiProperty({ enum: AddressType, example: AddressType.BILLING })
   @IsEnum(AddressType, { message: 'Type must be a valid address type' })

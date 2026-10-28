@@ -11,11 +11,13 @@ import type {
   User as UserType,
 } from "@/utils/types";
 import {
+  AlertCircle,
   CreditCard,
   FileText,
   Loader2,
   ShieldCheck,
   ShoppingCart,
+  Trash2,
   Truck,
 } from "lucide-react";
 import Link from "next/link";
@@ -41,6 +43,10 @@ interface OrderSummaryProps {
   shippingMethods: ShippingMethod[];
   paymentMethods: PaymentMethod[];
   user?: UserType;
+  /** Sold-out products still sitting in the cart — these block ordering. */
+  outOfStockNames?: string[];
+  onRemoveOutOfStock?: () => void;
+  isRemovingOutOfStock?: boolean;
 }
 
 export function OrderSummary({
@@ -63,6 +69,9 @@ export function OrderSummary({
   shippingMethods,
   paymentMethods,
   user,
+  outOfStockNames = [],
+  onRemoveOutOfStock,
+  isRemovingOutOfStock = false,
 }: OrderSummaryProps) {
   const shippingMethodName = shippingMethods.find(
     (m) => m.id.toString() === selectedShippingMethod
@@ -72,7 +81,37 @@ export function OrderSummary({
     (m) => m.code === selectedPaymentMethod
   )?.name;
 
-  const canPlaceOrder = user;
+  const canPlaceOrder = Boolean(user) && outOfStockNames.length === 0;
+  const hasOutOfStock = outOfStockNames.length > 0;
+
+  const outOfStockWarning = hasOutOfStock ? (
+    <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/40">
+      <p className="flex items-start gap-2 text-sm font-medium text-red-700 dark:text-red-400">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+        {outOfStockNames.length === 1
+          ? `${outOfStockNames[0]} is out of stock.`
+          : `${outOfStockNames.length} items in your cart are out of stock.`}{" "}
+        Remove {outOfStockNames.length === 1 ? "it" : "them"} to place your
+        order.
+      </p>
+      {onRemoveOutOfStock && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
+          disabled={isRemovingOutOfStock}
+          onClick={onRemoveOutOfStock}
+        >
+          {isRemovingOutOfStock ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="mr-2 h-4 w-4" />
+          )}
+          Remove out-of-stock items
+        </Button>
+      )}
+    </div>
+  ) : null;
 
   return (
     <section className="rounded-lg border bg-white md:p-4 p-2">
@@ -196,12 +235,15 @@ export function OrderSummary({
           )}
         </Button>
       ) : (
-        <div className="mt-5 rounded-xl bg-yellow-50 p-4 text-center dark:bg-yellow-950/40">
-          {!user && (
-            <p className="text-sm text-yellow-800 dark:text-yellow-400">
-              Please verify your mobile number to place an order
-            </p>
-          )}
+        <div className="mt-5 space-y-3">
+          {outOfStockWarning}
+          <div className="rounded-xl bg-yellow-50 p-4 text-center dark:bg-yellow-950/40">
+            {!user && (
+              <p className="text-sm text-yellow-800 dark:text-yellow-400">
+                Please verify your mobile number to place an order
+              </p>
+            )}
+          </div>
         </div>
       )}
 

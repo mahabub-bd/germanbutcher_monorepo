@@ -6,7 +6,8 @@ import {
   ReportDateFilters,
   type ReportFilterParams,
 } from "@/components/admin/reports/report-date-filters";
-import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
+import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
+import { ReportExcelButton, dateRangeSubtitle } from "@/components/admin/reports/download-excel-button";
 import {
   Table,
   TableBody,
@@ -19,15 +20,9 @@ import { formatCurrencyEnglish } from "@/lib/utils";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { format } from "date-fns";
 import { ShoppingCart, TrendingUp, Users } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CustomerListPDF } from "./CustomerListPDF";
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
 
 export interface Customer {
   name: string;
@@ -93,21 +88,47 @@ export default function CustomerListReport({
           title="Customer List Report"
         />
         {customers.length > 0 && mounted && (
-          <PDFDownloadLink
-            document={
-              <CustomerListPDF
-                customers={customers}
-                summary={summary}
-                dateRange={dateRange}
-                settings={settings}
-              />
-            }
-            fileName={`customer-list-${new Date().toISOString().split("T")[0]}.pdf`}
-          >
-            {({ loading, error }) => (
-              <PdfDownloadButton loading={loading} error={error} />
-            )}
-          </PDFDownloadLink>
+          <div className="flex shrink-0 gap-2">
+            <ReportExcelButton
+              title="Customer List Report"
+              subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
+                            headers={[
+                "#",
+                "Customer Name",
+                "Email",
+                "Mobile",
+                "Registration Date",
+                "Order Count",
+                "Total Order Amount",
+              ]}
+              rows={customers.map((c, i) => [
+                i + 1,
+                c.name,
+                c.email || "—",
+                c.mobileNumber,
+                c.registrationDate,
+                c.orderCount,
+                c.totalOrderAmount,
+              ])}
+              summary={[
+                { label: "Total Customers", value: String(summary?.totalCustomers ?? customers.length) },
+                { label: "Total Orders", value: String(summary?.totalOrders ?? 0) },
+                { label: "Total Order Value", value: formatCurrencyEnglish(summary?.totalOrderValue ?? 0, 0) },
+              ]}
+              fileName="customer-list"
+            />
+            <LazyPdfDownloadLink
+              document={
+                <CustomerListPDF
+                  customers={customers}
+                  summary={summary}
+                  dateRange={dateRange}
+                  settings={settings}
+                />
+              }
+              fileName={`customer-list-${new Date().toISOString().split("T")[0]}.pdf`}
+             />
+          </div>
         )}
       </div>
 
