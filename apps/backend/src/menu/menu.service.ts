@@ -31,11 +31,13 @@ export class MenuService {
     search?: string,
     page = 1,
     limit = 50,
+    isMainMenu?: boolean,
   ): Promise<{ data: Menu[]; total: number }> {
     const where: any = {};
 
     if (isAdminMenu !== undefined) where.isAdminMenu = isAdminMenu;
     if (isActive !== undefined) where.isActive = isActive;
+    if (isMainMenu !== undefined) where.isMainMenu = isMainMenu;
 
     const queryBuilder = this.menuRepository
       .createQueryBuilder('menu')

@@ -79,3 +79,23 @@ export enum CancellationReason {
   DUPLICATE_ORDER = 'duplicate_order',
   OTHER = 'other',
 }
+
+export enum CrmActivityType {
+  NOTE = 'note',
+  TASK = 'task',
+  CALL = 'call',
+  EMAIL = 'email',
+}
+
+export enum CrmActivityStatus {
+  OPEN = 'open',
+  COMPLETED = 'completed',
+}
+
+export enum CrmSegment {
+  VIP = 'vip',
+  LOYAL = 'loyal',
+  AT_RISK = 'at_risk',
+  NEW = 'new',
+  INACTIVE = 'inactive',
+}

@@ -19,9 +19,9 @@ import { CategoryModule } from './category/category.module';
 import { ClientModule } from './client/client.module';
 import { ThrottlerGuard } from './common/guards/throttler.guard';
 import { HttpCacheInterceptor } from './common/interceptors/http-cache.interceptor';
-import { ContactMessageModule } from './contact-message/contact-message.module';
-import { CouponUsageLogModule } from './coupon-usage-log/coupon-usage-log.module';
+import { ContactMessageModule } from './contact-message/contact-message.module';import { CouponUsageLogModule } from './coupon-usage-log/coupon-usage-log.module';
 import { CouponModule } from './coupon/coupon.module';
+import { CrmModule } from './crm/crm.module';
 import { DeliveryManModule } from './delivery-man/delivery-man.module';
 import { FlashSaleCampaignsModule } from './flash-sale-campaigns/flash-sale-campaigns.module';
 import { FlashSaleUsageLogModule } from './flash-sale-usage-log/flash-sale-usage-log.module';
@@ -126,6 +126,7 @@ import { WishlistModule } from './wishlist/wishlist.module';
     CartModule,
     CategoryModule,
     ClientModule,
+    CrmModule,
     ContactMessageModule,
     CouponModule,
     CouponUsageLogModule,
