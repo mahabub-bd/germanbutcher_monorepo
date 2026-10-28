@@ -32,6 +32,11 @@ import {
 } from "@/components/ui/select";
 import { formatDateTime } from "@/lib/utils";
 import {
+  getOrderStatusColor,
+  getPaymentStatusColor,
+  getStatusIcon,
+} from "@/utils/order-helper";
+import {
   deleteData,
   fetchProtectedData,
   patchData,
@@ -58,7 +63,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { StatusCard } from "../dashboard/status-card";
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
@@ -68,6 +73,9 @@ interface OrderItem {
   orderStatus: string;
   paymentStatus: string;
   totalValue: number;
+  totalDiscount?: string;
+  paidAmount?: string;
+  shippingCost?: string | null;
   createdAt: string;
 }
 
@@ -251,6 +259,12 @@ export function CrmCustomerDetail() {
   const { profile, rfm, recentOrders, cart, wishlist, reviews, messages, activities } =
     customer;
 
+  // Default shipping area, surfaced next to the contact info.
+  const defaultArea =
+    profile.addresses?.find((address) => address.isDefault)?.area ??
+    profile.addresses?.[0]?.area ??
+    null;
+
   return (
     <div className="w-full space-y-6">
       <PageHeader
@@ -280,11 +294,16 @@ export function CrmCustomerDetail() {
                 <h2 className="text-lg font-semibold">{profile.name}</h2>
                 <SegmentBadge segment={rfm.segment} />
               </div>
-              <div className="text-sm text-muted-foreground flex flex-col sm:flex-row sm:gap-4">
+              <div className="text-sm text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:gap-4">
                 <span>{profile.email}</span>
                 {profile.mobileNumber && (
                   <span className="flex items-center gap-1">
                     <Phone className="h-3 w-3" /> {profile.mobileNumber}
+                  </span>
+                )}
+                {defaultArea && (
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3" /> {defaultArea}
                   </span>
                 )}
               </div>
@@ -374,66 +393,113 @@ export function CrmCustomerDetail() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatusCard
+          <StatsCard
             title="Orders"
             value={rfm.orderCount}
             icon={ShoppingBag}
-            color="text-blue-600 dark:text-blue-400"
-            gradient="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20"
-            className="pointer-events-none"
+            description="Delivered orders"
+            bgColor="blue"
           />
-          <StatusCard
+          <StatsCard
             title="Total Spent"
             value={rfm.totalSpent.toLocaleString()}
             icon={Wallet}
-            color="text-green-600 dark:text-green-400"
-            gradient="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20"
-            className="pointer-events-none"
+            description="All-time revenue"
+            bgColor="green"
           />
-          <StatusCard
+          <StatsCard
             title="Avg Order"
             value={rfm.averageOrderValue.toLocaleString()}
             icon={Receipt}
-            color="text-orange-600 dark:text-orange-400"
-            gradient="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20"
-            className="pointer-events-none"
+            description="Per delivered order"
+            bgColor="orange"
           />
-          <StatusCard
+          <StatsCard
             title="Last Order"
             value={rfm.lastOrderAt ? formatDateTime(rfm.lastOrderAt) : "Never"}
             icon={CalendarClock}
-            color="text-purple-600 dark:text-purple-400"
-            gradient="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20"
-            className="pointer-events-none"
+            description="Most recent purchase"
+            bgColor="purple"
           />
         </div>
       </div>
 
       <Tabs defaultValue="orders">
-        <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-b bg-transparent p-0">
+        <TabsList className="h-auto w-full justify-start gap-2 overflow-x-auto rounded-none bg-transparent p-0 md:w-fit">
           {(
             [
-              { value: "orders", label: "Orders", icon: ShoppingBag, count: recentOrders.length },
-              { value: "cart", label: "Cart & Wishlist", icon: ShoppingCart, count: cart?.items?.length ?? 0 },
-              { value: "addresses", label: "Shipping", icon: MapPin, count: profile.addresses?.length ?? 0 },
-              { value: "reviews", label: "Reviews", icon: Star, count: reviews.length },
-              { value: "messages", label: "Messages", icon: Mail, count: messages.length },
-              { value: "activities", label: "Activities", icon: Activity, count: activities.length },
+              {
+                value: "orders",
+                label: "Orders",
+                icon: ShoppingBag,
+                count: recentOrders.length,
+                colors:
+                  "bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/70",
+                activeColors:
+                  "data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-400 dark:data-[state=active]:text-blue-950",
+              },
+              {
+                value: "cart",
+                label: "Cart & Wishlist",
+                icon: ShoppingCart,
+                count: cart?.items?.length ?? 0,
+                colors:
+                  "bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70",
+                activeColors:
+                  "data-[state=active]:bg-amber-500 data-[state=active]:text-white dark:data-[state=active]:bg-amber-400 dark:data-[state=active]:text-amber-950",
+              },
+              {
+                value: "addresses",
+                label: "Shipping",
+                icon: MapPin,
+                count: profile.addresses?.length ?? 0,
+                colors:
+                  "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/70",
+                activeColors:
+                  "data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-400 dark:data-[state=active]:text-emerald-950",
+              },
+              {
+                value: "reviews",
+                label: "Reviews",
+                icon: Star,
+                count: reviews.length,
+                colors:
+                  "bg-violet-50 text-violet-800 hover:bg-violet-100 dark:bg-violet-950/40 dark:text-violet-300 dark:hover:bg-violet-950/70",
+                activeColors:
+                  "data-[state=active]:bg-violet-600 data-[state=active]:text-white dark:data-[state=active]:bg-violet-400 dark:data-[state=active]:text-violet-950",
+              },
+              {
+                value: "messages",
+                label: "Messages",
+                icon: Mail,
+                count: messages.length,
+                colors:
+                  "bg-rose-50 text-rose-800 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/70",
+                activeColors:
+                  "data-[state=active]:bg-rose-600 data-[state=active]:text-white dark:data-[state=active]:bg-rose-400 dark:data-[state=active]:text-rose-950",
+              },
+              {
+                value: "activities",
+                label: "Activities",
+                icon: Activity,
+                count: activities.length,
+                colors:
+                  "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900",
+                activeColors:
+                  "data-[state=active]:bg-slate-800 data-[state=active]:text-white dark:data-[state=active]:bg-slate-200 dark:data-[state=active]:text-slate-900",
+              },
             ] as const
           ).map((tab) => (
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className="flex-none gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 h-auto shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-primary dark:data-[state=active]:bg-transparent"
+              className={`h-auto flex-none gap-1.5 rounded-lg border-0 px-4 py-2 font-semibold shadow-none transition-colors data-[state=active]:shadow-none ${tab.colors} ${tab.activeColors}`}
             >
               <tab.icon className="size-4" />
               {tab.label}
-              <Badge
-                variant="secondary"
-                className="ml-0.5 h-5 min-w-5 rounded-full px-1.5 text-[11px] font-medium tabular-nums"
-              >
+              <span className="ml-0.5 rounded-full bg-white/40 px-1.5 text-[11px] font-medium tabular-nums dark:bg-black/20">
                 {tab.count}
-              </Badge>
+              </span>
             </TabsTrigger>
           ))}
         </TabsList>
@@ -452,34 +518,74 @@ export function CrmCustomerDetail() {
                     <TableHead>Status</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="hidden text-right lg:table-cell">
+                      Discount
+                    </TableHead>
+                    <TableHead className="hidden text-right md:table-cell">
+                      Due
+                    </TableHead>
                     <TableHead className="hidden md:table-cell">Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recentOrders.map((order) => (
-                    <TableRow key={order.id} className="hover:bg-muted/50">
-                      <TableCell>
-                        <Link
-                          href={`/admin/order/${order.id}`}
-                          className="font-medium hover:underline"
-                        >
-                          {order.orderNo}
-                        </Link>
-                        <span className="block text-xs text-muted-foreground">
+                  {recentOrders.map((order) => {
+                    const paidAmount = Number(order.paidAmount ?? 0);
+                    const due = Number(order.totalValue) - paidAmount;
+                    return (
+                      <TableRow key={order.id} className="hover:bg-muted/50">
+                        <TableCell>
+                          <Link
+                            href={`/admin/order/${order.id}`}
+                            className="font-medium hover:underline"
+                          >
+                            {order.orderNo}
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className={`capitalize ${getOrderStatusColor(order.orderStatus)}`}
+                          >
+                            <span className="flex items-center gap-1.5">
+                              {getStatusIcon(order.orderStatus)}
+                              {order.orderStatus}
+                            </span>
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className={`capitalize ${getPaymentStatusColor(order.paymentStatus)}`}
+                          >
+                            <span className="flex items-center gap-1.5">
+                              {getStatusIcon(order.paymentStatus)}
+                              {order.paymentStatus}
+                            </span>
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {Number(order.totalValue).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="hidden text-right text-green-600 dark:text-green-400 lg:table-cell">
+                          {Number(order.totalDiscount ?? 0) > 0
+                            ? `- ${Number(order.totalDiscount).toLocaleString()}`
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="hidden text-right md:table-cell">
+                          {due > 0 ? (
+                            <span className="font-medium text-destructive">
+                              {due.toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">Paid</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground">
                           {formatDateTime(order.createdAt)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{order.orderStatus}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{order.paymentStatus}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {order.totalValue.toLocaleString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

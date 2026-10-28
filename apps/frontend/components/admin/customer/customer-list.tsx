@@ -29,6 +29,7 @@ import {
   BadgeCheck,
   BadgeX,
   CheckCircle,
+  MapPin,
   MoreHorizontal,
   Pencil,
   Search,
@@ -196,6 +197,7 @@ export function CustomerList({
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead className="hidden md:table-cell">Mobile</TableHead>
+            <TableHead className="hidden sm:table-cell">Area</TableHead>
             <TableHead className="hidden md:table-cell">Status</TableHead>
             <TableHead className="hidden md:table-cell">Joined</TableHead>
             <TableHead className="hidden lg:table-cell">Last Login</TableHead>
@@ -234,6 +236,21 @@ export function CustomerList({
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 {customer.mobileNumber || "—"}
+              </TableCell>
+              <TableCell className="hidden sm:table-cell">
+                {(() => {
+                  const list = customer.addresses ?? [];
+                  const area =
+                    (list.find((a) => a.isDefault) ?? list[0])?.area || null;
+                  return area ? (
+                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <MapPin className="h-3 w-3" />
+                      {area}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  );
+                })()}
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 <span
