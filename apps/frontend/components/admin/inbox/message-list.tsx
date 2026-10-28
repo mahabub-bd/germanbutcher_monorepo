@@ -33,11 +33,14 @@ import {
   CheckCircle,
   Clock,
   Eye,
+  AtSign,
   FileText,
   Filter,
   Flag,
+  Globe,
   Info,
   Mail,
+  MessageCircle,
   MessageSquare,
   MoreHorizontal,
   Package,
@@ -47,7 +50,6 @@ import {
   RefreshCw,
   Search,
   Send,
-  Settings,
   Share2,
   ShoppingCart,
   Tag,
@@ -127,6 +129,15 @@ const timeAgo = (dateString: string) => {
 
 /** Display ticket number: id 1 → #TK-1001, id 42 → #TK-1042. */
 const ticketNo = (id: number) => `#TK-${1000 + id}`;
+
+const SOURCE_ICONS: Record<ContactSource, React.ComponentType<{ className?: string }>> = {
+  [ContactSource.WEBSITE]: Globe,
+  [ContactSource.FACEBOOK]: AtSign,
+  [ContactSource.PHONE]: Phone,
+  [ContactSource.EMAIL]: Mail,
+  [ContactSource.WHATSAPP]: MessageCircle,
+  [ContactSource.OTHER]: MoreHorizontal,
+};
 
 const SOURCE_BADGES: Record<ContactSource, { label: string; color: string }> = {
   [ContactSource.WEBSITE]: {
@@ -1281,6 +1292,7 @@ export function ContactMessageList({
                     <div className="flex items-center gap-2 flex-wrap">
                       {Object.values(ContactSource).map((source) => {
                         const active = selectedMessageForDetail.source === source;
+                        const Icon = SOURCE_ICONS[source];
                         return (
                           <button
                             key={source}
@@ -1294,6 +1306,7 @@ export function ContactMessageList({
                             {active && (
                               <span className="h-1.5 w-1.5 rounded-full bg-current" />
                             )}
+                            <Icon className="h-3.5 w-3.5" />
                             {source}
                           </button>
                         );
@@ -1330,68 +1343,6 @@ export function ContactMessageList({
                     </div>
                   </div>
                 </div>
-
-              {/* Status / source / priority pills — all save immediately */}
-              <div className="flex flex-wrap items-center gap-4 rounded-xl border border-gray-200 dark:border-neutral-700 p-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-gray-400 mr-0.5">Status</span>
-                  {Object.values(ContactStatus).map((status) => {
-                    const active = selectedMessageForDetail.contactStatus === status;
-                    return (
-                      <button
-                        key={status}
-                        onClick={() => handleStatusChange(status)}
-                        disabled={isUpdatingStatus || !can(MENU_URL, "canEdit")}
-                        className={`text-[11px] px-2 py-1 rounded-md border transition-colors disabled:opacity-50 ${active
-                          ? "bg-blue-50 border-blue-500 text-blue-600 dark:bg-blue-950/40"
-                          : "border-gray-200 dark:border-neutral-700 text-gray-500 hover:border-blue-300"
-                          }`}
-                      >
-                        {status === ContactStatus.PENDING ? "Open" : status.replace("_", " ")}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-gray-400 mr-0.5">Source</span>
-                  {Object.values(ContactSource).map((source) => {
-                    const active = selectedMessageForDetail.source === source;
-                    return (
-                      <button
-                        key={source}
-                        onClick={() => handleSourceChange(source)}
-                        disabled={isUpdatingStatus || !can(MENU_URL, "canEdit")}
-                        className={`text-[11px] px-2 py-1 rounded-md border capitalize transition-colors disabled:opacity-50 ${active
-                          ? "bg-teal-50 border-teal-500 text-teal-600 dark:bg-teal-950/40"
-                          : "border-gray-200 dark:border-neutral-700 text-gray-500 hover:border-teal-300"
-                          }`}
-                      >
-                        {source}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-gray-400 mr-0.5">Priority</span>
-                  {Object.values(ContactPriority).map((priority) => {
-                    const active =
-                      (selectedMessageForDetail.priority ?? "medium") === priority;
-                    return (
-                      <button
-                        key={priority}
-                        onClick={() => handlePriorityChange(priority)}
-                        disabled={isUpdatingStatus || !can(MENU_URL, "canEdit")}
-                        className={`text-[11px] px-2 py-1 rounded-md border capitalize transition-colors disabled:opacity-50 ${active
-                          ? "bg-red-50 border-red-500 text-red-600 dark:bg-red-950/40"
-                          : "border-gray-200 dark:border-neutral-700 text-gray-500 hover:border-red-300"
-                          }`}
-                      >
-                        {priority}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
 
               {/* Conversation */}
               <div className="space-y-3">
@@ -1566,36 +1517,6 @@ export function ContactMessageList({
                       <span className="text-gray-400">›</span>
                     </Link>
                   )}
-                </div>
-
-                {/* Actions */}
-                <div className="rounded-xl border border-gray-200 dark:border-neutral-700 p-4">
-                  <h4 className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white mb-3">
-                    <Settings className="h-4 w-4 text-blue-500" /> Actions
-                  </h4>
-                  <div className="space-y-2.5">
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-green-700 border-green-200 bg-green-50 hover:bg-green-100 dark:bg-green-950/40 dark:border-green-900 dark:text-green-400"
-                      disabled={isUpdatingStatus || !can(MENU_URL, "canEdit")}
-                      onClick={() => handleStatusChange(ContactStatus.RESOLVED)}
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Mark as Resolved
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-red-600 border-red-200 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:border-red-900"
-                      disabled={!can(MENU_URL, "canDelete")}
-                      onClick={() => {
-                        setIsDetailModalOpen(false);
-                        handleDeleteClick(selectedMessageForDetail);
-                      }}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Ticket
-                    </Button>
-                  </div>
                 </div>
               </div>
             </div>
