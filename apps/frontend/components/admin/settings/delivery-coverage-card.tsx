@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +25,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import {
   normalizeCoverage,
   type CoverageArea,
@@ -47,11 +47,9 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  Power,
   PowerOff,
   Save,
   Search,
-  SlidersHorizontal,
   Trash2,
   X,
   type LucideIcon,
@@ -108,6 +106,20 @@ function toggleInSet(set: Set<string>, value: string) {
 
 function percentOf(value: number, total: number) {
   return total > 0 ? Math.round((value / total) * 100) : 0;
+}
+
+/** Checked when everything is enabled, mixed when only some are, unchecked
+ *  when nothing is — used by the select-all style checkboxes. */
+function checkboxState(
+  enabled: number,
+  total: number,
+): boolean | "indeterminate" {
+  if (total <= 0 || enabled <= 0) return false;
+  return enabled >= total ? true : "indeterminate";
+}
+
+function domId(...parts: string[]) {
+  return parts.join("-").replace(/[^a-zA-Z0-9_-]+/g, "-");
 }
 
 /** Standalone delivery-coverage manager. Divisions, cities and areas live
@@ -600,11 +612,56 @@ export function DeliveryCoverageCard() {
     });
   };
 
+  const setCityBranch = (cityName: string, enabled: boolean) => {
+    mutate((prev) => ({
+      ...prev,
+      cities: prev.cities.map((city) =>
+        city.name === cityName ? { ...city, enabled } : city,
+      ),
+      areas: prev.areas.map((area) =>
+        area.city === cityName ? { ...area, enabled } : area,
+      ),
+    }));
+  };
+
+  /** Select-all for the city cards of one division — toggles the cities and
+   *  their areas without touching the division's own flag. */
+  const setDivisionCities = (divisionName: string, enabled: boolean) => {
+    mutate((prev) => {
+      const cityNames = new Set(
+        prev.cities
+          .filter((city) => city.division === divisionName)
+          .map((city) => city.name),
+      );
+      return {
+        ...prev,
+        cities: prev.cities.map((city) =>
+          city.division === divisionName ? { ...city, enabled } : city,
+        ),
+        areas: prev.areas.map((area) =>
+          cityNames.has(area.city) ? { ...area, enabled } : area,
+        ),
+      };
+    });
+  };
+
+  /** Select-all for the area cards of one city — leaves the city flag alone. */
   const setCityAreas = (cityName: string, enabled: boolean) => {
     mutate((prev) => ({
       ...prev,
       areas: prev.areas.map((area) =>
         area.city === cityName ? { ...area, enabled } : area,
+      ),
+    }));
+  };
+
+  const toggleArea = (cityName: string, areaName: string) => {
+    mutate((prev) => ({
+      ...prev,
+      areas: prev.areas.map((area) =>
+        area.city === cityName && area.name === areaName
+          ? { ...area, enabled: !area.enabled }
+          : area,
       ),
     }));
   };
@@ -688,11 +745,15 @@ export function DeliveryCoverageCard() {
 
   // --- Render -------------------------------------------------------------
 
+  const overallTotal = totals.divisions + totals.cities + totals.areas;
+  const overallEnabled =
+    totals.enabledDivisions + totals.enabledCities + totals.enabledAreas;
+
   return (
     <div className={cn("space-y-6 rounded-sm p-2 md:p-4", isDirty && "pb-28")}>
       <PageHeader
         title="Delivery Coverage"
-        description="Decide exactly where you deliver. Only enabled areas appear on checkout and customer address forms."
+        description="Decide exactly where you deliver. Only checked areas appear on checkout and customer address forms."
         titleIcon={<MapPin className="size-6" />}
       >
         {isDirty && (
@@ -781,7 +842,7 @@ export function DeliveryCoverageCard() {
                 Servable areas
               </h2>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                Disabled entries stay saved but are hidden from customers.
+                Unchecked entries stay saved but are hidden from customers.
               </p>
             </div>
           </div>
@@ -825,55 +886,48 @@ export function DeliveryCoverageCard() {
               </div>
 
               <div className="flex items-center gap-1.5">
+                <label
+                  className={cn(
+                    "flex h-9 cursor-pointer select-none items-center gap-2 rounded-md border bg-background px-2.5 text-sm shadow-xs transition-colors hover:bg-muted/50",
+                    !canEdit && "cursor-not-allowed opacity-60",
+                  )}
+                  title="Mark or unmark every division, city and area"
+                >
+                  <Checkbox
+                    checked={checkboxState(overallEnabled, overallTotal)}
+                    disabled={!canEdit || overallTotal === 0}
+                    onCheckedChange={(value) => setEverything(value === true)}
+                    aria-label="Select all delivery coverage"
+                  />
+                  <span className="font-medium">Select all</span>
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {overallEnabled}/{overallTotal}
+                  </span>
+                </label>
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
-                  className="h-9 gap-1.5"
+                  size="icon-sm"
+                  className="size-9 text-muted-foreground"
                   onClick={expandAllDivisions}
                   disabled={coverage.divisions.length === 0}
                   title="Expand all divisions"
+                  aria-label="Expand all divisions"
                 >
                   <ChevronsUpDown className="size-4" />
-                  <span className="hidden lg:inline">Expand</span>
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
-                  className="h-9 gap-1.5"
+                  size="icon-sm"
+                  className="size-9 text-muted-foreground"
                   onClick={collapseAll}
                   disabled={coverage.divisions.length === 0}
                   title="Collapse all"
+                  aria-label="Collapse all"
                 >
                   <ChevronsDownUp className="size-4" />
-                  <span className="hidden lg:inline">Collapse</span>
                 </Button>
-                {canEdit && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-9 gap-1.5 bg-background"
-                      >
-                        <SlidersHorizontal className="size-4" />
-                        <span className="hidden sm:inline">Bulk</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-52">
-                      <DropdownMenuItem onClick={() => setEverything(true)}>
-                        <Power className="size-4" />
-                        Enable everything
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setEverything(false)}>
-                        <PowerOff className="size-4" />
-                        Disable everything
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
               </div>
             </div>
 
@@ -936,7 +990,16 @@ export function DeliveryCoverageCard() {
                 }
               />
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2 px-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Divisions
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {totals.enabledDivisions}/{totals.divisions} selected
+                  </p>
+                </div>
+
                 {tree.map(({ division, cities: cityNodes }) => {
                   const key = divisionKey(division.name);
                   const expanded = isNodeExpanded(key, "division");
@@ -944,7 +1007,7 @@ export function DeliveryCoverageCard() {
                   const enabledCityCount = allCities.filter(
                     (city) => city.enabled,
                   ).length;
-                  const allAreas = allCities.reduce(
+                  const divisionAreaCount = allCities.reduce(
                     (sum, city) =>
                       sum + (areasByCity.get(city.name)?.length ?? 0),
                     0,
@@ -957,14 +1020,11 @@ export function DeliveryCoverageCard() {
                         ?.filter((area) => area.enabled).length ?? 0),
                     0,
                   );
+                  const branchTotal = 1 + allCities.length + divisionAreaCount;
                   const branchEnabled =
-                    division.enabled &&
-                    allCities.every((city) => city.enabled) &&
-                    allCities.every((city) =>
-                      (areasByCity.get(city.name) ?? []).every(
-                        (area) => area.enabled,
-                      ),
-                    );
+                    (division.enabled ? 1 : 0) +
+                    enabledCityCount +
+                    enabledAreaCount;
                   const editingThis =
                     editing?.level === "division" &&
                     editing.name === division.name;
@@ -973,32 +1033,25 @@ export function DeliveryCoverageCard() {
                     <div
                       key={division.name}
                       className={cn(
-                        "overflow-hidden rounded-xl border bg-background transition-shadow",
-                        expanded && "shadow-sm",
+                        "overflow-hidden rounded-2xl border bg-background transition-colors",
                         !division.enabled && "bg-muted/20",
                       )}
                     >
-                      <div className="flex items-center gap-1.5 p-2 sm:gap-2.5 sm:p-3">
-                        <button
-                          type="button"
-                          onClick={() => toggleNode(key, "division")}
-                          aria-expanded={expanded}
-                          aria-label={`${
-                            expanded ? "Collapse" : "Expand"
-                          } ${division.name}`}
-                          className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                        >
-                          <ChevronDown
-                            className={cn(
-                              "size-4 transition-transform",
-                              expanded && "rotate-180",
-                            )}
-                          />
-                        </button>
+                      <div className="flex items-center gap-2 p-2.5 sm:gap-3 sm:p-3">
+                        <Checkbox
+                          checked={checkboxState(branchEnabled, branchTotal)}
+                          disabled={!canEdit}
+                          aria-label={`Select all of ${division.name}`}
+                          title={`Select all in ${division.name}`}
+                          onCheckedChange={(value) =>
+                            setDivisionBranch(division.name, value === true)
+                          }
+                          className="size-[18px]"
+                        />
 
                         <span
                           className={cn(
-                            "flex size-8 shrink-0 items-center justify-center rounded-lg border sm:size-9",
+                            "hidden size-9 shrink-0 items-center justify-center rounded-lg border sm:flex",
                             division.enabled
                               ? "border-primaryColor/15 bg-primaryColor/10 text-primaryColor"
                               : "border-transparent bg-muted text-muted-foreground",
@@ -1048,30 +1101,12 @@ export function DeliveryCoverageCard() {
                                 </span>
                                 <span className="size-0.5 rounded-full bg-muted-foreground/40" />
                                 <span>
-                                  {enabledAreaCount}/{allAreas} areas
+                                  {enabledAreaCount}/{divisionAreaCount} areas
                                 </span>
                               </span>
                             </button>
                           )}
                         </div>
-
-                        <Switch
-                          checked={division.enabled}
-                          disabled={!canEdit}
-                          aria-label={`${
-                            division.enabled ? "Disable" : "Enable"
-                          } ${division.name}`}
-                          onCheckedChange={(checked) =>
-                            mutate((prev) => ({
-                              ...prev,
-                              divisions: prev.divisions.map((entry) =>
-                                entry.name === division.name
-                                  ? { ...entry, enabled: checked }
-                                  : entry,
-                              ),
-                            }))
-                          }
-                        />
 
                         {canEdit && (
                           <DropdownMenu>
@@ -1086,7 +1121,7 @@ export function DeliveryCoverageCard() {
                                 <MoreHorizontal className="size-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuContent align="end" className="w-52">
                               <DropdownMenuItem
                                 onClick={() =>
                                   startEditing({
@@ -1097,23 +1132,6 @@ export function DeliveryCoverageCard() {
                               >
                                 <Pencil className="size-4" />
                                 Rename
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  setDivisionBranch(
-                                    division.name,
-                                    !branchEnabled,
-                                  )
-                                }
-                              >
-                                {branchEnabled ? (
-                                  <PowerOff className="size-4" />
-                                ) : (
-                                  <Power className="size-4" />
-                                )}
-                                {branchEnabled
-                                  ? "Disable entire division"
-                                  : "Enable entire division"}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -1131,10 +1149,27 @@ export function DeliveryCoverageCard() {
                             </DropdownMenuContent>
                           </DropdownMenu>
                         )}
+
+                        <button
+                          type="button"
+                          onClick={() => toggleNode(key, "division")}
+                          aria-expanded={expanded}
+                          aria-label={`${
+                            expanded ? "Collapse" : "Expand"
+                          } ${division.name}`}
+                          className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <ChevronDown
+                            className={cn(
+                              "size-4 transition-transform",
+                              expanded && "rotate-180",
+                            )}
+                          />
+                        </button>
                       </div>
 
                       {expanded && (
-                        <div className="border-t bg-muted/20 p-2 sm:p-3">
+                        <div className="border-t bg-muted/20 p-2.5 sm:p-3">
                           {!division.enabled && (
                             <p className="mb-2 flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1.5 text-[11px] text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
                               <PowerOff className="size-3.5 shrink-0" />
@@ -1143,9 +1178,46 @@ export function DeliveryCoverageCard() {
                             </p>
                           )}
 
-                          <div className="space-y-1.5 border-l-2 border-border/60 pl-2 sm:pl-3">
+                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              Cities
+                            </p>
+                            {allCities.length > 0 && (
+                              <label
+                                className={cn(
+                                  "flex cursor-pointer select-none items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-[11px] shadow-xs transition-colors hover:bg-muted/60",
+                                  !canEdit && "cursor-not-allowed opacity-60",
+                                )}
+                                title={`Mark or unmark every city in ${division.name}`}
+                              >
+                                <Checkbox
+                                  checked={checkboxState(
+                                    enabledCityCount + enabledAreaCount,
+                                    allCities.length + divisionAreaCount,
+                                  )}
+                                  disabled={!canEdit}
+                                  aria-label={`Select all cities in ${division.name}`}
+                                  onCheckedChange={(value) =>
+                                    setDivisionCities(
+                                      division.name,
+                                      value === true,
+                                    )
+                                  }
+                                  className="size-3.5 rounded-[3px]"
+                                />
+                                <span className="font-medium">
+                                  Select all cities
+                                </span>
+                                <span className="tabular-nums text-muted-foreground">
+                                  {enabledCityCount}/{allCities.length}
+                                </span>
+                              </label>
+                            )}
+                          </div>
+
+                          <div className="grid items-start gap-2 md:grid-cols-2 2xl:grid-cols-3">
                             {cityNodes.length === 0 && (
-                              <p className="rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
+                              <p className="col-span-full rounded-xl border border-dashed px-3 py-3 text-xs text-muted-foreground">
                                 No cities in this division yet.
                               </p>
                             )}
@@ -1158,9 +1230,9 @@ export function DeliveryCoverageCard() {
                               const enabledCityAreas = allCityAreas.filter(
                                 (area) => area.enabled,
                               ).length;
-                              const allAreasEnabled =
-                                allCityAreas.length > 0 &&
-                                allCityAreas.every((area) => area.enabled);
+                              const cityBranchTotal = 1 + allCityAreas.length;
+                              const cityBranchEnabled =
+                                (city.enabled ? 1 : 0) + enabledCityAreas;
                               const editingThis =
                                 editing?.level === "city" &&
                                 editing.name === city.name &&
@@ -1170,31 +1242,28 @@ export function DeliveryCoverageCard() {
                                 <div
                                   key={`${city.division}-${city.name}`}
                                   className={cn(
-                                    "overflow-hidden rounded-lg border bg-background",
+                                    "overflow-hidden rounded-xl border bg-background transition-colors",
                                     !city.enabled && "bg-muted/30",
                                   )}
                                 >
-                                  <div className="flex items-center gap-1.5 p-1.5 sm:gap-2 sm:p-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleNode(key, "city")}
-                                      aria-expanded={cityExpanded}
-                                      aria-label={`${
-                                        cityExpanded ? "Collapse" : "Expand"
-                                      } ${city.name}`}
-                                      className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                                    >
-                                      <ChevronDown
-                                        className={cn(
-                                          "size-3.5 transition-transform",
-                                          cityExpanded && "rotate-180",
-                                        )}
-                                      />
-                                    </button>
+                                  <div className="flex items-center gap-2 p-2">
+                                    <Checkbox
+                                      checked={checkboxState(
+                                        cityBranchEnabled,
+                                        cityBranchTotal,
+                                      )}
+                                      disabled={!canEdit}
+                                      aria-label={`Select all of ${city.name}`}
+                                      title={`Select all in ${city.name}`}
+                                      onCheckedChange={(value) =>
+                                        setCityBranch(city.name, value === true)
+                                      }
+                                      className="size-[18px]"
+                                    />
 
                                     <span
                                       className={cn(
-                                        "flex size-7 shrink-0 items-center justify-center rounded-md",
+                                        "hidden size-7 shrink-0 items-center justify-center rounded-md sm:flex",
                                         city.enabled
                                           ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                                           : "bg-muted text-muted-foreground",
@@ -1238,25 +1307,6 @@ export function DeliveryCoverageCard() {
                                       )}
                                     </div>
 
-                                    <Switch
-                                      checked={city.enabled}
-                                      disabled={!canEdit}
-                                      aria-label={`${
-                                        city.enabled ? "Disable" : "Enable"
-                                      } ${city.name}`}
-                                      onCheckedChange={(checked) =>
-                                        mutate((prev) => ({
-                                          ...prev,
-                                          cities: prev.cities.map((entry) =>
-                                            entry.name === city.name &&
-                                            entry.division === city.division
-                                              ? { ...entry, enabled: checked }
-                                              : entry,
-                                          ),
-                                        }))
-                                      }
-                                    />
-
                                     {canEdit && (
                                       <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
@@ -1272,7 +1322,7 @@ export function DeliveryCoverageCard() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent
                                           align="end"
-                                          className="w-52"
+                                          className="w-48"
                                         >
                                           <DropdownMenuItem
                                             onClick={() =>
@@ -1285,24 +1335,6 @@ export function DeliveryCoverageCard() {
                                           >
                                             <Pencil className="size-4" />
                                             Rename
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem
-                                            onClick={() =>
-                                              setCityAreas(
-                                                city.name,
-                                                !allAreasEnabled,
-                                              )
-                                            }
-                                            disabled={allCityAreas.length === 0}
-                                          >
-                                            {allAreasEnabled ? (
-                                              <PowerOff className="size-4" />
-                                            ) : (
-                                              <Power className="size-4" />
-                                            )}
-                                            {allAreasEnabled
-                                              ? "Disable all areas"
-                                              : "Enable all areas"}
                                           </DropdownMenuItem>
                                           <DropdownMenuSeparator />
                                           <DropdownMenuItem
@@ -1321,10 +1353,66 @@ export function DeliveryCoverageCard() {
                                         </DropdownMenuContent>
                                       </DropdownMenu>
                                     )}
+
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleNode(key, "city")}
+                                      aria-expanded={cityExpanded}
+                                      aria-label={`${
+                                        cityExpanded ? "Collapse" : "Expand"
+                                      } ${city.name}`}
+                                      className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                    >
+                                      <ChevronDown
+                                        className={cn(
+                                          "size-3.5 transition-transform",
+                                          cityExpanded && "rotate-180",
+                                        )}
+                                      />
+                                    </button>
                                   </div>
 
                                   {cityExpanded && (
-                                    <div className="border-t bg-muted/20 p-2 sm:p-2.5">
+                                    <div className="space-y-2 border-t bg-muted/20 p-2">
+                                      {allCityAreas.length > 0 && (
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                            Areas
+                                          </p>
+                                          <label
+                                            className={cn(
+                                              "flex cursor-pointer select-none items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-[11px] shadow-xs transition-colors hover:bg-muted/60",
+                                              !canEdit &&
+                                                "cursor-not-allowed opacity-60",
+                                            )}
+                                            title={`Mark or unmark every area in ${city.name}`}
+                                          >
+                                            <Checkbox
+                                              checked={checkboxState(
+                                                enabledCityAreas,
+                                                allCityAreas.length,
+                                              )}
+                                              disabled={!canEdit}
+                                              aria-label={`Select all areas in ${city.name}`}
+                                              onCheckedChange={(value) =>
+                                                setCityAreas(
+                                                  city.name,
+                                                  value === true,
+                                                )
+                                              }
+                                              className="size-3.5 rounded-[3px]"
+                                            />
+                                            <span className="font-medium">
+                                              Select all areas
+                                            </span>
+                                            <span className="tabular-nums text-muted-foreground">
+                                              {enabledCityAreas}/
+                                              {allCityAreas.length}
+                                            </span>
+                                          </label>
+                                        </div>
+                                      )}
+
                                       {areas.length === 0 ? (
                                         <div className="flex items-center gap-2 rounded-lg border border-dashed bg-background/60 px-3 py-2 text-xs text-muted-foreground">
                                           <MapPinOff className="size-3.5 shrink-0" />
@@ -1333,81 +1421,35 @@ export function DeliveryCoverageCard() {
                                             : "No areas yet — add the first one below."}
                                         </div>
                                       ) : (
-                                        <div className="flex flex-wrap gap-1.5">
+                                        <div className="grid gap-1.5 sm:grid-cols-2">
                                           {areas.map((area) => (
-                                            <span
+                                            <AreaTile
                                               key={`${area.city}-${area.name}`}
-                                              className={cn(
-                                                "group/area inline-flex items-center gap-1 rounded-full border py-0.5 pl-2 pr-1 text-[11px] transition-colors sm:text-xs",
-                                                area.enabled
-                                                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
-                                                  : "border-border bg-background text-muted-foreground",
+                                              id={domId(
+                                                "area",
+                                                division.name,
+                                                city.name,
+                                                area.name,
                                               )}
-                                            >
-                                              <button
-                                                type="button"
-                                                disabled={!canEdit}
-                                                aria-pressed={area.enabled}
-                                                onClick={() =>
-                                                  mutate((prev) => ({
-                                                    ...prev,
-                                                    areas: prev.areas.map(
-                                                      (entry) =>
-                                                        entry.city ===
-                                                          area.city &&
-                                                        entry.name === area.name
-                                                          ? {
-                                                              ...entry,
-                                                              enabled:
-                                                                !entry.enabled,
-                                                            }
-                                                          : entry,
-                                                    ),
-                                                  }))
-                                                }
-                                                title={
-                                                  canEdit
-                                                    ? area.enabled
-                                                      ? "Enabled — click to turn off"
-                                                      : "Off — click to enable"
-                                                    : undefined
-                                                }
-                                                className="inline-flex items-center gap-1.5 disabled:cursor-default"
-                                              >
-                                                <span
-                                                  className={cn(
-                                                    "size-1.5 rounded-full",
-                                                    area.enabled
-                                                      ? "bg-emerald-500"
-                                                      : "bg-muted-foreground/40",
-                                                  )}
-                                                />
-                                                {area.name}
-                                              </button>
-                                              {canEdit && (
-                                                <button
-                                                  type="button"
-                                                  aria-label={`Delete ${area.name}`}
-                                                  title="Delete area"
-                                                  onClick={() =>
-                                                    setPendingDelete({
-                                                      level: "area",
-                                                      name: area.name,
-                                                      city: area.city,
-                                                    })
-                                                  }
-                                                  className="rounded-full p-0.5 text-muted-foreground opacity-60 transition-all hover:bg-red-100 hover:text-red-600 focus-visible:opacity-100 group-hover/area:opacity-100 dark:hover:bg-red-950/50"
-                                                >
-                                                  <X className="size-3" />
-                                                </button>
-                                              )}
-                                            </span>
+                                              area={area}
+                                              canEdit={canEdit}
+                                              onToggle={() =>
+                                                toggleArea(area.city, area.name)
+                                              }
+                                              onDelete={() =>
+                                                setPendingDelete({
+                                                  level: "area",
+                                                  name: area.name,
+                                                  city: area.city,
+                                                })
+                                              }
+                                            />
                                           ))}
                                         </div>
                                       )}
 
                                       {!isSearching && canEdit && (
-                                        <div className="mt-2">
+                                        <div className="pt-0.5">
                                           {adding?.level === "area" &&
                                           adding.city === city.name ? (
                                             <AddRow
@@ -1442,7 +1484,7 @@ export function DeliveryCoverageCard() {
                             })}
 
                             {!isSearching && canEdit && (
-                              <div className="pt-1">
+                              <div className="min-h-[64px]">
                                 {adding?.level === "city" &&
                                 adding.division === division.name ? (
                                   <AddRow
@@ -1461,7 +1503,7 @@ export function DeliveryCoverageCard() {
                                         division: division.name,
                                       })
                                     }
-                                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primaryColor/30 hover:bg-primaryColor/5 hover:text-foreground"
+                                    className="flex h-full min-h-[64px] w-full items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primaryColor/30 hover:bg-primaryColor/5 hover:text-foreground"
                                   >
                                     <Plus className="size-3.5" />
                                     Add city to {division.name}
@@ -1490,7 +1532,7 @@ export function DeliveryCoverageCard() {
                       <button
                         type="button"
                         onClick={() => startAdding({ level: "division" })}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed px-3 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primaryColor/30 hover:bg-primaryColor/5 hover:text-foreground"
+                        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primaryColor/30 hover:bg-primaryColor/5 hover:text-foreground"
                       >
                         <Plus className="size-3.5" />
                         Add division
@@ -1577,6 +1619,64 @@ export function DeliveryCoverageCard() {
 }
 
 // --- Small presentational pieces -----------------------------------------
+
+/** One area rendered as a selectable grid card. */
+function AreaTile({
+  id,
+  area,
+  canEdit,
+  onToggle,
+  onDelete,
+}: {
+  id: string;
+  area: CoverageArea;
+  canEdit: boolean;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "group/area flex items-center gap-2 rounded-lg border px-2 py-1.5 transition-colors",
+        area.enabled
+          ? "border-emerald-200 bg-emerald-50/70 dark:border-emerald-900 dark:bg-emerald-950/30"
+          : "border-border bg-background hover:bg-muted/40",
+      )}
+    >
+      <Checkbox
+        id={id}
+        checked={area.enabled}
+        disabled={!canEdit}
+        onCheckedChange={onToggle}
+        className="size-3.5 rounded-[3px]"
+      />
+      <label
+        htmlFor={id}
+        className={cn(
+          "min-w-0 flex-1 truncate text-xs",
+          canEdit ? "cursor-pointer" : "cursor-default",
+          area.enabled
+            ? "font-medium text-emerald-900 dark:text-emerald-100"
+            : "text-muted-foreground",
+        )}
+        title={area.name}
+      >
+        {area.name}
+      </label>
+      {canEdit && (
+        <button
+          type="button"
+          aria-label={`Delete ${area.name}`}
+          title="Delete area"
+          onClick={onDelete}
+          className="rounded p-0.5 text-muted-foreground transition-opacity hover:bg-red-100 hover:text-red-600 focus-visible:opacity-100 sm:opacity-0 sm:group-hover/area:opacity-100 dark:hover:bg-red-950/50"
+        >
+          <X className="size-3" />
+        </button>
+      )}
+    </div>
+  );
+}
 
 function EmptyState({
   icon: Icon,

@@ -3,6 +3,12 @@ export enum AddressType {
   BILLING = 'billing',
 }
 
+export enum LocationType {
+  DIVISION = 'division',
+  CITY = 'city',
+  AREA = 'area',
+}
+
 export enum OrderStatus {
   PENDING = 'pending',
   PROCESSING = 'processing',

@@ -43,6 +43,7 @@ import { ProductModule } from './product/product.module';
 import { PurchasesModule } from './purchase/purchase.module';
 import { RecipeModule } from './recipe/recipe.module';
 import { RolesModule } from './roles/roles.module';
+import { LocationModule } from './location/location.module';
 import { SalesPartnerModule } from './sales-partner/sales-partner.module';
 import { SalesPointShopModule } from './sales-point-shop/sales-point-shop.module';
 import { SalesPointModule } from './sales-point/sales-point.module';
@@ -114,6 +115,7 @@ import { WishlistModule } from './wishlist/wishlist.module';
     }),
 
     AddressModule,
+    LocationModule,
     AnalyticsModule,
     AttachmentModule,
     AuthModule,

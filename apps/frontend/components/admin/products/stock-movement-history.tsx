@@ -170,14 +170,11 @@ function MovementRow({
           )}
         </TableCell>
       )}
-      <TableCell className="hidden max-w-50 py-3 xl:table-cell">
-        {reference ? (
-          <div className="space-y-0.5">
-            <p className="truncate">{reference}</p>
-            {entry.note && (
-              <p className="truncate text-xs text-muted-foreground">{entry.note}</p>
-            )}
-          </div>
+      <TableCell className="hidden max-w-80 py-3 xl:table-cell">
+        {/* Prefer the backend note (already contains the order/purchase number
+            and reason); the generated "Order #id" label is only a fallback. */}
+        {entry.note || reference ? (
+          <p className="truncate">{entry.note ?? reference}</p>
         ) : (
           <span className="text-muted-foreground">—</span>
         )}
