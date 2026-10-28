@@ -352,28 +352,71 @@ export class ActivityInterceptor implements NestInterceptor {
     }
   }
 
+  private async fetchOrderNo(orderId: number | null): Promise<string | null> {
+    try {
+      if (!orderId || isNaN(orderId) || orderId <= 0) {
+        return null;
+      }
+      const result = await this.dataSource.query(
+        `SELECT "orderNo" FROM "order" WHERE "id" = $1 LIMIT 1`,
+        [orderId]
+      );
+      return result && result.length > 0 ? result[0].orderNo : null;
+    } catch (error) {
+      console.error('Error fetching order number:', error);
+      return null;
+    }
+  }
+
+  private async fetchDeliveryManName(
+    deliveryManId: number | null,
+  ): Promise<string | null> {
+    try {
+      if (!deliveryManId || isNaN(deliveryManId) || deliveryManId <= 0) {
+        return null;
+      }
+      const result = await this.dataSource.query(
+        `SELECT name FROM "delivery_man" WHERE "id" = $1 LIMIT 1`,
+        [deliveryManId]
+      );
+      return result && result.length > 0 ? result[0].name : null;
+    } catch (error) {
+      console.error('Error fetching delivery man name:', error);
+      return null;
+    }
+  }
+
   private async getActionMessage(req: any, action: string, entityType: string, entityId: number | null): Promise<string> {
     const routePath = req.route?.path || req.originalUrl;
 
     // Handle specific order-related routes for more descriptive messages
     if (entityType === 'orders') {
+      const orderNo = await this.fetchOrderNo(entityId);
+      const orderLabel = orderNo ?? (entityId ? `#${entityId}` : '');
+
       if (routePath.includes('/payments')) {
         if (action === 'POST') {
-          return `Created payment for order${entityId ? ` ${entityId}` : ''}`;
+          return `Created payment for order ${orderLabel}`;
         }
       } else if (routePath.includes('/assign-delivery-man')) {
         const deliveryManId = req.body?.deliveryManId;
-        return `Assigned delivery man${deliveryManId ? ` ${deliveryManId}` : ''} to order${entityId ? ` ${entityId}` : ''}`;
+        const deliveryManName = await this.fetchDeliveryManName(deliveryManId);
+        const deliveryManLabel = deliveryManName
+          ? ` "${deliveryManName}"`
+          : deliveryManId
+            ? ` ${deliveryManId}`
+            : '';
+        return `Assigned delivery man${deliveryManLabel} to order ${orderLabel}`;
       } else if (routePath.includes('/order-status')) {
         const newStatus = req.body?.status;
-        return `Updated order status to ${newStatus || 'new status'} for order${entityId ? ` ${entityId}` : ''}`;
+        return `Updated order status to ${newStatus || 'new status'} for order ${orderLabel}`;
       } else if (routePath.includes('/payment-status')) {
         const newStatus = req.body?.status;
-        return `Updated payment status to ${newStatus || 'new status'} for order${entityId ? ` ${entityId}` : ''}`;
+        return `Updated payment status to ${newStatus || 'new status'} for order ${orderLabel}`;
       } else if (routePath.includes('/cancel')) {
-        return `Cancelled order${entityId ? ` ${entityId}` : ''}`;
+        return `Cancelled order ${orderLabel}`;
       } else if (action === 'POST') {
-        return `Created new order${entityId ? ` with ID ${entityId}` : ''}`;
+        return `Created new order${orderNo ? ` ${orderNo}` : orderLabel}`;
       }
     }
 
