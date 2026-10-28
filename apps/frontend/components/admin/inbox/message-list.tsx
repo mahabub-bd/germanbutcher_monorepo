@@ -27,6 +27,7 @@ import type { ContactMessage } from "@/utils/types";
 import { ActionTaken } from "@/utils/types";
 import {
   AlertCircle,
+  ArrowLeft,
   Ban,
   Calendar,
   CheckCircle,
@@ -34,6 +35,7 @@ import {
   Eye,
   FileText,
   Filter,
+  Flag,
   Info,
   Mail,
   MessageSquare,
@@ -46,11 +48,14 @@ import {
   Search,
   Send,
   Settings,
+  Share2,
   ShoppingCart,
   Tag,
   Trash2,
+  User,
   XCircle,
 } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -1135,71 +1140,196 @@ export function ContactMessageList({
       {/* Message Detail Modal */}
       {isDetailModalOpen && selectedMessageForDetail && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white dark:bg-neutral-900 border-b px-6 py-4 flex items-center justify-between">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl w-full max-w-7xl max-h-[94vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white dark:bg-neutral-900 border-b px-6 py-4 flex items-center justify-between z-10 rounded-t-2xl">
               <div className="flex items-center gap-3">
-                <h3 className="text-lg font-semibold">
-                  {ticketNo(selectedMessageForDetail.id)}
-                </h3>
-                {getPriorityBadge(selectedMessageForDetail.priority)}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsDetailModalOpen(false)}
+                  aria-label="Back"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
+                  <MessageSquare className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                      {ticketNo(selectedMessageForDetail.id)}
+                    </h3>
+                    {getPriorityBadge(selectedMessageForDetail.priority)}
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Created on {formatDate(selectedMessageForDetail.createdAt)}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 {can(MENU_URL, "canDelete") && (
                   <Button
-                    variant="ghost"
-                    size="icon"
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/40"
                     onClick={() => {
                       setIsDetailModalOpen(false);
                       handleDeleteClick(selectedMessageForDetail);
                     }}
-                    aria-label="Delete ticket"
                   >
-                    <Trash2 className="h-4 w-4 text-destructive" />
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
                   </Button>
                 )}
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsDetailModalOpen(false)}
+                  aria-label="Close"
                 >
-                  <XCircle className="h-4 w-4" />
+                  <XCircle className="h-5 w-5" />
                 </Button>
               </div>
             </div>
 
-            <div className="p-6 space-y-5">
-              {/* Customer header row */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-sm font-bold text-blue-700 dark:text-blue-300">
-                    {selectedMessageForDetail.name?.charAt(0).toUpperCase() || "?"}
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                      {selectedMessageForDetail.name}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
-                      <a
-                        href={`mailto:${selectedMessageForDetail.email}`}
-                        className="hover:text-blue-600"
-                      >
-                        {selectedMessageForDetail.email}
-                      </a>
-                      {selectedMessageForDetail.mobile && (
+            <div className="p-6 grid lg:grid-cols-3 gap-5">
+              {/* LEFT — main ticket area */}
+              <div className="lg:col-span-2 space-y-5">
+                {/* Customer card */}
+                <div className="rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50/60 dark:bg-neutral-800/50 p-4 flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-base font-bold text-blue-700 dark:text-blue-300">
+                      {selectedMessageForDetail.name?.charAt(0).toUpperCase() || "?"}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-base font-bold text-gray-900 dark:text-white truncate">
+                        {selectedMessageForDetail.name}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
                         <a
-                          href={`tel:${selectedMessageForDetail.mobile}`}
-                          className="hover:text-blue-600"
+                          href={`mailto:${selectedMessageForDetail.email}`}
+                          className="flex items-center gap-1 hover:text-blue-600"
                         >
-                          {selectedMessageForDetail.mobile}
+                          <Mail className="h-3 w-3" />
+                          {selectedMessageForDetail.email}
                         </a>
-                      )}
+                        {selectedMessageForDetail.mobile && (
+                          <>
+                            <span className="text-gray-300">|</span>
+                            <a
+                              href={`tel:${selectedMessageForDetail.mobile}`}
+                              className="flex items-center gap-1 hover:text-blue-600"
+                            >
+                              <Phone className="h-3 w-3" />
+                              {selectedMessageForDetail.mobile}
+                            </a>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <p className="text-[10px] text-gray-400">Request Time</p>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        {formatDate(selectedMessageForDetail.createdAt)}
+                      </p>
                     </div>
                   </div>
                 </div>
-                <span className="shrink-0 text-xs text-gray-400">
-                  {formatDate(selectedMessageForDetail.createdAt)}
-                </span>
-              </div>
+
+                {/* Status / Source / Priority controls */}
+                <div className="rounded-xl border border-gray-200 dark:border-neutral-700 p-4 space-y-4">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 w-20 shrink-0">
+                      <FileText className="h-4 w-4 text-gray-400" /> Status
+                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {Object.values(ContactStatus).map((status) => {
+                        const active =
+                          selectedMessageForDetail.contactStatus === status;
+                        return (
+                          <button
+                            key={status}
+                            onClick={() => handleStatusChange(status)}
+                            disabled={isUpdatingStatus || !can(MENU_URL, "canEdit")}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm transition-colors disabled:opacity-50 ${active
+                              ? "bg-blue-50 border-blue-400 text-blue-600 dark:bg-blue-950/40 font-medium"
+                              : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:border-blue-300"
+                              }`}
+                          >
+                            {active && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            )}
+                            {status === ContactStatus.PENDING
+                              ? "Open"
+                              : status === ContactStatus.IN_PROGRESS
+                                ? "In progress"
+                                : status}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 w-20 shrink-0">
+                      <Share2 className="h-4 w-4 text-gray-400" /> Source
+                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {Object.values(ContactSource).map((source) => {
+                        const active = selectedMessageForDetail.source === source;
+                        return (
+                          <button
+                            key={source}
+                            onClick={() => handleSourceChange(source)}
+                            disabled={isUpdatingStatus || !can(MENU_URL, "canEdit")}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm capitalize transition-colors disabled:opacity-50 ${active
+                              ? "bg-teal-50 border-teal-400 text-teal-700 dark:bg-teal-950/40 font-medium"
+                              : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:border-teal-300"
+                              }`}
+                          >
+                            {active && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            )}
+                            {source}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 w-20 shrink-0">
+                      <Flag className="h-4 w-4 text-gray-400" /> Priority
+                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {Object.values(ContactPriority).map((priority) => {
+                        const active =
+                          (selectedMessageForDetail.priority ?? "medium") ===
+                          priority;
+                        return (
+                          <button
+                            key={priority}
+                            onClick={() => handlePriorityChange(priority)}
+                            disabled={isUpdatingStatus || !can(MENU_URL, "canEdit")}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm capitalize transition-colors disabled:opacity-50 ${active
+                              ? "bg-amber-50 border-amber-400 text-amber-700 dark:bg-amber-950/40 font-medium"
+                              : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:border-amber-300"
+                              }`}
+                          >
+                            {active && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            )}
+                            {priority}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
 
               {/* Status / source / priority pills — all save immediately */}
               <div className="flex flex-wrap items-center gap-4 rounded-xl border border-gray-200 dark:border-neutral-700 p-3">
@@ -1344,6 +1474,130 @@ export function ContactMessageList({
                   </div>
                 </div>
               )}
+              </div>
+
+              {/* RIGHT — sidebar */}
+              <div className="space-y-5">
+                {/* Ticket Information */}
+                <div className="rounded-xl border border-gray-200 dark:border-neutral-700 p-4">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white mb-3">
+                    <Info className="h-4 w-4 text-blue-500" /> Ticket Information
+                  </h4>
+                  <dl className="space-y-2.5 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                        <MessageSquare className="h-3.5 w-3.5" /> Ticket ID
+                      </dt>
+                      <dd className="font-medium text-gray-900 dark:text-white">
+                        {ticketNo(selectedMessageForDetail.id)}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-gray-500 dark:text-gray-400">Status</dt>
+                      <dd>{getStatusBadge(selectedMessageForDetail.contactStatus)}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                        <Flag className="h-3.5 w-3.5" /> Priority
+                      </dt>
+                      <dd>{getPriorityBadge(selectedMessageForDetail.priority)}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                        <Share2 className="h-3.5 w-3.5" /> Source
+                      </dt>
+                      <dd>
+                        <span className="text-sm capitalize text-gray-900 dark:text-white">
+                          {selectedMessageForDetail.source ?? "—"}
+                        </span>
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                        <Calendar className="h-3.5 w-3.5" /> Created At
+                      </dt>
+                      <dd className="text-xs text-gray-700 dark:text-gray-300">
+                        {formatDate(selectedMessageForDetail.createdAt)}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                        <RefreshCw className="h-3.5 w-3.5" /> Updated At
+                      </dt>
+                      <dd className="text-xs text-gray-700 dark:text-gray-300">
+                        {formatDate(selectedMessageForDetail.updatedAt)}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                {/* Customer */}
+                <div className="rounded-xl border border-gray-200 dark:border-neutral-700 p-4">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white mb-3">
+                    <User className="h-4 w-4 text-blue-500" /> Customer
+                  </h4>
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-sm font-bold text-blue-700 dark:text-blue-300">
+                      {selectedMessageForDetail.name?.charAt(0).toUpperCase() || "?"}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                        {selectedMessageForDetail.name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {selectedMessageForDetail.email}
+                      </p>
+                      {selectedMessageForDetail.mobile && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {selectedMessageForDetail.mobile}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {selectedMessageForDetail.userId && (
+                    <Link
+                      href={`/admin/crm/customers/${selectedMessageForDetail.userId}`}
+                      className="mt-3 flex items-center justify-between rounded-lg border border-gray-200 dark:border-neutral-700 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800"
+                    >
+                      <span className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-gray-400" />
+                        View Customer Profile
+                      </span>
+                      <span className="text-gray-400">›</span>
+                    </Link>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="rounded-xl border border-gray-200 dark:border-neutral-700 p-4">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white mb-3">
+                    <Settings className="h-4 w-4 text-blue-500" /> Actions
+                  </h4>
+                  <div className="space-y-2.5">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-green-700 border-green-200 bg-green-50 hover:bg-green-100 dark:bg-green-950/40 dark:border-green-900 dark:text-green-400"
+                      disabled={isUpdatingStatus || !can(MENU_URL, "canEdit")}
+                      onClick={() => handleStatusChange(ContactStatus.RESOLVED)}
+                    >
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Mark as Resolved
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-red-600 border-red-200 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:border-red-900"
+                      disabled={!can(MENU_URL, "canDelete")}
+                      onClick={() => {
+                        setIsDetailModalOpen(false);
+                        handleDeleteClick(selectedMessageForDetail);
+                      }}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Ticket
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
