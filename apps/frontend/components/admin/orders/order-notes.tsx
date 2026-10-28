@@ -1,5 +1,6 @@
 "use client";
 
+import { OrderStatus } from "@/common/enums";
 import { Calendar, Clock, StickyNote } from "lucide-react";
 import { useState } from "react";
 
@@ -13,6 +14,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { postData } from "@/utils/api-utils";
 import { getOrderStatusColor, getStatusIcon } from "@/utils/order-helper";
@@ -51,6 +60,13 @@ export function OrderNotes({ order, compact, onNotesChange }: OrderNotesProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // The Add Note button is hidden once the order reaches a terminal
+  // state — delivered or cancelled — because the order is closed.
+  const isOrderClosed = [
+    OrderStatus.DELIVERED,
+    OrderStatus.CANCELLED,
+  ].includes(order.orderStatus.toLowerCase() as OrderStatus);
+
   const handleAddNote = async () => {
     const text = draft.trim();
     if (!text) return;
@@ -87,72 +103,96 @@ export function OrderNotes({ order, compact, onNotesChange }: OrderNotesProps) {
           </span>
           Order Notes
         </h3>
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => setIsDialogOpen(true)}
-          className="gap-1 bg-primaryColor text-primary-foreground hover:bg-primaryColor/90"
-        >
-          Add Note
-        </Button>
+        {!isOrderClosed && (
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setIsDialogOpen(true)}
+            className="gap-1 bg-primaryColor text-primary-foreground hover:bg-primaryColor/90"
+          >
+            Add Note
+          </Button>
+        )}
       </div>
       <div className={compact ? "p-3" : "p-4"}>
       {notes.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No notes yet. Use “Add Note” to record customer calls, delivery
-          instructions, etc.
+          {isOrderClosed
+            ? "No notes — this order is closed."
+            : "No notes yet. Use “Add Note” to record customer calls, delivery instructions, etc."}
         </p>
       ) : (
-        <ul className={compact ? "space-y-2.5" : "space-y-3"}>
-          {notes.map((item) => (
-            <li key={item.id} className="flex gap-2.5">
-              <span
-                aria-hidden
-                className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-primaryColor/10 text-xs font-semibold text-primaryColor"
-              >
-                {(item.createdBy?.name || "S").charAt(0).toUpperCase()}
-              </span>
-              <div className="min-w-0 flex-1 space-y-1">
-                {/* Meta line: author + date on the left, status pinned right */}
-                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12.5 text-xs sm:text-sm font-bold h-9">
+                  #
+                </TableHead>
+                <TableHead className="text-xs sm:text-sm font-bold h-9">
+                  Author
+                </TableHead>
+                <TableHead className="text-xs sm:text-sm font-bold h-9">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="size-3" />
+                    Date
+                  </span>
+                </TableHead>
+                <TableHead className="text-xs sm:text-sm font-bold h-9">
+                  <span className="flex items-center gap-1">
+                    <Clock className="size-3" />
+                    Time
+                  </span>
+                </TableHead>
+                <TableHead className="text-xs sm:text-sm font-bold h-9">
+                  Order Status
+                </TableHead>
+                <TableHead className="text-xs sm:text-sm font-bold h-9 min-w-50">
+                  Note
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {notes.map((item, index) => (
+                <TableRow key={item.id}>
+                  <TableCell className="py-1.5 sm:py-2 text-xs sm:text-sm text-muted-foreground">
+                    {index + 1}
+                  </TableCell>
+                  <TableCell className="py-1.5 sm:py-2">
+                    <span className="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
+                      <span
+                        aria-hidden
+                        className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primaryColor/10 text-[11px] font-semibold text-primaryColor"
+                      >
+                        {(item.createdBy?.name || "S").charAt(0).toUpperCase()}
+                      </span>
                       {item.createdBy?.name || "System"}
                     </span>
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="size-3" />
-                      {noteDate(item.createdAt)}
-                    </span>
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="size-3" />
-                      {noteTime(item.createdAt)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Order Status:
-                    </span>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap py-1.5 sm:py-2 text-xs sm:text-sm">
+                    {noteDate(item.createdAt)}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap py-1.5 sm:py-2 text-xs sm:text-sm text-muted-foreground">
+                    {noteTime(item.createdAt)}
+                  </TableCell>
+                  <TableCell className="py-1.5 sm:py-2">
                     <Badge
-                      className={`${getOrderStatusColor(item.orderStatus)} px-2 py-0.5 text-[11px] font-medium capitalize`}
+                      className={`${getOrderStatusColor(item.orderStatus)} px-2 py-0.5 text-xs font-medium capitalize`}
                     >
                       <span className="mr-1">
                         {getStatusIcon(item.orderStatus)}
                       </span>
                       {item.orderStatus}
                     </Badge>
-                  </div>
-                </div>
-                {/* Note on the second line */}
-                <p className="text-sm">
-                  <span className="font-medium text-muted-foreground">
-                    Note:{" "}
-                  </span>
-                  <span className="whitespace-pre-wrap">{item.note}</span>
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
+                  </TableCell>
+                  <TableCell className="py-1.5 sm:py-2 text-xs sm:text-sm">
+                    <span className="whitespace-pre-wrap">{item.note}</span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       {/* Add Note dialog */}
