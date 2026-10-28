@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { fetchData } from "@/utils/api-utils";
+import { fetchProtectedData } from "@/utils/api-utils";
 import { formatDateTime } from "@/lib/utils";
 import {
   Activity,
@@ -53,8 +53,8 @@ export function CrmDashboard() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetchData<{ data: DashboardData }>("crm/dashboard");
-        setStats((res as any).data ?? (res as any));
+        const res = await fetchProtectedData<DashboardData>("crm/dashboard");
+        setStats(res);
       } catch {
         toast.error("Failed to load CRM dashboard.");
       } finally {

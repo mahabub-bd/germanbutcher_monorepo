@@ -33,7 +33,7 @@ import {
 import { formatDateTime } from "@/lib/utils";
 import {
   deleteData,
-  fetchData,
+  fetchProtectedData,
   patchData,
   postData,
 } from "@/utils/api-utils";
@@ -166,7 +166,9 @@ export function CrmCustomerDetail() {
   const fetchDataInternal = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetchData<Customer360>(`crm/customers/${customerId}`);
+      const res = await fetchProtectedData<Customer360>(
+        `crm/customers/${customerId}`
+      );
       setCustomer(res as unknown as Customer360);
     } catch {
       toast.error("Failed to load customer.");

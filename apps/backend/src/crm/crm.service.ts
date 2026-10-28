@@ -52,6 +52,26 @@ const SEGMENT_PARAMS = {
   newDays: CRM_SEGMENT_RULES.NEW_DAYS,
 };
 
+/**
+ * SQL mirror of Product.salePrice (a computed getter — there is no such
+ * column): sellingPrice minus the discount, but only while the discount
+ * window is active. Keep in sync with the getter in product.entity.ts.
+ */
+const SALE_PRICE_SQL = `
+  CASE
+    WHEN "product"."discountType" = 'percentage'
+      AND "product"."discountValue" > 0
+      AND ("product"."discountStartDate" IS NULL OR NOW() >= "product"."discountStartDate")
+      AND ("product"."discountEndDate" IS NULL OR NOW() <= "product"."discountEndDate")
+      THEN GREATEST(0, ROUND("product"."sellingPrice" * (1 - "product"."discountValue" / 100.0), 2))
+    WHEN "product"."discountType" = 'fixed'
+      AND "product"."discountValue" > 0
+      AND ("product"."discountStartDate" IS NULL OR NOW() >= "product"."discountStartDate")
+      AND ("product"."discountEndDate" IS NULL OR NOW() <= "product"."discountEndDate")
+      THEN GREATEST(0, ROUND("product"."sellingPrice" - "product"."discountValue", 2))
+    ELSE "product"."sellingPrice"
+  END`;
+
 @Injectable()
 export class CrmService {
   constructor(
@@ -412,7 +432,10 @@ export class CrmService {
         .addSelect('user.mobileNumber', 'mobile_number')
         .addSelect('cart.updatedAt', 'last_activity_at')
         .addSelect('COUNT(item.id)', 'item_count')
-        .addSelect('COALESCE(SUM("product"."salePrice" * "item"."quantity"), 0)', 'cart_value')
+        .addSelect(
+          `COALESCE(SUM(${SALE_PRICE_SQL} * "item"."quantity"), 0)`,
+          'cart_value',
+        )
         .where('cart.updatedAt < NOW() - MAKE_INTERVAL(days => :minDays)', {
           minDays,
         })
@@ -504,7 +527,7 @@ export class CrmService {
         })
         .select('COUNT(DISTINCT cart.id)', 'cart_count')
         .addSelect(
-          'COALESCE(SUM("product"."salePrice" * "item"."quantity"), 0)',
+          `COALESCE(SUM(${SALE_PRICE_SQL} * "item"."quantity"), 0)`,
           'cart_value',
         )
         .getRawOne(),
