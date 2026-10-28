@@ -35,13 +35,13 @@ const CUSTOMER_ROLE_ID = 3;
  */
 const SEGMENT_CASE = `
     CASE
-      WHEN COUNT(DISTINCT orders.id) >= :vipMinOrders
-        OR COALESCE(SUM(orders.totalValue), 0) >= :vipMinSpent THEN '${CrmSegment.VIP}'
-      WHEN COUNT(DISTINCT orders.id) > 0
-        AND MAX(orders.createdAt) < NOW() - MAKE_INTERVAL(days => :atRiskDays) THEN '${CrmSegment.AT_RISK}'
-      WHEN COUNT(DISTINCT orders.id) <= 1
-        AND MAX(user."createdAt") >= NOW() - MAKE_INTERVAL(days => :newDays) THEN '${CrmSegment.NEW}'
-      WHEN COUNT(DISTINCT orders.id) = 0 THEN '${CrmSegment.INACTIVE}'
+      WHEN COUNT(DISTINCT "orders"."id") >= :vipMinOrders
+        OR COALESCE(SUM("orders"."totalValue"), 0) >= :vipMinSpent THEN '${CrmSegment.VIP}'
+      WHEN COUNT(DISTINCT "orders"."id") > 0
+        AND MAX("orders"."createdAt") < NOW() - MAKE_INTERVAL(days => :atRiskDays) THEN '${CrmSegment.AT_RISK}'
+      WHEN COUNT(DISTINCT "orders"."id") <= 1
+        AND MAX("user"."createdAt") >= NOW() - MAKE_INTERVAL(days => :newDays) THEN '${CrmSegment.NEW}'
+      WHEN COUNT(DISTINCT "orders"."id") = 0 THEN '${CrmSegment.INACTIVE}'
       ELSE '${CrmSegment.LOYAL}'
     END`;
 
@@ -102,10 +102,10 @@ export class CrmService {
       .addSelect('user.lastLoginAt', 'lastLoginAt')
       .addSelect('profilePhoto.id', 'profilePhotoId')
       .addSelect('profilePhoto.url', 'profilePhotoUrl')
-      .addSelect('COUNT(DISTINCT orders.id)', 'orderCount')
-      .addSelect('COALESCE(SUM(orders.totalValue), 0)', 'totalSpent')
-      .addSelect('COALESCE(AVG(orders.totalValue), 0)', 'averageOrderValue')
-      .addSelect('MAX(orders.createdAt)', 'lastOrderAt')
+      .addSelect('COUNT(DISTINCT "orders"."id")', 'orderCount')
+      .addSelect('COALESCE(SUM("orders"."totalValue"), 0)', 'totalSpent')
+      .addSelect('COALESCE(AVG("orders"."totalValue"), 0)', 'averageOrderValue')
+      .addSelect('MAX("orders"."createdAt")', 'lastOrderAt')
       .addSelect(SEGMENT_CASE, 'segment')
       .where('role.id = :roleId', { roleId: CUSTOMER_ROLE_ID })
       .setParameters(SEGMENT_PARAMS)
@@ -211,10 +211,10 @@ export class CrmService {
         .createQueryBuilder('user')
         .leftJoin('user.role', 'role')
         .leftJoin('user.orders', 'orders', "orders.orderStatus = 'delivered'")
-        .select('COUNT(DISTINCT orders.id)', 'order_count')
-        .addSelect('COALESCE(SUM(orders.totalValue), 0)', 'total_spent')
-        .addSelect('COALESCE(AVG(orders.totalValue), 0)', 'average_order_value')
-        .addSelect('MAX(orders.createdAt)', 'last_order_at')
+        .select('COUNT(DISTINCT "orders"."id")', 'order_count')
+        .addSelect('COALESCE(SUM("orders"."totalValue"), 0)', 'total_spent')
+        .addSelect('COALESCE(AVG("orders"."totalValue"), 0)', 'average_order_value')
+        .addSelect('MAX("orders"."createdAt")', 'last_order_at')
         .addSelect(SEGMENT_CASE, 'segment')
         .where('user.id = :id', { id })
         .setParameters(SEGMENT_PARAMS)
@@ -412,7 +412,7 @@ export class CrmService {
         .addSelect('user.mobileNumber', 'mobile_number')
         .addSelect('cart.updatedAt', 'last_activity_at')
         .addSelect('COUNT(item.id)', 'item_count')
-        .addSelect('COALESCE(SUM(product.salePrice * item.quantity), 0)', 'cart_value')
+        .addSelect('COALESCE(SUM("product"."salePrice" * "item"."quantity"), 0)', 'cart_value')
         .where('cart.updatedAt < NOW() - MAKE_INTERVAL(days => :minDays)', {
           minDays,
         })
@@ -504,7 +504,7 @@ export class CrmService {
         })
         .select('COUNT(DISTINCT cart.id)', 'cart_count')
         .addSelect(
-          'COALESCE(SUM(product.salePrice * item.quantity), 0)',
+          'COALESCE(SUM("product"."salePrice" * "item"."quantity"), 0)',
           'cart_value',
         )
         .getRawOne(),
