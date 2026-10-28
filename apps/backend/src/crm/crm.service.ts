@@ -85,100 +85,94 @@ export class CrmService {
       sortBy = 'total_spent',
       sortOrder = 'DESC',
     } = query;
-    const skip = (page - 1) * limit;
+    // One aggregation query for ALL customers, then filter/sort/paginate in
+    // JS: retail customer counts are small, and wrapping the aggregate query
+    // in a subquery for SQL-side paging is not worth the fragility.
+    const qb = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoin('user.role', 'role')
+      .leftJoin('user.orders', 'orders', "orders.orderStatus = 'delivered'")
+      .leftJoin('user.profilePhoto', 'profilePhoto')
+      .select('user.id', 'id')
+      .addSelect('user.name', 'name')
+      .addSelect('user.email', 'email')
+      .addSelect('user.mobileNumber', 'mobileNumber')
+      .addSelect('user.isVerified', 'isVerified')
+      .addSelect('user.createdAt', 'createdAt')
+      .addSelect('user.lastLoginAt', 'lastLoginAt')
+      .addSelect('profilePhoto.id', 'profilePhotoId')
+      .addSelect('profilePhoto.url', 'profilePhotoUrl')
+      .addSelect('COUNT(DISTINCT orders.id)', 'orderCount')
+      .addSelect('COALESCE(SUM(orders.totalValue), 0)', 'totalSpent')
+      .addSelect('COALESCE(AVG(orders.totalValue), 0)', 'averageOrderValue')
+      .addSelect('MAX(orders.createdAt)', 'lastOrderAt')
+      .addSelect(SEGMENT_CASE, 'segment')
+      .where('role.id = :roleId', { roleId: CUSTOMER_ROLE_ID })
+      .setParameters(SEGMENT_PARAMS)
+      .groupBy('user.id')
+      .addGroupBy('profilePhoto.id');
 
-    // Shared RFM aggregation builder — used for both the page and the count.
-    const buildBase = () => {
-      const qb = this.userRepository
-        .createQueryBuilder('user')
-        .leftJoin('user.role', 'role')
-        .leftJoin('user.orders', 'orders', "orders.orderStatus = 'delivered'")
-        .leftJoin('user.profilePhoto', 'profilePhoto')
-        .select('user.id', 'id')
-        .addSelect('user.name', 'name')
-        .addSelect('user.email', 'email')
-        .addSelect('user.mobileNumber', 'mobileNumber')
-        .addSelect('user.isVerified', 'isVerified')
-        .addSelect('user.createdAt', 'createdAt')
-        .addSelect('user.lastLoginAt', 'lastLoginAt')
-        .addSelect('profilePhoto.id', 'profilePhotoId')
-        .addSelect('profilePhoto.url', 'profilePhotoUrl')
-        .addSelect('COUNT(DISTINCT orders.id)', 'orderCount')
-        .addSelect('COALESCE(SUM(orders.totalValue), 0)', 'totalSpent')
-        .addSelect('COALESCE(AVG(orders.totalValue), 0)', 'averageOrderValue')
-        .addSelect('MAX(orders.createdAt)', 'lastOrderAt')
-        .addSelect(SEGMENT_CASE, 'segment')
-        .where('role.id = :roleId', { roleId: CUSTOMER_ROLE_ID })
-        .groupBy('user.id')
-        .addGroupBy('profilePhoto.id');
-      if (search) {
-        qb.andWhere(
-          '(user.name ILIKE :search OR user.email ILIKE :search OR user.mobileNumber ILIKE :search)',
-          { search: `%${search}%` },
-        );
-      }
-      qb.setParameters(SEGMENT_PARAMS);
-      return qb;
-    };
-
-    // Postgres lowercases unquoted aliases, so all raw aliases are snake_case.
-    // The segment filter runs on the outer query, against the computed column.
-    const buildOuter = () =>
-      this.userRepository.manager
-        .createQueryBuilder()
-        .select('crm.*')
-        .from(() => buildBase(), 'crm');
-
-    const outer = buildOuter();
-    if (segment) {
-      outer.andWhere('crm."segment" = :segmentValue', {
-        segmentValue: segment,
-      });
+    if (search) {
+      qb.andWhere(
+        '(user.name ILIKE :search OR user.email ILIKE :search OR user.mobileNumber ILIKE :search)',
+        { search: `%${search}%` },
+      );
     }
 
-    const sortMap: Record<string, string> = {
-      last_order_at: '"last_order_at"',
-      total_spent: '"total_spent"',
-      order_count: '"order_count"',
-      name: '"name"',
-    };
-    outer.orderBy(
-      `crm.${sortMap[sortBy] ?? sortMap.total_spent}`,
-      sortOrder === 'ASC' ? 'ASC' : 'DESC',
-    );
-    outer.addOrderBy('crm."id"', 'ASC');
+    const rows = await qb.getRawMany();
 
-    const rows = await outer
-      .offset(skip)
-      .limit(limit)
-      .getRawMany();
-
-    const totalRow = await this.userRepository.manager
-      .createQueryBuilder()
-      .select('COUNT(*)', 'count')
-      .from(() => buildBase(), 'crm')
-      .getRawOne();
-    const total = parseInt(totalRow?.count ?? '0', 10);
-
-    const data = rows.map((row) => ({
+    let customers = rows.map((row) => ({
       id: row.id,
       name: row.name,
       email: row.email,
-      mobileNumber: row.mobile_number,
-      isVerified: row.is_verified,
-      createdAt: row.created_at,
-      lastLoginAt: row.last_login_at,
-      profilePhoto: row.profile_photo_id
-        ? { id: row.profile_photo_id, url: row.profile_photo_url }
+      mobileNumber: row.mobileNumber,
+      isVerified: row.isVerified,
+      createdAt: row.createdAt,
+      lastLoginAt: row.lastLoginAt,
+      profilePhoto: row.profilePhotoId
+        ? { id: row.profilePhotoId, url: row.profilePhotoUrl }
         : null,
       rfm: {
-        orderCount: parseInt(row.order_count, 10) || 0,
-        totalSpent: parseFloat(row.total_spent) || 0,
-        averageOrderValue: parseFloat(row.average_order_value) || 0,
-        lastOrderAt: row.last_order_at ?? null,
+        orderCount: parseInt(row.orderCount, 10) || 0,
+        totalSpent: parseFloat(row.totalSpent) || 0,
+        averageOrderValue: parseFloat(row.averageOrderValue) || 0,
+        lastOrderAt: row.lastOrderAt ?? null,
       },
       segment: row.segment,
     }));
+
+    if (segment) {
+      customers = customers.filter((customer) => customer.segment === segment);
+    }
+
+    const dir = sortOrder === 'ASC' ? 1 : -1;
+    const comparePrimary = (a: (typeof customers)[number], b: (typeof customers)[number]) => {
+      switch (sortBy) {
+        case 'name':
+          return (a.name ?? '').localeCompare(b.name ?? '');
+        case 'order_count':
+          return a.rfm.orderCount - b.rfm.orderCount;
+        case 'last_order_at': {
+          const ta = a.rfm.lastOrderAt
+            ? new Date(a.rfm.lastOrderAt).getTime()
+            : 0;
+          const tb = b.rfm.lastOrderAt
+            ? new Date(b.rfm.lastOrderAt).getTime()
+            : 0;
+          return ta - tb;
+        }
+        default:
+          return a.rfm.totalSpent - b.rfm.totalSpent;
+      }
+    };
+    customers.sort((a, b) => {
+      const primary = comparePrimary(a, b);
+      // Tie-break by id so paging order stays stable across pages.
+      return primary !== 0 ? dir * primary : a.id - b.id;
+    });
+
+    const total = customers.length;
+    const data = customers.slice((page - 1) * limit, page * limit);
 
     return {
       message: 'CRM customers retrieved successfully',
