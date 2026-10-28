@@ -125,7 +125,7 @@ export function CustomerDetail() {
   const orderStats = calculateOrderStats();
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-background to-muted/20">
+    <div className="w-full min-h-screen bg-linear-to-b from-background to-muted/20">
       <div className="mx-auto space-y-2">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
@@ -224,7 +224,7 @@ export function CustomerDetail() {
                       />
                     </div>
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-md shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-md shrink-0">
                       <User className="h-5 w-5 text-white" />
                     </div>
                   )}
