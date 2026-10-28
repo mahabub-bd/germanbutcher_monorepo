@@ -501,16 +501,18 @@ export class CrmService {
         .where('role.id = :roleId', { roleId: CUSTOMER_ROLE_ID })
         .getCount(),
 
-      // Segment distribution: one row per computed segment.
+      // Segment distribution: segment per user (aggregates are fine in
+      // SELECT with GROUP BY user.id), tallied in JS — Postgres does not
+      // allow aggregate expressions in GROUP BY itself.
       this.userRepository
         .createQueryBuilder('user')
         .leftJoin('user.role', 'role')
         .leftJoin('user.orders', 'orders', "orders.orderStatus = 'delivered'")
-        .select(SEGMENT_CASE, 'segment')
-        .addSelect('COUNT(DISTINCT user.id)', 'count')
+        .select('user.id', 'id')
+        .addSelect(SEGMENT_CASE, 'segment')
         .where('role.id = :roleId', { roleId: CUSTOMER_ROLE_ID })
         .setParameters(SEGMENT_PARAMS)
-        .groupBy(SEGMENT_CASE)
+        .groupBy('user.id')
         .getRawMany(),
 
       // Same criteria as the abandoned-carts list (defaults).
@@ -578,7 +580,7 @@ export class CrmService {
     };
     for (const row of segmentRows) {
       if (row.segment in segments) {
-        segments[row.segment] = parseInt(row.count, 10) || 0;
+        segments[row.segment] += 1;
       }
     }
 
