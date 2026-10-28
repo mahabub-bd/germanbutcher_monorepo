@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PaginationComponent } from "@/components/common/pagination";
 import {
   Table,
   TableBody,
@@ -15,8 +16,6 @@ import { fetchDataPagination } from "@/utils/api-utils";
 import {
   ArrowRight,
   Calendar,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   Package,
   PackageMinus,
@@ -339,26 +338,12 @@ export default function StockMovementHistory({
 
       {/* Pagination */}
       {!productId && totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2 border-t p-4">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={currentPage <= 1}
-            onClick={() => setCurrentPage((page) => page - 1)}
-          >
-            <ChevronLeft className="h-4 w-4" /> Prev
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={currentPage >= totalPages}
-            onClick={() => setCurrentPage((page) => page + 1)}
-          >
-            Next <ChevronRight className="h-4 w-4" />
-          </Button>
+        <div className="border-t p-4">
+          <PaginationComponent
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
         </div>
       )}
     </div>

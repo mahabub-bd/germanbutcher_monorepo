@@ -139,7 +139,8 @@ export interface User {
   profilePhoto?: Attachment;
   isAdmin: boolean;
   orders?: Order[];
-  addresses?: Address;
+  /** Customer's saved addresses (default first when sorted by the API consumer). */
+  addresses?: Address[];
 }
 
 export interface CustomerData {

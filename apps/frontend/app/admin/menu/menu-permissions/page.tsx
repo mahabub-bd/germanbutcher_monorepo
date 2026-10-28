@@ -114,8 +114,10 @@ const ACTIONS: {
     },
   ];
 
-/** Shared grid template so header and rows line up perfectly. */
-const GRID_COLS = "grid grid-cols-[minmax(0,1fr)_repeat(4,72px)] items-center";
+/** Shared grid template so header, rows and section headers all line up.
+ * Columns: module name · View · Create · Edit · Delete · bulk actions. */
+const GRID_COLS =
+  "grid grid-cols-[minmax(0,1fr)_repeat(4,72px)_64px] items-center";
 
 export default function RoleMenuPermissions() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -299,8 +301,15 @@ export default function RoleMenuPermissions() {
   };
 
   const handleSectionPreset = (item: MenuItem, preset: PermFlags) => {
-    const ids = [item.id, ...(item.children?.map((c) => c.id) ?? [])];
-    applyFlags(ids, preset);
+    // Parent rows only carry View — their Create/Edit/Delete have no module
+    // of their own (real actions live on the children).
+    applyFlags([item.id], { ...NO_FLAGS, canView: preset.canView });
+    if (item.children?.length) {
+      applyFlags(
+        item.children.map((c) => c.id),
+        preset
+      );
+    }
   };
 
   const toggleSection = (id: number) => {
@@ -447,13 +456,17 @@ export default function RoleMenuPermissions() {
         className={cn(
           GRID_COLS,
           "h-11 border-b px-3 transition-colors last:border-b-0",
-          isChild && "pl-3",
-          granted ? "bg-primary/[0.04]" : "bg-transparent",
+          isChild && "pl-9",
+          granted ? "bg-primary/4" : "bg-transparent",
           flags.dirty && "bg-amber-50/70 dark:bg-amber-950/20",
           "hover:bg-muted/50"
         )}
       >
         <div className="flex min-w-0 items-center gap-2.5">
+          {isChild && (
+            // Guide line tying the child to its section.
+            <span className="h-4 w-px shrink-0 bg-primaryColor/25" />
+          )}
           {flags.dirty && (
             <span
               className="size-1.5 shrink-0 rounded-full bg-amber-500"
@@ -480,12 +493,14 @@ export default function RoleMenuPermissions() {
             {renderFlagControl(ids, key, flags, disabled)}
           </span>
         ))}
+        <span />
       </div>
     );
   };
 
   const renderSection = (item: MenuItem) => {
     const children = item.children ?? [];
+    const flags = menuPermissions[item.id] ?? NO_FLAGS;
     const disabled = !selectedRoleId || loading || saving;
 
     // No children: plain row.
@@ -508,13 +523,14 @@ export default function RoleMenuPermissions() {
       <div key={item.id} className="overflow-hidden">
         <div
           className={cn(
-            "flex h-11 items-center gap-2 border-b bg-muted/50 px-3",
+            GRID_COLS,
+            "h-11 border-b bg-muted/50 px-3",
             allGranted && "bg-primary/[0.07]"
           )}
         >
           <button
             onClick={() => toggleSection(item.id)}
-            className="flex min-w-0 flex-1 items-center gap-2 text-left"
+            className="flex min-w-0 items-center gap-2 text-left"
             disabled={disabled}
           >
             <ChevronDown
@@ -536,38 +552,64 @@ export default function RoleMenuPermissions() {
             >
               {grantedCount}/{children.length}
             </Badge>
+            {flags.dirty && (
+              <span
+                className="size-1.5 shrink-0 rounded-full bg-amber-500"
+                title="Unsaved change"
+              />
+            )}
           </button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 shrink-0 px-2 text-xs"
-                disabled={disabled}
-              >
-                Bulk
-                <ChevronDown className="ml-1 size-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => handleSectionPreset(item, ALL_FLAGS)}
-              >
-                Grant all actions
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleSectionPreset(item, VIEW_ONLY)}
-              >
-                View only
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-red-600 focus:text-red-600"
-                onClick={() => handleSectionPreset(item, NO_FLAGS)}
-              >
-                Revoke all
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* The parent needs its OWN canView row — the sidebar renders a
+              main menu only when the parent itself is granted. Its Create /
+              Edit / Delete cells stay dimmed: real actions live on the
+              child modules, the Bulk menu manages them together. */}
+          {ACTIONS.map(({ key }) => (
+            <span key={key} className="contents">
+              {key === "canView" ? (
+                renderFlagControl([item.id], key, flags, disabled)
+              ) : (
+                <span
+                  className="flex justify-center opacity-30"
+                  title="Managed per module below (or via Bulk)"
+                >
+                  <Checkbox disabled className="size-4.5" />
+                </span>
+              )}
+            </span>
+          ))}
+          <div className="flex justify-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  disabled={disabled}
+                >
+                  Bulk
+                  <ChevronDown className="ml-1 size-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => handleSectionPreset(item, ALL_FLAGS)}
+                >
+                  Grant all actions
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleSectionPreset(item, VIEW_ONLY)}
+                >
+                  View only
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-red-600 focus:text-red-600"
+                  onClick={() => handleSectionPreset(item, NO_FLAGS)}
+                >
+                  Revoke all
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         {expanded && (
@@ -624,6 +666,9 @@ export default function RoleMenuPermissions() {
               </Tooltip>
             </TooltipProvider>
           ))}
+          <span className="hidden text-xs font-medium uppercase tracking-wide text-muted-foreground sm:block">
+            Bulk
+          </span>
         </div>
         <div className="max-h-[calc(100vh-320px)] overflow-y-auto">
           {sections.map((item) => renderSection(item))}
@@ -668,13 +713,25 @@ export default function RoleMenuPermissions() {
               </Badge>
             )}
             {canManage && (
-              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <span className="flex items-center gap-2 text-sm text-muted-foreground">
                 <ShieldCheck className="size-4 text-primary" />
                 <span className="tabular-nums">
                   <span className="font-semibold text-primaryColor">
                     {grantedCount}
                   </span>
                   /{totalCount} visible
+                </span>
+                <span className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
+                  <span
+                    className="block h-full rounded-full bg-primaryColor transition-[width] duration-300"
+                    style={{
+                      width: `${
+                        totalCount > 0
+                          ? Math.round((grantedCount / totalCount) * 100)
+                          : 0
+                      }%`,
+                    }}
+                  />
                 </span>
               </span>
             )}
