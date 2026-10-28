@@ -51,6 +51,8 @@ interface TopCustomer {
   email: string;
   mobileNumber: string;
   isVerified: boolean;
+  /** Area from the customer's default saved address (null if none). */
+  area: string | null;
   createdAt: string;
   lastLoginAt: string | null;
   profilePhoto: {
@@ -178,6 +180,9 @@ export function TopCustomersList() {
                 <TableHead className="hidden md:table-cell text-xs sm:text-sm font-bold h-9 sm:h-10">
                   Contact
                 </TableHead>
+                <TableHead className="hidden xl:table-cell text-xs sm:text-sm font-bold h-9 sm:h-10">
+                  Area
+                </TableHead>
                 <TableHead className="text-center text-xs sm:text-sm font-bold h-9 sm:h-10">Orders</TableHead>
                 <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10">Spent</TableHead>
                 <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10 hidden lg:table-cell">
@@ -189,7 +194,7 @@ export function TopCustomersList() {
               {customers.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="text-center py-6 sm:py-8 text-muted-foreground"
                   >
                     <Users className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-2 opacity-50" />
@@ -229,6 +234,13 @@ export function TopCustomersList() {
                       <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm">
                         <Phone className="h-3.5 w-3.5 shrink-0" />{customer.mobileNumber}
                       </Badge>
+                    </TableCell>
+
+                    {/* Area */}
+                    <TableCell className="hidden xl:table-cell py-1.5 sm:py-2">
+                      <span className="text-xs sm:text-sm">
+                        {customer.area || "—"}
+                      </span>
                     </TableCell>
 
                     {/* Orders */}

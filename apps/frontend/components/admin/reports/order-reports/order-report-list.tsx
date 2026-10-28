@@ -9,6 +9,7 @@ import {
   ReportDateFilters,
   type ReportFilterParams,
 } from "@/components/admin/reports/report-date-filters";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -26,7 +27,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import {
+  formatCurrencyEnglish,
+  formatDateTime,
+  shortenArea,
+} from "@/lib/utils";
 import { PaymentStatus } from "@/utils/types";
 import { Eye, ShoppingCart, Wallet } from "lucide-react";
 import Link from "next/link";
@@ -136,11 +141,14 @@ export default function OrderReportList({
             <ReportExcelButton
               title="Sales Report"
               subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
-              headers={["#", "Date", "Order No", "Status", "Payment", "Total", "Discount", "Paid"]}
+              headers={["#", "Date", "Order No", "Customer", "Mobile", "Area", "Status", "Payment", "Total", "Discount", "Paid"]}
               rows={orders.map((o, i) => [
                 i + 1,
                 formatDateTime(o.orderDate),
                 o.orderNo,
+                o.customer?.name || "N/A",
+                o.customer?.mobileNumber || "N/A",
+                o.shippingAddress?.area || "N/A",
                 o.orderStatus,
                 o.paymentStatus,
                 o.totalValue,
@@ -273,6 +281,9 @@ export default function OrderReportList({
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Order No</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead className="hidden md:table-cell">Mobile</TableHead>
+              <TableHead className="hidden xl:table-cell">Area</TableHead>
               <TableHead>Order Status</TableHead>
               <TableHead>Payment Status</TableHead>
 
@@ -285,7 +296,7 @@ export default function OrderReportList({
             {orders.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={10}
                   className="text-center py-6 text-muted-foreground"
                 >
                   No orders found
@@ -300,6 +311,32 @@ export default function OrderReportList({
                     </span>
                   </TableCell>
                   <TableCell>{o.orderNo}</TableCell>
+                  <TableCell>
+                    <span className="font-medium">
+                      {o.customer?.name || "N/A"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {o.customer?.mobileNumber ? (
+                      <a
+                        href={`tel:${o.customer.mobileNumber}`}
+                        className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        {o.customer.mobileNumber}
+                      </a>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">N/A</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="hidden xl:table-cell">
+                    <Badge
+                      variant="secondary"
+                      className="max-w-40 truncate border-transparent bg-violet-100 font-normal text-sm text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
+                      title={o.shippingAddress?.area || undefined}
+                    >
+                      {shortenArea(o.shippingAddress?.area || "N/A")}
+                    </Badge>
+                  </TableCell>
                   <TableCell>{o.orderStatus}</TableCell>
                   <TableCell>{o.paymentStatus}</TableCell>
 

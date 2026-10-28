@@ -160,6 +160,9 @@ export function OrderReportPDF({ orders, settings }: Props) {
           <Text style={[styles.tableHeaderText, { flex: 0.5 }]}>#</Text>
           <Text style={styles.tableHeaderText}>Date</Text>
           <Text style={styles.tableHeaderText}>Order No</Text>
+          <Text style={[styles.tableHeaderText, { flex: 1.5 }]}>Customer</Text>
+          <Text style={[styles.tableHeaderText, { flex: 1.5 }]}>Mobile</Text>
+          <Text style={[styles.tableHeaderText, { flex: 1.2 }]}>Area</Text>
           <Text style={styles.tableHeaderText}>Status</Text>
           <Text style={styles.tableHeaderText}>Payment</Text>
           <Text style={styles.tableHeaderText}>Total</Text>
@@ -176,6 +179,15 @@ export function OrderReportPDF({ orders, settings }: Props) {
             <Text style={[styles.cell, { flex: 0.5 }]}>{i + 1}</Text>
             <Text style={styles.cell}>{formatDate(o.orderDate)}</Text>
             <Text style={styles.cell}>{o.orderNo}</Text>
+            <Text style={[styles.cell, { flex: 1.5 }]}>
+              {o.customer?.name || "N/A"}
+            </Text>
+            <Text style={[styles.cell, { flex: 1.5 }]}>
+              {o.customer?.mobileNumber || "N/A"}
+            </Text>
+            <Text style={[styles.cell, { flex: 1.2 }]}>
+              {o.shippingAddress?.area || "N/A"}
+            </Text>
             <Text style={styles.cell}>{o.orderStatus}</Text>
             <Text style={styles.cell}>{o.paymentStatus}</Text>
             <Text style={styles.cell}>{formatCurrency(o.totalValue)}</Text>
