@@ -81,19 +81,6 @@ export class OnlineUsersService implements OnModuleInit, OnModuleDestroy {
     return pages;
   }
 
-  /** Distinct authenticated user IDs seen within the online window. */
-  getOnlineUserIds(windowMs: number = ONLINE_WINDOW_MS): Set<number> {
-    const cutoff = Date.now() - windowMs;
-    const userIds = new Set<number>();
-
-    for (const entry of this.visitors.values()) {
-      if (entry.lastSeen < cutoff || !entry.userId) continue;
-      userIds.add(entry.userId);
-    }
-
-    return userIds;
-  }
-
   private pruneStale(windowMs: number = ONLINE_WINDOW_MS): void {
     const cutoff = Date.now() - windowMs;
     for (const [key, entry] of this.visitors) {

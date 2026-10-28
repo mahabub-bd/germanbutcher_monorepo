@@ -4,7 +4,6 @@ import { CartItem } from 'src/cart/entities/cart-item.entity';
 import { Cart } from 'src/cart/entities/cart.entity';
 import { ContactMessage } from 'src/contact-message/entities/contact-message.entity';
 import { Menu } from 'src/menu/entities/menu.entity';
-import { OnlineUsersModule } from 'src/online-users/online-users.module';
 import { Order } from 'src/order/entities/order.entity';
 import { ProductReview } from 'src/product-review/entities/product-review.entity';
 import { User } from 'src/user/entities/user.entity';
@@ -29,7 +28,6 @@ import { CrmActivity } from './entities/crm-activity.entity';
       ContactMessage,
       Menu,
     ]),
-    OnlineUsersModule,
   ],
   controllers: [CrmController],
   providers: [CrmService, CrmMenuSeeder],

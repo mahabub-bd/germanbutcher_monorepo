@@ -931,6 +931,15 @@ export interface ContactMessage {
   mobile?: string;
   message: string;
   contactStatus: "pending" | "in_progress" | "resolved" | "closed";
+  source?:
+    | "website"
+    | "facebook"
+    | "phone"
+    | "email"
+    | "whatsapp"
+    | "other"
+    | null;
+  priority?: "low" | "medium" | "high" | null;
   actionTaken?: ActionTaken | null;
   responseNotes?: string | null;
   createdAt: string;

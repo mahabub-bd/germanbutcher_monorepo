@@ -98,7 +98,7 @@ export function CrmDashboard() {
           title="Abandoned Carts"
           value={stats.abandonedCarts.count}
           icon={ShoppingCart}
-          href="/admin/crm/abandoned-carts"
+          href="/admin/analytics/abandoned-carts"
           color="text-orange-600 dark:text-orange-400"
           gradient="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20"
         />
@@ -159,7 +159,7 @@ export function CrmDashboard() {
             <div className="rounded-md border px-3 py-2 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
               <Link
-                href="/admin/crm/abandoned-carts"
+                href="/admin/analytics/abandoned-carts"
                 className="text-sm hover:underline"
               >
                 Review carts

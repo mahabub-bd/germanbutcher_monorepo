@@ -1,4 +1,10 @@
-import { ActionTaken, ContactStatus } from 'src/common/enums';
+import {
+  ActionTaken,
+  ContactPriority,
+  ContactSource,
+  ContactStatus,
+} from 'src/common/enums';
+import { ApiProperty } from '@nestjs/swagger';
 import { User } from 'src/user/entities/user.entity';
 import {
   Column,
@@ -43,6 +49,22 @@ export class ContactMessage {
     default: ContactStatus.PENDING,
   })
   contactStatus: ContactStatus;
+
+  @ApiProperty({ enum: ContactSource })
+  @Column({
+    type: 'enum',
+    enum: ContactSource,
+    default: ContactSource.WEBSITE,
+  })
+  source: ContactSource;
+
+  @ApiProperty({ enum: ContactPriority })
+  @Column({
+    type: 'enum',
+    enum: ContactPriority,
+    default: ContactPriority.MEDIUM,
+  })
+  priority: ContactPriority;
 
   @CreateDateColumn()
   createdAt: Date;

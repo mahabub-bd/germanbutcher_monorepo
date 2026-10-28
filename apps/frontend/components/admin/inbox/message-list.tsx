@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { deleteData, fetchDataPagination, fetchProtectedData, postData } from "@/utils/api-utils";
+import { deleteData, fetchDataPagination, fetchProtectedData, patchData, postData } from "@/utils/api-utils";
 import type { ContactMessage } from "@/utils/types";
 import { ActionTaken } from "@/utils/types";
 import {
@@ -41,6 +41,7 @@ import {
   Package,
   Phone,
   PhoneCall,
+  Plus,
   RefreshCw,
   Search,
   Send,
@@ -64,6 +65,97 @@ export enum ContactStatus {
   CLOSED = "closed",
 }
 
+export enum ContactSource {
+  WEBSITE = "website",
+  FACEBOOK = "facebook",
+  PHONE = "phone",
+  EMAIL = "email",
+  WHATSAPP = "whatsapp",
+  OTHER = "other",
+}
+
+export enum ContactPriority {
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+}
+
+const PRIORITY_BADGES: Record<
+  ContactPriority,
+  { label: string; color: string }
+> = {
+  [ContactPriority.LOW]: {
+    label: "Low",
+    color:
+      "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+  },
+  [ContactPriority.MEDIUM]: {
+    label: "Medium",
+    color:
+      "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+  },
+  [ContactPriority.HIGH]: {
+    label: "High",
+    color:
+      "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+  },
+};
+
+/** "2 hours ago" style — falls back to date for anything older than a week. */
+const timeAgo = (dateString: string) => {
+  const seconds = Math.floor(
+    (Date.now() - new Date(dateString).getTime()) / 1000
+  );
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} day${days !== 1 ? "s" : ""} ago`;
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+/** Display ticket number: id 1 → #TK-1001, id 42 → #TK-1042. */
+const ticketNo = (id: number) => `#TK-${1000 + id}`;
+
+const SOURCE_BADGES: Record<ContactSource, { label: string; color: string }> = {
+  [ContactSource.WEBSITE]: {
+    label: "Website",
+    color:
+      "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  },
+  [ContactSource.FACEBOOK]: {
+    label: "Facebook",
+    color:
+      "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800",
+  },
+  [ContactSource.PHONE]: {
+    label: "Phone",
+    color:
+      "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+  },
+  [ContactSource.EMAIL]: {
+    label: "Email",
+    color:
+      "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
+  },
+  [ContactSource.WHATSAPP]: {
+    label: "WhatsApp",
+    color:
+      "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800",
+  },
+  [ContactSource.OTHER]: {
+    label: "Other",
+    color:
+      "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800",
+  },
+};
+
 // Status Update Modal Component (defined outside to prevent re-renders)
 interface StatusUpdateModalProps {
   isOpen: boolean;
@@ -74,6 +166,8 @@ interface StatusUpdateModalProps {
   isUpdating: boolean;
   onClose: () => void;
   onUpdateStatus: (status: ContactStatus) => void;
+  onSourceChange: (source: ContactSource) => void;
+  onPriorityChange: (priority: ContactPriority) => void;
   onSendMessage: () => void;
   onActionChange: (action: ActionTaken | "") => void;
   onNotesChange: (notes: string) => void;
@@ -104,6 +198,8 @@ function StatusUpdateModal({
   isUpdating,
   onClose,
   onUpdateStatus,
+  onSourceChange,
+  onPriorityChange,
   onSendMessage,
   onActionChange,
   onNotesChange,
@@ -322,6 +418,72 @@ function StatusUpdateModal({
             </div>
           </div>
 
+          {/* Source channel */}
+          <div className="rounded-xl border border-gray-200 dark:border-neutral-700 p-4">
+            <div className="flex items-start gap-2.5 mb-3">
+              <div className="w-7 h-7 bg-teal-100 dark:bg-teal-900/40 rounded-lg flex items-center justify-center shrink-0">
+                <Phone className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white">Source</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Where this inquiry came from — saves immediately
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2.5">
+              {Object.values(ContactSource).map((source) => {
+                const isSelected = message.source === source;
+                return (
+                  <button
+                    key={source}
+                    onClick={() => onSourceChange(source)}
+                    disabled={isUpdating}
+                    className={`flex items-center justify-center p-2 rounded-xl border text-xs font-medium capitalize transition-all ${isSelected
+                      ? "border-teal-500 bg-teal-50 dark:bg-teal-950/40 ring-1 ring-teal-500 text-teal-700 dark:text-teal-400"
+                      : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:border-teal-300"
+                      }`}
+                  >
+                    {source}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Priority */}
+          <div className="rounded-xl border border-gray-200 dark:border-neutral-700 p-4">
+            <div className="flex items-start gap-2.5 mb-3">
+              <div className="w-7 h-7 bg-red-100 dark:bg-red-900/40 rounded-lg flex items-center justify-center shrink-0">
+                <AlertCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white">Priority</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  How urgent this ticket is — saves immediately
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2.5">
+              {Object.values(ContactPriority).map((priority) => {
+                const isSelected = (message.priority ?? "medium") === priority;
+                return (
+                  <button
+                    key={priority}
+                    onClick={() => onPriorityChange(priority)}
+                    disabled={isUpdating}
+                    className={`flex items-center justify-center p-2 rounded-xl border text-xs font-medium capitalize transition-all ${isSelected
+                      ? "border-red-500 bg-red-50 dark:bg-red-950/40 ring-1 ring-red-500 text-red-700 dark:text-red-400"
+                      : "border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-400 hover:border-red-300"
+                      }`}
+                  >
+                    {priority}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Notes */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -401,6 +563,12 @@ export function ContactMessageList({
   const [statusFilter, setStatusFilter] = useState(
     getInitialParam("status") as string
   );
+  const [sourceFilter, setSourceFilter] = useState(
+    getInitialParam("source") as string
+  );
+  const [priorityFilter, setPriorityFilter] = useState(
+    getInitialParam("priority") as string
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(
@@ -425,6 +593,17 @@ export function ContactMessageList({
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedMessageForDetail, setSelectedMessageForDetail] =
     useState<ContactMessage | null>(null);
+
+  // Admin-logged ticket (phone / Facebook / WhatsApp walk-in inquiries)
+  const [isAddTicketOpen, setIsAddTicketOpen] = useState(false);
+  const [addTicketForm, setAddTicketForm] = useState({
+    name: "",
+    email: "",
+    mobile: "",
+    message: "",
+    source: ContactSource.PHONE,
+  });
+  const [isAddingTicket, setIsAddingTicket] = useState(false);
 
   // Statistics state
   const [statistics, setStatistics] = useState<{
@@ -453,8 +632,12 @@ export function ContactMessageList({
     if (searchQuery) params.set("search", searchQuery);
     if (statusFilter && statusFilter !== "all")
       params.set("status", statusFilter);
+    if (sourceFilter && sourceFilter !== "all")
+      params.set("source", sourceFilter);
+    if (priorityFilter && priorityFilter !== "all")
+      params.set("priority", priorityFilter);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname, currentPage, limit, searchQuery, statusFilter]);
+  }, [router, pathname, currentPage, limit, searchQuery, statusFilter, sourceFilter, priorityFilter]);
 
   const fetchStatistics = async () => {
     setIsLoadingStats(true);
@@ -487,6 +670,10 @@ export function ContactMessageList({
       if (searchQuery) params.append("search", searchQuery);
       if (statusFilter && statusFilter !== "all")
         params.append("status", statusFilter);
+      if (sourceFilter && sourceFilter !== "all")
+        params.append("source", sourceFilter);
+      if (priorityFilter && priorityFilter !== "all")
+        params.append("priority", priorityFilter);
 
       const response = await fetchDataPagination<{
         data: ContactMessage[];
@@ -514,7 +701,7 @@ export function ContactMessageList({
   useEffect(() => {
     fetchMessages();
     updateUrl();
-  }, [currentPage, limit, searchQuery, statusFilter]);
+  }, [currentPage, limit, searchQuery, statusFilter, sourceFilter, priorityFilter]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -558,6 +745,49 @@ export function ContactMessageList({
     setSelectedStatus(newStatus);
   };
 
+  const handleSourceChange = async (source: ContactSource) => {
+    if (!selectedMessageForStatusUpdate) return;
+    setIsUpdatingStatus(true);
+    try {
+      await patchData(`contact-messages/${selectedMessageForStatusUpdate.id}`, {
+        source,
+      });
+      setSelectedMessageForStatusUpdate({
+        ...selectedMessageForStatusUpdate,
+        source,
+      });
+      await fetchMessages();
+      toast.success(`Source set to ${source}.`);
+    } catch (error) {
+      console.error("Error updating source:", error);
+      toast.error("Failed to update source.");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handlePriorityChange = async (priority: ContactPriority) => {
+    if (!selectedMessageForStatusUpdate) return;
+    setIsUpdatingStatus(true);
+    try {
+      await patchData(
+        `contact-messages/${selectedMessageForStatusUpdate.id}`,
+        { priority }
+      );
+      setSelectedMessageForStatusUpdate({
+        ...selectedMessageForStatusUpdate,
+        priority,
+      });
+      await fetchMessages();
+      toast.success(`Priority set to ${priority}.`);
+    } catch (error) {
+      console.error("Error updating priority:", error);
+      toast.error("Failed to update priority.");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!selectedMessageForStatusUpdate || !responseNotes.trim()) return;
 
@@ -585,7 +815,65 @@ export function ContactMessageList({
   const clearFilters = () => {
     setSearchQuery("");
     setStatusFilter("");
+    setSourceFilter("");
+    setPriorityFilter("");
     setCurrentPage(1);
+  };
+
+  const handleAddTicket = async () => {
+    const { name, email, mobile, message, source } = addTicketForm;
+    if (!name.trim() || !email.trim() || !mobile.trim() || !message.trim()) {
+      toast.error("All fields are required.");
+      return;
+    }
+    setIsAddingTicket(true);
+    try {
+      await postData("contact-messages", {
+        name: name.trim(),
+        email: email.trim(),
+        mobile: mobile.trim(),
+        message: message.trim(),
+        source,
+      });
+      toast.success("Ticket added.");
+      setIsAddTicketOpen(false);
+      setAddTicketForm({
+        name: "",
+        email: "",
+        mobile: "",
+        message: "",
+        source: ContactSource.PHONE,
+      });
+      await fetchMessages();
+      await fetchStatistics();
+    } catch (error) {
+      console.error("Error adding ticket:", error);
+      toast.error("Failed to add ticket.");
+    } finally {
+      setIsAddingTicket(false);
+    }
+  };
+
+  const getSourceBadge = (source: ContactMessage["source"]) => {
+    if (!source) return null;
+    const config = SOURCE_BADGES[source as ContactSource];
+    if (!config) return null;
+    return (
+      <Badge variant="outline" className={`flex items-center gap-1 ${config.color}`}>
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const getPriorityBadge = (priority: ContactMessage["priority"]) => {
+    if (!priority) return null;
+    const config = PRIORITY_BADGES[priority as ContactPriority];
+    if (!config) return null;
+    return (
+      <Badge variant="outline" className={`flex items-center gap-1 ${config.color}`}>
+        {config.label}
+      </Badge>
+    );
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -805,6 +1093,28 @@ export function ContactMessageList({
             </button>
           </Badge>
         )}
+        {sourceFilter && sourceFilter !== "all" && (
+          <Badge
+            variant="outline"
+            className="flex items-center gap-1 px-3 py-1"
+          >
+            Source: {sourceFilter}
+            <button onClick={() => setSourceFilter("")} className="ml-1">
+              <XCircle className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
+        {priorityFilter && priorityFilter !== "all" && (
+          <Badge
+            variant="outline"
+            className="flex items-center gap-1 px-3 py-1 capitalize"
+          >
+            Priority: {priorityFilter}
+            <button onClick={() => setPriorityFilter("")} className="ml-1">
+              <XCircle className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
         <Button
           variant="ghost"
           size="sm"
@@ -817,101 +1127,115 @@ export function ContactMessageList({
     );
   };
 
-  const renderTableView = () => (
 
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead className="hidden md:table-cell">Contact Info</TableHead>
-          <TableHead>Message</TableHead>
-          <TableHead className="hidden lg:table-cell">Status</TableHead>
-          <TableHead className="hidden lg:table-cell">Date</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {messages.map((message) => (
-          <TableRow key={message.id}>
-            <TableCell className="font-medium">
-              <div>
-                <div className="font-semibold">{message.name}</div>
-                <div className="text-xs text-muted-foreground md:hidden">
-                  {message.email}
-                </div>
-              </div>
-            </TableCell>
-            <TableCell className="hidden md:table-cell">
-              <div className="space-y-1">
-                <div className="flex items-center gap-1 text-sm">
-                  <Mail className="h-3 w-3" />
-                  {message.email}
-                </div>
-                {message.mobile && (
-                  <div className="flex items-center gap-1 text-sm">
-                    <Phone className="h-3 w-3" />
-                    {message.mobile}
-                  </div>
+  // Card-style ticket list (first line of the message acts as the subject).
+  const renderTicketList = () => (
+    <div className="rounded-xl border border-gray-200 dark:border-neutral-800 divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden bg-white dark:bg-neutral-900">
+      {messages.map((message) => {
+        const firstLine = message.message.split("\n")[0] ?? "";
+        const subject = firstLine.length > 70 ? `${firstLine.slice(0, 70)}…` : firstLine;
+        const preview = message.message.length > 120 ? `${message.message.slice(0, 120)}…` : message.message;
+
+        return (
+          <div
+            key={message.id}
+            onClick={() => handleViewDetails(message)}
+            className="flex items-start gap-4 px-4 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800/60 cursor-pointer transition-colors"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-sm font-bold text-blue-700 dark:text-blue-300">
+              {message.name?.charAt(0).toUpperCase() || "?"}
+            </span>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                {subject}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                {preview}
+              </p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5 flex items-center gap-1.5 flex-wrap">
+                <span className="font-medium">{ticketNo(message.id)}</span>
+                <span>•</span>
+                <span>{message.name}</span>
+                {message.source && (
+                  <>
+                    <span>•</span>
+                    <span className="capitalize">{message.source}</span>
+                  </>
                 )}
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="max-w-xs truncate" title={message.message}>
-                {message.message}
-              </div>
-            </TableCell>
-            <TableCell className="hidden lg:table-cell">
-              {getStatusBadge(message.contactStatus)}
-            </TableCell>
-            <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
-              {formatDate(message.createdAt)}
-            </TableCell>
-            <TableCell className="text-right">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Open menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleViewDetails(message)}>
-                    <Eye className="mr-2 h-4 w-4" /> View Details
-                  </DropdownMenuItem>
-                  {can(MENU_URL, "canEdit") && (
-                    <DropdownMenuItem
-                      onClick={() => handleStatusUpdateClick(message)}
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4" /> Update Status
-                    </DropdownMenuItem>
-                  )}
-                  {can(MENU_URL, "canDelete") && (
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(message)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+              </p>
+            </div>
 
+            <div className="shrink-0 flex flex-col items-end gap-1.5">
+              <span className="text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                {timeAgo(message.createdAt)}
+              </span>
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                {getPriorityBadge(message.priority)}
+                {getStatusBadge(message.contactStatus)}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 
   return (
     <>
       <div className="w-full ">
         <PageHeader
-          title="Contact Messages"
-          description="Manage customer inquiries and messages"
+          title="Support Tickets"
+          description="Customer inquiries from all channels — assign, prioritize and resolve"
         />
 
         {renderStatisticsCards()}
+
+        {/* Status tabs (mockup style) */}
+        <div className="flex items-center gap-1 border-b border-gray-200 dark:border-neutral-800 overflow-x-auto -mb-px">
+          {[
+            { value: "all", label: "All", count: statistics.total },
+            {
+              value: ContactStatus.PENDING,
+              label: "Open",
+              count: statistics.byStatus.pending,
+            },
+            {
+              value: ContactStatus.IN_PROGRESS,
+              label: "In Progress",
+              count: statistics.byStatus.in_progress,
+            },
+            {
+              value: ContactStatus.RESOLVED,
+              label: "Resolved",
+              count: statistics.byStatus.resolved,
+            },
+            {
+              value: ContactStatus.CLOSED,
+              label: "Closed",
+              count: statistics.byStatus.closed,
+            },
+          ].map((tab) => {
+            const active =
+              statusFilter === tab.value ||
+              (tab.value === "all" && !statusFilter);
+            return (
+              <button
+                key={tab.value}
+                onClick={() => {
+                  setStatusFilter(tab.value === "all" ? "" : tab.value);
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${active
+                  ? "border-blue-600 text-blue-600 dark:text-blue-400"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                  }`}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            );
+          })}
+        </div>
 
         <div className="space-y-4">
           <div className="flex flex-row justify-between gap-2">
@@ -926,6 +1250,15 @@ export function ContactMessageList({
               />
             </div>
             <div className="flex items-center gap-2">
+              {can(MENU_URL, "canCreate") && (
+                <Button
+                  size="sm"
+                  onClick={() => setIsAddTicketOpen(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Ticket
+                </Button>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -1012,6 +1345,78 @@ export function ContactMessageList({
                         </button>
                       </div>
                     </div>
+
+                    {/* Source channel */}
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">
+                        Source
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {Object.values(ContactSource).map((source) => (
+                          <button
+                            key={source}
+                            onClick={() => {
+                              setSourceFilter(source);
+                              setCurrentPage(1);
+                            }}
+                            className={`text-xs py-1.5 px-2 rounded-md border capitalize ${sourceFilter === source
+                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                              }`}
+                          >
+                            {source}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => {
+                            setSourceFilter("");
+                            setCurrentPage(1);
+                          }}
+                          className={`text-xs py-1.5 px-2 rounded-md border ${sourceFilter === ""
+                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
+                        >
+                          All
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Priority */}
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">
+                        Priority
+                      </label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {Object.values(ContactPriority).map((priority) => (
+                          <button
+                            key={priority}
+                            onClick={() => {
+                              setPriorityFilter(priority);
+                              setCurrentPage(1);
+                            }}
+                            className={`text-xs py-1.5 px-2 rounded-md border capitalize ${priorityFilter === priority
+                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                              }`}
+                          >
+                            {priority}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => {
+                            setPriorityFilter("");
+                            setCurrentPage(1);
+                          }}
+                          className={`text-xs py-1.5 px-2 rounded-md border ${priorityFilter === ""
+                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                            }`}
+                        >
+                          All
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1025,7 +1430,7 @@ export function ContactMessageList({
           ) : messages.length === 0 ? (
             renderEmptyState()
           ) : (
-            <div className="mt-6">{renderTableView()}</div>
+            <div className="mt-6">{renderTicketList()}</div>
           )}
         </div>
 
@@ -1051,6 +1456,117 @@ export function ContactMessageList({
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleDelete}
       />
+
+      {/* Add Ticket Dialog */}
+      {isAddTicketOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-neutral-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  Add Ticket
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Log an inquiry that arrived by phone, Facebook, WhatsApp, etc.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAddTicketOpen(false)}
+                className="p-2 border border-gray-200 dark:border-neutral-700 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800"
+              >
+                <XCircle className="h-4 w-4 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Source</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {Object.values(ContactSource).map((source) => (
+                    <button
+                      key={source}
+                      type="button"
+                      onClick={() =>
+                        setAddTicketForm({ ...addTicketForm, source })
+                      }
+                      className={`text-xs py-2 px-2 rounded-md border capitalize ${addTicketForm.source === source
+                        ? "bg-blue-50 border-blue-500 text-blue-600 dark:bg-blue-950/40"
+                        : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
+                        }`}
+                    >
+                      {source}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Name</label>
+                <Input
+                  value={addTicketForm.name}
+                  onChange={(e) =>
+                    setAddTicketForm({ ...addTicketForm, name: e.target.value })
+                  }
+                  placeholder="Customer name"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Email</label>
+                <Input
+                  type="email"
+                  value={addTicketForm.email}
+                  onChange={(e) =>
+                    setAddTicketForm({ ...addTicketForm, email: e.target.value })
+                  }
+                  placeholder="customer@example.com"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Mobile</label>
+                <Input
+                  value={addTicketForm.mobile}
+                  onChange={(e) =>
+                    setAddTicketForm({
+                      ...addTicketForm,
+                      mobile: e.target.value,
+                    })
+                  }
+                  placeholder="+8801XXXXXXXXX"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Message</label>
+                <textarea
+                  value={addTicketForm.message}
+                  onChange={(e) =>
+                    setAddTicketForm({
+                      ...addTicketForm,
+                      message: e.target.value,
+                    })
+                  }
+                  rows={4}
+                  placeholder="What the customer asked..."
+                  className="w-full px-3 py-2.5 border border-gray-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-3 border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAddTicketOpen(false)}
+                disabled={isAddingTicket}
+              >
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleAddTicket} disabled={isAddingTicket}>
+                {isAddingTicket ? "Saving..." : "Save Ticket"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       <StatusUpdateModal
         isOpen={isStatusUpdateModalOpen}
         message={selectedMessageForStatusUpdate}
@@ -1064,6 +1580,8 @@ export function ContactMessageList({
           setResponseNotes("");
         }}
         onUpdateStatus={handleStatusUpdate}
+        onSourceChange={handleSourceChange}
+        onPriorityChange={handlePriorityChange}
         onSendMessage={handleSendMessage}
         onActionChange={setSelectedActionTaken}
         onNotesChange={setResponseNotes}
@@ -1076,7 +1594,12 @@ export function ContactMessageList({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-neutral-900 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white dark:bg-neutral-900 border-b px-6 py-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Message Details</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-semibold">
+                  {ticketNo(selectedMessageForDetail.id)}
+                </h3>
+                {getPriorityBadge(selectedMessageForDetail.priority)}
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -1143,6 +1666,14 @@ export function ContactMessageList({
                       Current Status
                     </span>
                     {getStatusBadge(selectedMessageForDetail.contactStatus)}
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground block mb-1">
+                      Source
+                    </span>
+                    {selectedMessageForDetail.source
+                      ? getSourceBadge(selectedMessageForDetail.source)
+                      : "—"}
                   </div>
                   <div>
                     <span className="text-xs text-muted-foreground block mb-1">

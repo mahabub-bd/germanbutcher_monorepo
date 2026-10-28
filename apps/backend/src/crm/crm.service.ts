@@ -10,10 +10,8 @@ import { Cart } from 'src/cart/entities/cart.entity';
 import { ContactMessage } from 'src/contact-message/entities/contact-message.entity';
 import { Order } from 'src/order/entities/order.entity';
 import { ProductReview } from 'src/product-review/entities/product-review.entity';
-import { OnlineUsersService } from 'src/online-users/online-users.service';
 import { Wishlist } from 'src/wishlist/entities/wishlist.entity';
 import { User } from 'src/user/entities/user.entity';
-import { AbandonedCartsQueryDto } from './dto/abandoned-carts-query.dto';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 import { CrmCustomersQueryDto } from './dto/crm-customers-query.dto';
@@ -89,7 +87,6 @@ export class CrmService {
     private productReviewRepository: Repository<ProductReview>,
     @InjectRepository(ContactMessage)
     private contactMessageRepository: Repository<ContactMessage>,
-    private onlineUsersService: OnlineUsersService,
   ) {}
 
   /**
@@ -402,86 +399,6 @@ export class CrmService {
   }
 
   /**
-   * Carts that sat untouched for `minDays` with items still in them.
-   * "Abandoned" is inferred — carts have no flag; carts belonging to users
-   * who are online right now are excluded unless `includeOnline`.
-   */
-  async getAbandonedCarts(query: AbandonedCartsQueryDto) {
-    const {
-      page = 1,
-      limit = 10,
-      minItems = 1,
-      minDays = 3,
-      includeOnline = false,
-    } = query;
-    const skip = (page - 1) * limit;
-
-    const buildBase = () =>
-      this.cartRepository
-        .createQueryBuilder('cart')
-        .innerJoin('cart.user', 'user')
-        .innerJoin('user.role', 'role', 'role.id = :roleId', {
-          roleId: CUSTOMER_ROLE_ID,
-        })
-        .innerJoin('cart.items', 'item')
-        .leftJoin('item.product', 'product')
-        .select('cart.id', 'cart_id')
-        .addSelect('user.id', 'user_id')
-        .addSelect('user.name', 'name')
-        .addSelect('user.email', 'email')
-        .addSelect('user.mobileNumber', 'mobile_number')
-        .addSelect('cart.updatedAt', 'last_activity_at')
-        .addSelect('COUNT(item.id)', 'item_count')
-        .addSelect(
-          `COALESCE(SUM(${SALE_PRICE_SQL} * "item"."quantity"), 0)`,
-          'cart_value',
-        )
-        .where('cart.updatedAt < NOW() - MAKE_INTERVAL(days => :minDays)', {
-          minDays,
-        })
-        .groupBy('cart.id')
-        .addGroupBy('user.id')
-        .having('COUNT(item.id) >= :minItems', { minItems });
-
-    // Fetch extra candidates so filtering out online users still fills a page.
-    const fetchLimit = includeOnline ? limit : limit * 2 + 50;
-    const rows = await buildBase()
-      .orderBy('cart.updatedAt', 'DESC')
-      .offset(skip)
-      .limit(fetchLimit)
-      .getRawMany();
-
-    const onlineIds = includeOnline
-      ? new Set<number>()
-      : this.onlineUsersService.getOnlineUserIds();
-    const filtered = includeOnline
-      ? rows
-      : rows.filter((row) => !onlineIds.has(row.user_id));
-
-    const data = filtered.slice(0, limit).map((row) => ({
-      cartId: row.cart_id,
-      userId: row.user_id,
-      name: row.name,
-      email: row.email,
-      mobileNumber: row.mobile_number,
-      itemCount: parseInt(row.item_count, 10) || 0,
-      cartValue: parseFloat(row.cart_value) || 0,
-      lastActivityAt: row.last_activity_at,
-      isOnline: onlineIds.has(row.user_id),
-    }));
-
-    return {
-      message: 'Abandoned carts retrieved successfully',
-      statusCode: 200,
-      data,
-      total: rows.length,
-      page,
-      limit,
-      totalPages: Math.ceil(rows.length / limit) || 1,
-    };
-  }
-
-  /**
    * CRM landing-page stats.
    */
   async getDashboard() {
@@ -584,24 +501,21 @@ export class CrmService {
       }
     }
 
+    // Bare payload — the controller wraps it in the response envelope.
     return {
-      message: 'CRM dashboard retrieved successfully',
-      statusCode: 200,
-      data: {
-        totalCustomers,
-        newCustomers,
-        segments,
-        abandonedCarts: {
-          count: parseInt(abandonedRow?.cart_count, 10) || 0,
-          totalValue: parseFloat(abandonedRow?.cart_value) || 0,
-        },
-        tasks: {
-          open: openTasks,
-          overdue: overdueTasks,
-        },
-        activitiesLast7Days: recentActivities,
-        topCustomers: vipCustomers.data,
+      totalCustomers,
+      newCustomers,
+      segments,
+      abandonedCarts: {
+        count: parseInt(abandonedRow?.cart_count, 10) || 0,
+        totalValue: parseFloat(abandonedRow?.cart_value) || 0,
       },
+      tasks: {
+        open: openTasks,
+        overdue: overdueTasks,
+      },
+      activitiesLast7Days: recentActivities,
+      topCustomers: vipCustomers.data,
     };
   }
 }

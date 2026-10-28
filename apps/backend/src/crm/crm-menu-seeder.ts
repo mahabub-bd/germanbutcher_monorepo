@@ -35,16 +35,11 @@ export class CrmMenuSeeder implements OnModuleInit {
         order: 1,
         parentId: null as number | null,
       },
-      {
-        name: 'Abandoned Carts',
-        url: '/admin/crm/abandoned-carts',
-        icon: 'shopping-cart',
-        isMainMenu: false,
-        isAdminMenu: true,
-        order: 2,
-        parentId: null as number | null,
-      },
     ];
+
+    // Older builds seeded a separate CRM abandoned-carts menu; the existing
+    // /admin/analytics/abandoned-carts page covers it. Remove the leftover.
+    await this.menuRepository.delete({ url: '/admin/crm/abandoned-carts' });
 
     const crmMenu = await this.menuRepository.findOne({
       where: { url: '/admin/crm' },

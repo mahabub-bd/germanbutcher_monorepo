@@ -18,7 +18,6 @@ import { ModulePermissions } from 'src/auth/decorators/module-permissions.decora
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { CrmService } from './crm.service';
-import { AbandonedCartsQueryDto } from './dto/abandoned-carts-query.dto';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 import { CrmCustomersQueryDto } from './dto/crm-customers-query.dto';
@@ -104,12 +103,6 @@ export class CrmController {
       message: 'Activity deleted successfully',
       statusCode: 204,
     };
-  }
-
-  @Get('abandoned-carts')
-  @ApiOperation({ summary: 'Carts untouched for days with items still in them' })
-  async getAbandonedCarts(@Query() query: AbandonedCartsQueryDto) {
-    return await this.crmService.getAbandonedCarts(query);
   }
 
   @Get('dashboard')

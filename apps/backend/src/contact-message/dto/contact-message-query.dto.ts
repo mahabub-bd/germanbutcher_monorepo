@@ -2,7 +2,11 @@
 import { IsOptional, IsEnum, IsString, IsNumber, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { ContactStatus } from 'src/common/enums';
+import {
+  ContactPriority,
+  ContactSource,
+  ContactStatus,
+} from 'src/common/enums';
 
 export class ContactMessageQueryDto {
   @ApiProperty({ required: false, default: 1 })
@@ -23,6 +27,16 @@ export class ContactMessageQueryDto {
   @IsOptional()
   @IsEnum(ContactStatus)
   status?: ContactStatus;
+
+  @ApiProperty({ required: false, enum: ContactSource })
+  @IsOptional()
+  @IsEnum(ContactSource)
+  source?: ContactSource;
+
+  @ApiProperty({ required: false, enum: ContactPriority })
+  @IsOptional()
+  @IsEnum(ContactPriority)
+  priority?: ContactPriority;
 
   @ApiProperty({ required: false, description: 'Search by name or email' })
   @IsOptional()

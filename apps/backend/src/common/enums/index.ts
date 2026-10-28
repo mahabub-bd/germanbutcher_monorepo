@@ -47,6 +47,23 @@ export enum ContactStatus {
   CLOSED = 'closed',
 }
 
+/** Where a contact inquiry came from. Website form submissions default to
+ *  WEBSITE; admins tag inquiries that arrived by other channels. */
+export enum ContactSource {
+  WEBSITE = 'website',
+  FACEBOOK = 'facebook',
+  PHONE = 'phone',
+  EMAIL = 'email',
+  WHATSAPP = 'whatsapp',
+  OTHER = 'other',
+}
+
+export enum ContactPriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+}
+
 export enum ActionTaken {
   REPLIED_VIA_EMAIL = 'replied_via_email',
   CALLED_CUSTOMER = 'called_customer',

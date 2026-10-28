@@ -1,11 +1,14 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
+  IsEnum,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Length,
   Matches,
 } from 'class-validator';
+import { ContactSource } from 'src/common/enums';
 
 export class CreateContactMessageDto {
   @ApiProperty({
@@ -44,4 +47,9 @@ export class CreateContactMessageDto {
   @IsNotEmpty()
   @Length(10, 1000)
   message: string;
+
+  @ApiPropertyOptional({ enum: ContactSource, default: ContactSource.WEBSITE })
+  @IsOptional()
+  @IsEnum(ContactSource)
+  source?: ContactSource;
 }
