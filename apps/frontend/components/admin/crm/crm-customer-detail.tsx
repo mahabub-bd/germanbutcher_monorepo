@@ -44,6 +44,7 @@ import {
 } from "@/utils/api-utils";
 import {
   Activity,
+  ArrowLeft,
   CalendarClock,
   CheckCircle2,
   Circle,
@@ -267,10 +268,18 @@ export function CrmCustomerDetail() {
 
   return (
     <div className="w-full space-y-6">
-      <PageHeader
-        title={profile.name}
-        description="Customer 360 — profile, orders, cart, reviews, messages and follow-ups"
-      />
+      <div className="flex items-center justify-between gap-4">
+        <PageHeader
+          title={profile.name}
+          description="Customer 360 — profile, orders, cart, reviews, messages and follow-ups"
+          className="mb-0"
+        />
+        <Button variant="outline" size="sm" asChild className="shrink-0">
+          <Link href="/admin/crm/customers">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back to List
+          </Link>
+        </Button>
+      </div>
 
       <div className="rounded-lg border bg-card p-4 space-y-4">
         <div className="flex items-start justify-between gap-4">
@@ -329,7 +338,7 @@ export function CrmCustomerDetail() {
                       setActivityForm({ ...activityForm, type: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -535,7 +544,7 @@ export function CrmCustomerDetail() {
                       <TableRow key={order.id} className="hover:bg-muted/50">
                         <TableCell>
                           <Link
-                            href={`/admin/order/${order.id}`}
+                            href={`/admin/order/${order.id}/view?page=1`}
                             className="font-medium hover:underline"
                           >
                             {order.orderNo}
