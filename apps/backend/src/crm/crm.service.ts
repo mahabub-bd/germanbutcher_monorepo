@@ -1,21 +1,39 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
+  In,
   LessThan,
   MoreThanOrEqual,
   Repository,
 } from 'typeorm';
-import { CrmActivityStatus, CrmSegment } from 'src/common/enums';
+import {
+  CrmActivityStatus,
+  CrmCampaignChannel,
+  CrmCampaignRecipientStatus,
+  CrmCampaignStatus,
+  CrmSegment,
+} from 'src/common/enums';
+import { Address } from 'src/address/entities/address.entity';
+import { BusinessSetting } from 'src/business-settings/entities/business-setting.entity';
 import { Cart } from 'src/cart/entities/cart.entity';
 import { ContactMessage } from 'src/contact-message/entities/contact-message.entity';
 import { Order } from 'src/order/entities/order.entity';
 import { ProductReview } from 'src/product-review/entities/product-review.entity';
 import { Wishlist } from 'src/wishlist/entities/wishlist.entity';
 import { User } from 'src/user/entities/user.entity';
+import { SmsService } from 'src/auth/sms.service';
+import { EmailService } from 'src/email/email.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
+import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { CrmCustomersQueryDto } from './dto/crm-customers-query.dto';
 import { CrmActivity } from './entities/crm-activity.entity';
+import { CrmCampaign } from './entities/crm-campaign.entity';
+import { CrmCampaignRecipient } from './entities/crm-campaign-recipient.entity';
 
 /** RFM thresholds — surfaced on the frontend so admins see the same rules. */
 export const CRM_SEGMENT_RULES = {
@@ -43,12 +61,11 @@ const SEGMENT_CASE = `
       ELSE '${CrmSegment.LOYAL}'
     END`;
 
-const SEGMENT_PARAMS = {
-  vipMinSpent: CRM_SEGMENT_RULES.VIP_MIN_SPENT,
-  vipMinOrders: CRM_SEGMENT_RULES.VIP_MIN_ORDERS,
-  atRiskDays: CRM_SEGMENT_RULES.AT_RISK_DAYS,
-  newDays: CRM_SEGMENT_RULES.NEW_DAYS,
-};
+/** Swap {{name}} in a campaign message for the customer's first name. */
+function personalizeMessage(message: string, fullName?: string | null): string {
+  const firstName = (fullName ?? '').trim().split(/\s+/)[0] ?? '';
+  return message.replace(/\{\{\s*name\s*\}\}/g, firstName);
+}
 
 /**
  * SQL mirror of Product.salePrice (a computed getter — there is no such
@@ -73,6 +90,16 @@ const SALE_PRICE_SQL = `
 @Injectable()
 export class CrmService {
   constructor(
+    @InjectRepository(Address)
+    private addressRepository: Repository<Address>,
+    @InjectRepository(BusinessSetting)
+    private businessSettingsRepository: Repository<BusinessSetting>,
+    @InjectRepository(CrmCampaign)
+    private crmCampaignRepository: Repository<CrmCampaign>,
+    @InjectRepository(CrmCampaignRecipient)
+    private crmCampaignRecipientRepository: Repository<CrmCampaignRecipient>,
+    private smsService: SmsService,
+    private emailService: EmailService,
     @InjectRepository(CrmActivity)
     private crmActivityRepository: Repository<CrmActivity>,
     @InjectRepository(User)
@@ -90,6 +117,33 @@ export class CrmService {
   ) {}
 
   /**
+   * Effective CRM segment rules: values saved in Business Settings, falling
+   * back to the code defaults in CRM_SEGMENT_RULES for anything unset.
+   * Also served to admins via GET crm/segment-rules.
+   */
+  async getSegmentRules() {
+    const settings = await this.businessSettingsRepository.findOne({
+      where: { id: 1 },
+    });
+    return {
+      vipMinSpent: settings?.vipMinSpent ?? CRM_SEGMENT_RULES.VIP_MIN_SPENT,
+      vipMinOrders: settings?.vipMinOrders ?? CRM_SEGMENT_RULES.VIP_MIN_ORDERS,
+      atRiskDays: settings?.atRiskDays ?? CRM_SEGMENT_RULES.AT_RISK_DAYS,
+      newDays: settings?.newDays ?? CRM_SEGMENT_RULES.NEW_DAYS,
+    };
+  }
+
+  private async getSegmentParams() {
+    const rules = await this.getSegmentRules();
+    return {
+      vipMinSpent: rules.vipMinSpent,
+      vipMinOrders: rules.vipMinOrders,
+      atRiskDays: rules.atRiskDays,
+      newDays: rules.newDays,
+    };
+  }
+
+  /**
    * Paginated customer list with RFM stats and segment per row.
    * Segments are computed on the fly — no stored state to go stale.
    */
@@ -105,6 +159,7 @@ export class CrmService {
     // One aggregation query for ALL customers, then filter/sort/paginate in
     // JS: retail customer counts are small, and wrapping the aggregate query
     // in a subquery for SQL-side paging is not worth the fragility.
+    const segmentParams = await this.getSegmentParams();
     const qb = this.userRepository
       .createQueryBuilder('user')
       .leftJoin('user.role', 'role')
@@ -125,7 +180,7 @@ export class CrmService {
       .addSelect('MAX("orders"."createdAt")', 'lastOrderAt')
       .addSelect(SEGMENT_CASE, 'segment')
       .where('role.id = :roleId', { roleId: CUSTOMER_ROLE_ID })
-      .setParameters(SEGMENT_PARAMS)
+      .setParameters(segmentParams)
       .groupBy('user.id')
       .addGroupBy('profilePhoto.id');
 
@@ -143,6 +198,7 @@ export class CrmService {
       name: row.name,
       email: row.email,
       mobileNumber: row.mobileNumber,
+      area: null as string | null,
       isVerified: row.isVerified,
       createdAt: row.createdAt,
       lastLoginAt: row.lastLoginAt,
@@ -191,6 +247,26 @@ export class CrmService {
     const total = customers.length;
     const data = customers.slice((page - 1) * limit, page * limit);
 
+    // Attach the area from each customer's default address. Kept as a second
+    // query on purpose — joining addresses into the aggregate above would
+    // multiply order rows and inflate the SUM/COUNT.
+    const pageIds = data.map((customer) => customer.id);
+    if (pageIds.length > 0) {
+      const addresses = await this.addressRepository.find({
+        where: { userId: In(pageIds) },
+      });
+      const defaultByUser = new Map<number, Address>();
+      for (const address of addresses) {
+        const current = defaultByUser.get(address.userId);
+        if (!current || (address.isDefault && !current.isDefault)) {
+          defaultByUser.set(address.userId, address);
+        }
+      }
+      for (const customer of data) {
+        customer.area = defaultByUser.get(customer.id)?.area ?? null;
+      }
+    }
+
     return {
       message: 'CRM customers retrieved successfully',
       statusCode: 200,
@@ -200,6 +276,245 @@ export class CrmService {
       limit,
       totalPages: Math.ceil(total / limit) || 1,
     };
+  }
+
+  /**
+   * All customers matching the list filters, unpaged — for CSV export.
+   */
+  async exportCustomers(query: CrmCustomersQueryDto) {
+    const { total } = await this.getCustomers({ ...query, limit: 1 });
+    const result = await this.getCustomers({
+      ...query,
+      page: 1,
+      limit: Math.max(total, 1),
+    });
+    return result.data;
+  }
+
+  /**
+   * Segment-targeted bulk outreach (SMS or email).
+   */
+  async createCampaign(dto: CreateCampaignDto, adminUserId: number) {
+    const campaign = this.crmCampaignRepository.create({
+      name: dto.name.trim(),
+      channel: dto.channel,
+      segment: dto.segment ?? null,
+      subject:
+        dto.channel === CrmCampaignChannel.EMAIL
+          ? dto.subject?.trim() || null
+          : null,
+      message: dto.message,
+      createdBy: { id: adminUserId } as User,
+    });
+    return this.crmCampaignRepository.save(campaign);
+  }
+
+  async getCampaigns(query: { page?: number; limit?: number }) {
+    const page = Math.max(1, query.page || 1);
+    const limit = Math.min(100, Math.max(1, query.limit || 10));
+    const [data, total] =
+      await this.crmCampaignRepository.findAndCount({
+        where: {},
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+        relations: ['createdBy'],
+      });
+    return {
+      message: 'CRM campaigns retrieved successfully',
+      statusCode: 200,
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  async getCampaign(id: number) {
+    const campaign = await this.crmCampaignRepository.findOne({
+      where: { id },
+      relations: ['createdBy'],
+    });
+    if (!campaign) {
+      throw new NotFoundException(`Campaign ${id} not found`);
+    }
+    const [recipients, currentCount] = await Promise.all([
+      this.crmCampaignRecipientRepository.find({
+        where: { campaignId: id },
+        order: { id: 'ASC' },
+        take: 100,
+      }),
+      this.crmCampaignRecipientRepository.count({ where: { campaignId: id } }),
+    ]);
+    return {
+      message: 'Campaign retrieved successfully',
+      statusCode: 200,
+      data: { campaign, recipients, recipientTotal: currentCount },
+    };
+  }
+
+  /**
+   * How many customers a campaign to this segment would reach, plus a small
+   * sample — used by the compose form before sending.
+   */
+  async previewCampaignRecipients(segment?: CrmSegment) {
+    const { total, data } = await this.getCustomers({
+      page: 1,
+      limit: 5,
+      segment,
+    });
+    return {
+      message: 'Campaign recipients preview retrieved successfully',
+      statusCode: 200,
+      data: {
+        count: total,
+        sample: data.map((customer) => ({
+          id: customer.id,
+          name: customer.name,
+          mobileNumber: customer.mobileNumber,
+          email: customer.email,
+        })),
+      },
+    };
+  }
+
+  /**
+   * Queue a campaign for delivery. Resolves the segment's customers now,
+   * snapshots contact details into recipient rows, then delivers in the
+   * background so the HTTP request returns immediately.
+   */
+  async sendCampaign(id: number) {
+    const campaign = await this.crmCampaignRepository.findOne({
+      where: { id },
+    });
+    if (!campaign) {
+      throw new NotFoundException(`Campaign ${id} not found`);
+    }
+    if (campaign.status !== CrmCampaignStatus.DRAFT) {
+      throw new BadRequestException(
+        `Campaign is ${campaign.status} — only drafts can be sent`,
+      );
+    }
+
+    const { data: customers } = await this.getCustomers({
+      page: 1,
+      limit: 100000,
+      segment: campaign.segment ?? undefined,
+    });
+    if (customers.length === 0) {
+      throw new BadRequestException('No customers match this segment');
+    }
+
+    const recipients = customers.map((customer) =>
+      this.crmCampaignRecipientRepository.create({
+        campaignId: campaign.id,
+        userId: customer.id,
+        name: customer.name,
+        phone: customer.mobileNumber,
+        email: customer.email,
+      }),
+    );
+    await this.crmCampaignRecipientRepository.save(recipients);
+
+    campaign.status = CrmCampaignStatus.SENDING;
+    campaign.totalRecipients = recipients.length;
+    await this.crmCampaignRepository.save(campaign);
+
+    // Background delivery — returns "queued" immediately.
+    void this.deliverCampaign(campaign.id);
+
+    return {
+      message: 'Campaign queued for delivery',
+      statusCode: 200,
+      data: { queued: true, totalRecipients: recipients.length },
+    };
+  }
+
+  async deleteCampaign(id: number) {
+    const campaign = await this.crmCampaignRepository.findOne({
+      where: { id },
+    });
+    if (!campaign) {
+      throw new NotFoundException(`Campaign ${id} not found`);
+    }
+    await this.crmCampaignRepository.remove(campaign);
+    return {
+      message: 'Campaign deleted successfully',
+      statusCode: 200,
+    };
+  }
+
+  /** Serial delivery with a small per-SMS pause so the gateway stays happy. */
+  private async deliverCampaign(campaignId: number) {
+    const campaign = await this.crmCampaignRepository.findOne({
+      where: { id: campaignId },
+    });
+    if (!campaign) return;
+
+    let sent = 0;
+    let failed = 0;
+    const recipients = await this.crmCampaignRecipientRepository.find({
+      where: { campaignId },
+      order: { id: 'ASC' },
+    });
+
+    for (const recipient of recipients) {
+      try {
+        if (campaign.channel === CrmCampaignChannel.SMS) {
+          if (!recipient.phone) {
+            recipient.status = CrmCampaignRecipientStatus.SKIPPED;
+            recipient.error = 'No mobile number on profile';
+            failed++;
+          } else {
+            const text = personalizeMessage(campaign.message, recipient.name);
+            const ok = await this.smsService.sendSms(
+              recipient.phone,
+              text,
+              'CRM Campaign',
+            );
+            recipient.status = ok
+              ? CrmCampaignRecipientStatus.SENT
+              : CrmCampaignRecipientStatus.FAILED;
+            if (!ok) recipient.error = 'SMS gateway rejected the number';
+            if (ok) sent++;
+            else failed++;
+          }
+        } else {
+          if (!recipient.email) {
+            recipient.status = CrmCampaignRecipientStatus.SKIPPED;
+            recipient.error = 'No email on profile';
+            failed++;
+          } else {
+            const text = personalizeMessage(campaign.message, recipient.name);
+            await this.emailService.sendCampaignEmail(
+              recipient.email,
+              recipient.name ?? 'Customer',
+              campaign.subject ?? campaign.name,
+              text,
+            );
+            recipient.status = CrmCampaignRecipientStatus.SENT;
+            sent++;
+          }
+        }
+      } catch (error) {
+        recipient.status = CrmCampaignRecipientStatus.FAILED;
+        recipient.error = (error as Error).message?.slice(0, 500);
+        failed++;
+      }
+      recipient.sentAt = new Date();
+      await this.crmCampaignRecipientRepository.save(recipient);
+    }
+
+    campaign.sentCount = sent;
+    campaign.failedCount = failed;
+    campaign.status =
+      sent > 0 ? CrmCampaignStatus.SENT : CrmCampaignStatus.FAILED;
+    campaign.sentAt = new Date();
+    await this.crmCampaignRepository.save(campaign);
+    // Individual saves keep the per-recipient log accurate; totals are
+    // written once at the end. With ~4k recipients this takes minutes for
+    // SMS (100 ms pause each) — that's the rate-limit safety valve.
   }
 
   /**
@@ -213,6 +528,8 @@ export class CrmService {
     if (!user) {
       throw new NotFoundException(`Customer with ID ${id} not found`);
     }
+
+    const segmentParams = await this.getSegmentParams();
 
     const [
       rfmRow,
@@ -234,7 +551,7 @@ export class CrmService {
         .addSelect('MAX("orders"."createdAt")', 'last_order_at')
         .addSelect(SEGMENT_CASE, 'segment')
         .where('user.id = :id', { id })
-        .setParameters(SEGMENT_PARAMS)
+        .setParameters(segmentParams)
         .getRawOne(),
       // Recent orders.
       this.orderRepository.find({
@@ -402,6 +719,9 @@ export class CrmService {
    * CRM landing-page stats.
    */
   async getDashboard() {
+    const segmentParams = await this.getSegmentParams();
+    const segmentRules = await this.getSegmentRules();
+
     const [
       totalCustomers,
       segmentRows,
@@ -428,7 +748,7 @@ export class CrmService {
         .select('user.id', 'id')
         .addSelect(SEGMENT_CASE, 'segment')
         .where('role.id = :roleId', { roleId: CUSTOMER_ROLE_ID })
-        .setParameters(SEGMENT_PARAMS)
+        .setParameters(segmentParams)
         .groupBy('user.id')
         .getRawMany(),
 
@@ -442,7 +762,7 @@ export class CrmService {
         .innerJoin('cart.items', 'item')
         .innerJoin('item.product', 'product')
         .where('cart.updatedAt < NOW() - MAKE_INTERVAL(days => :minDays)', {
-          minDays: CRM_SEGMENT_RULES.AT_RISK_DAYS,
+          minDays: segmentRules.atRiskDays,
         })
         .select('COUNT(DISTINCT cart.id)', 'cart_count')
         .addSelect(
@@ -460,14 +780,14 @@ export class CrmService {
           dueDate: LessThan(new Date()),
         },
       }),
-      // Customers created in the last 30 days.
+      // Customers created within the New-customer window.
       this.userRepository
         .createQueryBuilder('user')
         .innerJoin('user.role', 'role')
         .where('role.id = :roleId', { roleId: CUSTOMER_ROLE_ID })
         .andWhere(
           'user.createdAt >= NOW() - MAKE_INTERVAL(days => :newDays)',
-          { newDays: CRM_SEGMENT_RULES.NEW_DAYS },
+          { newDays: segmentRules.newDays },
         )
         .getCount(),
 

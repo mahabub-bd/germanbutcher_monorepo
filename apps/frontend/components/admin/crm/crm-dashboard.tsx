@@ -1,8 +1,8 @@
 "use client";
 
-import { PageHeader } from "@/components/admin/page-header";
 import { SegmentBadge } from "@/components/admin/crm/segment-badge";
-import { StatusCard } from "@/components/admin/dashboard/status-card";
+import StatsCard from "@/components/admin/dashboard/stats-card";
+import { PageHeader } from "@/components/admin/page-header";
 import {
   Table,
   TableBody,
@@ -11,14 +11,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn, formatDateTime } from "@/lib/utils";
 import { fetchProtectedData } from "@/utils/api-utils";
-import { formatDateTime } from "@/lib/utils";
 import {
   Activity,
   AlertTriangle,
   CalendarClock,
   CheckCircle2,
   ListTodo,
+  MapPin,
   ShoppingCart,
   Users,
 } from "lucide-react";
@@ -38,13 +39,19 @@ interface DashboardData {
     id: number;
     name: string;
     email: string;
+    mobileNumber: string | null;
+    area: string | null;
     rfm: { orderCount: number; totalSpent: number; lastOrderAt: string | null };
     segment: string;
   }>;
 }
 
-const gradient =
-  "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20";
+// Medal-tinted initials for the top three rows of the VIP table.
+const TOP_RANK_STYLES: Record<number, string> = {
+  0: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  1: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
+  2: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+};
 
 export function CrmDashboard() {
   const [stats, setStats] = useState<DashboardData | null>(null);
@@ -78,37 +85,33 @@ export function CrmDashboard() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatusCard
+        <StatsCard
           title="Total Customers"
           value={stats.totalCustomers}
           icon={Users}
-          href="/admin/crm/customers"
-          color="text-blue-600 dark:text-blue-400"
-          gradient={gradient}
+          description="All registered customers"
+          bgColor="blue"
         />
-        <StatusCard
+        <StatsCard
           title="New (30 days)"
           value={stats.newCustomers}
           icon={CalendarClock}
-          href="/admin/crm/customers?segment=new"
-          color="text-green-600 dark:text-green-400"
-          gradient="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20"
+          description="Joined this month"
+          bgColor="green"
         />
-        <StatusCard
+        <StatsCard
           title="Abandoned Carts"
           value={stats.abandonedCarts.count}
           icon={ShoppingCart}
-          href="/admin/analytics/abandoned-carts"
-          color="text-orange-600 dark:text-orange-400"
-          gradient="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20"
+          description="Carts inactive 90+ days"
+          bgColor="orange"
         />
-        <StatusCard
+        <StatsCard
           title="Open Tasks"
           value={stats.tasks.open}
           icon={ListTodo}
-          href="/admin/crm/customers"
-          color="text-purple-600 dark:text-purple-400"
-          gradient="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20"
+          description="Pending follow-ups"
+          bgColor="purple"
         />
       </div>
 
@@ -135,50 +138,58 @@ export function CrmDashboard() {
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" /> Attention Needed
           </h3>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="rounded-md border px-3 py-2">
-              <div className="text-lg font-semibold text-orange-600 dark:text-orange-400">
-                {stats.tasks.overdue}
-              </div>
-              <div className="text-muted-foreground">Overdue tasks</div>
-            </div>
-            <div className="rounded-md border px-3 py-2">
-              <div className="text-lg font-semibold">
-                {stats.activitiesLast7Days}
-              </div>
-              <div className="text-muted-foreground">
-                Activities (7 days)
-              </div>
-            </div>
-            <div className="rounded-md border px-3 py-2">
-              <div className="text-lg font-semibold">
-                {stats.abandonedCarts.totalValue.toLocaleString()}
-              </div>
-              <div className="text-muted-foreground">Cart value at risk</div>
-            </div>
-            <div className="rounded-md border px-3 py-2 flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-              <Link
-                href="/admin/analytics/abandoned-carts"
-                className="text-sm hover:underline"
-              >
-                Review carts
-              </Link>
-            </div>
+          <div className="grid grid-cols-2 gap-2 lg:[&>div]:min-h-0 lg:[&>div]:p-2">
+            <StatsCard
+              title="Overdue tasks"
+              value={stats.tasks.overdue}
+              icon={AlertTriangle}
+              description="Past due date"
+              bgColor="orange"
+            />
+            <StatsCard
+              title="Activities (7 days)"
+              value={stats.activitiesLast7Days}
+              icon={Activity}
+              description="Notes, calls, emails"
+              bgColor="blue"
+            />
+            <StatsCard
+              title="Cart value at risk"
+              value={stats.abandonedCarts.totalValue.toLocaleString()}
+              icon={ShoppingCart}
+              description="In abandoned carts"
+              bgColor="red"
+            />
+            <Link
+              href="/admin/analytics/abandoned-carts"
+              className="flex items-center justify-center gap-2 rounded-xl border border-gray-200/80 dark:border-gray-800 bg-white dark:bg-white/3 px-3 text-sm font-medium text-primaryColor hover:bg-primaryColor/5 transition-colors"
+            >
+              <CheckCircle2 className="h-4 w-4" /> Review carts
+            </Link>
           </div>
         </div>
       </div>
 
       <div className="rounded-lg border bg-card">
-        <div className="p-4 pb-0">
+        <div className="p-4 pb-0 flex items-center justify-between gap-2">
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <Activity className="h-4 w-4" /> Top VIP Customers
           </h3>
+          <Link
+            href="/admin/crm/customers"
+            className="text-xs text-primaryColor hover:underline whitespace-nowrap"
+          >
+            View All
+          </Link>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead className="hidden lg:table-cell">Mobile</TableHead>
+              <TableHead className="hidden sm:table-cell">Segment</TableHead>
+              <TableHead className="hidden md:table-cell">Area</TableHead>
+
               <TableHead>Orders</TableHead>
               <TableHead>Total Spent</TableHead>
               <TableHead className="hidden md:table-cell">Last Order</TableHead>
@@ -188,23 +199,60 @@ export function CrmDashboard() {
             {stats.topCustomers.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={5}
                   className="text-center text-muted-foreground py-8"
                 >
                   No customers yet.
                 </TableCell>
               </TableRow>
             ) : (
-              stats.topCustomers.map((customer) => (
+              stats.topCustomers.map((customer, index) => (
                 <TableRow key={customer.id} className="hover:bg-muted/50">
                   <TableCell>
-                    <Link
-                      href={`/admin/crm/customers/${customer.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {customer.name}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold uppercase",
+                          TOP_RANK_STYLES[index] ??
+                          "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {customer.name?.charAt(0) || "?"}
+                      </span>
+                      <Link
+                        href={`/admin/crm/customers/${customer.id}`}
+                        className="font-medium hover:underline"
+                      >
+                        {customer.name}
+                      </Link>
+                    </div>
                   </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {customer.mobileNumber ? (
+                      <Link
+                        href={`tel:${customer.mobileNumber}`}
+                        className="text-sm hover:underline"
+                      >
+                        {customer.mobileNumber}
+                      </Link>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <SegmentBadge segment={customer.segment} />
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {customer.area ? (
+                      <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        {customer.area}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+
                   <TableCell>{customer.rfm.orderCount}</TableCell>
                   <TableCell>{customer.rfm.totalSpent.toLocaleString()}</TableCell>
                   <TableCell className="hidden md:table-cell">

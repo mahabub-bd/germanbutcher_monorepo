@@ -17,8 +17,13 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDateTime } from "@/lib/utils";
-import { fetchDataPagination } from "@/utils/api-utils";
-import { Search, UserCircle, XCircle } from "lucide-react";
+import {
+  apiUrl,
+  fetchDataPagination,
+  fetchProtectedData,
+  resolveAuthToken,
+} from "@/utils/api-utils";
+import { Download, MapPin, Search, UserCircle, XCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -36,6 +41,7 @@ interface CrmCustomer {
   createdAt: string;
   lastLoginAt: string | null;
   profilePhoto: { id: number; url: string } | null;
+  area: string | null;
   rfm: {
     orderCount: number;
     totalSpent: number;
@@ -52,12 +58,42 @@ interface ListResponse {
 }
 
 const SEGMENTS = [
-  { value: "all", label: "All" },
-  { value: "vip", label: "VIP" },
-  { value: "loyal", label: "Loyal" },
-  { value: "at_risk", label: "At Risk" },
-  { value: "new", label: "New" },
-  { value: "inactive", label: "Inactive" },
+  {
+    value: "all",
+    label: "All",
+    colors: "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900",
+    activeColors: "data-[state=active]:bg-slate-800 data-[state=active]:text-white dark:data-[state=active]:bg-slate-200 dark:data-[state=active]:text-slate-900",
+  },
+  {
+    value: "vip",
+    label: "VIP",
+    colors: "bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70",
+    activeColors: "data-[state=active]:bg-amber-500 data-[state=active]:text-white dark:data-[state=active]:bg-amber-400 dark:data-[state=active]:text-amber-950",
+  },
+  {
+    value: "loyal",
+    label: "Loyal",
+    colors: "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/70",
+    activeColors: "data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-400 dark:data-[state=active]:text-emerald-950",
+  },
+  {
+    value: "at_risk",
+    label: "At Risk",
+    colors: "bg-rose-50 text-rose-800 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/70",
+    activeColors: "data-[state=active]:bg-rose-600 data-[state=active]:text-white dark:data-[state=active]:bg-rose-400 dark:data-[state=active]:text-rose-950",
+  },
+  {
+    value: "new",
+    label: "New",
+    colors: "bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/70",
+    activeColors: "data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-400 dark:data-[state=active]:text-blue-950",
+  },
+  {
+    value: "inactive",
+    label: "Inactive",
+    colors: "bg-violet-50 text-violet-800 hover:bg-violet-100 dark:bg-violet-950/40 dark:text-violet-300 dark:hover:bg-violet-950/70",
+    activeColors: "data-[state=active]:bg-violet-600 data-[state=active]:text-white dark:data-[state=active]:bg-violet-400 dark:data-[state=active]:text-violet-950",
+  },
 ];
 
 interface CrmCustomerListProps {
@@ -93,6 +129,26 @@ export function CrmCustomerList({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Segment thresholds live in Business Settings — fetched so the header
+  // text always matches what the backend actually uses.
+  const [segmentRules, setSegmentRules] = useState<{
+    vipMinSpent: number;
+    vipMinOrders: number;
+    atRiskDays: number;
+    newDays: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetchProtectedData<{
+      vipMinSpent: number;
+      vipMinOrders: number;
+      atRiskDays: number;
+      newDays: number;
+    }>("crm/segment-rules")
+      .then(setSegmentRules)
+      .catch(() => {});
+  }, []);
 
   const updateUrl = useCallback(() => {
     const params = new URLSearchParams();
@@ -159,11 +215,42 @@ export function CrmCustomerList({
     setCurrentPage(1);
   };
 
+  const [isExporting, setIsExporting] = useState(false);
+  const handleExportCsv = async () => {
+    setIsExporting(true);
+    try {
+      const token = await resolveAuthToken();
+      const params = new URLSearchParams();
+      if (searchQuery) params.set("search", searchQuery);
+      if (segment !== "all") params.set("segment", segment);
+      const response = await fetch(
+        `${apiUrl}/crm/customers/export?${params.toString()}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!response.ok) throw new Error(`Export failed: ${response.status}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `crm-customers-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Failed to export customers.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="w-full">
       <PageHeader
         title="CRM Customers"
-        description="Segments from order activity: VIP (20,000+ spent or 10+ orders), At Risk (no order in 90 days), New (joined in 30 days), Inactive (no orders)"
+        description={
+          segmentRules
+            ? `Segments from order activity: VIP (${segmentRules.vipMinSpent.toLocaleString()}+ spent or ${segmentRules.vipMinOrders}+ orders), At Risk (no order in ${segmentRules.atRiskDays} days), New (joined in ${segmentRules.newDays} days), Inactive (no orders)`
+            : "Segments computed from live order activity — VIP, Loyal, At Risk, New and Inactive."
+        }
       />
 
       <div className="space-y-4">
@@ -175,24 +262,40 @@ export function CrmCustomerList({
               setCurrentPage(1);
             }}
           >
-            <TabsList>
+            <TabsList className="h-auto w-full justify-start gap-2 overflow-x-auto rounded-none bg-transparent p-0 md:w-fit">
               {SEGMENTS.map((seg) => (
-                <TabsTrigger key={seg.value} value={seg.value}>
+                <TabsTrigger
+                  key={seg.value}
+                  value={seg.value}
+                  className={`h-auto flex-none rounded-lg border-0 px-4 py-2 font-semibold shadow-none transition-colors data-[state=active]:shadow-none ${seg.colors} ${seg.activeColors}`}
+                >
                   {seg.label}
                 </TabsTrigger>
               ))}
             </TabsList>
           </Tabs>
 
-          <div className="relative w-full md:w-72">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search by name, email, or phone..."
-              className="h-8 pl-10 pr-4"
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search by name, email, or phone..."
+                className="h-8 pl-10 pr-4"
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0"
+              disabled={isExporting}
+              onClick={handleExportCsv}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              {isExporting ? "Exporting..." : "Export CSV"}
+            </Button>
           </div>
         </div>
 
@@ -229,6 +332,9 @@ export function CrmCustomerList({
               <TableHeader>
                 <TableRow>
                   <TableHead>Customer</TableHead>
+                  <TableHead className="hidden md:table-cell">Mobile</TableHead>
+                  <TableHead className="hidden sm:table-cell">Area</TableHead>
+
                   <TableHead className="text-center">Orders</TableHead>
                   <TableHead className="text-right">Total Spent</TableHead>
                   <TableHead className="hidden md:table-cell text-right">
@@ -270,6 +376,29 @@ export function CrmCustomerList({
                         </span>
                       </Link>
                     </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {customer.mobileNumber ? (
+                        <Link
+                          href={`tel:${customer.mobileNumber}`}
+                          className="text-sm hover:underline"
+                        >
+                          {customer.mobileNumber}
+                        </Link>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {customer.area ? (
+                        <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <MapPin className="h-3 w-3" />
+                          {customer.area}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+
                     <TableCell className="text-center">
                       {customer.rfm.orderCount}
                     </TableCell>

@@ -38,20 +38,27 @@ import {
   postData,
 } from "@/utils/api-utils";
 import {
+  Activity,
   CalendarClock,
   CheckCircle2,
   Circle,
   Mail,
+  MapPin,
   Phone,
   Plus,
+  Receipt,
+  ShoppingBag,
   ShoppingCart,
+  Star,
   Trash2,
+  Wallet,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { StatusCard } from "../dashboard/status-card";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
@@ -90,7 +97,10 @@ interface Customer360 {
       id: number;
       address?: string;
       area?: string;
+      division?: string;
       city?: string;
+      type?: string;
+      isDefault?: boolean;
     }>;
   };
   rfm: {
@@ -364,48 +374,71 @@ export function CrmCustomerDetail() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="rounded-md border px-3 py-2">
-            <div className="text-lg font-semibold">{rfm.orderCount}</div>
-            <div className="text-xs text-muted-foreground">Orders</div>
-          </div>
-          <div className="rounded-md border px-3 py-2">
-            <div className="text-lg font-semibold">
-              {rfm.totalSpent.toLocaleString()}
-            </div>
-            <div className="text-xs text-muted-foreground">Total Spent</div>
-          </div>
-          <div className="rounded-md border px-3 py-2">
-            <div className="text-lg font-semibold">
-              {rfm.averageOrderValue.toLocaleString()}
-            </div>
-            <div className="text-xs text-muted-foreground">Avg Order</div>
-          </div>
-          <div className="rounded-md border px-3 py-2">
-            <div className="text-lg font-semibold">
-              {rfm.lastOrderAt ? formatDateTime(rfm.lastOrderAt) : "Never"}
-            </div>
-            <div className="text-xs text-muted-foreground">Last Order</div>
-          </div>
+          <StatusCard
+            title="Orders"
+            value={rfm.orderCount}
+            icon={ShoppingBag}
+            color="text-blue-600 dark:text-blue-400"
+            gradient="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20"
+            className="pointer-events-none"
+          />
+          <StatusCard
+            title="Total Spent"
+            value={rfm.totalSpent.toLocaleString()}
+            icon={Wallet}
+            color="text-green-600 dark:text-green-400"
+            gradient="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20"
+            className="pointer-events-none"
+          />
+          <StatusCard
+            title="Avg Order"
+            value={rfm.averageOrderValue.toLocaleString()}
+            icon={Receipt}
+            color="text-orange-600 dark:text-orange-400"
+            gradient="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20"
+            className="pointer-events-none"
+          />
+          <StatusCard
+            title="Last Order"
+            value={rfm.lastOrderAt ? formatDateTime(rfm.lastOrderAt) : "Never"}
+            icon={CalendarClock}
+            color="text-purple-600 dark:text-purple-400"
+            gradient="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20"
+            className="pointer-events-none"
+          />
         </div>
       </div>
 
       <Tabs defaultValue="orders">
-        <TabsList>
-          <TabsTrigger value="orders">
-            Orders ({recentOrders.length})
-          </TabsTrigger>
-          <TabsTrigger value="cart">
-            Cart & Wishlist
-            {cart?.items?.length ? ` (${cart.items.length})` : ""}
-          </TabsTrigger>
-          <TabsTrigger value="reviews">Reviews ({reviews.length})</TabsTrigger>
-          <TabsTrigger value="messages">Messages ({messages.length})</TabsTrigger>
-          <TabsTrigger value="activities">
-            Activities ({activities.length})
-          </TabsTrigger>
+        <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-b bg-transparent p-0">
+          {(
+            [
+              { value: "orders", label: "Orders", icon: ShoppingBag, count: recentOrders.length },
+              { value: "cart", label: "Cart & Wishlist", icon: ShoppingCart, count: cart?.items?.length ?? 0 },
+              { value: "addresses", label: "Shipping", icon: MapPin, count: profile.addresses?.length ?? 0 },
+              { value: "reviews", label: "Reviews", icon: Star, count: reviews.length },
+              { value: "messages", label: "Messages", icon: Mail, count: messages.length },
+              { value: "activities", label: "Activities", icon: Activity, count: activities.length },
+            ] as const
+          ).map((tab) => (
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              className="flex-none gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 h-auto shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-primary dark:data-[state=active]:bg-transparent"
+            >
+              <tab.icon className="size-4" />
+              {tab.label}
+              <Badge
+                variant="secondary"
+                className="ml-0.5 h-5 min-w-5 rounded-full px-1.5 text-[11px] font-medium tabular-nums"
+              >
+                {tab.count}
+              </Badge>
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        <TabsContent value="orders">
+        <TabsContent value="orders" className="mt-4">
           {recentOrders.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">
               No orders yet.
@@ -452,7 +485,7 @@ export function CrmCustomerDetail() {
             </div>
           )}
         </TabsContent>
-        <TabsContent value="cart">
+        <TabsContent value="cart" className="mt-4">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="rounded-lg border bg-card p-4 space-y-3">
               <h3 className="text-sm font-semibold flex items-center gap-2">
@@ -501,7 +534,47 @@ export function CrmCustomerDetail() {
             </div>
           </div>
         </TabsContent>
-        <TabsContent value="reviews">
+
+        <TabsContent value="addresses" className="mt-4">
+          {!profile.addresses?.length ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">
+              No shipping addresses saved.
+            </p>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {profile.addresses.map((address) => (
+                <div key={address.id} className="rounded-lg border bg-card p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      {address.area || "Unnamed area"}
+                    </h3>
+                    <div className="flex items-center gap-1.5">
+                      {address.type && (
+                        <Badge variant="outline" className="capitalize">
+                          {String(address.type).replace(/_/g, " ")}
+                        </Badge>
+                      )}
+                      {address.isDefault && (
+                        <Badge variant="secondary">Default</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-2 space-y-0.5 text-sm">
+                    {address.address && <p>{address.address}</p>}
+                    <p className="text-muted-foreground">
+                      {[...new Set([address.area, address.city, address.division])]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="reviews" className="mt-4">
           {reviews.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">
               No reviews yet.
@@ -536,7 +609,7 @@ export function CrmCustomerDetail() {
           )}
         </TabsContent>
 
-        <TabsContent value="messages">
+        <TabsContent value="messages" className="mt-4">
           {messages.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">
               No messages yet.
@@ -563,7 +636,7 @@ export function CrmCustomerDetail() {
           )}
         </TabsContent>
 
-        <TabsContent value="activities">
+        <TabsContent value="activities" className="mt-4">
           {activities.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">
               No activities yet. Use "Add Activity" to record a note or task.

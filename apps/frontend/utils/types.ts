@@ -357,6 +357,11 @@ export interface BusinessSettings {
     cities: { division: string; name: string; enabled: boolean }[];
     areas: { city: string; name: string; enabled: boolean }[];
   } | null;
+  /** CRM segment rules — null means "use the code default". */
+  vipMinSpent: number | null;
+  vipMinOrders: number | null;
+  atRiskDays: number | null;
+  newDays: number | null;
 }
 
 export interface MenuItem {

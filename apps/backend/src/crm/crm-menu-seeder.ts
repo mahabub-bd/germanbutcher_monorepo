@@ -35,6 +35,15 @@ export class CrmMenuSeeder implements OnModuleInit {
         order: 1,
         parentId: null as number | null,
       },
+      {
+        name: 'CRM Campaigns',
+        url: '/admin/crm/campaigns',
+        icon: 'Megaphone',
+        isMainMenu: false,
+        isAdminMenu: true,
+        order: 2,
+        parentId: null as number | null,
+      },
     ];
 
     // Older builds seeded a separate CRM abandoned-carts menu; the existing

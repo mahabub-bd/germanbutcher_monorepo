@@ -89,24 +89,74 @@ export enum ContactPriority {
 
 const PRIORITY_BADGES: Record<
   ContactPriority,
-  { label: string; color: string }
+  { label: string; color: string; dot: string }
 > = {
   [ContactPriority.LOW]: {
     label: "Low",
     color:
-      "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+      "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
+    dot: "bg-emerald-500 dark:bg-emerald-400",
   },
   [ContactPriority.MEDIUM]: {
     label: "Medium",
-    color:
-      "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
+    dot: "bg-amber-500 dark:bg-amber-400",
   },
   [ContactPriority.HIGH]: {
     label: "High",
-    color:
-      "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+    color: "bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400",
+    dot: "bg-rose-500 dark:bg-rose-400",
   },
 };
+
+const STATUS_BADGES: Record<
+  ContactStatus,
+  { label: string; color: string; dot: string }
+> = {
+  [ContactStatus.PENDING]: {
+    label: "Pending",
+    color: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
+    dot: "bg-amber-500 dark:bg-amber-400",
+  },
+  [ContactStatus.IN_PROGRESS]: {
+    label: "In Progress",
+    color: "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
+    dot: "bg-blue-500 dark:bg-blue-400",
+  },
+  [ContactStatus.RESOLVED]: {
+    label: "Resolved",
+    color:
+      "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
+    dot: "bg-emerald-500 dark:bg-emerald-400",
+  },
+  [ContactStatus.CLOSED]: {
+    label: "Closed",
+    color:
+      "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-400",
+    dot: "bg-slate-400 dark:bg-slate-500",
+  },
+};
+
+/** Soft, borderless pill with a status dot — used for status and priority. */
+function TicketBadge({
+  label,
+  color,
+  dot,
+}: {
+  label: string;
+  color: string;
+  dot: string;
+}) {
+  return (
+    <Badge
+      variant="outline"
+      className={`gap-1.5 rounded-full border-0 px-2.5 py-0.5 font-medium ${color}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden="true" />
+      {label}
+    </Badge>
+  );
+}
 
 /** "2 hours ago" style — falls back to date for anything older than a week. */
 const timeAgo = (dateString: string) => {
@@ -500,9 +550,7 @@ export function ContactMessageList({
     const config = PRIORITY_BADGES[priority as ContactPriority];
     if (!config) return null;
     return (
-      <Badge variant="outline" className={`flex items-center gap-1 ${config.color}`}>
-        {config.label}
-      </Badge>
+      <TicketBadge label={config.label} color={config.color} dot={config.dot} />
     );
   };
 
@@ -512,41 +560,17 @@ export function ContactMessageList({
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case ContactStatus.PENDING:
-        return (
-          <Badge variant="secondary" className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            Pending
-          </Badge>
-        );
-      case ContactStatus.IN_PROGRESS:
-        return (
-          <Badge variant="default" className="flex items-center gap-1">
-            <AlertCircle className="h-3 w-3" />
-            In Progress
-          </Badge>
-        );
-      case ContactStatus.RESOLVED:
-        return (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 text-green-600 border-green-600"
-          >
-            <CheckCircle className="h-3 w-3" />
-            Resolved
-          </Badge>
-        );
-      case ContactStatus.CLOSED:
-        return (
-          <Badge variant="destructive" className="flex items-center gap-1">
-            <XCircle className="h-3 w-3" />
-            Closed
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+    const config = STATUS_BADGES[status as ContactStatus];
+    if (!config) {
+      return (
+        <Badge variant="secondary" className="rounded-full border-0 capitalize">
+          {status?.replace("_", " ")}
+        </Badge>
+      );
     }
+    return (
+      <TicketBadge label={config.label} color={config.color} dot={config.dot} />
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -772,28 +796,42 @@ export function ContactMessageList({
         {renderStatisticsCards()}
 
         {/* Status tabs (mockup style) */}
-        <div className="flex items-center gap-1 border-b border-gray-200 dark:border-neutral-800 overflow-x-auto -mb-px">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2">
           {[
-            { value: "all", label: "All", count: statistics.total },
+            {
+              value: "all",
+              label: "All",
+              count: statistics.total,
+              colors: "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900",
+              activeColors: "bg-slate-800 text-white hover:bg-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-200",
+            },
             {
               value: ContactStatus.PENDING,
               label: "Open",
               count: statistics.byStatus.pending,
+              colors: "bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70",
+              activeColors: "bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-400 dark:text-amber-950 dark:hover:bg-amber-400",
             },
             {
               value: ContactStatus.IN_PROGRESS,
               label: "In Progress",
               count: statistics.byStatus.in_progress,
+              colors: "bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/70",
+              activeColors: "bg-blue-600 text-white hover:bg-blue-600 dark:bg-blue-400 dark:text-blue-950 dark:hover:bg-blue-400",
             },
             {
               value: ContactStatus.RESOLVED,
               label: "Resolved",
               count: statistics.byStatus.resolved,
+              colors: "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/70",
+              activeColors: "bg-emerald-600 text-white hover:bg-emerald-600 dark:bg-emerald-400 dark:text-emerald-950 dark:hover:bg-emerald-400",
             },
             {
               value: ContactStatus.CLOSED,
               label: "Closed",
               count: statistics.byStatus.closed,
+              colors: "bg-rose-50 text-rose-800 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/70",
+              activeColors: "bg-rose-600 text-white hover:bg-rose-600 dark:bg-rose-400 dark:text-rose-950 dark:hover:bg-rose-400",
             },
           ].map((tab) => {
             const active =
@@ -806,10 +844,8 @@ export function ContactMessageList({
                   setStatusFilter(tab.value === "all" ? "" : tab.value);
                   setCurrentPage(1);
                 }}
-                className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${active
-                  ? "border-blue-600 text-blue-600 dark:text-blue-400"
-                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                  }`}
+                aria-pressed={active}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 ${active ? tab.activeColors : tab.colors}`}
               >
                 {tab.label} ({tab.count})
               </button>

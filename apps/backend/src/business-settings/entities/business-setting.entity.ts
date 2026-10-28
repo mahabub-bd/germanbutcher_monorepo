@@ -121,6 +121,38 @@ export class BusinessSetting {
     areas: { city: string; name: string; enabled: boolean }[];
   } | null;
 
+  // ── CRM segment rules ────────────────────────────────────────────────
+  // All nullable — when unset the CRM code falls back to its defaults
+  // (see CRM_SEGMENT_RULES in crm.service.ts).
+
+  @Column({ type: 'int', nullable: true })
+  @ApiPropertyOptional({
+    example: 20000,
+    description: 'Total delivered spend (৳) at which a customer becomes VIP',
+  })
+  vipMinSpent: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Delivered order count at which a customer becomes VIP',
+  })
+  vipMinOrders: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  @ApiPropertyOptional({
+    example: 90,
+    description: 'Days without an order before a buyer becomes At Risk',
+  })
+  atRiskDays: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  @ApiPropertyOptional({
+    example: 30,
+    description: 'Days since signup a customer counts as New',
+  })
+  newDays: number | null;
+
   @ManyToOne(() => Attachment, { eager: true, nullable: true })
   @JoinColumn()
   @ApiProperty({

@@ -49,6 +49,11 @@ interface BusinessSettingsForm {
   maintenanceMessage: string;
   maintenanceStartsAt: string; // datetime-local string or ""
   maintenanceEndsAt: string; // datetime-local string or ""
+  // CRM segment rules — kept as strings for the inputs; parsed on save.
+  vipMinSpent: string;
+  vipMinOrders: string;
+  atRiskDays: string;
+  newDays: string;
 }
 
 
@@ -65,6 +70,10 @@ const EMPTY_FORM: BusinessSettingsForm = {
   maintenanceMessage: "",
   maintenanceStartsAt: "",
   maintenanceEndsAt: "",
+  vipMinSpent: "",
+  vipMinOrders: "",
+  atRiskDays: "",
+  newDays: "",
 };
 
 /** ISO datetime → value for <input type="datetime-local"> (browser-local). */
@@ -229,6 +238,22 @@ export function BusinessSettingsCard() {
       maintenanceMessage: settings?.maintenanceMessage ?? "",
       maintenanceStartsAt: toLocalInputValue(settings?.maintenanceStartsAt),
       maintenanceEndsAt: toLocalInputValue(settings?.maintenanceEndsAt),
+      vipMinSpent:
+        settings?.vipMinSpent === null || settings?.vipMinSpent === undefined
+          ? ""
+          : String(settings.vipMinSpent),
+      vipMinOrders:
+        settings?.vipMinOrders === null || settings?.vipMinOrders === undefined
+          ? ""
+          : String(settings.vipMinOrders),
+      atRiskDays:
+        settings?.atRiskDays === null || settings?.atRiskDays === undefined
+          ? ""
+          : String(settings.atRiskDays),
+      newDays:
+        settings?.newDays === null || settings?.newDays === undefined
+          ? ""
+          : String(settings.newDays),
     });
     setLogoFile(null);
     setLogoPreview(settings?.logo?.url || "");
@@ -288,6 +313,10 @@ export function BusinessSettingsCard() {
         invoiceLogoId = result.data!.id;
       }
 
+      const toIntOrNull = (value: string): number | null => {
+        const parsed = Number.parseInt(value, 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+      };
       const response = await patchData<BusinessSettings>("business-settings", {
         ...draft,
         maintenanceMessage: draft.maintenanceMessage.trim() || null,
@@ -297,6 +326,10 @@ export function BusinessSettingsCard() {
         maintenanceEndsAt: draft.maintenanceEndsAt
           ? new Date(draft.maintenanceEndsAt).toISOString()
           : null,
+        vipMinSpent: toIntOrNull(draft.vipMinSpent),
+        vipMinOrders: toIntOrNull(draft.vipMinOrders),
+        atRiskDays: toIntOrNull(draft.atRiskDays),
+        newDays: toIntOrNull(draft.newDays),
         ...(logoId ? { logoId } : {}),
         ...(invoiceLogoId ? { invoiceLogoId } : {}),
       });
@@ -569,6 +602,87 @@ export function BusinessSettingsCard() {
                 />
               </div>
             ))}
+
+            {/* CRM segment rules */}
+            <div className="space-y-2 rounded-lg border p-3 sm:col-span-2">
+              <p className="text-sm font-semibold">CRM Segment Rules</p>
+              <p className="text-xs text-muted-foreground">
+                Control when customers become VIP, At Risk, or New. Leave a
+                field empty to use the built-in default. Segments apply
+                immediately everywhere — no restart needed.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="business-vipMinSpent">
+                    VIP — Minimum Total Spent (৳)
+                  </Label>
+                  <Input
+                    id="business-vipMinSpent"
+                    type="number"
+                    min={1}
+                    value={draft.vipMinSpent}
+                    onChange={(e) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        vipMinSpent: e.target.value,
+                      }))
+                    }
+                    placeholder="Default: 20000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="business-vipMinOrders">
+                    VIP — Minimum Orders
+                  </Label>
+                  <Input
+                    id="business-vipMinOrders"
+                    type="number"
+                    min={1}
+                    value={draft.vipMinOrders}
+                    onChange={(e) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        vipMinOrders: e.target.value,
+                      }))
+                    }
+                    placeholder="Default: 10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="business-atRiskDays">
+                    At Risk — Days Without Order
+                  </Label>
+                  <Input
+                    id="business-atRiskDays"
+                    type="number"
+                    min={1}
+                    value={draft.atRiskDays}
+                    onChange={(e) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        atRiskDays: e.target.value,
+                      }))
+                    }
+                    placeholder="Default: 90"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="business-newDays">
+                    New — Days Since Signup
+                  </Label>
+                  <Input
+                    id="business-newDays"
+                    type="number"
+                    min={1}
+                    value={draft.newDays}
+                    onChange={(e) =>
+                      setDraft((prev) => ({ ...prev, newDays: e.target.value }))
+                    }
+                    placeholder="Default: 30"
+                  />
+                </div>
+              </div>
+            </div>
 
             {/* Maintenance mode */}
             <div className="space-y-3">

@@ -116,3 +116,22 @@ export enum CrmSegment {
   NEW = 'new',
   INACTIVE = 'inactive',
 }
+
+export enum CrmCampaignChannel {
+  SMS = 'sms',
+  EMAIL = 'email',
+}
+
+export enum CrmCampaignStatus {
+  DRAFT = 'draft',
+  SENDING = 'sending',
+  SENT = 'sent',
+  FAILED = 'failed',
+}
+
+export enum CrmCampaignRecipientStatus {
+  PENDING = 'pending',
+  SENT = 'sent',
+  FAILED = 'failed',
+  SKIPPED = 'skipped',
+}

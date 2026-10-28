@@ -1,5 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsObject, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsPositive,
+  IsString,
+} from 'class-validator';
 
 export class UpdateBusinessSettingsDto {
   @ApiPropertyOptional({
@@ -136,4 +143,40 @@ export class UpdateBusinessSettingsDto {
     cities: { division: string; name: string; enabled: boolean }[];
     areas: { city: string; name: string; enabled: boolean }[];
   } | null;
+
+  @ApiPropertyOptional({
+    example: 20000,
+    description: 'Total delivered spend (৳) at which a customer becomes VIP',
+  })
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  vipMinSpent?: number | null;
+
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Delivered order count at which a customer becomes VIP',
+  })
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  vipMinOrders?: number | null;
+
+  @ApiPropertyOptional({
+    example: 90,
+    description: 'Days without an order before a buyer becomes At Risk',
+  })
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  atRiskDays?: number | null;
+
+  @ApiPropertyOptional({
+    example: 30,
+    description: 'Days since signup a customer counts as New',
+  })
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  newDays?: number | null;
 }
