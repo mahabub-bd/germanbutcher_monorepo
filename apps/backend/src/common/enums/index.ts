@@ -110,9 +110,13 @@ export enum CrmActivityStatus {
 }
 
 export enum CrmSegment {
+  CHAMPIONS = 'champions',
   VIP = 'vip',
   LOYAL = 'loyal',
+  PROMISING = 'promising',
+  ABOUT_TO_SLEEP = 'about_to_sleep',
   AT_RISK = 'at_risk',
+  LOST = 'lost',
   NEW = 'new',
   INACTIVE = 'inactive',
 }

@@ -35,12 +35,16 @@ import { CrmActivity } from './entities/crm-activity.entity';
 import { CrmCampaign } from './entities/crm-campaign.entity';
 import { CrmCampaignRecipient } from './entities/crm-campaign-recipient.entity';
 
-/** RFM thresholds — surfaced on the frontend so admins see the same rules. */
+/** RFM thresholds — surfaced on the frontend so admins see the same rules.
+ *  VIP_* / AT_RISK_DAYS / NEW_DAYS are admin-editable via Business Settings;
+ *  the rest are code defaults. */
 export const CRM_SEGMENT_RULES = {
   VIP_MIN_SPENT: 20000,
   VIP_MIN_ORDERS: 10,
   AT_RISK_DAYS: 90,
   NEW_DAYS: 30,
+  SLEEP_DAYS: 45,
+  LOST_DAYS: 180,
 };
 
 const CUSTOMER_ROLE_ID = 3;
@@ -51,10 +55,19 @@ const CUSTOMER_ROLE_ID = 3;
  */
 const SEGMENT_CASE = `
     CASE
+      WHEN (COUNT(DISTINCT "orders"."id") >= :vipMinOrders
+          OR COALESCE(SUM("orders"."totalValue"), 0) >= :vipMinSpent)
+        AND MAX("orders"."createdAt") >= NOW() - MAKE_INTERVAL(days => :newDays) THEN '${CrmSegment.CHAMPIONS}'
       WHEN COUNT(DISTINCT "orders"."id") >= :vipMinOrders
         OR COALESCE(SUM("orders"."totalValue"), 0) >= :vipMinSpent THEN '${CrmSegment.VIP}'
       WHEN COUNT(DISTINCT "orders"."id") > 0
+        AND MAX("orders"."createdAt") < NOW() - MAKE_INTERVAL(days => :lostDays) THEN '${CrmSegment.LOST}'
+      WHEN COUNT(DISTINCT "orders"."id") > 0
         AND MAX("orders"."createdAt") < NOW() - MAKE_INTERVAL(days => :atRiskDays) THEN '${CrmSegment.AT_RISK}'
+      WHEN COUNT(DISTINCT "orders"."id") > 0
+        AND MAX("orders"."createdAt") < NOW() - MAKE_INTERVAL(days => :sleepDays) THEN '${CrmSegment.ABOUT_TO_SLEEP}'
+      WHEN COUNT(DISTINCT "orders"."id") >= 2
+        AND MAX("orders"."createdAt") >= NOW() - MAKE_INTERVAL(days => :newDays) THEN '${CrmSegment.PROMISING}'
       WHEN COUNT(DISTINCT "orders"."id") <= 1
         AND MAX("user"."createdAt") >= NOW() - MAKE_INTERVAL(days => :newDays) THEN '${CrmSegment.NEW}'
       WHEN COUNT(DISTINCT "orders"."id") = 0 THEN '${CrmSegment.INACTIVE}'
@@ -130,6 +143,8 @@ export class CrmService {
       vipMinOrders: settings?.vipMinOrders ?? CRM_SEGMENT_RULES.VIP_MIN_ORDERS,
       atRiskDays: settings?.atRiskDays ?? CRM_SEGMENT_RULES.AT_RISK_DAYS,
       newDays: settings?.newDays ?? CRM_SEGMENT_RULES.NEW_DAYS,
+      sleepDays: CRM_SEGMENT_RULES.SLEEP_DAYS,
+      lostDays: CRM_SEGMENT_RULES.LOST_DAYS,
     };
   }
 
@@ -140,6 +155,8 @@ export class CrmService {
       vipMinOrders: rules.vipMinOrders,
       atRiskDays: rules.atRiskDays,
       newDays: rules.newDays,
+      sleepDays: rules.sleepDays,
+      lostDays: rules.lostDays,
     };
   }
 
@@ -865,10 +882,14 @@ export class CrmService {
     ]);
 
     const segments = {
+      champions: 0,
       vip: 0,
       loyal: 0,
-      at_risk: 0,
+      promising: 0,
       new: 0,
+      about_to_sleep: 0,
+      at_risk: 0,
+      lost: 0,
       inactive: 0,
     };
     for (const row of segmentRows) {

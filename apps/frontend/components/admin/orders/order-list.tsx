@@ -6,6 +6,7 @@ import { AddPaymentModal } from "@/components/admin/orders/add-payment-modal";
 import { EditOrderModal } from "@/components/admin/orders/edit-order-modal";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +16,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { TableSearch } from "@/components/common/table-search";
 import {
   Select,
   SelectContent,
@@ -87,10 +87,10 @@ const DIVISIONS = Object.keys(DIVISION_DISTRICTS);
 
 const STALE_AFTER_DAYS = 3;
 
-/** Elapsed-time chip: counts only until the order reaches a terminal state —
- *  delivered stops at deliveredAt (green), cancelled at cancelledAt (gray);
- *  otherwise live, turning red once the order sits undelivered for 3+ days.
- *  Re-renders every minute so live ages stay current. */
+/** Elapsed-time chip: neutral while fresh, red once the order sits
+ *  UNDELIVERED for 3+ days; delivered orders show the order→delivery
+ *  span in green; cancelled orders show the order→cancel span in slate.
+ *  Re-renders every minute so ages stay current. */
 function ElapsedTime({
   createdAt,
   deliveredAt,
@@ -108,34 +108,36 @@ function ElapsedTime({
 
   const isDelivered = Boolean(deliveredAt);
   const isCancelled = !isDelivered && Boolean(cancelledAt);
-  const endedAt = deliveredAt ?? cancelledAt ?? null;
-  const elapsed = formatOrderElapsedTime(
-    createdAt,
-    endedAt ? new Date(endedAt).getTime() : now
-  );
+  const end = isDelivered
+    ? new Date(deliveredAt as string).getTime()
+    : isCancelled
+      ? new Date(cancelledAt as string).getTime()
+      : now;
+  const elapsed = formatOrderElapsedTime(createdAt, end);
   const isStale =
-    !endedAt &&
+    !isDelivered &&
+    !isCancelled &&
     now - new Date(createdAt).getTime() >= STALE_AFTER_DAYS * 86400000;
 
   const colorClass = isDelivered
     ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
     : isCancelled
-      ? "bg-gray-100 text-gray-500 dark:bg-neutral-800 dark:text-neutral-400"
+      ? "bg-slate-100 text-slate-500 dark:bg-slate-500/15 dark:text-slate-400"
       : isStale
         ? "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400"
         : "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-300";
 
   const Icon = isDelivered ? CheckCircle2 : isCancelled ? XCircle : Clock;
 
+  const title = isDelivered
+    ? `Order → delivery: ${formatDateTime(createdAt)} → ${formatDateTime(deliveredAt as string)}`
+    : isCancelled
+      ? `Order → cancelled: ${formatDateTime(createdAt)} → ${formatDateTime(cancelledAt as string)}`
+      : `Order placed ${formatDateTime(createdAt)}`;
+
   return (
     <span
-      title={
-        isDelivered
-          ? `Order → delivery: ${formatDateTime(createdAt)} → ${formatDateTime(deliveredAt as string)}`
-          : isCancelled
-            ? `Order → cancel: ${formatDateTime(createdAt)} → ${formatDateTime(cancelledAt as string)}`
-            : `Order placed ${formatDateTime(createdAt)}`
-      }
+      title={title}
       className={`mt-1 inline-flex items-center gap-1 rounded-md px-1.5 py-px text-[10px] font-medium tabular-nums ${colorClass}`}
     >
       <Icon className="h-3 w-3" />
@@ -553,11 +555,11 @@ export function OrderList({
               <TableHead>Order ID / Date</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Order Status</TableHead>
-              <TableHead className="text-center">Time Passed</TableHead>
               <TableHead>Payment Status</TableHead>
               <TableHead>Payment Method</TableHead>
               <TableHead>Shipping Method</TableHead>
               <TableHead>Area</TableHead>
+              <TableHead className="text-center">Elapsed Time</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -582,9 +584,6 @@ export function OrderList({
                     <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
                   <TableCell>
-                    <div className="mx-auto h-4 w-12 bg-gray-200 rounded animate-pulse" />
-                  </TableCell>
-                  <TableCell>
                     <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
                   <TableCell>
@@ -595,6 +594,9 @@ export function OrderList({
                   </TableCell>
                   <TableCell>
                     <div className="h-6 w-24 bg-gray-200 rounded-full animate-pulse" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="mx-auto h-4 w-12 bg-gray-200 rounded animate-pulse" />
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="h-4 w-20 bg-gray-200 rounded animate-pulse ml-auto" />
@@ -703,13 +705,6 @@ export function OrderList({
                       </span>
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-center">
-                    <ElapsedTime
-                      createdAt={order.createdAt}
-                      deliveredAt={order.deliveredAt}
-                      cancelledAt={order.cancelledAt}
-                    />
-                  </TableCell>
                   <TableCell>
                     <Badge
                       variant="secondary"
@@ -770,6 +765,14 @@ export function OrderList({
                         {shortenArea(order.shippingAddress?.area || order.address?.area || "N/A")}
                       </span>
                     </Badge>
+                  </TableCell>
+
+                  <TableCell className="text-center">
+                    <ElapsedTime
+                      createdAt={order.createdAt}
+                      deliveredAt={order.deliveredAt}
+                      cancelledAt={order.cancelledAt}
+                    />
                   </TableCell>
 
                   <TableCell className="text-right font-medium">

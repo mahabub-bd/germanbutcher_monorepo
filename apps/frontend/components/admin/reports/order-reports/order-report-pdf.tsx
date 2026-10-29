@@ -8,8 +8,8 @@ import {
   View,
 } from "@react-pdf/renderer";
 
-import type { BusinessSettings } from "@/utils/types";
 import { formatOrderElapsedTime } from "@/utils/order-helper";
+import type { BusinessSettings } from "@/utils/types";
 import { ReportPDFHeader } from "../report-pdf-header";
 
 interface Customer {
@@ -167,7 +167,7 @@ export function OrderReportPDF({ orders, settings }: Props) {
           <Text style={[styles.tableHeaderText, { flex: 1.5 }]}>Mobile</Text>
           <Text style={[styles.tableHeaderText, { flex: 1.2 }]}>Area</Text>
           <Text style={styles.tableHeaderText}>Status</Text>
-          <Text style={styles.tableHeaderText}>Time Passed</Text>
+          <Text style={styles.tableHeaderText}>Elapsed Time</Text>
           <Text style={styles.tableHeaderText}>Payment</Text>
           <Text style={styles.tableHeaderText}>Total</Text>
           <Text style={styles.tableHeaderText}>Discount</Text>
@@ -194,12 +194,11 @@ export function OrderReportPDF({ orders, settings }: Props) {
             </Text>
             <Text style={styles.cell}>{o.orderStatus}</Text>
             <Text style={styles.cell}>
-              {(o.deliveredAt ?? o.cancelledAt)
-                ? formatOrderElapsedTime(
-                    o.orderDate,
-                    (o.deliveredAt ?? o.cancelledAt) as string
-                  )
-                : formatOrderElapsedTime(o.orderDate)}
+              {o.cancelledAt
+                ? formatOrderElapsedTime(o.orderDate, o.cancelledAt)
+                : o.deliveredAt
+                  ? formatOrderElapsedTime(o.orderDate, o.deliveredAt)
+                  : formatOrderElapsedTime(o.orderDate)}
             </Text>
             <Text style={styles.cell}>{o.paymentStatus}</Text>
             <Text style={styles.cell}>{formatCurrency(o.totalValue)}</Text>

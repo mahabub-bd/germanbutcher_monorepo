@@ -81,7 +81,12 @@ const ALL_FLAGS: PermFlags = {
   canDelete: true,
 };
 
-const VIEW_ONLY: PermFlags = { ...ALL_FLAGS, canCreate: false, canEdit: false, canDelete: false };
+const VIEW_ONLY: PermFlags = {
+  ...ALL_FLAGS,
+  canCreate: false,
+  canEdit: false,
+  canDelete: false,
+};
 
 const ACTIONS: {
   key: keyof PermFlags;
@@ -89,36 +94,36 @@ const ACTIONS: {
   icon: typeof Eye;
   hint: string;
 }[] = [
-    {
-      key: "canView",
-      label: "View",
-      icon: Eye,
-      hint: "Menu is visible in the sidebar and the page can be opened",
-    },
-    {
-      key: "canCreate",
-      label: "Create",
-      icon: FilePlus2,
-      hint: "Can add new records in this module (also covers payments and similar create actions)",
-    },
-    {
-      key: "canEdit",
-      label: "Edit",
-      icon: Pencil,
-      hint: "Can update existing records in this module",
-    },
-    {
-      key: "canDelete",
-      label: "Delete",
-      icon: Trash2,
-      hint: "Can permanently remove records in this module",
-    },
-  ];
+  {
+    key: "canView",
+    label: "View",
+    icon: Eye,
+    hint: "Menu is visible in the sidebar and the page can be opened",
+  },
+  {
+    key: "canCreate",
+    label: "Create",
+    icon: FilePlus2,
+    hint: "Can add new records in this module (also covers payments and similar create actions)",
+  },
+  {
+    key: "canEdit",
+    label: "Edit",
+    icon: Pencil,
+    hint: "Can update existing records in this module",
+  },
+  {
+    key: "canDelete",
+    label: "Delete",
+    icon: Trash2,
+    hint: "Can permanently remove records in this module",
+  },
+];
 
 /** Shared grid template so header, rows and section headers all line up.
  * Columns: module name · View · Create · Edit · Delete · bulk actions. */
 const GRID_COLS =
-  "grid grid-cols-[minmax(0,1fr)_repeat(4,72px)_64px] items-center";
+  "grid min-w-[560px] grid-cols-[minmax(0,1fr)_repeat(4,72px)_64px] items-center";
 
 export default function RoleMenuPermissions() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -133,18 +138,18 @@ export default function RoleMenuPermissions() {
   const [searchTerm, setSearchTerm] = useState("");
   const [panel, setPanel] = useState<"admin" | "user">("admin");
   const [expandedSections, setExpandedSections] = useState<Set<number>>(
-    new Set()
+    new Set(),
   );
   // Last saved state per menu — used by Discard to drop draft edits.
   const [savedSnapshot, setSavedSnapshot] = useState<Record<number, PermFlags>>(
-    {}
+    {},
   );
 
   const { adminMenus, userMenus } = useMemo(() => {
     const adminMenus: MenuItem[] = [];
     const userMenus: MenuItem[] = [];
     menuTree.forEach((item) =>
-      item.isAdminMenu ? adminMenus.push(item) : userMenus.push(item)
+      item.isAdminMenu ? adminMenus.push(item) : userMenus.push(item),
     );
     return { adminMenus, userMenus };
   }, [menuTree]);
@@ -174,13 +179,13 @@ export default function RoleMenuPermissions() {
 
   const isCustomerRole = useMemo(
     () => selectedRole?.rolename.toLowerCase().includes("customer"),
-    [selectedRole]
+    [selectedRole],
   );
 
   // Menus the selected role can already see (saved state, before draft edits).
   const grantedCount = useMemo(
     () => Object.values(menuPermissions).filter((f) => f.canView).length,
-    [menuPermissions]
+    [menuPermissions],
   );
   const totalCount = Object.keys(menuPermissions).length;
   const dirtyIds = useMemo(
@@ -188,7 +193,7 @@ export default function RoleMenuPermissions() {
       Object.entries(menuPermissions)
         .filter(([, f]) => f.dirty)
         .map(([id]) => Number(id)),
-    [menuPermissions]
+    [menuPermissions],
   );
 
   useEffect(() => {
@@ -224,7 +229,7 @@ export default function RoleMenuPermissions() {
       setLoading(true);
       try {
         const response = (await fetchProtectedData(
-          `menu-permissions/role/${selectedRoleId}`
+          `menu-permissions/role/${selectedRoleId}`,
         )) as unknown as MenuPermission[];
 
         const newPermissions: Record<number, DraftFlags> = {};
@@ -248,8 +253,8 @@ export default function RoleMenuPermissions() {
         setMenuPermissions(newPermissions);
         setSavedSnapshot(
           Object.fromEntries(
-            Object.entries(newPermissions).map(([id, f]) => [id, { ...f }])
-          )
+            Object.entries(newPermissions).map(([id, f]) => [id, { ...f }]),
+          ),
         );
         // Expand sections that have at least one granted child.
         const open = new Set<number>();
@@ -288,7 +293,7 @@ export default function RoleMenuPermissions() {
   const handleFlagChange = (
     ids: number[],
     key: keyof PermFlags,
-    value: boolean
+    value: boolean,
   ) => {
     const current = menuPermissions[ids[0]] ?? NO_FLAGS;
     const next: PermFlags = { ...current, [key]: value };
@@ -302,12 +307,11 @@ export default function RoleMenuPermissions() {
   };
 
   const handleSectionPreset = (item: MenuItem, preset: PermFlags) => {
-
     applyFlags([item.id], { ...NO_FLAGS, canView: preset.canView });
     if (item.children?.length) {
       applyFlags(
         item.children.map((c) => c.id),
-        preset
+        preset,
       );
     }
   };
@@ -332,7 +336,7 @@ export default function RoleMenuPermissions() {
       });
       const response = await putData(
         `menu-permissions/role/${selectedRoleId}`,
-        { permissions }
+        { permissions },
       );
       if (response?.statusCode !== 200) {
         throw new Error(response?.message || "Failed to save permissions");
@@ -356,7 +360,7 @@ export default function RoleMenuPermissions() {
         return next;
       });
       toast.success(
-        `Saved ${permissions.length} permission row${permissions.length > 1 ? "s" : ""}`
+        `Saved ${permissions.length} permission row${permissions.length > 1 ? "s" : ""}`,
       );
     } catch (error) {
       console.error("Error saving permissions:", error);
@@ -382,7 +386,7 @@ export default function RoleMenuPermissions() {
     ids: number[],
     key: keyof PermFlags,
     flags: DraftFlags,
-    disabled: boolean
+    disabled: boolean,
   ) => {
     const action = ACTIONS.find((a) => a.key === key)!;
     const anyAction = flags.canCreate || flags.canEdit || flags.canDelete;
@@ -444,7 +448,7 @@ export default function RoleMenuPermissions() {
     ids: number[],
     label: string,
     icon?: string | null,
-    isChild = false
+    isChild = false,
   ) => {
     const flags = menuPermissions[ids[0]] ?? NO_FLAGS;
     const disabled = !selectedRoleId || loading || saving;
@@ -459,7 +463,7 @@ export default function RoleMenuPermissions() {
           isChild && "pl-9",
           granted ? "bg-primary/4" : "bg-transparent",
           flags.dirty && "bg-amber-50/70 dark:bg-amber-950/20",
-          "hover:bg-muted/50"
+          "hover:bg-muted/50",
         )}
       >
         <div className="flex min-w-0 items-center gap-2.5">
@@ -482,7 +486,9 @@ export default function RoleMenuPermissions() {
           <span
             className={cn(
               "truncate text-sm",
-              isChild ? "text-primaryColor/90" : "text-primaryColor font-medium"
+              isChild
+                ? "text-primaryColor/90"
+                : "text-primaryColor font-medium",
             )}
           >
             {label}
@@ -514,7 +520,7 @@ export default function RoleMenuPermissions() {
     }
 
     const grantedCount = children.filter(
-      (c) => menuPermissions[c.id]?.canView
+      (c) => menuPermissions[c.id]?.canView,
     ).length;
     const allGranted = grantedCount === children.length;
     const expanded = expandedSections.has(item.id);
@@ -525,18 +531,20 @@ export default function RoleMenuPermissions() {
           className={cn(
             GRID_COLS,
             "h-11 border-b bg-muted/50 px-3",
-            allGranted && "bg-primary/[0.07]"
+            allGranted && "bg-primary/[0.07]",
           )}
         >
           <button
             onClick={() => toggleSection(item.id)}
             className="flex min-w-0 items-center gap-2 text-left"
             disabled={disabled}
+            aria-expanded={expanded}
+            aria-label={`${expanded ? "Collapse" : "Expand"} ${item.name} section`}
           >
             <ChevronDown
               className={cn(
                 "size-4 shrink-0 text-muted-foreground transition-transform",
-                !expanded && "-rotate-90"
+                !expanded && "-rotate-90",
               )}
             />
             {item.icon && (
@@ -545,7 +553,9 @@ export default function RoleMenuPermissions() {
                 className="size-4 shrink-0 text-muted-foreground"
               />
             )}
-            <span className="truncate text-sm font-semibold text-primaryColor">{item.name}</span>
+            <span className="truncate text-sm font-semibold text-primaryColor">
+              {item.name}
+            </span>
             <Badge
               variant={allGranted ? "default" : "secondary"}
               className="shrink-0 tabular-nums"
@@ -612,7 +622,7 @@ export default function RoleMenuPermissions() {
         {expanded && (
           <div>
             {children.map((child) =>
-              renderRow([child.id], child.name, child.icon, true)
+              renderRow([child.id], child.name, child.icon, true),
             )}
           </div>
         )}
@@ -625,34 +635,45 @@ export default function RoleMenuPermissions() {
 
     if (sections.length === 0) {
       return (
-        <div className="flex flex-col items-center gap-2 py-14 text-muted-foreground">
-          <SearchX className="size-8" strokeWidth={1.5} />
-          <p className="text-sm">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center text-muted-foreground">
+          <span className="flex size-12 items-center justify-center rounded-full bg-muted">
+            <SearchX className="size-5" strokeWidth={1.5} />
+          </span>
+          <p className="text-sm font-medium text-foreground">
             {searchTerm
               ? `No menus match "${searchTerm}"`
               : `No ${panel} menus available`}
           </p>
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSearchTerm("")}
+              className="text-muted-foreground"
+            >
+              Clear search
+            </Button>
+          )}
         </div>
       );
     }
 
     return (
-      <div className="overflow-hidden rounded-sm border bg-card">
-        {/* Sticky column headers */}
+      <div className="max-h-[calc(100vh-320px)] overflow-auto rounded-xl border bg-card shadow-sm">
         <div
           className={cn(
             GRID_COLS,
-            "sticky top-0 z-10 border-b bg-muted/70 px-3 backdrop-blur py-2"
+            "sticky top-0 z-10 h-11 border-b bg-muted/90 px-3 backdrop-blur",
           )}
         >
-          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Module
           </span>
           {ACTIONS.map(({ key, label, icon: Icon, hint }) => (
             <TooltipProvider key={key} delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="flex cursor-default items-center justify-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <span className="flex cursor-default items-center justify-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     <Icon className="size-3.5" />
                     <span className="hidden sm:inline">{label}</span>
                   </span>
@@ -663,129 +684,161 @@ export default function RoleMenuPermissions() {
               </Tooltip>
             </TooltipProvider>
           ))}
-          <span className="hidden text-xs font-medium uppercase tracking-wide text-muted-foreground sm:block">
+          <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Bulk
           </span>
         </div>
-        <div className="max-h-[calc(100vh-320px)] overflow-y-auto">
-          {sections.map((item) => renderSection(item))}
-        </div>
+        <div>{sections.map((item) => renderSection(item))}</div>
       </div>
     );
   };
 
   const canManage = Boolean(selectedRoleId) && !loading;
+  const expandableSections = filteredMenus.filter(
+    (item) => (item.children?.length ?? 0) > 1,
+  );
+  const allSectionsExpanded =
+    expandableSections.length > 0 &&
+    expandableSections.every((item) => expandedSections.has(item.id));
+
+  const toggleAllSections = () => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      expandableSections.forEach((item) => {
+        if (allSectionsExpanded) next.delete(item.id);
+        else next.add(item.id);
+      });
+      return next;
+    });
+  };
 
   return (
-    <AdminPageContainer className="md:p-4 p-2 space-y-6 rounded-sm w-full">
+    <AdminPageContainer className="w-full space-y-5 p-2 md:p-4">
       <PageHeader
         title="Role Permissions"
+        description="Control which modules and actions are available to each role."
+        className="mb-0"
       />
 
-      {/* Sticky single-line toolbar */}
-      <div className="sticky top-2 z-20 mb-4 rounded-sm border bg-card/95 p-3 shadow-sm backdrop-blur md:p-4">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-primaryColor">Role</label>
-            <Select
-              value={selectedRoleId}
-              onValueChange={setSelectedRoleId}
-              disabled={roles.length === 0}
-            >
-              <SelectTrigger className="w-full sm:w-56">
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                {roles?.map((role) => (
-                  <SelectItem key={role.id} value={role.id.toString()}>
-                    {capitalizeFirstLetter(role.rolename)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedRole && (
-              <Badge variant="secondary" className="capitalize">
-                {selectedRole.rolename}
-              </Badge>
-            )}
-            {canManage && (
-              <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                <ShieldCheck className="size-4 text-primary" />
-                <span className="tabular-nums">
-                  <span className="font-semibold text-primaryColor">
-                    {grantedCount}
-                  </span>
-                  /{totalCount} visible
-                </span>
-                <span className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
-                  <span
-                    className="block h-full rounded-full bg-primaryColor transition-[width] duration-300"
-                    style={{
-                      width: `${totalCount > 0
-                        ? Math.round((grantedCount / totalCount) * 100)
-                        : 0
-                        }%`,
-                    }}
-                  />
-                </span>
+      <div className="lg:sticky lg:top-2 z-20 rounded-xl border bg-card/95 p-3 shadow-sm backdrop-blur supports-backdrop-filter:bg-card/85">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground">
+                Role
               </span>
+              <Select
+                value={selectedRoleId}
+                onValueChange={setSelectedRoleId}
+                disabled={roles.length === 0}
+              >
+                <SelectTrigger
+                  className="h-10 w-full rounded-lg bg-background sm:w-56"
+                  aria-label="Role"
+                >
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles?.map((role) => (
+                    <SelectItem key={role.id} value={role.id.toString()}>
+                      {capitalizeFirstLetter(role.rolename)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {canManage && (
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex h-10 items-center gap-2.5 rounded-lg border bg-muted/30 px-3">
+                      <ShieldCheck className="size-4 shrink-0 text-primary" />
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        <span className="font-semibold text-foreground">
+                          {grantedCount}
+                        </span>
+                        <span> / {totalCount} visible</span>
+                      </span>
+                      <span className="h-1.5 w-14 overflow-hidden rounded-full bg-border">
+                        <span
+                          className="block h-full rounded-full bg-primary transition-[width] duration-300"
+                          style={{
+                            width: `${
+                              totalCount > 0
+                                ? Math.round((grantedCount / totalCount) * 100)
+                                : 0
+                            }%`,
+                          }}
+                        />
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    {grantedCount} of {totalCount} menus visible for{" "}
+                    {selectedRole?.rolename ?? "this role"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
 
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <div className="relative w-full sm:w-56">
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none lg:w-64">
               <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search modules..."
-                className="h-9 pl-8"
+                className="h-10 rounded-lg bg-background pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            {dirtyIds.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleReset}
-                disabled={saving}
-              >
-                <RotateCcw className="size-4" />
-                Discard
-              </Button>
-            )}
-            <Button
-              onClick={handleSave}
-              disabled={saving || dirtyIds.length === 0}
-              size="sm"
-              className="min-w-32"
-            >
-              {saving ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Save className="size-4" />
-              )}
-              {dirtyIds.length > 0
-                ? `Save ${dirtyIds.length} change${dirtyIds.length > 1 ? "s" : ""}`
-                : "All saved"}
-            </Button>
-          </div>
-        </div>
 
-        {/* Legend */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-2.5 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <Switch checked disabled className="h-4 w-7 [&>span]:size-3" />
-            View = visible in sidebar
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Checkbox checked disabled className="size-3.5" />
-            Create / Edit / Delete enforced on the API
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="size-1.5 rounded-full bg-amber-500" />
-            unsaved change
-          </span>
+            <div className="flex items-center justify-end gap-2">
+              {dirtyIds.length > 0 && (
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="size-10 shrink-0 rounded-lg"
+                        onClick={handleReset}
+                        disabled={saving}
+                        aria-label="Discard changes"
+                      >
+                        <RotateCcw className="size-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">
+                      Discard unsaved changes
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+
+              <Button
+                onClick={handleSave}
+                disabled={saving || dirtyIds.length === 0}
+                className="h-10 min-w-28 shrink-0 gap-1.5 rounded-lg px-3"
+              >
+                {saving ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Save className="size-4" />
+                )}
+                <span>
+                  {dirtyIds.length > 0 ? "Save changes" : "All saved"}
+                </span>
+                {dirtyIds.length > 0 && (
+                  <span className="rounded bg-primary-foreground/20 px-1.5 py-0.5 text-[11px] font-semibold leading-none tabular-nums">
+                    {dirtyIds.length}
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -809,20 +862,59 @@ export default function RoleMenuPermissions() {
           value={panel}
           onValueChange={(v) => setPanel(v as "admin" | "user")}
         >
-          <TabsList className="mb-3">
-            <TabsTrigger value="admin" disabled={isCustomerRole}>
-              Admin modules
-              <Badge variant="outline" className="ml-2 tabular-nums">
-                {adminMenus.length}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="user" disabled={!isCustomerRole}>
-              Customer modules
-              <Badge variant="outline" className="ml-2 tabular-nums">
-                {userMenus.length}
-              </Badge>
-            </TabsTrigger>
-          </TabsList>
+          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">Module access</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Choose which modules and actions this role can use.
+              </p>
+            </div>
+            <TabsList className="h-10 w-full justify-start rounded-lg bg-muted/60 p-1 sm:w-fit">
+              <TabsTrigger value="admin" disabled={isCustomerRole}>
+                Admin modules
+                <Badge variant="outline" className="ml-2 tabular-nums">
+                  {adminMenus.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="user" disabled={!isCustomerRole}>
+                Customer modules
+                <Badge variant="outline" className="ml-2 tabular-nums">
+                  {userMenus.length}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              {filteredMenus.length}{" "}
+              {filteredMenus.length === 1 ? "section" : "sections"}
+              {searchTerm ? " matching your search" : ""}
+            </p>
+            <div className="flex items-center gap-1">
+              <span className="mr-1 text-[11px] text-muted-foreground sm:hidden">
+                Swipe to view all actions
+              </span>
+              {expandableSections.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleAllSections}
+                  disabled={loading || saving}
+                  className="h-8 gap-1.5 px-2 text-xs"
+                  aria-label={`${allSectionsExpanded ? "Collapse" : "Expand"} all module sections`}
+                >
+                  <ChevronDown
+                    className={cn(
+                      "size-3.5 transition-transform",
+                      allSectionsExpanded && "rotate-180",
+                    )}
+                  />
+                  {allSectionsExpanded ? "Collapse all" : "Expand all"}
+                </Button>
+              )}
+            </div>
+          </div>
           {renderMatrix()}
         </Tabs>
       )}

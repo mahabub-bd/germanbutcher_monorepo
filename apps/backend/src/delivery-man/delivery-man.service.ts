@@ -92,10 +92,12 @@ export class DeliveryManService {
         deliveryManId: string;
         assigned: string;
         in_progress: string;
+        cancelled: string;
       }> = await this.dataSource.query(
         `SELECT "deliveryManId",
                 COUNT(*) AS assigned,
-                COUNT(*) FILTER (WHERE "orderStatus" IN ('pending', 'processing', 'on_hold', 'shipped')) AS in_progress
+                COUNT(*) FILTER (WHERE "orderStatus" IN ('pending', 'processing', 'on_hold', 'shipped')) AS in_progress,
+                COUNT(*) FILTER (WHERE "orderStatus" = 'cancelled') AS cancelled
          FROM "order"
          WHERE "deliveryManId" IN (${ids.map((_, i) => `$${i + 1}`).join(', ')})
          GROUP BY "deliveryManId"`,
@@ -107,6 +109,7 @@ export class DeliveryManService {
           {
             assignedOrders: parseInt(c.assigned, 10) || 0,
             inProgressOrders: parseInt(c.in_progress, 10) || 0,
+            cancelledOrders: parseInt(c.cancelled, 10) || 0,
           },
         ]),
       );
@@ -114,6 +117,7 @@ export class DeliveryManService {
         const c = byId.get(dm.id);
         dm.assignedOrders = c?.assignedOrders ?? 0;
         dm.inProgressOrders = c?.inProgressOrders ?? 0;
+        dm.cancelledOrders = c?.cancelledOrders ?? 0;
       }
     }
 

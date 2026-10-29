@@ -1216,10 +1216,13 @@ export class OrderService {
       );
     }
 
-    // Stamp/clear the delivery timestamp so order→delivery time is exact.
+    // Stamp/clear the terminal timestamps so order→delivery / order→cancel
+    // spans stay exact. CANCELLED never reaches here (routed to cancelOrder
+    // above); this clear only fires when an order is un-cancelled.
     await this.orderRepository.update(id, {
       orderStatus: status,
       deliveredAt: status === OrderStatus.DELIVERED ? new Date() : null,
+      cancelledAt: null,
     });
 
     const order = await this.orderRepository.findOneBy({ id });

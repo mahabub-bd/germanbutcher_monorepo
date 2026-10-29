@@ -1173,6 +1173,8 @@ export interface DeliveryMan {
   assignedOrders?: number;
   /** Assigned orders still pending/processing/on_hold/shipped. */
   inProgressOrders?: number;
+  /** All-time assigned orders that were cancelled. */
+  cancelledOrders?: number;
   createdAt: string;
   updatedAt: string;
   orders?: Order[];

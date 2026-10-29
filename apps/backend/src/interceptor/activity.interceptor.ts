@@ -334,6 +334,16 @@ export class ActivityInterceptor implements NestInterceptor {
     return `req-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 
+  /** Best-effort singular form of a URL segment for log messages. */
+  private singularize(segment: string): string {
+    if (segment.endsWith('ies')) return `${segment.slice(0, -3)}y`;
+    if (/(ses|xes|ches|shes)$/.test(segment)) return segment.slice(0, -2);
+    if (segment.endsWith('s') && !segment.endsWith('ss') && !segment.endsWith('us')) {
+      return segment.slice(0, -1);
+    }
+    return segment;
+  }
+
   private async fetchProductName(productId: number): Promise<string | null> {
     try {
       if (!productId || isNaN(productId) || productId <= 0) {
@@ -396,7 +406,12 @@ export class ActivityInterceptor implements NestInterceptor {
 
       if (routePath.includes('/payments')) {
         if (action === 'POST') {
-          return `Created payment for order ${orderLabel}`;
+          // Root-level /orders/payments carries the order in the body
+          const bodyOrderId = req.body?.orderId;
+          const paymentOrderNo =
+            orderNo ?? (bodyOrderId ? await this.fetchOrderNo(bodyOrderId) : null);
+          const paymentOrderLabel = paymentOrderNo ?? (bodyOrderId ? `#${bodyOrderId}` : orderLabel);
+          return `Created payment for order ${paymentOrderLabel}`.trim();
         }
       } else if (routePath.includes('/assign-delivery-man')) {
         const deliveryManId = req.body?.deliveryManId;
@@ -443,9 +458,107 @@ export class ActivityInterceptor implements NestInterceptor {
       }
     }
 
+    // CRM routes share the /crm prefix, so entityType is just 'crm' —
+    // name the real sub-entity from the route path.
+    if (entityType === 'crm') {
+      if (routePath.includes('/activities')) {
+        return action === 'POST'
+          ? `Added activity for customer ${entityId ?? ''}`.trim()
+          : action === 'PATCH'
+            ? `Updated activity ${entityId ?? ''}`.trim()
+            : `Deleted activity ${entityId ?? ''}`.trim();
+      }
+      if (routePath.includes('/campaigns')) {
+        if (routePath.includes('/send') && action === 'POST') {
+          return `Sent campaign ${entityId ?? ''}`.trim();
+        }
+        if (action === 'POST') {
+          const name = req.body?.name;
+          return `Created campaign${name ? ` "${name}"` : ''}`;
+        }
+        if (action === 'DELETE') {
+          return `Deleted campaign ${entityId ?? ''}`.trim();
+        }
+        if (action === 'PATCH') {
+          return `Updated campaign ${entityId ?? ''}`.trim();
+        }
+      }
+      if (routePath.includes('/customers') && action === 'PATCH') {
+        return `Updated customer ${entityId ?? ''}`.trim();
+      }
+    }
+
+    // POST /reviews/product/:productId — the extracted ID is the product,
+    // not the review.
+    if (entityType === 'reviews' && action === 'POST' && routePath.includes('/product/')) {
+      const productName = entityId ? await this.fetchProductName(entityId) : null;
+      return `Reviewed product${productName ? ` "${productName}"` : entityId ? ` ${entityId}` : ''}`;
+    }
+
+    if (entityType === 'contact-messages' && routePath.includes('/reply')) {
+      return `Replied to contact message ${entityId ?? ''}`.trim();
+    }
+
+    if (entityType === 'galleries' && routePath.includes('/attachments') && action === 'POST') {
+      return `Uploaded attachments to gallery ${entityId ?? ''}`.trim();
+    }
+
+    if (entityType === 'wishlist' && action === 'POST') {
+      const productId = req.body?.productId;
+      const productName = productId ? await this.fetchProductName(productId) : null;
+      return `Added product${productName ? ` "${productName}"` : productId ? ` ${productId}` : ''} to wishlist`;
+    }
+
+    if (entityType === 'coupons') {
+      const couponCode = req.body?.code ? ` "${req.body.code}"` : '';
+      if (routePath.includes('/apply')) {
+        return `Applied coupon${couponCode}`;
+      }
+      if (routePath.includes('/validate')) {
+        return `Validated coupon${couponCode}`;
+      }
+    }
+
+    // SSL payment gateway routes live under /payment
+    if (entityType === 'payment') {
+      if (routePath.includes('/refund')) {
+        const amount = req.body?.refund_amount;
+        return `Requested refund${amount ? ` of ${amount}` : ''}${req.body?.paymentId ? ` for payment ${req.body.paymentId}` : ''}`.trim();
+      }
+      if (routePath.includes('/init')) {
+        return `Initiated online payment`;
+      }
+    }
+
+    if (entityType === 'auth' && routePath.includes('/logout')) {
+      return `Logged out`;
+    }
+
+    if (entityType === 'user-activities' && routePath.includes('/retention')) {
+      return `Ran activity log retention cleanup`;
+    }
+
+    if (entityType === 'bogo-campaigns' && routePath.includes('/preview')) {
+      return `Previewed BOGO campaign discount`;
+    }
+
+    if (entityType === 'attachment' && routePath.includes('/upload-multiple')) {
+      return `Uploaded attachments`;
+    }
+
     // Handle product-related routes for more descriptive messages
     if (entityType === 'products') {
-      if (action === 'POST') {
+      if (routePath.includes('/stock-adjust')) {
+        const productName = entityId
+          ? await this.fetchProductName(Number(entityId))
+          : null;
+        const quantity = req.body?.quantity;
+        const qtyLabel =
+          typeof quantity === 'number' && quantity !== 0
+            ? ` by ${quantity > 0 ? '+' : ''}${quantity}`
+            : '';
+        return `Adjusted stock${qtyLabel} for product${productName ? ` "${productName}"` : entityId ? ` ${entityId}` : ''}`;
+      } else if (action === 'POST') {
         const productName = req.body?.name;
         const categoryId = req.body?.categoryId;
         return `Created product${productName ? ` "${productName}"` : ''}${categoryId ? ` in category ${categoryId}` : ''}`;
@@ -474,11 +587,13 @@ export class ActivityInterceptor implements NestInterceptor {
       }
     }
 
-    // Default action messages
+    // Default action messages (entity type is the URL segment, so
+    // singularize it for readable copy: banners → banner, categories → category)
+    const entityLabel = this.singularize(entityType ?? 'record');
     const actionMap = {
-      POST: `Created ${entityType}${entityId ? ` with ID ${entityId}` : ''}`,
-      PATCH: `Updated ${entityType}${entityId ? ` ${entityId}` : ''}`,
-      DELETE: `Deleted ${entityType}${entityId ? ` ${entityId}` : ''}`,
+      POST: `Created ${entityLabel}${entityId ? ` with ID ${entityId}` : ''}`,
+      PATCH: `Updated ${entityLabel}${entityId ? ` ${entityId}` : ''}`,
+      DELETE: `Deleted ${entityLabel}${entityId ? ` ${entityId}` : ''}`,
     };
 
     return actionMap[action] || `${action} ${entityType}`;

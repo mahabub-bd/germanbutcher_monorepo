@@ -34,14 +34,7 @@ import {
 } from "@/lib/utils";
 import { formatOrderElapsedTime } from "@/utils/order-helper";
 import { PaymentStatus } from "@/utils/types";
-import {
-  CheckCircle2,
-  Clock,
-  Eye,
-  ShoppingCart,
-  Wallet,
-  XCircle,
-} from "lucide-react";
+import { CheckCircle2, Clock, Eye, ShoppingCart, Wallet, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -151,7 +144,7 @@ export default function OrderReportList({
             <ReportExcelButton
               title="Sales Report"
               subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
-              headers={["#", "Date", "Order No", "Customer", "Mobile", "Area", "Status", "Payment", "Time Passed", "Total", "Discount", "Paid"]}
+              headers={["#", "Date", "Order No", "Customer", "Mobile", "Area", "Status", "Payment", "Elapsed Time", "Total", "Discount", "Paid"]}
               rows={orders.map((o, i) => [
                 i + 1,
                 formatDateTime(o.orderDate),
@@ -161,9 +154,11 @@ export default function OrderReportList({
                 o.shippingAddress?.area || "N/A",
                 o.orderStatus,
                 o.paymentStatus,
-                (o.deliveredAt ?? o.cancelledAt)
-                  ? formatOrderElapsedTime(o.orderDate, o.deliveredAt ?? o.cancelledAt!)
-                  : formatOrderElapsedTime(o.orderDate),
+                o.cancelledAt
+                  ? formatOrderElapsedTime(o.orderDate, o.cancelledAt)
+                  : o.deliveredAt
+                    ? formatOrderElapsedTime(o.orderDate, o.deliveredAt)
+                    : formatOrderElapsedTime(o.orderDate),
                 o.totalValue,
                 o.totalDiscount,
                 o.paidAmount,
@@ -298,7 +293,7 @@ export default function OrderReportList({
               <TableHead>Mobile</TableHead>
               <TableHead>Area</TableHead>
               <TableHead>Order Status</TableHead>
-              <TableHead className="text-center">Time Passed</TableHead>
+              <TableHead className="text-center">Elapsed Time</TableHead>
               <TableHead>Payment Status</TableHead>
 
               <TableHead>Total</TableHead>
@@ -353,7 +348,16 @@ export default function OrderReportList({
                   </TableCell>
                   <TableCell>{o.orderStatus}</TableCell>
                   <TableCell className="text-center whitespace-nowrap">
-                    {o.deliveredAt ? (
+                    {o.cancelledAt ? (
+                      <Badge
+                        variant="secondary"
+                        className="bg-slate-100 font-normal text-slate-500 dark:bg-slate-500/20 dark:text-slate-400"
+                        title={`Order → cancelled: ${formatDateTime(o.orderDate)} → ${formatDateTime(o.cancelledAt)}`}
+                      >
+                        <XCircle className="h-3 w-3" />
+                        {formatOrderElapsedTime(o.orderDate, o.cancelledAt)}
+                      </Badge>
+                    ) : o.deliveredAt ? (
                       <Badge
                         variant="secondary"
                         className="bg-emerald-100 font-normal text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"

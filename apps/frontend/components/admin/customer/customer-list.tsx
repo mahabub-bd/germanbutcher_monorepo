@@ -208,7 +208,7 @@ export function CustomerList({
             <TableRow key={customer.id} className="hover:bg-muted/50">
               <TableCell>
                 <Link
-                  href={`/admin/crm/customers/${customer.id}`}
+                  href={`/admin/customer/${customer.id}/view`}
                   className="flex items-center gap-3 font-medium leading-tight hover:underline"
                 >
                   {customer.profilePhoto?.url ? (
@@ -284,7 +284,7 @@ export function CustomerList({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link href={`/admin/crm/customers/${customer.id}`}>
+                      <Link href={`/admin/customer/${customer.id}/view`}>
                         <UserCircle className="mr-2 h-4 w-4" />
                         View
                       </Link>

@@ -57,7 +57,7 @@ export function TicketFiltersMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-64 md:w-80 lg:w-96 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
+        className="w-80 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
         sideOffset={8}
       >
         <div className="space-y-3">
