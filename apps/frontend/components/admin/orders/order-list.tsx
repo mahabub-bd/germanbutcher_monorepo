@@ -555,11 +555,11 @@ export function OrderList({
               <TableHead>Order ID / Date</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Order Status</TableHead>
-              <TableHead className="text-center">Time Passed</TableHead>
               <TableHead>Payment Status</TableHead>
               <TableHead>Payment Method</TableHead>
               <TableHead>Shipping Method</TableHead>
               <TableHead>Area</TableHead>
+              <TableHead className="text-center">Elapsed Time</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -584,9 +584,6 @@ export function OrderList({
                     <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
                   <TableCell>
-                    <div className="mx-auto h-4 w-12 bg-gray-200 rounded animate-pulse" />
-                  </TableCell>
-                  <TableCell>
                     <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
                   <TableCell>
@@ -597,6 +594,9 @@ export function OrderList({
                   </TableCell>
                   <TableCell>
                     <div className="h-6 w-24 bg-gray-200 rounded-full animate-pulse" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="mx-auto h-4 w-12 bg-gray-200 rounded animate-pulse" />
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="h-4 w-20 bg-gray-200 rounded animate-pulse ml-auto" />
@@ -705,13 +705,6 @@ export function OrderList({
                       </span>
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-center">
-                    <ElapsedTime
-                      createdAt={order.createdAt}
-                      deliveredAt={order.deliveredAt}
-                      cancelledAt={order.cancelledAt}
-                    />
-                  </TableCell>
                   <TableCell>
                     <Badge
                       variant="secondary"
@@ -772,6 +765,14 @@ export function OrderList({
                         {shortenArea(order.shippingAddress?.area || order.address?.area || "N/A")}
                       </span>
                     </Badge>
+                  </TableCell>
+
+                  <TableCell className="text-center">
+                    <ElapsedTime
+                      createdAt={order.createdAt}
+                      deliveredAt={order.deliveredAt}
+                      cancelledAt={order.cancelledAt}
+                    />
                   </TableCell>
 
                   <TableCell className="text-right font-medium">

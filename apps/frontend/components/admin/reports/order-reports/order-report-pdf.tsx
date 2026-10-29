@@ -167,7 +167,7 @@ export function OrderReportPDF({ orders, settings }: Props) {
           <Text style={[styles.tableHeaderText, { flex: 1.5 }]}>Mobile</Text>
           <Text style={[styles.tableHeaderText, { flex: 1.2 }]}>Area</Text>
           <Text style={styles.tableHeaderText}>Status</Text>
-          <Text style={styles.tableHeaderText}>Time Passed</Text>
+          <Text style={styles.tableHeaderText}>Elapsed Time</Text>
           <Text style={styles.tableHeaderText}>Payment</Text>
           <Text style={styles.tableHeaderText}>Total</Text>
           <Text style={styles.tableHeaderText}>Discount</Text>

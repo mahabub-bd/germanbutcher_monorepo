@@ -144,7 +144,7 @@ export default function OrderReportList({
             <ReportExcelButton
               title="Sales Report"
               subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
-              headers={["#", "Date", "Order No", "Customer", "Mobile", "Area", "Status", "Payment", "Time Passed", "Total", "Discount", "Paid"]}
+              headers={["#", "Date", "Order No", "Customer", "Mobile", "Area", "Status", "Payment", "Elapsed Time", "Total", "Discount", "Paid"]}
               rows={orders.map((o, i) => [
                 i + 1,
                 formatDateTime(o.orderDate),
@@ -293,7 +293,7 @@ export default function OrderReportList({
               <TableHead>Mobile</TableHead>
               <TableHead>Area</TableHead>
               <TableHead>Order Status</TableHead>
-              <TableHead className="text-center">Time Passed</TableHead>
+              <TableHead className="text-center">Elapsed Time</TableHead>
               <TableHead>Payment Status</TableHead>
 
               <TableHead>Total</TableHead>
