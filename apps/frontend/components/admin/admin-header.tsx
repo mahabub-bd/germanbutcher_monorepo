@@ -126,17 +126,22 @@ export function AdminHeader({
       />
 
       <div className="relative flex h-16 items-center gap-3 px-4  md:px-6">
-        {/* Mobile layout: Hamburger - Logo - Notification */}
-        <div className="flex w-full items-center justify-between md:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            className={menuTileClass}
-            title="Menu"
-            onClick={onMenuClick}
-          >
-            <Menu className="size-4" />
-          </Button>
+        {/* Mobile layout: Hamburger - Logo - Notification.
+            Grid with equal side columns keeps the logo truly centered even
+            though the right cluster (inbox + bell) is wider than the
+            hamburger — justify-between would pull it off-center. */}
+        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center md:hidden">
+          <div className="justify-self-start">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={menuTileClass}
+              title="Menu"
+              onClick={onMenuClick}
+            >
+              <Menu className="size-4" />
+            </Button>
+          </div>
           <Link
             href="/"
             className="flex items-center transition-transform duration-150 active:scale-95"
@@ -151,7 +156,7 @@ export function AdminHeader({
               priority
             />
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-self-end">
             <InboxModal
               unreadCount={unreadMessages}
               triggerClassName={iconTileClass}
