@@ -849,6 +849,8 @@ export interface Order {
   updatedAt: string;
   /** When the order was marked delivered (null until delivered). */
   deliveredAt?: string | null;
+  /** When the order was cancelled (null unless cancelled). */
+  cancelledAt?: string | null;
 }
 
 export interface OrderPayment {

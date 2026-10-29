@@ -146,4 +146,11 @@ export class Order {
   })
   @Column({ type: 'timestamp', nullable: true })
   deliveredAt?: Date | null;
+
+  @ApiPropertyOptional({
+    example: '2023-05-15T18:00:00Z',
+    description: 'When the order was cancelled. Null unless cancelled.',
+  })
+  @Column({ type: 'timestamp', nullable: true })
+  cancelledAt?: Date | null;
 }

@@ -38,6 +38,7 @@ interface Order {
   paidAmount: number;
   orderDate: string;
   deliveredAt?: string | null;
+  cancelledAt?: string | null;
   customer: Customer;
   shippingAddress: ShippingAddress;
   shippingMethod: string;
@@ -193,8 +194,11 @@ export function OrderReportPDF({ orders, settings }: Props) {
             </Text>
             <Text style={styles.cell}>{o.orderStatus}</Text>
             <Text style={styles.cell}>
-              {o.deliveredAt
-                ? formatOrderElapsedTime(o.orderDate, o.deliveredAt)
+              {(o.deliveredAt ?? o.cancelledAt)
+                ? formatOrderElapsedTime(
+                    o.orderDate,
+                    (o.deliveredAt ?? o.cancelledAt) as string
+                  )
                 : formatOrderElapsedTime(o.orderDate)}
             </Text>
             <Text style={styles.cell}>{o.paymentStatus}</Text>

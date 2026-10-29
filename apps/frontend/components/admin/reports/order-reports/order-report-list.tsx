@@ -34,7 +34,14 @@ import {
 } from "@/lib/utils";
 import { formatOrderElapsedTime } from "@/utils/order-helper";
 import { PaymentStatus } from "@/utils/types";
-import { CheckCircle2, Clock, Eye, ShoppingCart, Wallet } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  Eye,
+  ShoppingCart,
+  Wallet,
+  XCircle,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -67,6 +74,7 @@ export interface Order {
   paidAmount: number;
   orderDate: string;
   deliveredAt?: string | null;
+  cancelledAt?: string | null;
   customer: Customer;
   shippingAddress: ShippingAddress;
   shippingMethod: string;
@@ -153,8 +161,8 @@ export default function OrderReportList({
                 o.shippingAddress?.area || "N/A",
                 o.orderStatus,
                 o.paymentStatus,
-                o.deliveredAt
-                  ? formatOrderElapsedTime(o.orderDate, o.deliveredAt)
+                (o.deliveredAt ?? o.cancelledAt)
+                  ? formatOrderElapsedTime(o.orderDate, o.deliveredAt ?? o.cancelledAt!)
                   : formatOrderElapsedTime(o.orderDate),
                 o.totalValue,
                 o.totalDiscount,
@@ -353,6 +361,15 @@ export default function OrderReportList({
                       >
                         <CheckCircle2 className="h-3 w-3" />
                         {formatOrderElapsedTime(o.orderDate, o.deliveredAt)}
+                      </Badge>
+                    ) : o.cancelledAt ? (
+                      <Badge
+                        variant="secondary"
+                        className="bg-gray-100 font-normal text-gray-500 dark:bg-neutral-800 dark:text-neutral-400"
+                        title={`Order → cancel: ${formatDateTime(o.orderDate)} → ${formatDateTime(o.cancelledAt)}`}
+                      >
+                        <XCircle className="h-3 w-3" />
+                        {formatOrderElapsedTime(o.orderDate, o.cancelledAt)}
                       </Badge>
                     ) : Date.now() - new Date(o.orderDate).getTime() >=
                       3 * 86400000 ? (
