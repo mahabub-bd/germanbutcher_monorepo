@@ -1,8 +1,8 @@
 "use client";
 
 import ProductActivityHistory from "@/components/admin/products/product-activity-history";
-import StockMovementHistory from "@/components/admin/products/stock-movement-history";
 import ProductHistoryCard from "@/components/admin/products/product-history-card";
+import StockMovementHistory from "@/components/admin/products/stock-movement-history";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -211,7 +211,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       : 0;
 
   return (
-    <div className="px-4 py-4 space-y-4">
+    <div className="space-y-4">
       {/* ── Top bar ──────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" className="gap-1.5 -ml-2" asChild>
