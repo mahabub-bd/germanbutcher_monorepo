@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { CreateDeliveryManDto } from './dto/create-delivery-man.dto';
 import { UpdateDeliveryManDto } from './dto/update-delivery-man.dto';
 import { DeliveryMan } from './entities/delivery-man.entity';
@@ -24,6 +24,7 @@ export class DeliveryManService {
   constructor(
     @InjectRepository(DeliveryMan)
     private readonly deliveryManRepository: Repository<DeliveryMan>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(
@@ -82,6 +83,39 @@ export class DeliveryManService {
     queryBuilder.skip(skip).take(limit);
 
     const [data, total] = await queryBuilder.getManyAndCount();
+
+    if (data.length > 0) {
+      // All-time order counts per delivery man for the list's Assigned /
+      // In-progress columns. One grouped query instead of loading relations.
+      const ids = data.map((dm) => dm.id);
+      const counts: Array<{
+        deliveryManId: string;
+        assigned: string;
+        in_progress: string;
+      }> = await this.dataSource.query(
+        `SELECT "deliveryManId",
+                COUNT(*) AS assigned,
+                COUNT(*) FILTER (WHERE "orderStatus" IN ('pending', 'processing', 'on_hold', 'shipped')) AS in_progress
+         FROM "order"
+         WHERE "deliveryManId" IN (${ids.map((_, i) => `$${i + 1}`).join(', ')})
+         GROUP BY "deliveryManId"`,
+        ids,
+      );
+      const byId = new Map(
+        counts.map((c) => [
+          Number(c.deliveryManId),
+          {
+            assignedOrders: parseInt(c.assigned, 10) || 0,
+            inProgressOrders: parseInt(c.in_progress, 10) || 0,
+          },
+        ]),
+      );
+      for (const dm of data) {
+        const c = byId.get(dm.id);
+        dm.assignedOrders = c?.assignedOrders ?? 0;
+        dm.inProgressOrders = c?.inProgressOrders ?? 0;
+      }
+    }
 
     return { data, total };
   }

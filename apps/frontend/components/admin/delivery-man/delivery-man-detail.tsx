@@ -9,7 +9,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { formatDateTime } from "@/lib/utils";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { fetchProtectedData } from "@/utils/api-utils";
 import {
   getOrderStatusColor,
@@ -21,6 +29,7 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  Eye,
   Package,
   Phone,
   ShoppingBag,
@@ -97,7 +106,7 @@ export function DeliveryManDetail() {
   const orders = deliveryMan.orders || [];
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-background to-muted/20">
+    <div className="w-full min-h-screen bg-linear-to-b from-background to-muted/20">
       <div className="mx-auto space-y-2">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
@@ -144,7 +153,12 @@ export function DeliveryManDetail() {
           <Card className="border-l-4 border-l-green-500">
             <CardContent className="pt-2 pb-2">
               <div className="flex items-center justify-between gap-2">
-               
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Total Earnings</p>
+                  <p className="text-xl font-bold">
+                    {formatCurrencyEnglish(deliveryMan.totalEarnings)}
+                  </p>
+                </div>
                 <div className="rounded-full bg-green-500/10 p-1.5 shrink-0">
                   <Wallet className="h-3.5 w-3.5 text-green-500" />
                 </div>
@@ -190,7 +204,7 @@ export function DeliveryManDetail() {
               </CardHeader>
               <CardContent className="space-y-2 px-3 pb-3">
                 <div className="flex items-center gap-2 pb-2 border-b">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-md shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-md shrink-0">
                     <User className="h-5 w-5 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -283,99 +297,62 @@ export function DeliveryManDetail() {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-2.5">
-                    {orders.map((order) => (
-                      <Card
-                        key={order.id}
-                        className="border-2 hover:border-primary/50 transition-all"
-                      >
-                        <CardContent className="p-3 space-y-2.5">
-                          {/* Order Header */}
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <h4 className="font-bold text-base">
-                                  {order.orderNo}
-                                </h4>
-                                <Badge
-                                  className={`${getOrderStatusColor(
-                                    order.orderStatus
-                                  )} capitalize text-xs h-5`}
-                                >
-                                  {order.orderStatus}
-                                </Badge>
-                                <Badge
-                                  className={`${getPaymentStatusColor(
-                                    order.paymentStatus
-                                  )} capitalize text-xs h-5`}
-                                >
-                                  {order.paymentStatus}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Calendar className="h-3 w-3" />
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-140 text-xs">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Order ID / Date</TableHead>
+                          <TableHead>Order Status</TableHead>
+                          <TableHead>Payment Status</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
+                          <TableHead className="text-right">Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {orders.map((order) => (
+                          <TableRow key={order.id} className="hover:bg-muted/50">
+                            <TableCell>
+                              <Link
+                                href={`/admin/order/${order.id}/view`}
+                                className="block font-medium leading-tight hover:underline"
+                              >
+                                {order.orderNo}
+                              </Link>
+                              <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                                <Calendar className="h-3 w-3 shrink-0" />
                                 {formatDateTime(order.createdAt)}
-                              </div>
-                            </div>
-                            <div className="text-left sm:text-right">
-                              <p className="text-xs text-muted-foreground">
-                                Order Total
                               </p>
-                              <p className="text-xl font-bold">
-                                ৳{order.totalValue.toLocaleString()}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Order Details Grid */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-2">
-                            <div className="p-2 rounded-lg bg-blue-500/5 border border-blue-500/20">
-                              <p className="text-xs font-medium text-blue-700 mb-0.5">
-                                Order Value
-                              </p>
-                              <p className="font-semibold text-xs">
-                                ৳{Number(order.totalValue).toLocaleString()}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {order.totalDiscount > 0 ? `Discount: ৳${Number(order.totalDiscount).toLocaleString()}` : "No discount"}
-                              </p>
-                            </div>
-
-                            <div className="p-2 rounded-lg bg-green-500/5 border border-green-500/20">
-                              <p className="text-xs font-medium text-green-700 mb-0.5">
-                                Payment Status
-                              </p>
-                              <p className="font-semibold capitalize text-xs">
-                                {order.paymentStatus}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Paid: ৳{Number(order.paidAmount).toLocaleString()}
-                              </p>
-                            </div>
-
-                            <div className="p-2 rounded-lg bg-purple-500/5 border border-purple-500/20">
-                              <p className="text-xs font-medium text-purple-700 mb-0.5">
-                                Order Status
-                              </p>
-                              <p className="font-semibold capitalize text-xs">
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="secondary"
+                                className={`capitalize ${getOrderStatusColor(order.orderStatus)}`}
+                              >
                                 {order.orderStatus}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Updated: {formatDateTime(order.updatedAt)}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* View Details Button */}
-                          <Button variant="outline" size="sm" className="w-full text-xs h-8" asChild>
-                            <Link href={`/admin/order/${order.id}/view`}>
-                              View Full Order Details
-                              <ArrowLeft className="ml-1.5 h-3 w-3 rotate-180" />
-                            </Link>
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="secondary"
+                                className={`capitalize ${getPaymentStatusColor(order.paymentStatus)}`}
+                              >
+                                {order.paymentStatus}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {formatCurrencyEnglish(order.totalValue)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="sm" asChild>
+                                <Link href={`/admin/order/${order.id}/view`}>
+                                  <Eye className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </CardContent>

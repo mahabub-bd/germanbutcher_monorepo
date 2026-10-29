@@ -2,8 +2,8 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
-import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
 import { ReportExcelButton, dateRangeSubtitle } from "@/components/admin/reports/download-excel-button";
+import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
 import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import { Badge } from "@/components/ui/badge";
@@ -17,10 +17,11 @@ import {
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
-import { PackageCheck, Truck, Users } from "lucide-react";
+import { ClipboardList, PackageCheck, Truck, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface Summary {
+  totalAssigned: number;
   totalDeliveries: number;
   totalDeliveredValue: number;
   activeDeliveryMen: number;
@@ -31,7 +32,9 @@ interface DeliveryManRow {
   name: string;
   mobileNumber: string;
   isActive: boolean;
+  assigned: number;
   deliveries: number;
+  inProgress: number;
   deliveredValue: number;
 }
 
@@ -70,11 +73,14 @@ export default function DeliverymanPerformanceList({
     d.name,
     d.mobileNumber,
     d.isActive ? "Active" : "Inactive",
+    d.assigned,
+    d.inProgress,
     d.deliveries,
     formatCurrencyEnglish(d.deliveredValue),
   ]);
 
   const pdfSummary = [
+    { label: "Total Assigned", value: String(summary?.totalAssigned ?? 0) },
     { label: "Total Deliveries", value: String(summary?.totalDeliveries ?? 0) },
     { label: "Delivered Value", value: formatCurrencyEnglish(summary?.totalDeliveredValue ?? 0) },
     { label: "Men with Deliveries", value: String(summary?.activeDeliveryMen ?? 0) },
@@ -91,7 +97,7 @@ export default function DeliverymanPerformanceList({
             <ReportExcelButton
               title="Deliveryman Performance Report"
               subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
-                            headers={["Name", "Mobile", "Status", "Deliveries", "Delivered Value"]}
+                            headers={["Name", "Mobile", "Status", "Assigned", "In Progress", "Deliveries", "Delivered Value"]}
               rows={pdfRows}
               summary={pdfSummary}
               fileName="deliveryman-performance-report"
@@ -104,11 +110,13 @@ export default function DeliverymanPerformanceList({
                   "Name",
                   "Mobile",
                   "Status",
+                  "Assigned",
+                  "In Progress",
                   "Deliveries",
                   "Delivered Value",
                 ]}
-                flexes={[1.5, 1.2, 0.9, 0.9, 1.2]}
-                alignRight={[3, 4]}
+                flexes={[1.5, 1.2, 0.9, 0.9, 0.9, 0.9, 1.2]}
+                alignRight={[3, 4, 5, 6]}
                 rows={pdfRows}
                 summary={pdfSummary}
                 settings={settings}
@@ -128,18 +136,24 @@ export default function DeliverymanPerformanceList({
         onApply={applyParams}
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <StatsCard
+          icon={ClipboardList}
+          title="Assigned Orders"
+          value={summary?.totalAssigned ?? 0}
+          bgColor="blue"
+        />
+        <StatsCard
+          icon={Truck}
+          title="In Progress"
+          value={summary ? summary.totalAssigned - summary.totalDeliveries : 0}
+          bgColor="orange"
+        />
         <StatsCard
           icon={PackageCheck}
           title="Total Deliveries"
           value={summary?.totalDeliveries ?? 0}
           bgColor="green"
-        />
-        <StatsCard
-          icon={Truck}
-          title="Delivered Value"
-          value={formatCurrencyEnglish(summary?.totalDeliveredValue ?? 0, 0)}
-          bgColor="blue"
         />
         <StatsCard
           icon={Users}
@@ -156,7 +170,9 @@ export default function DeliverymanPerformanceList({
               <TableHead>Name</TableHead>
               <TableHead>Mobile</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Deliveries</TableHead>
+              <TableHead className="text-right">Assigned</TableHead>
+              <TableHead className="text-right">In Progress</TableHead>
+              <TableHead className="text-right">Delivered</TableHead>
               <TableHead className="text-right">Delivered Value</TableHead>
             </TableRow>
           </TableHeader>
@@ -164,7 +180,7 @@ export default function DeliverymanPerformanceList({
             {deliveryMen.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={7}
                   className="text-center py-12 text-muted-foreground"
                 >
                   No delivery men found
@@ -188,6 +204,12 @@ export default function DeliverymanPerformanceList({
                     >
                       {d.isActive ? "Active" : "Inactive"}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {d.assigned}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {d.inProgress}
                   </TableCell>
                   <TableCell className="text-right font-medium">
                     {d.deliveries}

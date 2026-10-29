@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import DeliverymanPerformanceList from "@/components/admin/reports/deliveryman-performance/deliveryman-performance-list";
 import { fetchProtectedData } from "@/utils/api-utils";
-import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 interface ResolvedSearchParams {
   [key: string]: string | string[] | undefined;
@@ -34,6 +34,7 @@ export default async function DeliverymanPerformanceReportPage({
 
   let reportData: {
     summary: {
+      totalAssigned: number;
       totalDeliveries: number;
       totalDeliveredValue: number;
       activeDeliveryMen: number;
@@ -43,7 +44,9 @@ export default async function DeliverymanPerformanceReportPage({
       name: string;
       mobileNumber: string;
       isActive: boolean;
+      assigned: number;
       deliveries: number;
+      inProgress: number;
       deliveredValue: number;
     }[];
   } | null = null;

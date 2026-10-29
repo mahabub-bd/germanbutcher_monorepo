@@ -1167,6 +1167,10 @@ export interface DeliveryMan {
   isActive: boolean;
   totalDeliveries: number;
   totalEarnings: number;
+  /** All-time orders assigned to this delivery man (list endpoint only). */
+  assignedOrders?: number;
+  /** Assigned orders still pending/processing/on_hold/shipped. */
+  inProgressOrders?: number;
   createdAt: string;
   updatedAt: string;
   orders?: Order[];
