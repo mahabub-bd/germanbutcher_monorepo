@@ -366,6 +366,15 @@ export default function OrderReportList({
                         <CheckCircle2 className="h-3 w-3" />
                         {formatOrderElapsedTime(o.orderDate, o.deliveredAt)}
                       </Badge>
+                    ) : o.cancelledAt ? (
+                      <Badge
+                        variant="secondary"
+                        className="bg-gray-100 font-normal text-gray-500 dark:bg-neutral-800 dark:text-neutral-400"
+                        title={`Order → cancel: ${formatDateTime(o.orderDate)} → ${formatDateTime(o.cancelledAt)}`}
+                      >
+                        <XCircle className="h-3 w-3" />
+                        {formatOrderElapsedTime(o.orderDate, o.cancelledAt)}
+                      </Badge>
                     ) : Date.now() - new Date(o.orderDate).getTime() >=
                       3 * 86400000 ? (
                       <Badge
