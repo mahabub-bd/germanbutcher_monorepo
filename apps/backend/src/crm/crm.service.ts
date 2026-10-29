@@ -612,6 +612,62 @@ export class CrmService {
   }
 
   /**
+   * Paginated activities across all customers — the global activity feed.
+   */
+  async getAllActivities(query: {
+    page?: number;
+    limit?: number;
+    type?: string;
+    status?: string;
+    overdue?: boolean;
+  }) {
+    const { page = 1, limit = 10, type, status, overdue } = query;
+    const skip = (page - 1) * limit;
+
+    // Partial selects keep the payload light — the feed only needs names.
+    const qb = this.crmActivityRepository
+      .createQueryBuilder('activity')
+      .leftJoin('activity.user', 'user')
+      .leftJoin('activity.createdBy', 'createdBy')
+      .select([
+        'activity',
+        'user.id',
+        'user.name',
+        'user.mobileNumber',
+        'createdBy.id',
+        'createdBy.name',
+      ]);
+
+    if (type) {
+      qb.andWhere('activity.type = :type', { type });
+    }
+    if (status) {
+      qb.andWhere('activity.status = :status', { status });
+    }
+    // Overdue implies open — matches the dashboard's overdue-tasks counter.
+    if (overdue) {
+      qb.andWhere('activity.status = :openStatus', {
+        openStatus: CrmActivityStatus.OPEN,
+      }).andWhere('activity.dueDate < NOW()');
+    }
+    qb.orderBy('activity.createdAt', 'DESC')
+      .offset(skip)
+      .limit(limit);
+
+    const [data, total] = await qb.getManyAndCount();
+
+    return {
+      message: 'CRM activities retrieved successfully',
+      statusCode: 200,
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  /**
    * Paginated activities for one customer.
    */
   async getActivities(

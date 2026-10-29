@@ -164,6 +164,26 @@ export class CrmController {
     return result;
   }
 
+  // Declared before 'activities/:id'-style routes; "activities" is its own
+  // literal segment so there is no capture conflict.
+  @Get('activities')
+  @ApiOperation({ summary: 'All activities across customers (global feed)' })
+  async getAllActivities(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('type') type?: string,
+    @Query('status') status?: string,
+    @Query('overdue') overdue?: string,
+  ) {
+    return await this.crmService.getAllActivities({
+      page: Number(page) || 1,
+      limit: Number(limit) || 10,
+      type,
+      status,
+      overdue: overdue === 'true',
+    });
+  }
+
   @Get('customers/:id/activities')
   @ApiOperation({ summary: 'Activities for one customer' })
   async getActivities(
