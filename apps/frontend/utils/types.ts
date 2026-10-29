@@ -849,6 +849,8 @@ export interface Order {
   updatedAt: string;
   /** When the order was marked delivered (null until delivered). */
   deliveredAt?: string | null;
+  /** When the order was cancelled (null unless cancelled). */
+  cancelledAt?: string | null;
 }
 
 export interface OrderPayment {
@@ -1171,6 +1173,8 @@ export interface DeliveryMan {
   assignedOrders?: number;
   /** Assigned orders still pending/processing/on_hold/shipped. */
   inProgressOrders?: number;
+  /** All-time assigned orders that were cancelled. */
+  cancelledOrders?: number;
   createdAt: string;
   updatedAt: string;
   orders?: Order[];

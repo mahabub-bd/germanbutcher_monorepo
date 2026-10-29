@@ -8,8 +8,8 @@ import {
   View,
 } from "@react-pdf/renderer";
 
-import type { BusinessSettings } from "@/utils/types";
 import { formatOrderElapsedTime } from "@/utils/order-helper";
+import type { BusinessSettings } from "@/utils/types";
 import { ReportPDFHeader } from "../report-pdf-header";
 
 interface Customer {
@@ -38,6 +38,7 @@ interface Order {
   paidAmount: number;
   orderDate: string;
   deliveredAt?: string | null;
+  cancelledAt?: string | null;
   customer: Customer;
   shippingAddress: ShippingAddress;
   shippingMethod: string;
@@ -193,9 +194,11 @@ export function OrderReportPDF({ orders, settings }: Props) {
             </Text>
             <Text style={styles.cell}>{o.orderStatus}</Text>
             <Text style={styles.cell}>
-              {o.deliveredAt
-                ? formatOrderElapsedTime(o.orderDate, o.deliveredAt)
-                : formatOrderElapsedTime(o.orderDate)}
+              {o.cancelledAt
+                ? formatOrderElapsedTime(o.orderDate, o.cancelledAt)
+                : o.deliveredAt
+                  ? formatOrderElapsedTime(o.orderDate, o.deliveredAt)
+                  : formatOrderElapsedTime(o.orderDate)}
             </Text>
             <Text style={styles.cell}>{o.paymentStatus}</Text>
             <Text style={styles.cell}>{formatCurrency(o.totalValue)}</Text>

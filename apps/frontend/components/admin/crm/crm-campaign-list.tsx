@@ -93,10 +93,14 @@ interface ListResponse {
 
 const SEGMENT_OPTIONS = [
   { value: "all", label: "All customers" },
+  { value: "champions", label: "Champions" },
   { value: "vip", label: "VIP" },
   { value: "loyal", label: "Loyal" },
-  { value: "at_risk", label: "At Risk" },
+  { value: "promising", label: "Promising" },
   { value: "new", label: "New" },
+  { value: "about_to_sleep", label: "About to Sleep" },
+  { value: "at_risk", label: "At Risk" },
+  { value: "lost", label: "Lost" },
   { value: "inactive", label: "Inactive" },
 ];
 

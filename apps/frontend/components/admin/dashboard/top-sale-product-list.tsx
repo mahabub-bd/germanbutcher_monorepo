@@ -112,7 +112,7 @@ export default function TopSaleProductsList() {
       setLoading(true);
       try {
         const data = await fetchProtectedData<BestsellerProduct[]>(
-          `products/bestsellers?limit=${limit}&timeFilter=${timeFilter}`
+          `products/bestsellers?limit=${limit}&timeFilter=${timeFilter}`,
         );
         setProducts(data || []);
       } catch (error) {
@@ -129,8 +129,8 @@ export default function TopSaleProductsList() {
 
   if (loading) {
     return (
-      <Card className="w-full overflow-hidden">
-        <div className="flex justify-center items-center min-h-50">
+      <Card className="w-full gap-0 overflow-hidden rounded-xl border-border/70 py-0 shadow-sm">
+        <div className="flex min-h-50 items-center justify-center">
           <LoadingIndicator message="Loading top selling products..." />
         </div>
       </Card>
@@ -138,65 +138,77 @@ export default function TopSaleProductsList() {
   }
 
   return (
-    <Card className="w-full overflow-hidden">
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div className="flex-1">
-            <CardTitle className="text-lg sm:text-xl font-bold">Top Selling Products</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Products sorted by sales count</CardDescription>
-          </div>
+    <Card className="w-full gap-0 overflow-hidden rounded-xl border-border/70 py-0 shadow-sm">
+      <CardHeader className="flex flex-col gap-4 border-b bg-muted/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="min-w-0">
+          <CardTitle className="text-base font-semibold sm:text-lg">
+            Top Selling Products
+          </CardTitle>
+          <CardDescription className="mt-1 text-xs sm:text-sm">
+            Products sorted by sales count
+          </CardDescription>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <Select
-              value={limit.toString()}
-              onValueChange={(v) => setLimit(parseInt(v))}
-            >
-              <SelectTrigger className="w-25 sm:w-32.5 h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem className="text-xs 2xl:text-sm" value="5">Top 5</SelectItem>
-                <SelectItem className="text-xs 2xl:text-sm" value="10">Top 10</SelectItem>
-                <SelectItem className="text-xs 2xl:text-sm" value="20">Top 20</SelectItem>
-                <SelectItem className="text-xs 2xl:text-sm" value="50">Top 50</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={limit.toString()}
+            onValueChange={(v) => setLimit(parseInt(v))}
+          >
+            <SelectTrigger className="h-9 w-27.5 rounded-lg bg-background text-xs sm:w-30 sm:text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="5">Top 5</SelectItem>
+              <SelectItem value="10">Top 10</SelectItem>
+              <SelectItem value="20">Top 20</SelectItem>
+              <SelectItem value="50">Top 50</SelectItem>
+            </SelectContent>
+          </Select>
 
-            <Select
-              value={timeFilter}
-              onValueChange={(value: TimeFilter) => setTimeFilter(value)}
-            >
-              <SelectTrigger className="w-27.5 sm:w-35 h-8 sm:h-9 text-xs sm:text-sm lg:text-xs 2xl:text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem className="text-xs 2xl:text-sm" value="last_month">Last Month</SelectItem>
-                <SelectItem className="text-xs 2xl:text-sm" value="this_month">This Month</SelectItem>
-                <SelectItem className="text-xs 2xl:text-sm" value="last_3_months">Last 3 Months</SelectItem>
-                <SelectItem className="text-xs 2xl:text-sm" value="last_6_months">Last 6 Months</SelectItem>
-                <SelectItem className="text-xs 2xl:text-sm" value="last_year">Last Year</SelectItem>
-                <SelectItem className="text-xs 2xl:text-sm" value="this_year">This Year</SelectItem>
-                <SelectItem className="text-xs 2xl:text-sm" value="all_time">All Time</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select
+            value={timeFilter}
+            onValueChange={(value: TimeFilter) => setTimeFilter(value)}
+          >
+            <SelectTrigger className="h-9 w-32.5 rounded-lg bg-background text-xs sm:w-35 sm:text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="last_month">Last Month</SelectItem>
+              <SelectItem value="this_month">This Month</SelectItem>
+              <SelectItem value="last_3_months">Last 3 Months</SelectItem>
+              <SelectItem value="last_6_months">Last 6 Months</SelectItem>
+              <SelectItem value="last_year">Last Year</SelectItem>
+              <SelectItem value="this_year">This Year</SelectItem>
+              <SelectItem value="all_time">All Time</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardHeader>
 
-      <CardContent>
-        <div className="overflow-x-auto mx-4 sm:mx-2">
-          <Table className="min-w-180">
-            <TableHeader>
+      <CardContent className="px-3 py-3 sm:px-5 sm:py-4">
+        <div className="overflow-x-auto">
+          <Table className="min-w-190">
+            <TableHeader className="[&_tr]:border-0 [&_tr]:bg-muted/40">
               <TableRow>
-                <TableHead className="w-12.5 sm:w-15 text-xs sm:text-sm font-bold h-9 sm:h-10">Rank</TableHead>
-                <TableHead className="text-xs sm:text-sm font-bold h-9 sm:h-10">Product</TableHead>
-                <TableHead className="text-xs sm:text-sm font-bold h-9 sm:h-10">
+                <TableHead className="h-10 w-16 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Rank
+                </TableHead>
+                <TableHead className="h-10 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Product
+                </TableHead>
+                <TableHead className="h-10 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Category
                 </TableHead>
-                <TableHead className="text-center text-xs sm:text-sm font-bold h-9 sm:h-10">Sold</TableHead>
-                <TableHead className="text-center text-xs sm:text-sm font-bold h-9 sm:h-10">Featured</TableHead>
-                <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10">Price</TableHead>
-                <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10">
+                <TableHead className="h-10 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Sold
+                </TableHead>
+                <TableHead className="h-10 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Featured
+                </TableHead>
+                <TableHead className="h-10 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Price
+                </TableHead>
+                <TableHead className="h-10 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Stock
                 </TableHead>
               </TableRow>
@@ -207,7 +219,7 @@ export default function TopSaleProductsList() {
                 <TableRow>
                   <TableCell
                     colSpan={7}
-                    className="text-center py-6 sm:py-8 text-muted-foreground"
+                    className="py-12 text-center text-muted-foreground"
                   >
                     <Package className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-2 opacity-50" />
                     <p className="font-medium text-sm">No products found</p>
@@ -221,23 +233,35 @@ export default function TopSaleProductsList() {
                   return (
                     <TableRow
                       key={p.id}
-                      className="cursor-pointer"
+                      className="group cursor-pointer"
                       onClick={() => router.push(`/product/${p.slug}`)}
                     >
                       {/* Rank */}
-                      <TableCell className="py-1.5 sm:py-2 text-xs sm:text-sm">
-                        {idx + 1}
+                      <TableCell className="py-3">
+                        <span
+                          className={`inline-flex size-8 items-center justify-center rounded-lg text-xs font-semibold ${
+                            idx === 0
+                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                              : idx === 1
+                                ? "bg-slate-400/15 text-slate-600 dark:text-slate-300"
+                                : idx === 2
+                                  ? "bg-orange-500/15 text-orange-700 dark:text-orange-400"
+                                  : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {String(idx + 1).padStart(2, "0")}
+                        </span>
                       </TableCell>
 
-                      <TableCell className="py-1.5 sm:py-2">
+                      <TableCell className="py-3">
                         <div className="flex items-center gap-2 sm:gap-3">
-                          <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-md overflow-hidden bg-muted shrink-0">
+                          <div className="relative size-11 shrink-0 overflow-hidden rounded-lg bg-muted">
                             {p.attachment?.url ? (
                               <Image
                                 src={p.attachment.url}
                                 alt={p.name}
                                 fill
-                                sizes="(max-width: 640px) 40px, 48px"
+                                sizes="44px"
                                 style={{ objectFit: "cover" }}
                               />
                             ) : (
@@ -247,61 +271,75 @@ export default function TopSaleProductsList() {
                             )}
                           </div>
 
-                          <div className="flex flex-col min-w-0 flex-1">
-                            <span className="font-medium text-xs sm:text-sm truncate max-w-37.5 sm:max-w-55">
+                          <div className="flex min-w-0 flex-1 flex-col">
+                            <span className="max-w-55 truncate text-sm font-medium group-hover:text-primary">
                               {p.name}
                             </span>
-                            <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-37.5 sm:max-w-55">
-                              {p.brand?.name ?? ""}
-                            </span>
+                            {p.brand?.name && (
+                              <span className="max-w-55 truncate text-xs text-muted-foreground">
+                                {p.brand.name}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </TableCell>
 
-                      <TableCell className="py-1.5 sm:py-2">
-                        <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm font-normal">
-                          <Tag className="h-3.5 w-3.5 shrink-0" />
+                      <TableCell className="py-3">
+                        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Tag className="size-3.5 shrink-0" />
                           {p.category?.name ?? "—"}
-                        </Badge>
+                        </span>
                       </TableCell>
 
-                      <TableCell className="text-center py-1.5 sm:py-2">
-                        <Badge variant="secondary" className="h-5 px-1.5 text-xs sm:text-sm font-bold">
-                          <ShoppingCart className="h-3.5 w-3.5" />{p.saleCount}
-                        </Badge>
+                      <TableCell className="py-3 text-center">
+                        <span className="inline-flex items-center gap-1.5 font-semibold tabular-nums">
+                          <ShoppingCart className="size-3.5 text-muted-foreground" />
+                          {p.saleCount}
+                        </span>
                       </TableCell>
 
-                      <TableCell className="text-center py-1.5 sm:py-2">
+                      <TableCell className="py-3 text-center">
                         {p.isFeatured ? (
-                          <Star className="h-4 w-4 sm:h-5 sm:w-5 mx-auto text-yellow-500 fill-yellow-500" />
+                          <Badge
+                            variant="secondary"
+                            className="gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400"
+                          >
+                            <Star className="size-3 fill-current" />
+                            Featured
+                          </Badge>
                         ) : (
-                          <span className="text-xs sm:text-sm text-muted-foreground">—</span>
+                          <span className="text-sm text-muted-foreground">
+                            —
+                          </span>
                         )}
                       </TableCell>
 
                       {/* Price */}
-                      <TableCell className="text-right py-1.5 sm:py-2">
+                      <TableCell className="py-3 text-right">
                         {hasDiscount ? (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <span className="text-xs sm:text-sm text-muted-foreground line-through">
+                          <div className="flex flex-col items-end gap-0.5">
+                            <span className="text-xs text-muted-foreground line-through">
                               {formatCurrencyEnglish(p.sellingPrice)}
                             </span>
-                            <Badge className="h-5 px-1.5 text-xs sm:text-sm font-bold bg-green-600 dark:bg-green-500">
-                              <Banknote className="h-3.5 w-3.5" />{formatCurrencyEnglish(discountedPrice)}
-                            </Badge>
+                            <span className="inline-flex items-center gap-1 font-semibold tabular-nums text-green-700 dark:text-green-400">
+                              <Banknote className="size-3.5" />
+                              {formatCurrencyEnglish(discountedPrice)}
+                            </span>
                           </div>
                         ) : (
-                          <Badge variant="secondary" className="h-5 px-1.5 text-xs sm:text-sm font-bold">
-                            <Banknote className="h-3.5 w-3.5" />{formatCurrencyEnglish(p.sellingPrice)}
-                          </Badge>
+                          <span className="inline-flex items-center gap-1 font-semibold tabular-nums">
+                            <Banknote className="size-3.5 text-muted-foreground" />
+                            {formatCurrencyEnglish(p.sellingPrice)}
+                          </span>
                         )}
                       </TableCell>
 
-                      <TableCell className="text-right py-1.5 sm:py-2">
+                      <TableCell className="py-3 text-right">
                         {/* Stock */}
-                        <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm">
-                          <Boxes className="h-3.5 w-3.5" />{p.stock}
-                        </Badge>
+                        <span className="inline-flex items-center gap-1.5 text-sm tabular-nums text-muted-foreground">
+                          <Boxes className="size-3.5" />
+                          {p.stock}
+                        </span>
                       </TableCell>
                     </TableRow>
                   );

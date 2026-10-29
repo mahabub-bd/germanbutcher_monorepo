@@ -1129,6 +1129,7 @@ export class OrderService {
         'order.orderStatus',
         'order.paymentStatus',
         'order.deliveredAt',
+        'order.cancelledAt',
         'order.totalValue',
         'order.paidAmount',
         'user.id',
@@ -1215,10 +1216,13 @@ export class OrderService {
       );
     }
 
-    // Stamp/clear the delivery timestamp so order→delivery time is exact.
+    // Stamp/clear the terminal timestamps so order→delivery / order→cancel
+    // spans stay exact. CANCELLED never reaches here (routed to cancelOrder
+    // above); this clear only fires when an order is un-cancelled.
     await this.orderRepository.update(id, {
       orderStatus: status,
       deliveredAt: status === OrderStatus.DELIVERED ? new Date() : null,
+      cancelledAt: null,
     });
 
     const order = await this.orderRepository.findOneBy({ id });
@@ -1478,6 +1482,7 @@ export class OrderService {
       paidAmount: Number(order.paidAmount || 0),
       orderDate: order.createdAt,
       deliveredAt: order.deliveredAt,
+      cancelledAt: order.cancelledAt,
       customer: order.user
         ? {
             name: order.user.name,
@@ -2355,6 +2360,7 @@ export class OrderService {
     await this.orderRepository.update(id, {
       orderStatus: OrderStatus.CANCELLED,
       paymentStatus: newPaymentStatus,
+      cancelledAt: new Date(),
     });
 
     // CREATE STATUS TRACK ENTRY WITH CANCELLATION REASON

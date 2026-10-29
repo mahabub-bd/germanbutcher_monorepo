@@ -255,10 +255,11 @@ export function DeliveryManList({
             <TableHead>Name</TableHead>
             <TableHead>Mobile Number</TableHead>
 
-            <TableHead className="text-right">Assigned</TableHead>
-            <TableHead className="text-right">In Progress</TableHead>
-            <TableHead>Deliveries</TableHead>
-            <TableHead>Earnings</TableHead>
+            <TableHead className="text-center">Assigned</TableHead>
+            <TableHead className="text-center">In Progress</TableHead>
+            <TableHead className="text-center">Cancelled</TableHead>
+            <TableHead className="text-center">Deliveries</TableHead>
+            <TableHead className="text-center">Earnings</TableHead>
             <TableHead>Joined</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -286,16 +287,19 @@ export function DeliveryManList({
                 </span>
               </TableCell>
 
-              <TableCell className="text-right font-medium">
+              <TableCell className="text-center font-medium">
                 {deliveryMan.assignedOrders ?? 0}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-center">
                 {deliveryMan.inProgressOrders ?? 0}
               </TableCell>
-              <TableCell>
+              <TableCell className="text-center">
+                {deliveryMan.cancelledOrders ?? 0}
+              </TableCell>
+              <TableCell className="text-center font-medium">
                 {deliveryMan.totalDeliveries}
               </TableCell>
-              <TableCell>
+              <TableCell className="text-center">
                 ৳{Number(deliveryMan.totalEarnings).toFixed(2)}
               </TableCell>
               <TableCell>

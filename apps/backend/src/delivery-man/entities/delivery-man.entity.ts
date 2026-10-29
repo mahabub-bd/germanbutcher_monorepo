@@ -41,4 +41,5 @@ export class DeliveryMan {
   // (non-column) props, TypeORM ignores them on save.
   assignedOrders?: number;
   inProgressOrders?: number;
+  cancelledOrders?: number;
 }
