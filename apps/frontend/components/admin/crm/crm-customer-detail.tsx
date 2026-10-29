@@ -268,138 +268,134 @@ export function CrmCustomerDetail() {
 
   return (
     <div className="w-full space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <PageHeader
-          title={profile.name}
-          description="Customer 360 — profile, orders, cart, reviews, messages and follow-ups"
-          className="mb-0"
-        />
-        <Button variant="outline" size="sm" asChild className="shrink-0">
+      <PageHeader
+        title={profile.name}
+        description="Customer 360 — profile, orders, cart, reviews, messages and follow-ups"
+        className="mb-0"
+      >
+        <Button variant="outline" size="sm" asChild>
           <Link href="/admin/crm/customers">
             <ArrowLeft className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Back to List</span>
           </Link>
         </Button>
-      </div>
-
-      <div className="rounded-lg border bg-card p-4 space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {profile.profilePhoto?.url ? (
-              <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border bg-muted">
-                <Image
-                  src={profile.profilePhoto.url}
-                  alt={profile.name}
-                  fill
-                  className="object-contain"
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" disabled={!can(MENU_URL, "canCreate")}>
+              <Plus className="h-4 w-4 mr-1" /> Add Activity
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Activity</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Type</label>
+                <Select
+                  value={activityForm.type}
+                  onValueChange={(value) =>
+                    setActivityForm({ ...activityForm, type: value })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ACTIVITY_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Title</label>
+                <Input
+                  value={activityForm.title}
+                  onChange={(e) =>
+                    setActivityForm({ ...activityForm, title: e.target.value })
+                  }
+                  placeholder="Follow-up call about bulk order"
                 />
-              </span>
-            ) : (
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border bg-muted text-xl font-semibold text-muted-foreground uppercase">
-                {profile.name?.charAt(0) || "?"}
-                </span>
-            )}
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold">{profile.name}</h2>
-                <SegmentBadge segment={rfm.segment} />
               </div>
-              <div className="text-sm text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:gap-4">
-                <span>{profile.email}</span>
-                {profile.mobileNumber && (
-                  <span className="flex items-center gap-1">
-                    <Phone className="h-3 w-3" /> {profile.mobileNumber}
-                  </span>
-                )}
-                {defaultArea && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3" /> {defaultArea}
-                  </span>
-                )}
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Details</label>
+                <Textarea
+                  value={activityForm.description}
+                  onChange={(e) =>
+                    setActivityForm({
+                      ...activityForm,
+                      description: e.target.value,
+                    })
+                  }
+                  placeholder="Optional details..."
+                />
               </div>
-            </div>
-          </div>
-
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" disabled={!can(MENU_URL, "canCreate")}>
-                <Plus className="h-4 w-4 mr-1" /> Add Activity
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Activity</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3">
+              {activityForm.type === "task" && (
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Type</label>
-                  <Select
-                    value={activityForm.type}
-                    onValueChange={(value) =>
-                      setActivityForm({ ...activityForm, type: value })
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ACTIVITY_TYPE_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Title</label>
+                  <label className="text-sm font-medium">Due date</label>
                   <Input
-                    value={activityForm.title}
-                    onChange={(e) =>
-                      setActivityForm({ ...activityForm, title: e.target.value })
-                    }
-                    placeholder="Follow-up call about bulk order"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Details</label>
-                  <Textarea
-                    value={activityForm.description}
+                    type="date"
+                    value={activityForm.dueDate}
                     onChange={(e) =>
                       setActivityForm({
                         ...activityForm,
-                        description: e.target.value,
+                        dueDate: e.target.value,
                       })
                     }
-                    placeholder="Optional details..."
                   />
                 </div>
-                {activityForm.type === "task" && (
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">Due date</label>
-                    <Input
-                      type="date"
-                      value={activityForm.dueDate}
-                      onChange={(e) =>
-                        setActivityForm({
-                          ...activityForm,
-                          dueDate: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                )}
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddActivity} disabled={isSubmitting}>
-                  {isSubmitting ? "Saving..." : "Save Activity"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddActivity} disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Save Activity"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </PageHeader>
+
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <div className="flex items-center gap-3">
+          {profile.profilePhoto?.url ? (
+            <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border bg-muted">
+              <Image
+                src={profile.profilePhoto.url}
+                alt={profile.name}
+                fill
+                className="object-contain"
+              />
+            </span>
+          ) : (
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border bg-muted text-xl font-semibold text-muted-foreground uppercase">
+              {profile.name?.charAt(0) || "?"}
+            </span>
+          )}
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-semibold">{profile.name}</h2>
+              <SegmentBadge segment={rfm.segment} />
+            </div>
+            <div className="text-sm text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:gap-4">
+              <span>{profile.email}</span>
+              {profile.mobileNumber && (
+                <span className="flex items-center gap-1">
+                  <Phone className="h-3 w-3" /> {profile.mobileNumber}
+                </span>
+              )}
+              {defaultArea && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> {defaultArea}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -435,7 +431,7 @@ export function CrmCustomerDetail() {
       </div>
 
       <Tabs defaultValue="orders">
-        <TabsList className="h-auto w-full justify-start gap-2 overflow-x-auto rounded-none bg-transparent p-0 md:w-fit">
+        <TabsList className="scrollbar-hide h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit">
           {(
             [
               {
@@ -503,10 +499,11 @@ export function CrmCustomerDetail() {
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className={`h-auto flex-none gap-1.5 rounded-lg border-0 px-4 py-2 font-semibold shadow-none transition-colors data-[state=active]:shadow-none ${tab.colors} ${tab.activeColors}`}
+              className={`h-auto flex-none gap-1.5 rounded-lg border-0 px-2.5 py-1.5 text-xs font-semibold shadow-none transition-colors sm:px-4 sm:py-2 sm:text-sm data-[state=active]:shadow-none ${tab.colors} ${tab.activeColors}`}
             >
               <tab.icon className="size-4" />
-              {tab.label}
+              <span className="hidden md:inline">{tab.label}</span>
+              <span className="sr-only md:hidden">{tab.label}</span>
               <span className="ml-0.5 rounded-full bg-white/40 px-1.5 text-[11px] font-medium tabular-nums dark:bg-black/20">
                 {tab.count}
               </span>

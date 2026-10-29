@@ -106,13 +106,15 @@ export function CrmDashboard() {
           description="Carts inactive 90+ days"
           bgColor="orange"
         />
-        <StatsCard
-          title="Open Tasks"
-          value={stats.tasks.open}
-          icon={ListTodo}
-          description="Pending follow-ups"
-          bgColor="purple"
-        />
+        <Link href="/admin/crm/tasks" className="block">
+          <StatsCard
+            title="Open Tasks"
+            value={stats.tasks.open}
+            icon={ListTodo}
+            description="Pending follow-ups"
+            bgColor="purple"
+          />
+        </Link>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -138,21 +140,25 @@ export function CrmDashboard() {
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" /> Attention Needed
           </h3>
-          <div className="grid grid-cols-2 gap-2 lg:[&>div]:min-h-0 lg:[&>div]:p-2">
-            <StatsCard
-              title="Overdue tasks"
-              value={stats.tasks.overdue}
-              icon={AlertTriangle}
-              description="Past due date"
-              bgColor="orange"
-            />
-            <StatsCard
-              title="Activities (7 days)"
-              value={stats.activitiesLast7Days}
-              icon={Activity}
-              description="Notes, calls, emails"
-              bgColor="blue"
-            />
+          <div className="grid grid-cols-2 gap-2 lg:*:min-h-0 lg:*:p-2">
+            <Link href="/admin/crm/tasks?status=open&overdue=true" className="block">
+              <StatsCard
+                title="Overdue tasks"
+                value={stats.tasks.overdue}
+                icon={AlertTriangle}
+                description="Past due date"
+                bgColor="orange"
+              />
+            </Link>
+            <Link href="/admin/crm/activities" className="block">
+              <StatsCard
+                title="Activities (7 days)"
+                value={stats.activitiesLast7Days}
+                icon={Activity}
+                description="Notes, calls, emails"
+                bgColor="blue"
+              />
+            </Link>
             <StatsCard
               title="Cart value at risk"
               value={stats.abandonedCarts.totalValue.toLocaleString()}
