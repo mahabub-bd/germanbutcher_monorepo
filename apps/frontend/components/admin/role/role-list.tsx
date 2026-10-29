@@ -121,13 +121,13 @@ export function RoleList() {
 
   const renderTableView = () => (
     <div>
-      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0 min-w-160">
         <TableHeader>
           <TableRow>
             <TableHead>Role Name</TableHead>
             <TableHead>Description</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
-            <TableHead className="hidden md:table-cell">Created Date</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Created Date</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -150,7 +150,7 @@ export function RoleList() {
                   {role.description || "No description"}
                 </p>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${role.isActive
                       ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
@@ -165,7 +165,7 @@ export function RoleList() {
                   {role.isActive ? "Active" : "Inactive"}
                 </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell text-muted-foreground">
+              <TableCell className="text-muted-foreground">
                 {formatDateTime(role.createdAt)}
               </TableCell>
               <TableCell className="text-right">

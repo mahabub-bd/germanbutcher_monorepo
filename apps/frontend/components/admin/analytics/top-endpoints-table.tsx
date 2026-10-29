@@ -74,17 +74,17 @@ export function TopEndpointsTable({
         ) : (
           <>
             <div className="overflow-x-auto">
-              <Table className="min-w-0 sm:min-w-[560px]">
+              <Table className="min-w-160">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-8">#</TableHead>
                     <TableHead>Endpoint</TableHead>
-                    <TableHead className="hidden sm:table-cell">Method</TableHead>
-                    <TableHead className="hidden w-36 md:table-cell">
+                    <TableHead>Method</TableHead>
+                    <TableHead className="w-36">
                       Traffic share
                     </TableHead>
                     <TableHead className="text-right">Requests</TableHead>
-                    <TableHead className="hidden text-right sm:table-cell">
+                    <TableHead className="text-right">
                       Avg time
                     </TableHead>
                   </TableRow>
@@ -102,25 +102,13 @@ export function TopEndpointsTable({
                         <span className="block truncate">
                           {endpoint.endpoint}
                         </span>
-                        {/* The method/time columns are hidden on phones, so
-                            keep the context inline instead of scrolling. */}
-                        <span className="mt-1 flex items-center gap-1.5 font-sans sm:hidden">
-                          <Badge className={getMethodColor(endpoint.method)}>
-                            {endpoint.method}
-                          </Badge>
-                          <span
-                            className={`text-[11px] tabular-nums ${getLatencyClass(endpoint.avgResponseTime)}`}
-                          >
-                            {endpoint.avgResponseTime.toFixed(0)}ms avg
-                          </span>
-                        </span>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell">
+                      <TableCell>
                         <Badge className={getMethodColor(endpoint.method)}>
                           {endpoint.method}
                         </Badge>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell>
                         <div className="h-1.5 rounded-full bg-muted">
                           <div
                             className="h-1.5 rounded-full bg-primaryColor"
@@ -136,7 +124,7 @@ export function TopEndpointsTable({
                         {endpoint.count.toLocaleString()}
                       </TableCell>
                       <TableCell
-                        className={`hidden text-right tabular-nums sm:table-cell ${getLatencyClass(endpoint.avgResponseTime)}`}
+                        className={`text-right tabular-nums ${getLatencyClass(endpoint.avgResponseTime)}`}
                         title={`${endpoint.avgResponseTime.toFixed(0)}ms average response time`}
                       >
                         {endpoint.avgResponseTime.toFixed(0)}ms

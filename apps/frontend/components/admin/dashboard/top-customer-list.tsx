@@ -172,20 +172,20 @@ export function TopCustomersList() {
 
       <CardContent>
         <div className="overflow-x-auto mx-4 sm:mx-2">
-          <Table>
+          <Table className="min-w-180">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12.5 sm:w-15 text-xs sm:text-sm font-bold h-9 sm:h-10">Rank</TableHead>
                 <TableHead className="text-xs sm:text-sm font-bold h-9 sm:h-10">Customer</TableHead>
-                <TableHead className="hidden md:table-cell text-xs sm:text-sm font-bold h-9 sm:h-10">
+                <TableHead className="text-xs sm:text-sm font-bold h-9 sm:h-10">
                   Contact
                 </TableHead>
-                <TableHead className="hidden xl:table-cell text-xs sm:text-sm font-bold h-9 sm:h-10">
+                <TableHead className="text-xs sm:text-sm font-bold h-9 sm:h-10">
                   Area
                 </TableHead>
                 <TableHead className="text-center text-xs sm:text-sm font-bold h-9 sm:h-10">Orders</TableHead>
                 <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10">Spent</TableHead>
-                <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10 hidden lg:table-cell">
+                <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10">
                   Avg
                 </TableHead>
               </TableRow>
@@ -230,14 +230,14 @@ export function TopCustomersList() {
                     </TableCell>
 
                     {/* Contact */}
-                    <TableCell className="hidden md:table-cell py-1.5 sm:py-2">
+                    <TableCell className="py-1.5 sm:py-2">
                       <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm">
                         <Phone className="h-3.5 w-3.5 shrink-0" />{customer.mobileNumber}
                       </Badge>
                     </TableCell>
 
                     {/* Area */}
-                    <TableCell className="hidden xl:table-cell py-1.5 sm:py-2">
+                    <TableCell className="py-1.5 sm:py-2">
                       <span className="text-xs sm:text-sm">
                         {customer.area || "—"}
                       </span>
@@ -265,7 +265,7 @@ export function TopCustomersList() {
                     </TableCell>
 
                     {/* Average */}
-                    <TableCell className="text-right py-1.5 sm:py-2 hidden lg:table-cell">
+                    <TableCell className="text-right py-1.5 sm:py-2">
                       <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm font-normal text-muted-foreground">
                         <BarChart3 className="h-3.5 w-3.5" />
                         {customer.statistics.totalOrders > 0

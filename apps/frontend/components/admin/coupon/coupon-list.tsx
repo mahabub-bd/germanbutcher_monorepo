@@ -2,6 +2,7 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -31,7 +31,6 @@ import {
   Pencil,
   Plus,
   Receipt,
-  Search,
   Tag,
   TicketPercent,
   Trash2,
@@ -240,7 +239,7 @@ export function CouponList() {
           <Button variant="outline" asChild>
             <Link href="/admin/marketing/coupon/usage-logs">
               <Eye className="h-4 w-4 mr-1" />
-              Usage Logs
+              <span className="hidden sm:inline">Usage Logs</span>
             </Link>
           </Button>
         </PageHeader>
@@ -335,15 +334,12 @@ export function CouponList() {
                 </p>
               </div>
             </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by code..."
-                className="pl-9"
-              />
-            </div>
+            <TableSearch
+              wrapperClassName="w-full sm:w-72"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by code..."
+            />
           </div>
 
           {isLoading ? (
@@ -351,18 +347,14 @@ export function CouponList() {
           ) : filteredCoupons.length === 0 ? (
             renderEmptyState()
           ) : (
-            <Table>
+            <Table className="min-w-180">
               <TableHeader>
                 <TableRow>
                   <TableHead>Code</TableHead>
                   <TableHead>Discount</TableHead>
                   <TableHead>Usage</TableHead>
-                  <TableHead className="hidden md:table-cell">
-                    Min. Order
-                  </TableHead>
-                  <TableHead className="hidden lg:table-cell">
-                    Valid Period
-                  </TableHead>
+                  <TableHead>Min. Order</TableHead>
+                  <TableHead>Valid Period</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -420,12 +412,12 @@ export function CouponList() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell>
                         {coupon.minOrderAmount
                           ? formatCurrencyEnglish(coupon.minOrderAmount)
                           : "No minimum"}
                       </TableCell>
-                      <TableCell className="hidden lg:table-cell">
+                      <TableCell>
                         <div className="text-sm">
                           {formatDateTime(coupon.validFrom)}
                         </div>

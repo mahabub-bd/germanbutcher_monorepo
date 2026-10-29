@@ -5,6 +5,7 @@ import type React from "react";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -34,7 +34,6 @@ import {
   Pencil,
   Phone,
   Plus,
-  Search,
   Store,
   Trash2,
   XCircle,
@@ -249,20 +248,20 @@ export function SalesPointList({
 
   const renderTableView = () => (
 
-    <Table>
+    <Table className="min-w-215">
       <TableHeader>
         <TableRow>
           <TableHead>Logo</TableHead>
           <TableHead>Banner</TableHead>
           <TableHead>Name</TableHead>
-          <TableHead className="hidden md:table-cell">Contact</TableHead>
-          <TableHead className="hidden lg:table-cell">Website</TableHead>
-          <TableHead className="hidden md:table-cell">Shops</TableHead>
+          <TableHead>Contact</TableHead>
+          <TableHead>Website</TableHead>
+          <TableHead>Shops</TableHead>
 
-          <TableHead className="hidden md:table-cell">
+          <TableHead>
             Display Order
           </TableHead>
-          <TableHead className="hidden md:table-cell">Status</TableHead>
+          <TableHead>Status</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -298,7 +297,7 @@ export function SalesPointList({
                 <div className="font-medium">{salesPoint.name}</div>
               </div>
             </TableCell>
-            <TableCell className="hidden md:table-cell">
+            <TableCell>
               <div className="space-y-1">
                 <div className="flex items-center gap-1 text-sm">
                   <Phone className="h-3 w-3" />
@@ -310,7 +309,7 @@ export function SalesPointList({
                 </div>
               </div>
             </TableCell>
-            <TableCell className="hidden lg:table-cell">
+            <TableCell>
               {salesPoint.website ? (
                 <a
                   href={salesPoint.website}
@@ -325,7 +324,7 @@ export function SalesPointList({
                 <span className="text-sm text-muted-foreground">-</span>
               )}
             </TableCell>
-            <TableCell className="hidden md:table-cell">
+            <TableCell>
               <div className="flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
                 <span className="text-sm">
@@ -335,10 +334,10 @@ export function SalesPointList({
             </TableCell>
 
 
-            <TableCell className="hidden md:table-cell">
+            <TableCell>
               {salesPoint.order}
             </TableCell>
-            <TableCell className="hidden md:table-cell">
+            <TableCell>
               <ActiveStatusToggle
                 isActive={salesPoint.isActive}
                 disabled={togglingId === salesPoint.id}
@@ -396,16 +395,12 @@ export function SalesPointList({
 
         <div className="space-y-4">
           <div className="flex flex-row justify-between gap-2">
-            <div className="relative w-full sm:max-w-xs min-w-0">
-              <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search sales points..."
-                className="h-8 pl-8"
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
-            </div>
+            <TableSearch
+              wrapperClassName="w-full sm:max-w-xs min-w-0"
+              placeholder="Search sales points..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
             <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

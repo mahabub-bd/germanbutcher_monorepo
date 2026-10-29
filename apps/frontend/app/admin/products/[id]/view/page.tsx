@@ -1,6 +1,7 @@
 import ProductDetail from "@/components/admin/products/product-detail";
 import { fetchData } from "@/utils/api-utils";
 import { Product } from "@/utils/types";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default async function ProductPage({
   params,
@@ -12,8 +13,8 @@ export default async function ProductPage({
   const productData = await fetchData<Product>(`products/${id}`);
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <ProductDetail product={productData} />
-    </div>
+    </AdminPageContainer>
   );
 }

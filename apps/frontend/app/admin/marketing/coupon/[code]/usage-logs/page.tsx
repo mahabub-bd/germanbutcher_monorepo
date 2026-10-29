@@ -6,6 +6,7 @@ import { fetchProtectedData } from "@/utils/api-utils";
 import { Coupon } from "@/utils/types";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function CouponUsageLogsPage() {
   const params = useParams();
@@ -35,20 +36,20 @@ export default function CouponUsageLogsPage() {
 
   if (!coupon) {
     return (
-      <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <AdminPageContainer>
         <div className="text-center">
           <h2 className="text-xl font-semibold">Coupon not found</h2>
           <p className="text-muted-foreground mt-2">
             The requested coupon could not be found.
           </p>
         </div>
-      </div>
+      </AdminPageContainer>
     );
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <CouponUsageLogList couponCode={code} />
-    </div>
+    </AdminPageContainer>
   );
 }

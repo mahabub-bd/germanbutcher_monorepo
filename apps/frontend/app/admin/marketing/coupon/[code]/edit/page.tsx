@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditCouponPage() {
   const router = useRouter();
@@ -46,7 +47,7 @@ export default function EditCouponPage() {
 
   if (!coupon) {
     return (
-      <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <AdminPageContainer>
         <div className="text-center">
           <h2 className="text-xl font-semibold">Coupon not found</h2>
           <p className="text-muted-foreground mt-2">
@@ -56,7 +57,7 @@ export default function EditCouponPage() {
             <Link href="/admin/marketing/coupon-list">Back to Coupons</Link>
           </Button>
         </div>
-      </div>
+      </AdminPageContainer>
     );
   }
 

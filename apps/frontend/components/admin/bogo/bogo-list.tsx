@@ -2,6 +2,7 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -33,7 +33,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  Search,
   Trash2,
   XCircle,
 } from "lucide-react";
@@ -223,7 +222,7 @@ export function BogoList() {
           <Button variant="outline" asChild>
             <Link href="/admin/marketing/bogo-usage-logs">
               <Eye className="h-4 w-4 mr-1" />
-              Usage Logs
+              <span className="hidden sm:inline">Usage Logs</span>
             </Link>
           </Button>
         </PageHeader>
@@ -258,15 +257,12 @@ export function BogoList() {
                 </p>
               </div>
             </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name..."
-                className="pl-9"
-              />
-            </div>
+            <TableSearch
+              wrapperClassName="w-full sm:w-72"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name..."
+            />
           </div>
 
           {isLoading ? (
@@ -274,16 +270,14 @@ export function BogoList() {
           ) : filteredCampaigns.length === 0 ? (
             renderEmptyState()
           ) : (
-            <Table>
+            <Table className="min-w-180">
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Deal</TableHead>
-                  <TableHead className="hidden md:table-cell">Scope</TableHead>
+                  <TableHead>Scope</TableHead>
                   <TableHead>Usage</TableHead>
-                  <TableHead className="hidden lg:table-cell">
-                    Valid Period
-                  </TableHead>
+                  <TableHead>Valid Period</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -320,7 +314,7 @@ export function BogoList() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell>
                         <span className="text-sm text-muted-foreground">
                           {renderScope(campaign)}
                         </span>
@@ -343,7 +337,7 @@ export function BogoList() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="hidden lg:table-cell">
+                      <TableCell>
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-1.5 text-sm">
                             <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />

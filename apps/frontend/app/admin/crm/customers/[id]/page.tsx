@@ -1,4 +1,5 @@
 import { CrmCustomerDetail } from "@/components/admin/crm/crm-customer-detail";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export const metadata = {
   title: "Customer 360",
@@ -7,8 +8,8 @@ export const metadata = {
 
 export default function CrmCustomerDetailPage() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <CrmCustomerDetail />
-    </div>
+    </AdminPageContainer>
   );
 }

@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditRolePage() {
   const router = useRouter();
@@ -43,18 +44,18 @@ export default function EditRolePage() {
 
   if (isLoading) {
     return (
-      <div className="md:p-4 p-2 space-y-6 rounded-sm flex justify-center items-center min-h-[60vh]">
+      <AdminPageContainer className="md:p-4 p-2 space-y-6 rounded-sm flex justify-center items-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Loading role data...</p>
         </div>
-      </div>
+      </AdminPageContainer>
     );
   }
 
   if (!role) {
     return (
-      <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <AdminPageContainer>
         <div className="text-center">
           <h2 className="text-xl font-semibold">Role not found</h2>
           <p className="text-muted-foreground mt-2">
@@ -64,12 +65,12 @@ export default function EditRolePage() {
             <Link href="/admin/user/role/role-list">Back to Roles</Link>
           </Button>
         </div>
-      </div>
+      </AdminPageContainer>
     );
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Role Information</CardTitle>
@@ -80,6 +81,6 @@ export default function EditRolePage() {
         </div>
 
       <RoleForm mode="edit" role={role} onSuccess={handleSuccess} />
-    </div>
+    </AdminPageContainer>
   );
 }

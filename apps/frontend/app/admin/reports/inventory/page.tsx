@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import InventoryList from "@/components/admin/reports/inventory/inventory-list";
 import { fetchProtectedData } from "@/utils/api-utils";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default async function InventoryReportPage() {
   let reportData: {
@@ -31,11 +32,11 @@ export default async function InventoryReportPage() {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <InventoryList
         summary={reportData?.summary ?? null}
         products={reportData?.products ?? []}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

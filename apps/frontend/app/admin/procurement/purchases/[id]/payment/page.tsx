@@ -8,6 +8,7 @@ import type { Purchase } from "@/utils/types";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function AddPaymentPage() {
   const params = useParams();
@@ -39,7 +40,7 @@ export default function AddPaymentPage() {
     parseFloat(purchase.totalValue) - parseFloat(purchase.amountPaid);
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Add New Payment</CardTitle>
@@ -53,6 +54,6 @@ export default function AddPaymentPage() {
       <div>
         <PaymentForm purchaseId={parseInt(purchaseId)} maxAmount={maxAmount} />
       </div>
-    </div>
+    </AdminPageContainer>
   );
 }

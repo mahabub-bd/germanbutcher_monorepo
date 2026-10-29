@@ -1,4 +1,5 @@
 import { CrmCampaignList } from "@/components/admin/crm/crm-campaign-list";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export const metadata = {
   title: "CRM Campaigns",
@@ -7,8 +8,8 @@ export const metadata = {
 
 export default function CrmCampaignsPage() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <CrmCampaignList />
-    </div>
+    </AdminPageContainer>
   );
 }

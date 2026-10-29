@@ -1,9 +1,10 @@
 import { CouponList } from "@/components/admin/coupon/coupon-list";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function CouponsPage() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <CouponList />
-    </div>
+    </AdminPageContainer>
   );
 }

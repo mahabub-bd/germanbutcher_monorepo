@@ -5,6 +5,7 @@ import CustomerListReport, {
   type Summary,
 } from "@/components/admin/reports/customer-list/customer-list";
 import { fetchProtectedData } from "@/utils/api-utils";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 interface CustomerListReportData {
   customers: Customer[];
@@ -73,7 +74,7 @@ export default async function CustomerListReportPage({ searchParams }: Props) {
   };
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <CustomerListReport
         customers={customers}
         fromDate={fromDate}
@@ -81,6 +82,6 @@ export default async function CustomerListReportPage({ searchParams }: Props) {
         preset={preset}
         summary={summaryWithDates}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

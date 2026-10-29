@@ -102,8 +102,8 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
         />
         <Button className="ml-2 bg-primaryColor text-primary-foreground hover:bg-primary/90" asChild>
           <Link href="/admin/marketing/coupon/coupon-list">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Coupons
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back to Coupons</span>
           </Link>
         </Button>
       </div>
@@ -172,7 +172,9 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
                 <TableHead>Order Status</TableHead>
                 <TableHead>Payment Status</TableHead>
                 <TableHead>Used At</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

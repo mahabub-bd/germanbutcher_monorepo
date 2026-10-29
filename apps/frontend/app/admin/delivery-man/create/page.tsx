@@ -3,6 +3,7 @@
 import { DeliveryManForm } from "@/components/admin/delivery-man/delivery-man-form";
 import { FormPageHeader } from "@/components/admin/form-page-header";
 import { useRouter } from "next/navigation";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function CreateDeliveryManPage() {
   const router = useRouter();
@@ -12,7 +13,7 @@ export default function CreateDeliveryManPage() {
   };
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <FormPageHeader
         title="Create New Delivery Man"
         description="Add a new delivery person to the system."
@@ -21,6 +22,6 @@ export default function CreateDeliveryManPage() {
       />
 
       <DeliveryManForm mode="create" onSuccess={handleSuccess} />
-    </div>
+    </AdminPageContainer>
   );
 }

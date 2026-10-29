@@ -4,6 +4,7 @@ import { UnitForm } from "@/components/admin/products/units/unit-form";
 import { FormPageHeader } from "@/components/admin/form-page-header";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function AddUnitPage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function AddUnitPage() {
   };
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <FormPageHeader
         title="Unit Information"
         description="Enter the details for the new measurement unit."
@@ -23,6 +24,6 @@ export default function AddUnitPage() {
       />
 
       <UnitForm mode="create" onSuccess={handleSuccess} />
-    </div>
+    </AdminPageContainer>
   );
 }

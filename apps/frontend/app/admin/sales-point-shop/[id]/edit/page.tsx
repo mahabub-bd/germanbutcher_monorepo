@@ -9,6 +9,7 @@ import type { Shop } from "@/utils/types";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditShopPage() {
   const params = useParams();
@@ -44,7 +45,7 @@ export default function EditShopPage() {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <div className="flex justify-between items-center">
         <div>
           <CardTitle>Edit Shop</CardTitle>
@@ -56,6 +57,6 @@ export default function EditShopPage() {
         </Button>
       </div>
       <ShopForm mode="edit" shop={shop} />
-    </div>
+    </AdminPageContainer>
   );
 }

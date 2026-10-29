@@ -260,20 +260,20 @@ export function BogoUsageReport({
         <LoadingIndicator message="Loading BOGO usage report..." />
       ) : (
         <div className="mt-2">
-          <Table className="[&_td]:py-4 [&_td]:px-3 [&_th]:pb-3 [&_th]:pt-0 [&_th]:px-3">
+          <Table className="min-w-180 [&_td]:py-4 [&_td]:px-3 [&_th]:pb-3 [&_th]:pt-0 [&_th]:px-3">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[12%]">Date</TableHead>
                 <TableHead className="w-[28%]">Customer</TableHead>
                 <TableHead className="w-[16%]">Order</TableHead>
                 <TableHead className="w-[17%]">Campaign</TableHead>
-                <TableHead className="hidden md:table-cell md:w-[10%] md:text-right">
+                <TableHead className="w-[10%] text-right">
                   Free Units
                 </TableHead>
-                <TableHead className="hidden md:table-cell md:w-[11%] md:text-right">
+                <TableHead className="w-[11%] text-right">
                   Discount
                 </TableHead>
-                <TableHead className="hidden md:table-cell md:w-[12%] md:text-right">
+                <TableHead className="w-[12%] text-right">
                   Order Total
                 </TableHead>
               </TableRow>
@@ -319,15 +319,15 @@ export function BogoUsageReport({
                         {row.campaignName}
                       </Badge>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-right whitespace-nowrap">
+                    <TableCell className="text-right whitespace-nowrap">
                       <span className="text-sm">{row.freeUnits ?? 0}</span>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-right whitespace-nowrap">
+                    <TableCell className="text-right whitespace-nowrap">
                       <span className="text-sm font-medium text-green-700 dark:text-green-400">
                         −{formatMoney(row.discountAmount)}
                       </span>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-right whitespace-nowrap">
+                    <TableCell className="text-right whitespace-nowrap">
                       <span className="text-sm">{formatMoney(row.orderTotal)}</span>
                     </TableCell>
                   </TableRow>

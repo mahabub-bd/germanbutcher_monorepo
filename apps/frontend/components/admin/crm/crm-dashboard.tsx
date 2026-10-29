@@ -182,24 +182,23 @@ export function CrmDashboard() {
             View All
           </Link>
         </div>
-        <Table>
+        <Table className="min-w-180">
           <TableHeader>
             <TableRow>
               <TableHead>Customer</TableHead>
-              <TableHead className="hidden lg:table-cell">Mobile</TableHead>
-              <TableHead className="hidden sm:table-cell">Segment</TableHead>
-              <TableHead className="hidden md:table-cell">Area</TableHead>
-
+              <TableHead>Mobile</TableHead>
+              <TableHead>Segment</TableHead>
+              <TableHead>Area</TableHead>
               <TableHead>Orders</TableHead>
               <TableHead>Total Spent</TableHead>
-              <TableHead className="hidden md:table-cell">Last Order</TableHead>
+              <TableHead>Last Order</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {stats.topCustomers.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={7}
                   className="text-center text-muted-foreground py-8"
                 >
                   No customers yet.
@@ -227,7 +226,7 @@ export function CrmDashboard() {
                       </Link>
                     </div>
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell">
+                  <TableCell>
                     {customer.mobileNumber ? (
                       <Link
                         href={`tel:${customer.mobileNumber}`}
@@ -239,10 +238,10 @@ export function CrmDashboard() {
                       <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">
+                  <TableCell>
                     <SegmentBadge segment={customer.segment} />
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     {customer.area ? (
                       <span className="flex items-center gap-1 text-sm text-muted-foreground">
                         <MapPin className="h-3 w-3" />
@@ -255,7 +254,7 @@ export function CrmDashboard() {
 
                   <TableCell>{customer.rfm.orderCount}</TableCell>
                   <TableCell>{customer.rfm.totalSpent.toLocaleString()}</TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     {customer.rfm.lastOrderAt
                       ? formatDateTime(customer.rfm.lastOrderAt)
                       : "—"}

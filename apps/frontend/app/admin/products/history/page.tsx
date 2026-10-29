@@ -1,6 +1,7 @@
 import ProductActivityHistory from "@/components/admin/products/product-activity-history";
 import { PageHeader } from "@/components/admin/page-header";
 import { ArrowLeft, History } from "lucide-react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export const metadata = {
   title: "Product History",
@@ -8,7 +9,7 @@ export const metadata = {
 
 export default function ProductHistoryPage() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <PageHeader
         title="Product History"
         titleIcon={<History className="size-6" />}
@@ -17,6 +18,6 @@ export default function ProductHistoryPage() {
         actionIcon={<ArrowLeft className="mr-2 h-4 w-4" />}
       />
       <ProductActivityHistory />
-    </div>
+    </AdminPageContainer>
   );
 }

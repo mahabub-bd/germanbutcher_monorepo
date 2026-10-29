@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { CouponUsageReport } from "@/components/admin/reports/coupon-usage-report";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 interface ResolvedSearchParams {
   [key: string]: string | string[] | undefined;
@@ -20,12 +21,12 @@ export default async function CouponUsageReportPage({ searchParams }: Props) {
     typeof resolvedParams.toDate === "string" ? resolvedParams.toDate : undefined;
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <CouponUsageReport
         initialPreset={preset}
         initialFromDate={fromDate}
         initialToDate={toDate}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

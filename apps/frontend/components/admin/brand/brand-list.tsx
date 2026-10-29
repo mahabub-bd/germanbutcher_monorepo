@@ -12,7 +12,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -32,6 +31,7 @@ import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { Brand } from "@/utils/types";
 import {
@@ -42,7 +42,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  Search,
   Tag,
   Trash2,
   XCircle,
@@ -325,14 +324,12 @@ export function BrandList({
 
   const renderTableView = () => (
     <div className="overflow-x-auto">
-      <Table>
+      <Table className="min-w-160">
         <TableHeader>
           <TableRow>
             <TableHead>Brand</TableHead>
-            <TableHead className="hidden lg:table-cell">Description</TableHead>
-            <TableHead className="hidden md:table-cell text-center">
-              Products
-            </TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead className="text-center">Products</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -353,18 +350,18 @@ export function BrandList({
                   </span>
                   <div className="min-w-0">
                     <p className="font-medium leading-tight">{brand.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 lg:hidden">
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                       {brand.description || "No description"}
                     </p>
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="hidden lg:table-cell text-muted-foreground max-w-xs">
+              <TableCell className="text-muted-foreground max-w-xs">
                 <span className="line-clamp-2 text-sm">
                   {brand.description || "No description"}
                 </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell text-center">
+              <TableCell className="text-center">
                 <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted">
                   <Boxes className="h-3 w-3" />
                   {brand.products?.length || 0}
@@ -463,16 +460,12 @@ export function BrandList({
               </div>
             </div>
             <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
-              <div className="relative w-full sm:w-64 min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search brands..."
-                  className="h-8 pl-9"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                />
-              </div>
+              <TableSearch
+                wrapperClassName="w-full sm:w-64"
+                placeholder="Search brands..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
               {renderFiltersMenu()}
             </div>
           </div>

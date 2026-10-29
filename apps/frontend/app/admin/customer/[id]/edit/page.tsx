@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditUserPage() {
   const router = useRouter();
@@ -50,18 +51,18 @@ export default function EditUserPage() {
 
   if (isLoading) {
     return (
-      <div className="md:p-4 p-2 space-y-6 rounded-sm flex justify-center items-center min-h-[60vh]">
+      <AdminPageContainer className="md:p-4 p-2 space-y-6 rounded-sm flex justify-center items-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Loading user data...</p>
         </div>
-      </div>
+      </AdminPageContainer>
     );
   }
 
   if (!user) {
     return (
-      <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <AdminPageContainer>
         <div className="text-center">
           <h2 className="text-xl font-semibold">User not found</h2>
           <p className="text-muted-foreground mt-2">
@@ -71,12 +72,12 @@ export default function EditUserPage() {
             <Link href="/admin/user/user-list">Back to Users</Link>
           </Button>
         </div>
-      </div>
+      </AdminPageContainer>
     );
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>User Information</CardTitle>
@@ -87,6 +88,6 @@ export default function EditUserPage() {
         </div>
 
       <CustomerForm mode="edit" user={user} onSuccess={handleSuccess} />
-    </div>
+    </AdminPageContainer>
   );
 }

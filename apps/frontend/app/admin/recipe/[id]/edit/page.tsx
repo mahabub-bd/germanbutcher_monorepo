@@ -10,6 +10,7 @@ import { Recipe } from "@/utils/types";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditRecipePage() {
   const params = useParams();
@@ -46,7 +47,7 @@ export default function EditRecipePage() {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Recipe</CardTitle>
@@ -57,6 +58,6 @@ export default function EditRecipePage() {
         </div>
 
       <RecipeForm mode="edit" recipe={recipe} />
-    </div>
+    </AdminPageContainer>
   );
 }

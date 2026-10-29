@@ -4,6 +4,7 @@ import { DiscountForm } from "@/components/admin/discount/discount-from";
 import { fetchData, fetchDataPagination } from "@/utils/api-utils";
 import type { Category, MinimalProduct } from "@/utils/types";
 import { useEffect, useState } from "react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function AddDiscountPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -56,7 +57,7 @@ export default function AddDiscountPage() {
   }, [selectedCategoryId]);
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <DiscountForm
         mode="create"
         initialProducts={products}
@@ -65,6 +66,6 @@ export default function AddDiscountPage() {
         onCategoryChange={setSelectedCategoryId}
         isLoadingProducts={isLoadingProducts}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

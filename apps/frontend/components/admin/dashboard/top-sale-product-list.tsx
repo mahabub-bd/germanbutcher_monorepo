@@ -185,18 +185,18 @@ export default function TopSaleProductsList() {
 
       <CardContent>
         <div className="overflow-x-auto mx-4 sm:mx-2">
-          <Table>
+          <Table className="min-w-180">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12.5 sm:w-15 text-xs sm:text-sm font-bold h-9 sm:h-10">Rank</TableHead>
                 <TableHead className="text-xs sm:text-sm font-bold h-9 sm:h-10">Product</TableHead>
-                <TableHead className="hidden md:table-cell text-xs sm:text-sm font-bold h-9 sm:h-10">
+                <TableHead className="text-xs sm:text-sm font-bold h-9 sm:h-10">
                   Category
                 </TableHead>
                 <TableHead className="text-center text-xs sm:text-sm font-bold h-9 sm:h-10">Sold</TableHead>
                 <TableHead className="text-center text-xs sm:text-sm font-bold h-9 sm:h-10">Featured</TableHead>
                 <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10">Price</TableHead>
-                <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10 hidden sm:table-cell">
+                <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10">
                   Stock
                 </TableHead>
               </TableRow>
@@ -258,7 +258,7 @@ export default function TopSaleProductsList() {
                         </div>
                       </TableCell>
 
-                      <TableCell className="hidden md:table-cell py-1.5 sm:py-2">
+                      <TableCell className="py-1.5 sm:py-2">
                         <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm font-normal">
                           <Tag className="h-3.5 w-3.5 shrink-0" />
                           {p.category?.name ?? "—"}
@@ -297,7 +297,7 @@ export default function TopSaleProductsList() {
                         )}
                       </TableCell>
 
-                      <TableCell className="text-right py-1.5 sm:py-2 hidden sm:table-cell">
+                      <TableCell className="text-right py-1.5 sm:py-2">
                         {/* Stock */}
                         <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm">
                           <Boxes className="h-3.5 w-3.5" />{p.stock}

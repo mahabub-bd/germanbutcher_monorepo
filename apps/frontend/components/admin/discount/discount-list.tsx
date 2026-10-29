@@ -11,7 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -30,6 +29,7 @@ import {
 
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { fetchDataPagination, patchData } from "@/utils/api-utils";
 import {
@@ -45,7 +45,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  Search,
   Tag,
   Trash2,
   XCircle,
@@ -571,14 +570,14 @@ export function DiscountList({
 
   const renderTableView = () => (
     <div className="overflow-x-auto">
-      <Table>
+      <Table className="min-w-180">
         <TableHeader>
           <TableRow>
             <TableHead>Product</TableHead>
-            <TableHead className="hidden md:table-cell">SKU</TableHead>
+            <TableHead>SKU</TableHead>
             <TableHead>Price</TableHead>
             <TableHead>Discount</TableHead>
-            <TableHead className="hidden md:table-cell">Period</TableHead>
+            <TableHead>Period</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -605,15 +604,13 @@ export function DiscountList({
                       <span className="font-medium leading-tight line-clamp-1">
                         {product.name}
                       </span>
-                      <span className="text-xs text-muted-foreground font-mono mt-0.5 md:hidden">
+                      <span className="text-xs text-muted-foreground font-mono mt-0.5">
                         {product?.productSku}
                       </span>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  {product?.productSku}
-                </TableCell>
+                <TableCell>{product?.productSku}</TableCell>
                 <TableCell>
                   <div className="flex flex-col">
                     <span className="font-medium">
@@ -627,7 +624,7 @@ export function DiscountList({
                 <TableCell>
                   <div className="flex flex-col gap-1">{discountBadge}</div>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell>
                   {product.discountStartDate && product.discountEndDate ? (
                     <div className="flex items-center text-xs">
                       <CalendarRange className="h-3 w-3 mr-1 text-muted-foreground" />
@@ -724,16 +721,12 @@ export function DiscountList({
               </div>
             </div>
             <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
-              <div className="relative w-full sm:w-64 min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search discounted products..."
-                  className="h-8 pl-9"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                />
-              </div>
+              <TableSearch
+                wrapperClassName="w-full sm:w-64"
+                placeholder="Search discounted products..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
               {renderFiltersMenu()}
             </div>
           </div>

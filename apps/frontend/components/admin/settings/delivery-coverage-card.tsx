@@ -1,9 +1,9 @@
 "use client";
 
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { PageHeader } from "@/components/admin/page-header";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
-import StatsCard from "@/components/admin/dashboard/stats-card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,8 +32,8 @@ import {
   type CoverageDivision,
 } from "@/lib/delivery-coverage";
 import { cn } from "@/lib/utils";
-import type { BusinessSettings } from "@/utils/types";
 import { fetchData, patchData } from "@/utils/api-utils";
+import type { BusinessSettings } from "@/utils/types";
 import {
   Building2,
   Check,
@@ -51,6 +51,7 @@ import {
   Save,
   Search,
   Trash2,
+  Undo2,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -771,7 +772,8 @@ export function DeliveryCoverageCard() {
           onClick={handleDiscard}
           disabled={!isDirty || isSaving || !canEdit}
         >
-          Discard
+          <Undo2 className="size-4 sm:mr-2" />
+          <span className="hidden sm:inline">Discard</span>
         </Button>
         <Button
           type="button"
@@ -782,12 +784,12 @@ export function DeliveryCoverageCard() {
           {isSaving ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              Saving...
+              <span className="hidden sm:inline">Saving...</span>
             </>
           ) : (
             <>
-              <Save className="size-4" />
-              Save changes
+              <Save className="size-4 sm:mr-2" />
+              <span className="hidden sm:inline">Save changes</span>
             </>
           )}
         </Button>
@@ -1046,7 +1048,7 @@ export function DeliveryCoverageCard() {
                           onCheckedChange={(value) =>
                             setDivisionBranch(division.name, value === true)
                           }
-                          className="size-[18px]"
+                          className="size-4.5"
                         />
 
                         <span
@@ -1258,7 +1260,7 @@ export function DeliveryCoverageCard() {
                                       onCheckedChange={(value) =>
                                         setCityBranch(city.name, value === true)
                                       }
-                                      className="size-[18px]"
+                                      className="size-4.5"
                                     />
 
                                     <span
@@ -1484,7 +1486,7 @@ export function DeliveryCoverageCard() {
                             })}
 
                             {!isSearching && canEdit && (
-                              <div className="min-h-[64px]">
+                              <div className="min-h-16">
                                 {adding?.level === "city" &&
                                 adding.division === division.name ? (
                                   <AddRow
@@ -1503,7 +1505,7 @@ export function DeliveryCoverageCard() {
                                         division: division.name,
                                       })
                                     }
-                                    className="flex h-full min-h-[64px] w-full items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primaryColor/30 hover:bg-primaryColor/5 hover:text-foreground"
+                                    className="flex h-full min-h-16 w-full items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primaryColor/30 hover:bg-primaryColor/5 hover:text-foreground"
                                   >
                                     <Plus className="size-3.5" />
                                     Add city to {division.name}
@@ -1549,7 +1551,7 @@ export function DeliveryCoverageCard() {
       {isDirty && canEdit && (
         <div
           role="status"
-          className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl border bg-background/95 p-2.5 pl-4 shadow-xl backdrop-blur supports-[backdrop-filter]:bg-background/80"
+          className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl border bg-background/95 p-2.5 pl-4 shadow-xl backdrop-blur supports-backdrop-filter:bg-background/80"
         >
           <div className="flex min-w-0 items-center gap-2 text-sm">
             <span className="relative flex size-2 shrink-0">

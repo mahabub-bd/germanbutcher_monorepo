@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { Suspense } from "react";
 
 import { AnalyticsWidget } from "@/components/admin/analytics";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import CombinedOrdersSalesChart from "@/components/admin/dashboard/combined-order-saleschart";
 import DashboardClient from "@/components/admin/dashboard/DashboardClient";
 
@@ -87,7 +88,7 @@ async function AnalyticsSection() {
 // in as its data resolves.
 function ReportsSkeleton() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm flex flex-col gap-4">
+    <AdminPageContainer className="md:p-4 p-2 space-y-6 rounded-sm flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="h-27.5 animate-pulse rounded-lg bg-muted" />
@@ -95,13 +96,13 @@ function ReportsSkeleton() {
       </div>
       <div className="h-87.5 animate-pulse rounded-lg bg-muted" />
       <div className="h-87.5 animate-pulse rounded-lg bg-muted" />
-    </div>
+    </AdminPageContainer>
   );
 }
 
 export default function DashboardPage() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm flex flex-col gap-4">
+    <AdminPageContainer className="md:p-4 p-2 space-y-6 rounded-sm flex flex-col gap-4">
       <Suspense fallback={<ReportsSkeleton />}>
         <DashboardReportsSection />
       </Suspense>
@@ -112,6 +113,6 @@ export default function DashboardPage() {
       <StockReportTabs />
       <TopCustomersList />
       <TopSaleProductsList />
-    </div>
+    </AdminPageContainer>
   );
 }

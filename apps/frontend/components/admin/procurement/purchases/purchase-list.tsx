@@ -5,6 +5,7 @@ import type React from "react";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -44,7 +44,6 @@ import {
   Package,
   Pencil,
   Plus,
-  Search,
   ShoppingCart,
   Trash2,
   XCircle,
@@ -373,23 +372,23 @@ export function PurchaseList({
 
   const renderTableView = () => (
     <div className="overflow-x-auto">
-      <Table>
+      <Table className="min-w-215">
         <TableHeader>
           <TableRow>
             <TableHead>Purchase #</TableHead>
             <TableHead>Supplier</TableHead>
             <TableHead>Products</TableHead>
-            <TableHead className="hidden md:table-cell text-center">
+            <TableHead className="text-center">
               Total Quantity
             </TableHead>
             <TableHead className="text-right">Total Value</TableHead>
-            <TableHead className="hidden md:table-cell text-right">
+            <TableHead className="text-right">
               Paid Amount
             </TableHead>
             <TableHead>Payment</TableHead>
-            <TableHead className="hidden lg:table-cell">Date</TableHead>
-            <TableHead className="hidden xl:table-cell">Created By</TableHead>
-            <TableHead className="hidden lg:table-cell">Status</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Created By</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -437,7 +436,7 @@ export function PurchaseList({
                   </div>
                 </TableCell>
 
-                <TableCell className="hidden md:table-cell text-center">
+                <TableCell className="text-center">
                   <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted">
                     <Boxes className="h-3 w-3" />
                     {totalQuantity}
@@ -451,7 +450,7 @@ export function PurchaseList({
                   </span>
                 </TableCell>
 
-                <TableCell className="hidden md:table-cell text-right text-muted-foreground">
+                <TableCell className="text-right text-muted-foreground">
                   <span className="inline-flex items-center justify-end gap-1.5">
                     <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground/70" />
                     {formatCurrencyEnglish(Number(amountPaid))}
@@ -471,15 +470,15 @@ export function PurchaseList({
                   </span>
                 </TableCell>
 
-                <TableCell className="hidden lg:table-cell">
+                <TableCell>
                   {formatDateTime(purchaseDate)}
                 </TableCell>
 
-                <TableCell className="hidden xl:table-cell">
+                <TableCell>
                   {createdBy?.name}
                 </TableCell>
 
-                <TableCell className="hidden lg:table-cell">
+                <TableCell>
                   <span
                     className={`inline-flex items-center rounded-md px-3 py-1 text-xs font-semibold capitalize ${status === "delivered"
                       ? "bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900"
@@ -593,16 +592,12 @@ export function PurchaseList({
               </div>
             </div>
             <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
-              <div className="relative w-full sm:w-64 min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search purchases..."
-                  className="h-8 pl-9"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                />
-              </div>
+              <TableSearch
+                wrapperClassName="w-full sm:w-64 min-w-0"
+                placeholder="Search purchases..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
               {renderFiltersMenu()}
             </div>
           </div>

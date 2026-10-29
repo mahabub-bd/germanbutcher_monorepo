@@ -276,14 +276,14 @@ export default function OrderReportList({
 
       {/* Table */}
       <div className="overflow-x-auto capitalize">
-        <Table>
+        <Table className="min-w-215">
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Order No</TableHead>
               <TableHead>Customer</TableHead>
-              <TableHead className="hidden md:table-cell">Mobile</TableHead>
-              <TableHead className="hidden xl:table-cell">Area</TableHead>
+              <TableHead>Mobile</TableHead>
+              <TableHead>Area</TableHead>
               <TableHead>Order Status</TableHead>
               <TableHead>Payment Status</TableHead>
 
@@ -316,7 +316,7 @@ export default function OrderReportList({
                       {o.customer?.name || "N/A"}
                     </span>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     {o.customer?.mobileNumber ? (
                       <a
                         href={`tel:${o.customer.mobileNumber}`}
@@ -328,7 +328,7 @@ export default function OrderReportList({
                       <span className="text-sm text-muted-foreground">N/A</span>
                     )}
                   </TableCell>
-                  <TableCell className="hidden xl:table-cell">
+                  <TableCell>
                     <Badge
                       variant="secondary"
                       className="max-w-40 truncate border-transparent bg-violet-100 font-normal text-sm text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"

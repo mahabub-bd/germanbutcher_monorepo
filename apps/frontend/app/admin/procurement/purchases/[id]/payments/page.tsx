@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PaymentsTable } from "./payment-table";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function PaymentsListPage() {
   const params = useParams();
@@ -56,7 +57,7 @@ export default function PaymentsListPage() {
     parseFloat(purchase.totalValue) - parseFloat(purchase.amountPaid);
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm w-full">
+    <AdminPageContainer className="md:p-4 p-2 space-y-6 rounded-sm w-full">
         <div className="flex justify-between items-center mb-6">
           <PageHeader
             title={`Payments for Purchase # ${purchase.purchaseNumber}`}
@@ -75,6 +76,6 @@ export default function PaymentsListPage() {
           )}
         </div>
         <PaymentsTable payments={purchase?.payments} />
-    </div>
+    </AdminPageContainer>
   );
 }

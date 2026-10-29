@@ -107,14 +107,14 @@ export function ShippingMethodList() {
 
   const renderTableView = () => (
     <div>
-      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+      <Table className="min-w-205 [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Cost</TableHead>
             <TableHead>Delivery Time</TableHead>
-            <TableHead className="hidden md:table-cell">Description</TableHead>
-            <TableHead className="hidden md:table-cell">Created</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Created</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Order</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -137,15 +137,15 @@ export function ShippingMethodList() {
               <TableCell className="text-muted-foreground">
                 {method.deliveryTime}
               </TableCell>
-              <TableCell className="hidden md:table-cell max-w-[200px]">
+              <TableCell className="max-w-50">
                 <p className="line-clamp-1 text-sm text-muted-foreground">
                   {method.description || "-"}
                 </p>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 {formatDateTime(method.createdAt)}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <ActiveStatusToggle
                   isActive={method.isActive}
                   disabled={togglingId === method.id}

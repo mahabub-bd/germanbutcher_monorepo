@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditBogoPage() {
   const router = useRouter();
@@ -46,7 +47,7 @@ export default function EditBogoPage() {
 
   if (!campaign) {
     return (
-      <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <AdminPageContainer>
         <div className="text-center">
           <h2 className="text-xl font-semibold">BOGO deal not found</h2>
           <p className="text-muted-foreground mt-2">
@@ -58,13 +59,13 @@ export default function EditBogoPage() {
             </Link>
           </Button>
         </div>
-      </div>
+      </AdminPageContainer>
     );
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <BogoForm mode="edit" campaign={campaign} onSuccess={handleSuccess} />
-    </div>
+    </AdminPageContainer>
   );
 }

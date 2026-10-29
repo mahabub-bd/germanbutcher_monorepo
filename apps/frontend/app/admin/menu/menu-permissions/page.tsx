@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 interface MenuPermission {
   id: number;
@@ -680,7 +681,7 @@ export default function RoleMenuPermissions() {
   const canManage = Boolean(selectedRoleId) && !loading;
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm w-full">
+    <AdminPageContainer className="md:p-4 p-2 space-y-6 rounded-sm w-full">
       <PageHeader
         title="Role Permissions"
         description="Pick a role, then set what it can do in each module. View controls sidebar visibility; Create, Edit and Delete are enforced on the API."
@@ -831,6 +832,6 @@ export default function RoleMenuPermissions() {
           {renderMatrix()}
         </Tabs>
       )}
-    </div>
+    </AdminPageContainer>
   );
 }

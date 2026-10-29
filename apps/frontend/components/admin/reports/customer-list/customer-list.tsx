@@ -187,11 +187,11 @@ export default function CustomerListReport({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="min-w-160">
           <TableHeader>
             <TableRow>
               <TableHead className="text-xs">Name</TableHead>
-              <TableHead className="text-xs hidden md:table-cell">Email</TableHead>
+              <TableHead className="text-xs">Email</TableHead>
               <TableHead className="text-xs">Mobile</TableHead>
               <TableHead className="text-xs">Registration Date</TableHead>
               <TableHead className="text-xs">Order Count</TableHead>
@@ -214,7 +214,7 @@ export default function CustomerListReport({
                   <TableCell className="font-medium">
                     {customer.name}
                   </TableCell>
-                  <TableCell className="hidden md:table-cell text-sm">
+                  <TableCell className="text-sm">
                     {customer.email}
                   </TableCell>
                   <TableCell>{customer.mobileNumber}</TableCell>

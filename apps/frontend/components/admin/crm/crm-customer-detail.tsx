@@ -276,7 +276,8 @@ export function CrmCustomerDetail() {
         />
         <Button variant="outline" size="sm" asChild className="shrink-0">
           <Link href="/admin/crm/customers">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Back to List
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back to List</span>
           </Link>
         </Button>
       </div>
@@ -520,20 +521,16 @@ export function CrmCustomerDetail() {
             </p>
           ) : (
             <div className="rounded-lg border bg-card">
-              <Table>
+              <Table className="min-w-180">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Order</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="hidden text-right lg:table-cell">
-                      Discount
-                    </TableHead>
-                    <TableHead className="hidden text-right md:table-cell">
-                      Due
-                    </TableHead>
-                    <TableHead className="hidden md:table-cell">Date</TableHead>
+                    <TableHead className="text-right">Discount</TableHead>
+                    <TableHead className="text-right">Due</TableHead>
+                    <TableHead>Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -575,12 +572,12 @@ export function CrmCustomerDetail() {
                         <TableCell className="text-right">
                           {Number(order.totalValue).toLocaleString()}
                         </TableCell>
-                        <TableCell className="hidden text-right text-green-600 dark:text-green-400 lg:table-cell">
+                        <TableCell className="text-right text-green-600 dark:text-green-400">
                           {Number(order.totalDiscount ?? 0) > 0
                             ? `- ${Number(order.totalDiscount).toLocaleString()}`
                             : "—"}
                         </TableCell>
-                        <TableCell className="hidden text-right md:table-cell">
+                        <TableCell className="text-right">
                           {due > 0 ? (
                             <span className="font-medium text-destructive">
                               {due.toLocaleString()}
@@ -589,7 +586,7 @@ export function CrmCustomerDetail() {
                             <span className="text-muted-foreground">Paid</span>
                           )}
                         </TableCell>
-                        <TableCell className="hidden md:table-cell text-muted-foreground">
+                        <TableCell className="text-muted-foreground">
                           {formatDateTime(order.createdAt)}
                         </TableCell>
                       </TableRow>

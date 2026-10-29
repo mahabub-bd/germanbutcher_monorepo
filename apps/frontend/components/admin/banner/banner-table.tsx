@@ -1,5 +1,7 @@
 "use client";
 
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,8 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import type { Banner } from "@/utils/types";
 import { ExternalLink, ImageIcon, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -69,17 +69,15 @@ export function BannerTable({
 
   return (
     <div>
-      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+      <Table className="min-w-180 [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Image</TableHead>
             <TableHead>Title</TableHead>
-            <TableHead className="hidden md:table-cell">Type</TableHead>
-            <TableHead className="hidden md:table-cell">Position</TableHead>
-            <TableHead className="hidden md:table-cell">
-              Display Order
-            </TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Position</TableHead>
+            <TableHead>Display Order</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -87,7 +85,7 @@ export function BannerTable({
           {banners.map((banner) => (
             <TableRow key={banner.id} className="hover:bg-muted/50">
               <TableCell>
-                <span className="flex aspect-[3/2] h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
+                <span className="flex aspect-3/2 h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
                   {banner?.image?.url ? (
                     <Image
                       src={banner.image.url}
@@ -128,24 +126,22 @@ export function BannerTable({
                   </a>
                 )}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <span
                   className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getBadgeColor(typeBadgeColors, banner.type)}`}
                 >
                   {banner.type}
                 </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <span
                   className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getBadgeColor(positionBadgeColors, banner.position)}`}
                 >
                   {banner.position}
                 </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
-                {banner?.displayOrder}
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>{banner?.displayOrder}</TableCell>
+              <TableCell>
                 <ActiveStatusToggle
                   isActive={banner.isActive}
                   disabled={togglingId === banner.id}

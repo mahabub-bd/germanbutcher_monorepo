@@ -5,6 +5,7 @@ import { FormPageHeader } from "@/components/admin/form-page-header";
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function AddUserPage() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function AddUserPage() {
   };
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <FormPageHeader
         title="User Information"
         description="Enter the details for the new user."
@@ -24,6 +25,6 @@ export default function AddUserPage() {
       />
 
       <UserForm mode="create" onSuccess={handleSuccess} />
-    </div>
+    </AdminPageContainer>
   );
 }

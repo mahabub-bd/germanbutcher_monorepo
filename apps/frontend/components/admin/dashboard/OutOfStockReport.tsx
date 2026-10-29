@@ -60,15 +60,13 @@ export function OutOfStockReport() {
       ) : (
         <div className=" bg-white dark:bg-gray-950  ">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-160">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-20">Image</TableHead>
                   <TableHead>Product</TableHead>
-                  <TableHead className="hidden md:table-cell">
-                    Category
-                  </TableHead>
-                  <TableHead className="hidden md:table-cell">Brand</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Brand</TableHead>
                   <TableHead className="text-right">Unit Price</TableHead>
                 </TableRow>
               </TableHeader>
@@ -96,12 +94,12 @@ export function OutOfStockReport() {
                         />
                       </TableCell>
                       <TableCell>{product.name}</TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell>
                         <Badge variant="outline">
                           {product.category?.name || "N/A"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell>
                         <Badge variant="outline">
                           {product.brand?.name || "N/A"}
                         </Badge>

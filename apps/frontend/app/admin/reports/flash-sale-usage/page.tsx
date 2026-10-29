@@ -1,4 +1,5 @@
 import { FlashSaleUsageReport } from "@/components/admin/reports/flash-sale-usage-report";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 interface ResolvedSearchParams {
   [key: string]: string | string[] | undefined;
@@ -18,13 +19,13 @@ export default async function FlashSaleUsageReportPage({ searchParams }: Props) 
     typeof resolvedParams.toDate === "string" ? resolvedParams.toDate : undefined;
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <FlashSaleUsageReport
         initialPreset={preset}
         initialFromDate={fromDate}
         initialToDate={toDate}
       />
-    </div>
+    </AdminPageContainer>
   );
 }
 

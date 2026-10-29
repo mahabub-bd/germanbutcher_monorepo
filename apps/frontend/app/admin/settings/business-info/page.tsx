@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { CardTitle } from "@/components/ui/card";
 import { Building2 } from "lucide-react";
 import Link from "next/link";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function BusinessInfoSettingsPage() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-primaryColor dark:bg-red-950/40 dark:text-red-400">
@@ -24,6 +25,6 @@ export default function BusinessInfoSettingsPage() {
       </div>
 
       <BusinessSettingsCard />
-    </div>
+    </AdminPageContainer>
   );
 }

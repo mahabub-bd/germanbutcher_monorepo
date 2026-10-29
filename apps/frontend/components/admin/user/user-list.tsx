@@ -4,6 +4,7 @@ import type React from "react";
 
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -32,7 +32,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  Search,
   Shield,
   ShieldCheck,
   Store,
@@ -258,15 +257,15 @@ export function UserList({
 
   const renderTableView = () => (
     <div>
-      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+      <Table className="min-w-180 [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
-            <TableHead className="hidden md:table-cell">Mobile</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
-            <TableHead className="hidden md:table-cell">Role</TableHead>
-            <TableHead className="hidden md:table-cell">Last Login</TableHead>
+            <TableHead>Mobile</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Last Login</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -296,14 +295,14 @@ export function UserList({
                 </Link>
               </TableCell>
               <TableCell>
-                <span className="block max-w-[220px] truncate text-muted-foreground">
+                <span className="block max-w-55 truncate text-muted-foreground">
                   {user.email}
                 </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 {user.mobileNumber || "N/A"}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${user.isVerified
                     ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
@@ -318,7 +317,7 @@ export function UserList({
                   {user.isVerified ? "Verified" : "Unverified"}
                 </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${getRoleColor(user?.role?.rolename)}`}
                 >
@@ -326,7 +325,7 @@ export function UserList({
                   {user?.role?.rolename}
                 </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 {user.lastLoginAt
                   ? formatDateTime(user.lastLoginAt)
                   : "Never logged in"}
@@ -381,16 +380,12 @@ export function UserList({
 
         <div className="space-y-4">
           <div className="flex flex-row justify-between gap-2">
-            <div className="relative w-full sm:max-w-xs min-w-0">
-              <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search users..."
-                className="h-8 pl-8"
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
-            </div>
+            <TableSearch
+              wrapperClassName="w-full sm:max-w-xs"
+              placeholder="Search users..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
 
             <div className="flex items-center gap-2">
               <DropdownMenu>

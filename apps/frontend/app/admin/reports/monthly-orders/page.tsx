@@ -4,6 +4,7 @@ import MonthlyOrderReportList, {
   type MonthlyData,
 } from "@/components/admin/reports/monthly-orders/monthly-order-list";
 import { fetchProtectedData } from "@/utils/api-utils";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default async function MonthlyOrderReportPage({
   searchParams,
@@ -38,12 +39,12 @@ export default async function MonthlyOrderReportPage({
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <MonthlyOrderReportList
         monthlyData={monthlyData}
         availableYears={availableYears}
         selectedYear={year}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

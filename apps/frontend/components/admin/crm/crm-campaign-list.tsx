@@ -288,20 +288,20 @@ export function CrmCampaignList() {
       <PageHeader
         title="CRM Campaigns"
         description="Send SMS and email blasts to a customer segment. Recipients are snapshotted at send time with a per-customer delivery log."
-      />
-
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          {totalItems} campaign{totalItems === 1 ? "" : "s"}
-        </p>
+      >
         <Button
           size="sm"
           disabled={!can(MENU_URL, "canCreate")}
           onClick={() => setIsCreateOpen(true)}
         >
-          <Plus className="h-4 w-4 mr-1" /> New Campaign
+          <Plus className="h-4 w-4 mr-1" />
+          <span className="hidden sm:inline">New Campaign</span>
         </Button>
-      </div>
+      </PageHeader>
+
+      <p className="text-sm text-muted-foreground">
+        {totalItems} campaign{totalItems === 1 ? "" : "s"}
+      </p>
 
       {isLoading ? (
         <LoadingIndicator message="Loading campaigns..." />
@@ -315,15 +315,15 @@ export function CrmCampaignList() {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+          <Table className="min-w-180 [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
             <TableHeader>
               <TableRow>
                 <TableHead>Campaign</TableHead>
-                <TableHead className="hidden sm:table-cell">Channel</TableHead>
-                <TableHead className="hidden md:table-cell">Segment</TableHead>
+                <TableHead>Channel</TableHead>
+                <TableHead>Segment</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-center">Delivered</TableHead>
-                <TableHead className="hidden lg:table-cell">Created</TableHead>
+                <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -343,13 +343,13 @@ export function CrmCampaignList() {
                         : formatDateTime(campaign.createdAt)}
                     </span>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">
+                  <TableCell>
                     <Badge variant="outline" className="capitalize gap-1">
                       {channelIcon(campaign.channel)}
                       {campaign.channel}
                     </Badge>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     {campaign.segment ? (
                       <SegmentBadge segment={campaign.segment} />
                     ) : (
@@ -378,7 +378,7 @@ export function CrmCampaignList() {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                  <TableCell className="text-sm text-muted-foreground">
                     {campaign.createdBy?.name ?? "—"}
                   </TableCell>
                   <TableCell className="text-right">
@@ -604,11 +604,11 @@ export function CrmCampaignList() {
                 {detail.campaign.message}
               </div>
               <div className="border rounded-md">
-                <Table>
+                <Table className="min-w-80">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Customer</TableHead>
-                      <TableHead className="hidden sm:table-cell">
+                      <TableHead>
                         {detail.campaign.channel === "sms" ? "Phone" : "Email"}
                       </TableHead>
                       <TableHead>Status</TableHead>
@@ -625,7 +625,7 @@ export function CrmCampaignList() {
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                        <TableCell className="text-sm text-muted-foreground">
                           {detail.campaign.channel === "sms"
                             ? (recipient.phone ?? "—")
                             : (recipient.email ?? "—")}

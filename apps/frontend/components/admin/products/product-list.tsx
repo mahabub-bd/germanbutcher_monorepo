@@ -12,7 +12,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -33,6 +32,7 @@ import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { revalidateProducts } from "@/actions/revalidate";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { formatCurrencyEnglish, getUnitBadgeColor } from "@/lib/utils";
 import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
 import type { Brand, Category, Product } from "@/utils/types";
@@ -48,7 +48,6 @@ import {
   Package,
   Pencil,
   Plus,
-  Search,
   Trash2,
   XCircle
 } from "lucide-react";
@@ -531,18 +530,16 @@ export function ProductList({
 
   const renderTableView = () => (
     <div className="min-w-0">
-      <Table className="table-fixed">
+      <Table className="table-fixed min-w-215">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[34%] xl:w-[28%] 2xl:w-[24%]">Product</TableHead>
-            <TableHead className="hidden w-[13%] text-right xl:table-cell 2xl:w-[12%]">Purchase Price</TableHead>
-            <TableHead className="w-[18%] text-right xl:w-[13%] 2xl:w-[11%]">Sale Price</TableHead>
-            <TableHead className="hidden w-[12%] 2xl:table-cell">Brand</TableHead>
-            <TableHead className="hidden w-[14%] xl:table-cell 2xl:w-[12%]">Category</TableHead>
-            <TableHead className="hidden w-[10%] text-center md:table-cell 2xl:w-[9%]">
-              Stock
-            </TableHead>
-            <TableHead className="w-[12%] xl:w-[10%] 2xl:w-[10%]">Status</TableHead>
+            <TableHead className="w-[24%]">Product</TableHead>
+            <TableHead className="w-[11%] text-right">Purchase Price</TableHead>
+            <TableHead className="w-[11%] text-right">Sale Price</TableHead>
+            <TableHead className="w-[11%]">Brand</TableHead>
+            <TableHead className="w-[13%]">Category</TableHead>
+            <TableHead className="w-[10%] text-center">Stock</TableHead>
+            <TableHead className="w-[10%]">Status</TableHead>
             <TableHead className="w-[8%] text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -577,19 +574,19 @@ export function ProductList({
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="hidden overflow-hidden text-ellipsis whitespace-nowrap text-right text-muted-foreground xl:table-cell">
+              <TableCell className="overflow-hidden text-ellipsis whitespace-nowrap text-right text-muted-foreground">
                 {formatCurrencyEnglish(product?.purchasePrice)}
               </TableCell>
               <TableCell className="overflow-hidden text-ellipsis whitespace-nowrap text-right font-medium">
                 {formatCurrencyEnglish(product?.sellingPrice)}
               </TableCell>
-              <TableCell className="hidden overflow-hidden text-ellipsis whitespace-nowrap 2xl:table-cell">
+              <TableCell className="overflow-hidden text-ellipsis whitespace-nowrap">
                 <span title={product.brand?.name || "-"}>{product.brand?.name || "-"}</span>
               </TableCell>
-              <TableCell className="hidden overflow-hidden text-ellipsis whitespace-nowrap xl:table-cell">
+              <TableCell className="overflow-hidden text-ellipsis whitespace-nowrap">
                 {product.category?.name || "-"}
               </TableCell>
-              <TableCell className="hidden md:table-cell text-center">
+              <TableCell className="text-center">
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${product.stock === 0
                     ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
@@ -669,18 +666,20 @@ export function ProductList({
         >
           <Button asChild variant="outline">
             <Link href="/admin/products/stock-movements">
-              <ArrowLeftRight className="mr-2 h-4 w-4" /> Stock Movements
+              <ArrowLeftRight className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Stock Movements</span>
             </Link>
           </Button>
           <Button asChild variant="outline">
             <Link href="/admin/products/history">
-              <History className="mr-2 h-4 w-4" /> History
+              <History className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">History</span>
             </Link>
           </Button>
         </PageHeader>
 
         {/* Summary tiles */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-3 gap-3">
           <StatsCard
             icon={Package}
             title="Total Products"
@@ -716,16 +715,12 @@ export function ProductList({
               </div>
             </div>
             <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
-              <div className="relative w-full sm:w-64 min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search products..."
-                  className="h-8 pl-9"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                />
-              </div>
+              <TableSearch
+                wrapperClassName="w-full sm:w-64"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
               {renderFiltersMenu()}
             </div>
           </div>

@@ -237,17 +237,17 @@ export default function OrderPaymentList({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="min-w-180">
           <TableHeader>
             <TableRow>
               <TableHead className="text-xs">Payment No</TableHead>
               <TableHead className="text-xs">Date</TableHead>
               <TableHead className="text-xs">Amount</TableHead>
               <TableHead className="text-xs">Method</TableHead>
-              <TableHead className="text-xs hidden md:table-cell">
+              <TableHead className="text-xs">
                 Order
               </TableHead>
-              <TableHead className="text-xs hidden lg:table-cell">
+              <TableHead className="text-xs">
                 Created By
               </TableHead>
               <TableHead className="text-right text-xs">Action</TableHead>
@@ -273,10 +273,10 @@ export default function OrderPaymentList({
                     {formatCurrencyEnglish(parseFloat(p.amount))}
                   </TableCell>
                   <TableCell>{p.paymentMethod.name}</TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     {p.order.orderNo}
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell">
+                  <TableCell>
                     {p.createdBy ? p.createdBy.name : "System"}
                   </TableCell>
                   <TableCell className="text-right">

@@ -7,6 +7,7 @@ import { fetchData } from "@/utils/api-utils";
 import type { Banner } from "@/utils/types";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditBannerPage() {
   const params = useParams();
@@ -43,7 +44,7 @@ export default function EditBannerPage() {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <FormPageHeader
         title="Edit Banner"
         description="Update this banner content and settings"
@@ -51,6 +52,6 @@ export default function EditBannerPage() {
         backLabel="Back to Banners"
       />
       <BannerForm mode="edit" banner={banner} />
-    </div>
+    </AdminPageContainer>
   );
 }

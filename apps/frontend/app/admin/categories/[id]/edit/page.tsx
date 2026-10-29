@@ -9,6 +9,7 @@ import type { Category } from "@/utils/types";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditCategoryPage() {
   const params = useParams();
@@ -45,7 +46,7 @@ export default function EditCategoryPage() {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <div className="flex justify-between items-center mt-6">
           <div>
             <CardTitle>Edit Category</CardTitle>
@@ -58,6 +59,6 @@ export default function EditCategoryPage() {
         </div>
 
       <CategoryForm mode="edit" category={category} />
-    </div>
+    </AdminPageContainer>
   );
 }

@@ -3,6 +3,7 @@
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +12,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -29,7 +29,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  Search,
   Tags,
   Trash2,
   XCircle,
@@ -328,18 +327,14 @@ export function CategoryList({
 
   const renderTableView = () => (
     <div className="overflow-x-auto">
-      <Table>
+      <Table className="min-w-180">
         <TableHeader>
           <TableRow>
             <TableHead>Category</TableHead>
-            <TableHead className="hidden md:table-cell">Type</TableHead>
-            <TableHead className="hidden md:table-cell">Parent</TableHead>
-            <TableHead className="hidden md:table-cell text-center">
-              Display Order
-            </TableHead>
-            <TableHead className="hidden md:table-cell text-center">
-              Products
-            </TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Parent</TableHead>
+            <TableHead className="text-center">Display Order</TableHead>
+            <TableHead className="text-center">Products</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -368,20 +363,18 @@ export function CategoryList({
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 {category.isMainCategory ? (
                   <Badge variant="default">Main Category</Badge>
                 ) : (
                   <Badge variant="outline">Sub Category</Badge>
                 )}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 {category?.parent === null ? "None" : category?.parent?.name}
               </TableCell>
-              <TableCell className="hidden md:table-cell text-center">
-                {category.order}
-              </TableCell>
-              <TableCell className="hidden md:table-cell text-center">
+              <TableCell className="text-center">{category.order}</TableCell>
+              <TableCell className="text-center">
                 <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
                   {category.products?.length || 0}
                 </span>
@@ -459,16 +452,12 @@ export function CategoryList({
               </div>
             </div>
             <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
-              <div className="relative w-full sm:w-64 min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search categories..."
-                  className="h-8 pl-9"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                />
-              </div>
+              <TableSearch
+                wrapperClassName="w-full sm:w-64"
+                placeholder="Search categories..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
               {renderFiltersMenu()}
             </div>
           </div>

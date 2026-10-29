@@ -10,6 +10,7 @@ import { ProductForm } from "@/components/admin/products/product-form";
 import { Button } from "@/components/ui/button";
 import { fetchData } from "@/utils/api-utils";
 import type { Brand, Category, Product } from "@/utils/types";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditProductPage() {
   const params = useParams();
@@ -73,7 +74,7 @@ export default function EditProductPage() {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <div className="flex justify-end">
         <Button asChild className="bg-primaryColor text-white hover:bg-primaryColor/90">
           <Link href="/admin/products/products-list">
@@ -89,6 +90,6 @@ export default function EditProductPage() {
         brands={brands}
         categories={categories}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

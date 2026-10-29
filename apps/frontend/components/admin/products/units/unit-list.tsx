@@ -93,12 +93,12 @@ export function UnitList() {
 
   const renderTableView = () => (
     
-      <Table>
+      <Table className="min-w-120">
         <TableHeader>
           <TableRow>
             <TableHead>Unit Name</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
-            <TableHead className="hidden md:table-cell">Created Date</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Created Date</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -108,12 +108,12 @@ export function UnitList() {
               <TableCell className="font-medium capitalize">
                 {unit.name}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <Badge variant={unit.isActive ? "default" : "secondary"}>
                   {unit.isActive ? "Active" : "Inactive"}
                 </Badge>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 {formatDateTime(unit.createdAt)}
               </TableCell>
               <TableCell className="text-right">

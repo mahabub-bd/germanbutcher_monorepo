@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditDeliveryManPage() {
   const router = useRouter();
@@ -45,18 +46,18 @@ export default function EditDeliveryManPage() {
 
   if (isLoading) {
     return (
-      <div className="md:p-4 p-2 space-y-6 rounded-sm flex justify-center items-center min-h-[60vh]">
+      <AdminPageContainer className="md:p-4 p-2 space-y-6 rounded-sm flex justify-center items-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Loading delivery man data...</p>
         </div>
-      </div>
+      </AdminPageContainer>
     );
   }
 
   if (!deliveryMan) {
     return (
-      <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <AdminPageContainer>
         <div className="text-center">
           <h2 className="text-xl font-semibold">Delivery man not found</h2>
           <p className="text-muted-foreground mt-2">
@@ -66,12 +67,12 @@ export default function EditDeliveryManPage() {
             <Link href="/admin/delivery-man">Back to Delivery Men</Link>
           </Button>
         </div>
-      </div>
+      </AdminPageContainer>
     );
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Delivery Man Information</CardTitle>
@@ -86,6 +87,6 @@ export default function EditDeliveryManPage() {
         deliveryMan={deliveryMan}
         onSuccess={handleSuccess}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

@@ -4,6 +4,7 @@ import type React from "react";
 
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -30,7 +30,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  Search,
   Trash2,
   XCircle,
 } from "lucide-react";
@@ -307,15 +306,15 @@ export function MenuList({
 
   const renderTableView = () => (
   
-      <Table>
+      <Table className="min-w-180">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>URL</TableHead>
             <TableHead>Parent</TableHead>
-            <TableHead className="hidden md:table-cell">Type</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
-            <TableHead className="hidden md:table-cell text-center">
+            <TableHead>Type</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-center">
               Order
             </TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -358,7 +357,7 @@ export function MenuList({
                 </div>
               </TableCell>
               <TableCell>{getParentMenuName(menuItem.parentId)}</TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <Badge
                   variant="outline"
                   className={
@@ -370,7 +369,7 @@ export function MenuList({
                   {menuItem.isMainMenu ? "Main Menu" : "Sub Menu"}
                 </Badge>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <Badge
                   variant="outline"
                   className={
@@ -382,7 +381,7 @@ export function MenuList({
                   {menuItem.isActive ? "Active" : "Inactive"}
                 </Badge>
               </TableCell>
-              <TableCell className="hidden md:table-cell text-center">
+              <TableCell className="text-center">
                 {menuItem.order}
               </TableCell>
               <TableCell className="text-right">
@@ -435,16 +434,12 @@ export function MenuList({
 
         <div className="space-y-4">
           <div className="flex flex-row justify-between gap-2">
-            <div className="relative w-full sm:max-w-xs min-w-0">
-              <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search menu items..."
-                className="h-8 pl-8"
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
-            </div>
+            <TableSearch
+              wrapperClassName="w-full sm:max-w-xs"
+              placeholder="Search menu items..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
 
             <div className="flex items-center gap-2">
               <DropdownMenu>
