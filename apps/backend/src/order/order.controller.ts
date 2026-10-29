@@ -339,7 +339,7 @@ export class OrderController {
   @ApiOperation({
     summary: 'Get full order report within a specific date range',
     description:
-      'Returns all orders with summary (total orders, total value, discount, and paid amount). Includes only user id and name. Supports custom date range or presets (today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year). Can filter by order status.',
+      'Returns a paginated page of orders plus summary (total orders, total value, discount, and paid amount — computed in SQL over the full filtered range). Supports custom date range or presets (today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year). Can filter by order status.',
   })
   @ApiQuery({
     name: 'fromDate',
@@ -371,19 +371,37 @@ export class OrderController {
     enum: PaymentStatus,
     description: 'Filter by payment status',
   })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    example: 1,
+    description: '1-based page number for the orders list (default 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    example: 50,
+    description: 'Orders per page (default 50, max 500)',
+  })
   async getOrderReportByDateRange(
     @Query('fromDate') fromDate?: string,
     @Query('toDate') toDate?: string,
     @Query('preset') preset?: DateRangePreset,
     @Query('orderStatus') orderStatus?: OrderStatus,
     @Query('paymentStatus') paymentStatus?: PaymentStatus,
+    @Query('page') page = '1',
+    @Query('limit') limit = '50',
   ): Promise<ApiResponseDto<any>> {
+    const safePage = Math.max(1, parseInt(page, 10) || 1);
+    const safeLimit = Math.min(500, Math.max(1, parseInt(limit, 10) || 50));
     const data = await this.orderService.getOrderReportByDateRange(
       fromDate,
       toDate,
       preset,
       orderStatus,
       paymentStatus,
+      safePage,
+      safeLimit,
     );
     return {
       message: 'Order report retrieved successfully',
