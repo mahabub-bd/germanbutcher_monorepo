@@ -64,6 +64,8 @@ import {
 import { listRouteToSlug } from "@/utils/order-list-routes";
 import type { Order, PaymentMethod, ShippingMethod } from "@/utils/types";
 import {
+  CheckCircle2,
+  Clock,
   Copy,
   DollarSign,
   Eye,
@@ -113,7 +115,9 @@ function ElapsedTime({
     ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
     : isStale
       ? "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400"
-      : "bg-muted text-muted-foreground";
+      : "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-300";
+
+  const Icon = isDelivered ? CheckCircle2 : Clock;
 
   return (
     <span
@@ -122,8 +126,9 @@ function ElapsedTime({
           ? `Order → delivery: ${formatDateTime(createdAt)} → ${formatDateTime(deliveredAt as string)}`
           : `Order placed ${formatDateTime(createdAt)}`
       }
-      className={`mt-1 inline-flex items-center rounded-md px-1.5 py-px text-[10px] font-medium tabular-nums ${colorClass}`}
+      className={`mt-1 inline-flex items-center gap-1 rounded-md px-1.5 py-px text-[10px] font-medium tabular-nums ${colorClass}`}
     >
+      <Icon className="h-3 w-3" />
       {elapsed}
     </span>
   );
