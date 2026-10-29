@@ -1128,6 +1128,7 @@ export class OrderService {
         'order.createdAt',
         'order.orderStatus',
         'order.paymentStatus',
+        'order.deliveredAt',
         'order.totalValue',
         'order.paidAmount',
         'user.id',
@@ -1214,7 +1215,11 @@ export class OrderService {
       );
     }
 
-    await this.orderRepository.update(id, { orderStatus: status });
+    // Stamp/clear the delivery timestamp so order→delivery time is exact.
+    await this.orderRepository.update(id, {
+      orderStatus: status,
+      deliveredAt: status === OrderStatus.DELIVERED ? new Date() : null,
+    });
 
     const order = await this.orderRepository.findOneBy({ id });
     if (!order) throw new Error('Order not found');
@@ -1472,6 +1477,7 @@ export class OrderService {
       totalDiscount: parseFloat(order.totalDiscount?.toString() || '0'),
       paidAmount: Number(order.paidAmount || 0),
       orderDate: order.createdAt,
+      deliveredAt: order.deliveredAt,
       customer: order.user
         ? {
             name: order.user.name,

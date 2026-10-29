@@ -223,3 +223,22 @@ export {
   getStatusIcon
 };
 
+
+
+export const formatOrderElapsedTime = (
+  fromDate: string,
+  toDate: number | string = Date.now()
+): string => {
+  const diffMinutes = Math.max(
+    0,
+    Math.floor(
+      (new Date(toDate).getTime() - new Date(fromDate).getTime()) / 60000
+    )
+  );
+  const days = Math.floor(diffMinutes / 1440);
+  const hours = Math.floor((diffMinutes % 1440) / 60);
+  const minutes = diffMinutes % 60;
+  if (days > 0) return `${days}D${hours}H`;
+  if (hours > 0) return `${hours}H`;
+  return `${minutes}M`;
+};

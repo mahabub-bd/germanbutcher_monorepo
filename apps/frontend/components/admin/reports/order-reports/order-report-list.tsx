@@ -32,6 +32,7 @@ import {
   formatDateTime,
   shortenArea,
 } from "@/lib/utils";
+import { formatOrderElapsedTime } from "@/utils/order-helper";
 import { PaymentStatus } from "@/utils/types";
 import { Eye, ShoppingCart, Wallet } from "lucide-react";
 import Link from "next/link";
@@ -65,6 +66,7 @@ export interface Order {
   totalDiscount: number;
   paidAmount: number;
   orderDate: string;
+  deliveredAt?: string | null;
   customer: Customer;
   shippingAddress: ShippingAddress;
   shippingMethod: string;
@@ -141,7 +143,7 @@ export default function OrderReportList({
             <ReportExcelButton
               title="Sales Report"
               subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
-              headers={["#", "Date", "Order No", "Customer", "Mobile", "Area", "Status", "Payment", "Total", "Discount", "Paid"]}
+              headers={["#", "Date", "Order No", "Customer", "Mobile", "Area", "Status", "Payment", "Time Passed", "Total", "Discount", "Paid"]}
               rows={orders.map((o, i) => [
                 i + 1,
                 formatDateTime(o.orderDate),
@@ -151,6 +153,9 @@ export default function OrderReportList({
                 o.shippingAddress?.area || "N/A",
                 o.orderStatus,
                 o.paymentStatus,
+                o.deliveredAt
+                  ? formatOrderElapsedTime(o.orderDate, o.deliveredAt)
+                  : formatOrderElapsedTime(o.orderDate),
                 o.totalValue,
                 o.totalDiscount,
                 o.paidAmount,
@@ -285,6 +290,7 @@ export default function OrderReportList({
               <TableHead>Mobile</TableHead>
               <TableHead>Area</TableHead>
               <TableHead>Order Status</TableHead>
+              <TableHead className="text-center">Time Passed</TableHead>
               <TableHead>Payment Status</TableHead>
 
               <TableHead>Total</TableHead>
@@ -296,7 +302,7 @@ export default function OrderReportList({
             {orders.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={10}
+                  colSpan={11}
                   className="text-center py-6 text-muted-foreground"
                 >
                   No orders found
@@ -338,6 +344,25 @@ export default function OrderReportList({
                     </Badge>
                   </TableCell>
                   <TableCell>{o.orderStatus}</TableCell>
+                  <TableCell className="text-center whitespace-nowrap">
+                    {o.deliveredAt ? (
+                      <Badge
+                        variant="secondary"
+                        className="bg-emerald-100 font-normal text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
+                        title={`Order → delivery: ${formatDateTime(o.orderDate)} → ${formatDateTime(o.deliveredAt)}`}
+                      >
+                        {formatOrderElapsedTime(o.orderDate, o.deliveredAt)}
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="secondary"
+                        className="bg-muted font-normal text-muted-foreground"
+                        title={`Order placed ${formatDateTime(o.orderDate)}`}
+                      >
+                        {formatOrderElapsedTime(o.orderDate)}
+                      </Badge>
+                    )}
+                  </TableCell>
                   <TableCell>{o.paymentStatus}</TableCell>
 
                   <TableCell>{formatCurrencyEnglish(o.totalValue)}</TableCell>

@@ -847,6 +847,8 @@ export interface Order {
   }> | null;
   createdAt: string;
   updatedAt: string;
+  /** When the order was marked delivered (null until delivered). */
+  deliveredAt?: string | null;
 }
 
 export interface OrderPayment {
