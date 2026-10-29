@@ -1,0 +1,1 @@
+Monorepo root for the German Butcher e-commerce platform, orchestrating a Next.js 16 frontend and NestJS 11 backend via pnpm workspaces and Docker Compose.
