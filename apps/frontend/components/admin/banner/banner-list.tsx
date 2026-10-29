@@ -2,8 +2,10 @@
 
 import type React from "react";
 
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,11 +13,24 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { Banner } from "@/utils/types";
-import { Filter, ImageIcon, Plus, Search, XCircle } from "lucide-react";
+import {
+  Ban,
+  CheckCircle,
+  Filter,
+  ImageIcon,
+  Plus,
+  XCircle,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -172,38 +187,40 @@ export function BannerList({
     setCurrentPage(1);
   };
 
+  const hasActiveFilters = () =>
+    Boolean(searchQuery || statusFilter || typeFilter);
+
   const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-      <ImageIcon className="h-10 w-10 text-muted-foreground mb-4" />
-      <h3 className="text-lg font-semibold">No banners found</h3>
-      <p className="text-sm text-muted-foreground mt-2">
-        {searchQuery || statusFilter || typeFilter
-          ? "No banners match your search criteria. Try different filters."
-          : "Get started by adding your first banner."}
-      </p>
-      {!(searchQuery || statusFilter || typeFilter) &&
-        can(MENU_URL, "canCreate") && (
+    <div className="p-4 pb-6">
+      <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
+        <ImageIcon className="h-10 w-10 text-muted-foreground/50 mb-4" />
+        <h3 className="text-lg font-semibold">No banners found</h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          {hasActiveFilters()
+            ? "No banners match your search criteria. Try different filters."
+            : "Get started by adding your first banner."}
+        </p>
+        {!hasActiveFilters() && can(MENU_URL, "canCreate") && (
           <Button asChild className="mt-4">
             <Link href="/admin/banner/add">
               <Plus className="mr-2 h-4 w-4" /> Add Banner
             </Link>
           </Button>
         )}
-      {(searchQuery || statusFilter || typeFilter) && (
-        <Button variant="outline" className="mt-4" onClick={clearFilters}>
-          Clear Filters
-        </Button>
-      )}
+        {hasActiveFilters() && (
+          <Button variant="outline" className="mt-4" onClick={clearFilters}>
+            Clear Filters
+          </Button>
+        )}
+      </div>
     </div>
   );
 
   const renderActiveFilters = () => {
-    const hasFilters = searchQuery || statusFilter || typeFilter;
-
-    if (!hasFilters) return null;
+    if (!hasActiveFilters()) return null;
 
     return (
-      <div className="flex flex-wrap gap-2 mt-4">
+      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
         {searchQuery && (
           <Badge
             variant="outline"
@@ -221,7 +238,7 @@ export function BannerList({
             variant="outline"
             className="flex items-center gap-1 px-3 py-1"
           >
-            Status: {statusFilter}
+            Status: {statusFilter === "active" ? "Active" : "Inactive"}
             <button onClick={() => setStatusFilter("")} className="ml-1">
               <XCircle className="h-3 w-3" />
             </button>
@@ -231,7 +248,7 @@ export function BannerList({
         {typeFilter && typeFilter !== "all" && (
           <Badge
             variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
+            className="flex items-center gap-1 px-3 py-1 capitalize"
           >
             Type: {typeFilter}
             <button onClick={() => setTypeFilter("")} className="ml-1">
@@ -252,18 +269,101 @@ export function BannerList({
     );
   };
 
+  const renderFiltersMenu = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2 px-3 shrink-0">
+          <Filter className="h-4 w-4" />
+          <span>Filters</span>
+          {(statusFilter || typeFilter) && (
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72">
+        <div className="grid grid-cols-2 gap-3 p-3">
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold">Status</h4>
+            <Select
+              value={statusFilter || "all"}
+              onValueChange={(value) => {
+                setStatusFilter(value === "all" ? "" : value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-green-500" />
+                    Active
+                  </span>
+                </SelectItem>
+                <SelectItem value="inactive">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-red-500" />
+                    Inactive
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold">Type</h4>
+            <Select
+              value={typeFilter || "all"}
+              onValueChange={(value) => {
+                setTypeFilter(value === "all" ? "" : value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="main">Main</SelectItem>
+                <SelectItem value="promotional">Promotional</SelectItem>
+                <SelectItem value="featured">Featured</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(statusFilter || typeFilter) && (
+            <div className="col-span-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="w-full mt-2"
+              >
+                Reset Filters
+              </Button>
+            </div>
+          )}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   const renderTableView = () => (
-    <BannerTable
-      banners={banners}
-      onDeleteClick={handleDeleteClick}
-      onToggleActive={toggleActive}
-      togglingId={togglingId}
-    />
+    <div className="min-w-0">
+      <BannerTable
+        banners={banners}
+        onDeleteClick={handleDeleteClick}
+        onToggleActive={toggleActive}
+        togglingId={togglingId}
+      />
+    </div>
   );
 
   return (
     <>
-      <div className="w-full">
+      <div className="w-full space-y-4">
         <PageHeader
           title="Banners"
           description="Manage your promotional banners"
@@ -275,144 +375,50 @@ export function BannerList({
             : {})}
         />
 
-        <div className="space-y-4">
-          <div className="flex flex-row justify-between gap-2">
-            <div className="relative w-full sm:max-w-xs min-w-0">
-              <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
+        {/* Summary tiles */}
+        <div className="grid grid-cols-3 md:grid-cols-3 gap-3">
+          <StatsCard
+            icon={ImageIcon}
+            title="Total Banners"
+            value={totalItems}
+            bgColor="blue"
+          />
+          <StatsCard
+            icon={CheckCircle}
+            title="Active"
+            value={banners.filter((b) => b.isActive).length}
+            bgColor="green"
+          />
+          <StatsCard
+            icon={Ban}
+            title="Inactive"
+            value={banners.filter((b) => !b.isActive).length}
+            bgColor="orange"
+          />
+        </div>
+
+        {/* List card: toolbar + table */}
+        <div className="rounded-sm border bg-card">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400">
+                <ImageIcon className="h-4.5 w-4.5" />
+              </span>
+              <div>
+                <h3 className="font-semibold leading-tight">All Banners</h3>
+                <p className="text-sm text-muted-foreground">
+                  {totalItems} banner{totalItems === 1 ? "" : "s"}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
+              <TableSearch
+                wrapperClassName="w-full sm:w-64"
                 placeholder="Search banners..."
-                className="h-8 pl-8"
                 value={searchQuery}
                 onChange={handleSearchChange}
               />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2 px-3"
-                  >
-                    <Filter className="h-4 w-4" />
-                    <span>Filters</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-72 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
-                  sideOffset={8}
-                >
-                  <div className="space-y-3">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium">Filters</h4>
-                      {(statusFilter || typeFilter) && (
-                        <button
-                          onClick={clearFilters}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Clear all
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Status Filter */}
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">
-                        Status
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          onClick={() => {
-                            setStatusFilter("all");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all"
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          All
-                        </button>
-                        <button
-                          onClick={() => {
-                            setStatusFilter("active");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "active"
-                              ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          <span className="h-2 w-2 rounded-full bg-green-500" />
-                          Active
-                        </button>
-                        <button
-                          onClick={() => {
-                            setStatusFilter("inactive");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "inactive"
-                              ? "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          <span className="h-2 w-2 rounded-full bg-red-500" />
-                          Inactive
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Type Filter */}
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">
-                        Type
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          onClick={() => {
-                            setTypeFilter("main");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${typeFilter === "main"
-                              ? "bg-purple-50 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800 text-purple-600 dark:text-purple-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          Main
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTypeFilter("promotional");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${typeFilter === "promotional"
-                              ? "bg-amber-50 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 text-amber-600 dark:text-amber-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          Promotional
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTypeFilter("featured");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${typeFilter === "featured"
-                              ? "bg-cyan-50 border-cyan-200 dark:bg-cyan-900/30 dark:border-cyan-800 text-cyan-600 dark:text-cyan-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          Featured
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {renderFiltersMenu()}
             </div>
           </div>
 
@@ -423,11 +429,12 @@ export function BannerList({
           ) : banners.length === 0 ? (
             renderEmptyState()
           ) : (
-            <div className="mt-6">{renderTableView()}</div>
+            renderTableView()
           )}
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
+        {/* Pagination */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground text-center md:text-left truncate">
               {`Showing ${banners.length} of ${totalItems} banners`}

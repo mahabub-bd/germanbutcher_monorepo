@@ -3,12 +3,31 @@
 import { SendMaintenanceNotification } from "@/components/admin/notifications/send-maintenance-notification";
 import { SendOfferNotification } from "@/components/admin/notifications/send-offer-notification";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell } from "lucide-react";
+import { Bell, Megaphone, Wrench } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
+const BROADCAST_TABS = [
+  {
+    value: "offers",
+    label: "Offers & Promotions",
+    icon: <Megaphone className="size-3.5 sm:size-4" />,
+    colors: "bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/70",
+    activeColors: "bg-blue-600 text-white hover:bg-blue-600 dark:bg-blue-400 dark:text-blue-950 dark:hover:bg-blue-400",
+  },
+  {
+    value: "maintenance",
+    label: "Maintenance",
+    icon: <Wrench className="size-3.5 sm:size-4" />,
+    colors: "bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70",
+    activeColors: "bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-400 dark:text-amber-950 dark:hover:bg-amber-400",
+  },
+];
+
 export default function NotificationsPage() {
+  const [tab, setTab] = useState("offers");
+
   return (
     <AdminPageContainer>
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -27,24 +46,31 @@ export default function NotificationsPage() {
         </Button>
       </div>
 
-      <Tabs defaultValue="offers" className="w-full">
-        <TabsList className="grid h-11 w-full grid-cols-2 rounded-lg p-1">
-          <TabsTrigger value="offers" className="text-sm">
-            Offers &amp; Promotions
-          </TabsTrigger>
-          <TabsTrigger value="maintenance" className="text-sm">
-            Maintenance
-          </TabsTrigger>
-        </TabsList>
+      {/* Pill tabs — same design as the inbox ticket status tabs */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 pt-4 sm:gap-2">
+        {BROADCAST_TABS.map((t) => {
+          const active = tab === t.value;
+          return (
+            <button
+              key={t.value}
+              onClick={() => setTab(t.value)}
+              aria-pressed={active}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 sm:px-4 sm:py-2 sm:text-sm ${active ? t.activeColors : t.colors}`}
+            >
+              {t.icon}
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
 
-        <TabsContent value="offers" className="mt-4">
+      <div className="mt-4">
+        {tab === "offers" ? (
           <SendOfferNotification />
-        </TabsContent>
-
-        <TabsContent value="maintenance" className="mt-4">
+        ) : (
           <SendMaintenanceNotification />
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </AdminPageContainer>
   );
 }
