@@ -138,4 +138,12 @@ export class Order {
     readOnly: true,
   })
   updatedAt: Date;
+
+  @ApiPropertyOptional({
+    example: '2023-05-16T14:30:00Z',
+    description: 'When the order was marked delivered. Null until delivered; '
+      + 'cleared if the status moves away from delivered.',
+  })
+  @Column({ type: 'timestamp', nullable: true })
+  deliveredAt?: Date | null;
 }

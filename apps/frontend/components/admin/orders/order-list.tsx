@@ -52,6 +52,7 @@ import {
 } from "@/lib/utils";
 import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import {
+  formatOrderElapsedTime,
   getOrderStatusColor,
   getPaymentMethodColor,
   getPaymentMethodIcon,
@@ -82,32 +83,46 @@ import { toast } from "sonner";
 
 const DIVISIONS = Object.keys(DIVISION_DISTRICTS);
 
-/** Compact elapsed time since the order was placed, e.g. "2D8H", "5H30M", "45M". */
-function formatElapsedTime(fromDate: string, now: number): string {
-  const diffMinutes = Math.max(
-    0,
-    Math.floor((now - new Date(fromDate).getTime()) / 60000)
-  );
-  const days = Math.floor(diffMinutes / 1440);
-  const hours = Math.floor((diffMinutes % 1440) / 60);
-  const minutes = diffMinutes % 60;
-  if (days > 0) return `${days}D${hours}H`;
-  if (hours > 0) return `${hours}H${minutes}M`;
-  return `${minutes}M`;
-}
+const STALE_AFTER_DAYS = 3;
 
-/** Elapsed-time chip that re-renders every minute so ages stay current. */
-function ElapsedTime({ createdAt }: { createdAt: string }) {
+/** Elapsed-time chip: neutral while fresh, red once the order sits
+ *  UNDELIVERED for 3+ days; delivered orders show the order→delivery
+ *  span in green. Re-renders every minute so ages stay current. */
+function ElapsedTime({
+  createdAt,
+  deliveredAt,
+}: {
+  createdAt: string;
+  deliveredAt?: string | null;
+}) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(timer);
   }, []);
-  const elapsed = formatElapsedTime(createdAt, now);
+
+  const isDelivered = Boolean(deliveredAt);
+  const elapsed = formatOrderElapsedTime(createdAt, isDelivered
+    ? new Date(deliveredAt as string).getTime()
+    : now);
+  const isStale =
+    !isDelivered &&
+    now - new Date(createdAt).getTime() >= STALE_AFTER_DAYS * 86400000;
+
+  const colorClass = isDelivered
+    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
+    : isStale
+      ? "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400"
+      : "bg-muted text-muted-foreground";
+
   return (
     <span
-      title={`Order placed ${formatDateTime(createdAt)}`}
-      className="mt-1 inline-flex items-center rounded-md bg-muted px-1.5 py-px text-[10px] font-medium tabular-nums text-muted-foreground"
+      title={
+        isDelivered
+          ? `Order → delivery: ${formatDateTime(createdAt)} → ${formatDateTime(deliveredAt as string)}`
+          : `Order placed ${formatDateTime(createdAt)}`
+      }
+      className={`mt-1 inline-flex items-center rounded-md px-1.5 py-px text-[10px] font-medium tabular-nums ${colorClass}`}
     >
       {elapsed}
     </span>
@@ -523,6 +538,7 @@ export function OrderList({
               <TableHead>Order ID / Date</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Order Status</TableHead>
+              <TableHead className="text-center">Time Passed</TableHead>
               <TableHead>Payment Status</TableHead>
               <TableHead>Payment Method</TableHead>
               <TableHead>Shipping Method</TableHead>
@@ -551,6 +567,9 @@ export function OrderList({
                     <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
                   <TableCell>
+                    <div className="mx-auto h-4 w-12 bg-gray-200 rounded animate-pulse" />
+                  </TableCell>
+                  <TableCell>
                     <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
                   </TableCell>
                   <TableCell>
@@ -572,7 +591,7 @@ export function OrderList({
               ))
             ) : orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12">
+                <TableCell colSpan={10} className="text-center py-12">
                   <div className="flex flex-col items-center gap-3">
                     <ShoppingCart className="h-12 w-12 text-muted-foreground" />
                     <div className="space-y-1">
@@ -668,8 +687,12 @@ export function OrderList({
                         {order.orderStatus}
                       </span>
                     </Badge>
-                    <br />
-                    <ElapsedTime createdAt={order.createdAt} />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <ElapsedTime
+                      createdAt={order.createdAt}
+                      deliveredAt={order.deliveredAt}
+                    />
                   </TableCell>
                   <TableCell>
                     <Badge

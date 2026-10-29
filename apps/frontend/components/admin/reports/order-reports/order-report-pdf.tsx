@@ -9,6 +9,7 @@ import {
 } from "@react-pdf/renderer";
 
 import type { BusinessSettings } from "@/utils/types";
+import { formatOrderElapsedTime } from "@/utils/order-helper";
 import { ReportPDFHeader } from "../report-pdf-header";
 
 interface Customer {
@@ -36,6 +37,7 @@ interface Order {
   totalDiscount: number;
   paidAmount: number;
   orderDate: string;
+  deliveredAt?: string | null;
   customer: Customer;
   shippingAddress: ShippingAddress;
   shippingMethod: string;
@@ -164,6 +166,7 @@ export function OrderReportPDF({ orders, settings }: Props) {
           <Text style={[styles.tableHeaderText, { flex: 1.5 }]}>Mobile</Text>
           <Text style={[styles.tableHeaderText, { flex: 1.2 }]}>Area</Text>
           <Text style={styles.tableHeaderText}>Status</Text>
+          <Text style={styles.tableHeaderText}>Time Passed</Text>
           <Text style={styles.tableHeaderText}>Payment</Text>
           <Text style={styles.tableHeaderText}>Total</Text>
           <Text style={styles.tableHeaderText}>Discount</Text>
@@ -189,6 +192,11 @@ export function OrderReportPDF({ orders, settings }: Props) {
               {o.shippingAddress?.area || "N/A"}
             </Text>
             <Text style={styles.cell}>{o.orderStatus}</Text>
+            <Text style={styles.cell}>
+              {o.deliveredAt
+                ? formatOrderElapsedTime(o.orderDate, o.deliveredAt)
+                : formatOrderElapsedTime(o.orderDate)}
+            </Text>
             <Text style={styles.cell}>{o.paymentStatus}</Text>
             <Text style={styles.cell}>{formatCurrency(o.totalValue)}</Text>
             <Text style={styles.cell}>{formatCurrency(o.totalDiscount)}</Text>
