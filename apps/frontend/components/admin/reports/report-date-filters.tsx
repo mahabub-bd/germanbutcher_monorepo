@@ -97,6 +97,10 @@ interface ReportDateFiltersProps {
   /** Called alongside onApply({}) when Clear is pressed, so pages with
    *  extra filters can reset their own state too. */
   onClear?: () => void;
+  /** Extra classes for the wrapper card — pages can pass bare styling
+   *  ("mb-0 border-none bg-transparent p-0 shadow-none") to embed the
+   *  controls inline in a page header instead of a standalone panel. */
+  className?: string;
 }
 
 export function ReportDateFilters({
@@ -106,6 +110,7 @@ export function ReportDateFilters({
   extra,
   onApply,
   onClear,
+  className,
 }: ReportDateFiltersProps) {
   const [mounted, setMounted] = useState(false);
   const [startDate, setStartDate] = useState<Date | undefined>(
@@ -197,7 +202,7 @@ export function ReportDateFilters({
   //    full width so placeholders are never truncated.
   //  - md+: always-open single nowrap row of equally styled controls.
   return (
-    <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
+    <div className={cn("mb-6 rounded-xl border bg-card p-3 shadow-xs", className)}>
       {/* Mobile toggle header (hidden on md+) */}
       <button
         type="button"
