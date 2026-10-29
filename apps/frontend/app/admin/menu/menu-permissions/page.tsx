@@ -1,5 +1,6 @@
 "use client";
 
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { PageHeader } from "@/components/admin/page-header";
 import { IconRenderer } from "@/components/common/IconRenderer";
@@ -46,7 +47,6 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 interface MenuPermission {
   id: number;
@@ -302,8 +302,7 @@ export default function RoleMenuPermissions() {
   };
 
   const handleSectionPreset = (item: MenuItem, preset: PermFlags) => {
-    // Parent rows only carry View — their Create/Edit/Delete have no module
-    // of their own (real actions live on the children).
+
     applyFlags([item.id], { ...NO_FLAGS, canView: preset.canView });
     if (item.children?.length) {
       applyFlags(
@@ -560,10 +559,7 @@ export default function RoleMenuPermissions() {
               />
             )}
           </button>
-          {/* The parent needs its OWN canView row — the sidebar renders a
-              main menu only when the parent itself is granted. Its Create /
-              Edit / Delete cells stay dimmed: real actions live on the
-              child modules, the Bulk menu manages them together. */}
+
           {ACTIONS.map(({ key }) => (
             <span key={key} className="contents">
               {key === "canView" ? (
@@ -684,13 +680,12 @@ export default function RoleMenuPermissions() {
     <AdminPageContainer className="md:p-4 p-2 space-y-6 rounded-sm w-full">
       <PageHeader
         title="Role Permissions"
-        description="Pick a role, then set what it can do in each module. View controls sidebar visibility; Create, Edit and Delete are enforced on the API."
       />
 
-      {/* Sticky toolbar */}
+      {/* Sticky single-line toolbar */}
       <div className="sticky top-2 z-20 mb-4 rounded-sm border bg-card/95 p-3 shadow-sm backdrop-blur md:p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="flex items-center gap-2">
             <label className="text-sm font-medium text-primaryColor">Role</label>
             <Select
               value={selectedRoleId}
@@ -726,11 +721,10 @@ export default function RoleMenuPermissions() {
                   <span
                     className="block h-full rounded-full bg-primaryColor transition-[width] duration-300"
                     style={{
-                      width: `${
-                        totalCount > 0
-                          ? Math.round((grantedCount / totalCount) * 100)
-                          : 0
-                      }%`,
+                      width: `${totalCount > 0
+                        ? Math.round((grantedCount / totalCount) * 100)
+                        : 0
+                        }%`,
                     }}
                   />
                 </span>
@@ -738,7 +732,7 @@ export default function RoleMenuPermissions() {
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center gap-2">
             <div className="relative w-full sm:w-56">
               <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
