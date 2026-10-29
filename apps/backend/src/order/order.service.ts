@@ -1129,6 +1129,7 @@ export class OrderService {
         'order.orderStatus',
         'order.paymentStatus',
         'order.deliveredAt',
+        'order.cancelledAt',
         'order.totalValue',
         'order.paidAmount',
         'user.id',
@@ -1478,6 +1479,7 @@ export class OrderService {
       paidAmount: Number(order.paidAmount || 0),
       orderDate: order.createdAt,
       deliveredAt: order.deliveredAt,
+      cancelledAt: order.cancelledAt,
       customer: order.user
         ? {
             name: order.user.name,
@@ -2355,6 +2357,7 @@ export class OrderService {
     await this.orderRepository.update(id, {
       orderStatus: OrderStatus.CANCELLED,
       paymentStatus: newPaymentStatus,
+      cancelledAt: new Date(),
     });
 
     // CREATE STATUS TRACK ENTRY WITH CANCELLATION REASON

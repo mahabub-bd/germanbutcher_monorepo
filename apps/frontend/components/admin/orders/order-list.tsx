@@ -87,15 +87,18 @@ const DIVISIONS = Object.keys(DIVISION_DISTRICTS);
 
 const STALE_AFTER_DAYS = 3;
 
-/** Elapsed-time chip: neutral while fresh, red once the order sits
- *  UNDELIVERED for 3+ days; delivered orders show the order→delivery
- *  span in green. Re-renders every minute so ages stay current. */
+/** Elapsed-time chip: counts only until the order reaches a terminal state —
+ *  delivered stops at deliveredAt (green), cancelled at cancelledAt (gray);
+ *  otherwise live, turning red once the order sits undelivered for 3+ days.
+ *  Re-renders every minute so live ages stay current. */
 function ElapsedTime({
   createdAt,
   deliveredAt,
+  cancelledAt,
 }: {
   createdAt: string;
   deliveredAt?: string | null;
+  cancelledAt?: string | null;
 }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -104,27 +107,34 @@ function ElapsedTime({
   }, []);
 
   const isDelivered = Boolean(deliveredAt);
-  const elapsed = formatOrderElapsedTime(createdAt, isDelivered
-    ? new Date(deliveredAt as string).getTime()
-    : now);
+  const isCancelled = !isDelivered && Boolean(cancelledAt);
+  const endedAt = deliveredAt ?? cancelledAt ?? null;
+  const elapsed = formatOrderElapsedTime(
+    createdAt,
+    endedAt ? new Date(endedAt).getTime() : now
+  );
   const isStale =
-    !isDelivered &&
+    !endedAt &&
     now - new Date(createdAt).getTime() >= STALE_AFTER_DAYS * 86400000;
 
   const colorClass = isDelivered
     ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
-    : isStale
-      ? "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400"
-      : "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-300";
+    : isCancelled
+      ? "bg-gray-100 text-gray-500 dark:bg-neutral-800 dark:text-neutral-400"
+      : isStale
+        ? "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400"
+        : "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-300";
 
-  const Icon = isDelivered ? CheckCircle2 : Clock;
+  const Icon = isDelivered ? CheckCircle2 : isCancelled ? XCircle : Clock;
 
   return (
     <span
       title={
         isDelivered
           ? `Order → delivery: ${formatDateTime(createdAt)} → ${formatDateTime(deliveredAt as string)}`
-          : `Order placed ${formatDateTime(createdAt)}`
+          : isCancelled
+            ? `Order → cancel: ${formatDateTime(createdAt)} → ${formatDateTime(cancelledAt as string)}`
+            : `Order placed ${formatDateTime(createdAt)}`
       }
       className={`mt-1 inline-flex items-center gap-1 rounded-md px-1.5 py-px text-[10px] font-medium tabular-nums ${colorClass}`}
     >
@@ -697,6 +707,7 @@ export function OrderList({
                     <ElapsedTime
                       createdAt={order.createdAt}
                       deliveredAt={order.deliveredAt}
+                      cancelledAt={order.cancelledAt}
                     />
                   </TableCell>
                   <TableCell>
