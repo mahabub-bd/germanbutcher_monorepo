@@ -7,7 +7,6 @@ import { ReportDateFilters } from "@/components/admin/reports/report-date-filter
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -17,16 +16,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { cn, formatCurrencyEnglish } from "@/lib/utils";
+import { formatCurrencyEnglish } from "@/lib/utils";
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import {
-  Ban,
-  CheckCircle2,
   Clock,
-  Eye,
-  FileText,
+  MapPin,
+  PackageCheck,
+  PauseCircle,
   RefreshCw,
   Search,
+  ShoppingCart,
   Truck,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -69,41 +70,6 @@ const PAGE_SIZE = 10;
 /** One decimal, guarded against divide-by-zero. */
 const pct = (part: number, whole: number) =>
   whole > 0 ? ((part / whole) * 100).toFixed(1) : "0.0";
-
-/** Colored icon tile + label + big number + share of total. */
-function ReportStat({
-  icon: Icon,
-  label,
-  value,
-  percent,
-  tileClass,
-}: {
-  icon: typeof FileText;
-  label: string;
-  value: number;
-  percent: string;
-  tileClass: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border bg-card p-4">
-      <span
-        className={cn(
-          "flex size-11 shrink-0 items-center justify-center rounded-lg",
-          tileClass
-        )}
-      >
-        <Icon className="size-5" />
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-sm text-muted-foreground">{label}</p>
-        <p className="text-2xl font-bold leading-tight tabular-nums">
-          {value.toLocaleString()}
-        </p>
-        <p className="text-xs text-muted-foreground">{percent}% of total</p>
-      </div>
-    </div>
-  );
-}
 
 export default function AreaWiseOrdersList({
   fromDate,
@@ -180,13 +146,6 @@ export default function AreaWiseOrdersList({
           </span>
         }
       >
-        <ReportDateFilters
-          preset={preset}
-          fromDate={fromDate}
-          toDate={toDate}
-          onApply={applyParams}
-          className="mb-0 border-none bg-transparent p-0 shadow-none"
-        />
         {areas.length > 0 && (
           <div className="flex shrink-0 gap-2">
             <ReportExcelButton
@@ -237,42 +196,56 @@ export default function AreaWiseOrdersList({
         )}
       </PageHeader>
 
+      <ReportDateFilters
+        preset={preset}
+        fromDate={fromDate}
+        toDate={toDate}
+        onApply={applyParams}
+      />
+
       {/* Status summary cards */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <ReportStat
-          icon={FileText}
-          label="Total Orders"
-          value={summaryTotal}
-          percent={pct(summaryTotal, summaryTotal)}
-          tileClass="bg-blue-100 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
+      <div className="grid grid-cols-2 sm:grid-cols-4 2xl:grid-cols-7 gap-4 mb-6">
+        <StatsCard
+          icon={ShoppingCart}
+          title="Total Orders"
+          value={summary?.totalOrders ?? 0}
+          bgColor="blue"
         />
-        <ReportStat
-          icon={CheckCircle2}
-          label="Delivered"
+        <StatsCard
+          icon={PackageCheck}
+          title="Delivered Orders"
           value={summary?.deliveredOrders ?? 0}
-          percent={pct(summary?.deliveredOrders ?? 0, summaryTotal)}
-          tileClass="bg-green-100 text-green-600 dark:bg-green-950/40 dark:text-green-400"
+          bgColor="green"
         />
-        <ReportStat
+        <StatsCard
           icon={Clock}
-          label="Pending"
+          title="Pending Orders"
           value={summary?.pendingOrders ?? 0}
-          percent={pct(summary?.pendingOrders ?? 0, summaryTotal)}
-          tileClass="bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
+          bgColor="orange"
         />
-        <ReportStat
+        <StatsCard
           icon={RefreshCw}
-          label="Processing"
+          title="Processing Orders"
           value={summary?.processingOrders ?? 0}
-          percent={pct(summary?.processingOrders ?? 0, summaryTotal)}
-          tileClass="bg-indigo-100 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400"
+          bgColor="indigo"
         />
-        <ReportStat
-          icon={Ban}
-          label="Cancelled"
+        <StatsCard
+          icon={PauseCircle}
+          title="On Hold Orders"
+          value={summary?.onHoldOrders ?? 0}
+          bgColor="amber"
+        />
+        <StatsCard
+          icon={XCircle}
+          title="Cancelled Orders"
           value={summary?.cancelledOrders ?? 0}
-          percent={pct(summary?.cancelledOrders ?? 0, summaryTotal)}
-          tileClass="bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+          bgColor="red"
+        />
+        <StatsCard
+          icon={MapPin}
+          title="Areas"
+          value={summary?.totalAreas ?? 0}
+          bgColor="purple"
         />
       </div>
 
@@ -304,16 +277,17 @@ export default function AreaWiseOrdersList({
                 <TableHead>Delivered</TableHead>
                 <TableHead>Pending</TableHead>
                 <TableHead>Processing</TableHead>
+                <TableHead>On Hold</TableHead>
                 <TableHead>Cancelled</TableHead>
+                <TableHead>Order Value</TableHead>
                 <TableHead>Completion Rate</TableHead>
-                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pageAreas.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={9}
+                    colSpan={10}
                     className="text-center py-12 text-muted-foreground"
                   >
                     {search
@@ -323,13 +297,26 @@ export default function AreaWiseOrdersList({
                 </TableRow>
               ) : (
                 pageAreas.map((a, index) => {
-                  const completion = pct(a.deliveredOrders, a.totalOrders);
+                  // Cancelled orders are excluded from the denominator —
+                  // they never had a chance to be delivered, so they would
+                  // punish the rate forever.
+                  const completion = pct(
+                    a.deliveredOrders,
+                    a.totalOrders - a.cancelledOrders
+                  );
                   return (
                     <TableRow key={a.area} className="hover:bg-muted/50">
                       <TableCell className="text-muted-foreground">
                         {(currentPage - 1) * PAGE_SIZE + index + 1}
                       </TableCell>
-                      <TableCell className="font-medium">{a.area}</TableCell>
+                      <TableCell className="font-medium">
+                        <Link
+                          href={`/admin/orders?area=${encodeURIComponent(a.area)}`}
+                          className="hover:text-primaryColor hover:underline"
+                        >
+                          {a.area}
+                        </Link>
+                      </TableCell>
                       <TableCell className="font-medium tabular-nums">
                         {a.totalOrders}
                       </TableCell>
@@ -358,12 +345,23 @@ export default function AreaWiseOrdersList({
                         </span>
                       </TableCell>
                       <TableCell>
+                        <span className="block font-semibold text-violet-600 dark:text-violet-400 tabular-nums">
+                          {a.onHoldOrders}
+                        </span>
+                        <span className="block text-xs text-muted-foreground tabular-nums">
+                          {pct(a.onHoldOrders, a.totalOrders)}%
+                        </span>
+                      </TableCell>
+                      <TableCell>
                         <span className="block font-semibold tabular-nums">
                           {a.cancelledOrders}
                         </span>
                         <span className="block text-xs text-muted-foreground tabular-nums">
                           {pct(a.cancelledOrders, a.totalOrders)}%
                         </span>
+                      </TableCell>
+                      <TableCell className="tabular-nums">
+                        {formatCurrencyEnglish(a.totalValue)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -375,16 +373,6 @@ export default function AreaWiseOrdersList({
                           </span>
                           <span className="text-sm tabular-nums">{completion}%</span>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button asChild variant="outline" size="sm">
-                          <Link
-                            href={`/admin/orders?area=${encodeURIComponent(a.area)}`}
-                          >
-                            <Eye className="mr-1 size-4" />
-                            View
-                          </Link>
-                        </Button>
                       </TableCell>
                     </TableRow>
                   );
