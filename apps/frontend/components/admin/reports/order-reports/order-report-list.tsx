@@ -1,6 +1,7 @@
 "use client";
 
 import { OrderStatus } from "@/common/enums";
+import { PaginationComponent } from "@/components/common/pagination";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
 import { ReportExcelButton, dateRangeSubtitle } from "@/components/admin/reports/download-excel-button";
@@ -27,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
+import { apiUrl, resolveAuthToken } from "@/utils/api-utils";
 import {
   formatCurrencyEnglish,
   formatDateTime,
@@ -34,10 +36,11 @@ import {
 } from "@/lib/utils";
 import { formatOrderElapsedTime } from "@/utils/order-helper";
 import { PaymentStatus } from "@/utils/types";
-import { CheckCircle2, Clock, Eye, ShoppingCart, Wallet, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, ShoppingCart, Wallet, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { OrderReportPDF } from "./order-report-pdf";
 
 interface Customer {
@@ -50,12 +53,6 @@ interface ShippingAddress {
   area: string;
   city: string;
   division: string;
-}
-interface OrderItem {
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
 }
 export interface Order {
   id: number;
@@ -72,7 +69,6 @@ export interface Order {
   shippingAddress: ShippingAddress;
   shippingMethod: string;
   paymentMethod: string;
-  items: OrderItem[];
 }
 interface OrderReportProps {
   orders: Order[];
@@ -85,6 +81,9 @@ interface OrderReportProps {
   totalValue: number;
   totalDiscount: number;
   totalPaid: number;
+  currentPage: number;
+  limit: number;
+  totalPages: number;
 }
 
 export default function OrderReportList({
@@ -98,6 +97,9 @@ export default function OrderReportList({
   totalValue,
   totalDiscount,
   totalPaid,
+  currentPage,
+  limit,
+  totalPages,
 }: OrderReportProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -110,9 +112,72 @@ export default function OrderReportList({
     paymentStatus || "all"
   );
 
+  // Full-range rows for Excel/PDF export, fetched on demand (first export
+  // click of each filter combination) so the page load stays light.
+  const [exportOrders, setExportOrders] = useState<Order[] | null>(null);
+  const [exporting, setExporting] = useState(false);
+
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Invalidate the prepared export when filters change.
+  useEffect(() => {
+    setExportOrders(null);
+  }, [preset, fromDate, toDate, orderStatus, paymentStatus]);
+
+  const buildFilterQuery = () => {
+    const qs = new URLSearchParams();
+    if (preset) qs.set("preset", preset);
+    else {
+      if (fromDate) qs.set("fromDate", fromDate);
+      if (toDate) qs.set("toDate", toDate);
+    }
+    if (orderStatus) qs.set("orderStatus", orderStatus);
+    if (paymentStatus) qs.set("paymentStatus", paymentStatus);
+    return qs;
+  };
+
+  const handleExportPrepare = async () => {
+    if (exporting || exportOrders) return;
+    setExporting(true);
+    try {
+      const token = await resolveAuthToken();
+      const all: Order[] = [];
+      let page = 1;
+      let lastPage = 1;
+      do {
+        const qs = buildFilterQuery();
+        qs.set("page", String(page));
+        qs.set("limit", "500");
+        const response = await fetch(
+          `${apiUrl}/orders/reports/date-range?${qs.toString()}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!response.ok) {
+          throw new Error(`Export request failed (${response.status})`);
+        }
+        // Raw fetch returns the API envelope; report data is in `.data`.
+        const json = await response.json();
+        const data = json?.data;
+        all.push(...(data?.orders || []));
+        lastPage = data?.totalPages || 1;
+        page += 1;
+      } while (page <= lastPage);
+      setExportOrders(all);
+    } catch (error) {
+      console.error("Failed to prepare export:", error);
+      toast.error("Failed to load orders for export");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    const qs = buildFilterQuery();
+    if (page > 1) qs.set("page", String(page));
+    router.push(`?${qs.toString()}`);
+  };
 
   const handleFilterApply = (params: ReportFilterParams) => {
     const qs = new URLSearchParams();
@@ -139,42 +204,57 @@ export default function OrderReportList({
             title="Sales Report"
           />
         </div>
-        {orders.length > 0 && mounted && (
+        {mounted && totalOrders > 0 && (
           <div className="flex shrink-0 gap-2">
-            <ReportExcelButton
-              title="Sales Report"
-              subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
-              headers={["#", "Date", "Order No", "Customer", "Mobile", "Area", "Status", "Payment", "Elapsed Time", "Total", "Discount", "Paid"]}
-              rows={orders.map((o, i) => [
-                i + 1,
-                formatDateTime(o.orderDate),
-                o.orderNo,
-                o.customer?.name || "N/A",
-                o.customer?.mobileNumber || "N/A",
-                o.shippingAddress?.area || "N/A",
-                o.orderStatus,
-                o.paymentStatus,
-                o.cancelledAt
-                  ? formatOrderElapsedTime(o.orderDate, o.cancelledAt)
-                  : o.deliveredAt
-                    ? formatOrderElapsedTime(o.orderDate, o.deliveredAt)
-                    : formatOrderElapsedTime(o.orderDate),
-                o.totalValue,
-                o.totalDiscount,
-                o.paidAmount,
-              ])}
-              summary={[
-                { label: "Total Orders", value: String(totalOrders) },
-                { label: "Total Value", value: formatCurrencyEnglish(totalValue, 0) },
-                { label: "Total Discount", value: formatCurrencyEnglish(totalDiscount, 0) },
-                { label: "Total Paid", value: formatCurrencyEnglish(totalPaid, 0) },
-              ]}
-              fileName="sales-report"
-            />
-            <LazyPdfDownloadLink
-              document={<OrderReportPDF orders={orders} settings={settings} />}
-              fileName={`order-report-${new Date().toISOString().split("T")[0]}.pdf`}
-            />
+            {exportOrders ? (
+              <>
+                <ReportExcelButton
+                  title="Sales Report"
+                  subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
+                  headers={["#", "Date", "Order No", "Customer", "Mobile", "Area", "Status", "Payment", "Elapsed Time", "Total", "Discount", "Paid"]}
+                  rows={exportOrders.map((o, i) => [
+                    i + 1,
+                    formatDateTime(o.orderDate),
+                    o.orderNo,
+                    o.customer?.name || "N/A",
+                    o.customer?.mobileNumber || "N/A",
+                    o.shippingAddress?.area || "N/A",
+                    o.orderStatus,
+                    o.paymentStatus,
+                    o.cancelledAt
+                      ? formatOrderElapsedTime(o.orderDate, o.cancelledAt)
+                      : o.deliveredAt
+                        ? formatOrderElapsedTime(o.orderDate, o.deliveredAt)
+                        : formatOrderElapsedTime(o.orderDate),
+                    o.totalValue,
+                    o.totalDiscount,
+                    o.paidAmount,
+                  ])}
+                  summary={[
+                    { label: "Total Orders", value: String(totalOrders) },
+                    { label: "Total Value", value: formatCurrencyEnglish(totalValue, 0) },
+                    { label: "Total Discount", value: formatCurrencyEnglish(totalDiscount, 0) },
+                    { label: "Total Paid", value: formatCurrencyEnglish(totalPaid, 0) },
+                  ]}
+                  fileName="sales-report"
+                />
+                <LazyPdfDownloadLink
+                  document={<OrderReportPDF orders={exportOrders} settings={settings} />}
+                  fileName={`order-report-${new Date().toISOString().split("T")[0]}.pdf`}
+                />
+              </>
+            ) : (
+              <Button onClick={handleExportPrepare} disabled={exporting}>
+                {exporting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Preparing…
+                  </>
+                ) : (
+                  "Export"
+                )}
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -265,7 +345,8 @@ export default function OrderReportList({
           />
           <StatsCard
             title="Total Discount"
-            value={formatCurrencyEnglish(totalDiscount, 0)}
+            value={formatCurrencyEnglish(totalDiscount, 0)
+            }
             count={String(totalOrders)}
             description="Total discounts given"
             icon={Wallet}
@@ -298,14 +379,13 @@ export default function OrderReportList({
 
               <TableHead>Total</TableHead>
               <TableHead>Paid</TableHead>
-              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={11}
+                  colSpan={10}
                   className="text-center py-6 text-muted-foreground"
                 >
                   No orders found
@@ -319,7 +399,14 @@ export default function OrderReportList({
                       {formatDateTime(o.orderDate)}
                     </span>
                   </TableCell>
-                  <TableCell>{o.orderNo}</TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/admin/order/${o.id}/view`}
+                      className="hover:text-primaryColor hover:underline"
+                    >
+                      {o.orderNo}
+                    </Link>
+                  </TableCell>
                   <TableCell>
                     <span className="font-medium">
                       {o.customer?.name || "N/A"}
@@ -370,7 +457,7 @@ export default function OrderReportList({
                       <Badge
                         variant="secondary"
                         className="bg-gray-100 font-normal text-gray-500 dark:bg-neutral-800 dark:text-neutral-400"
-                        title={`Order → cancel: ${formatDateTime(o.orderDate)} → ${formatDateTime(o.cancelledAt)}`}
+                        title={`Order → cancel: ${o.orderDate} → ${o.cancelledAt}`}
                       >
                         <XCircle className="h-3 w-3" />
                         {formatOrderElapsedTime(o.orderDate, o.cancelledAt)}
@@ -400,19 +487,28 @@ export default function OrderReportList({
 
                   <TableCell>{formatCurrencyEnglish(o.totalValue)}</TableCell>
                   <TableCell>{formatCurrencyEnglish(o.paidAmount)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/admin/order/${o.id}/view`}>
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {orders.length > 0 && (
+        <div className="flex flex-row justify-between items-center p-2 border-t">
+          <div className="text-xs text-muted-foreground whitespace-nowrap hidden md:flex 2xl:text-sm">
+            Showing {Math.min((currentPage - 1) * limit + 1, totalOrders)} to{" "}
+            {Math.min(currentPage * limit, totalOrders)} of {totalOrders} orders
+          </div>
+          <PaginationComponent
+            currentPage={currentPage}
+            totalPages={totalPages}
+            baseUrl="#"
+            onPageChange={handlePageChange}
+          />
+        </div>
+      )}
     </div>
   );
 }

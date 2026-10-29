@@ -6,7 +6,6 @@ import { ReportExcelButton, dateRangeSubtitle } from "@/components/admin/reports
 import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
 import { ReportDateFilters } from "@/components/admin/reports/report-date-filters";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
-import { PaginationComponent } from "@/components/common/pagination";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -65,8 +64,6 @@ interface AreaWiseOrdersListProps {
   areas: AreaRow[];
 }
 
-const PAGE_SIZE = 10;
-
 /** One decimal, guarded against divide-by-zero. */
 const pct = (part: number, whole: number) =>
   whole > 0 ? ((part / whole) * 100).toFixed(1) : "0.0";
@@ -82,7 +79,6 @@ export default function AreaWiseOrdersList({
   const settings = useBusinessSettings();
 
   const [search, setSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
 
   const applyParams = (params: {
     preset?: string;
@@ -125,15 +121,6 @@ export default function AreaWiseOrdersList({
     if (!term) return areas;
     return areas.filter((a) => a.area.toLowerCase().includes(term));
   }, [areas, search]);
-
-  const total = filteredAreas.length;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const pageAreas = filteredAreas.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
-
-  const summaryTotal = summary?.totalOrders ?? 0;
 
   return (
     <div className="w-full space-y-6">
@@ -259,10 +246,7 @@ export default function AreaWiseOrdersList({
               placeholder="Search area..."
               className="pl-8"
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         </div>
@@ -284,7 +268,7 @@ export default function AreaWiseOrdersList({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pageAreas.length === 0 ? (
+              {filteredAreas.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={10}
@@ -296,7 +280,7 @@ export default function AreaWiseOrdersList({
                   </TableCell>
                 </TableRow>
               ) : (
-                pageAreas.map((a, index) => {
+                filteredAreas.map((a, index) => {
                   // Cancelled orders are excluded from the denominator —
                   // they never had a chance to be delivered, so they would
                   // punish the rate forever.
@@ -307,7 +291,7 @@ export default function AreaWiseOrdersList({
                   return (
                     <TableRow key={a.area} className="hover:bg-muted/50">
                       <TableCell className="text-muted-foreground">
-                        {(currentPage - 1) * PAGE_SIZE + index + 1}
+                        {index + 1}
                       </TableCell>
                       <TableCell className="font-medium">
                         <Link
@@ -381,22 +365,6 @@ export default function AreaWiseOrdersList({
             </TableBody>
           </Table>
         </div>
-
-        {total > 0 && (
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-t p-4">
-            <div className="text-sm text-muted-foreground">
-              Showing {((currentPage - 1) * PAGE_SIZE + 1).toLocaleString()} to{" "}
-              {Math.min(currentPage * PAGE_SIZE, total).toLocaleString()} of{" "}
-              {total.toLocaleString()} areas
-            </div>
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={setCurrentPage}
-            />
-          </div>
-        )}
       </div>
     </div>
   );

@@ -23,12 +23,6 @@ interface ShippingAddress {
   city: string;
   division: string;
 }
-interface OrderItem {
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-}
 interface Order {
   orderNo: string;
   orderStatus: string;
@@ -43,7 +37,6 @@ interface Order {
   shippingAddress: ShippingAddress;
   shippingMethod: string;
   paymentMethod: string;
-  items: OrderItem[];
 }
 
 interface Props {

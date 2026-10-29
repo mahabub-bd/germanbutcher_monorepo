@@ -1417,6 +1417,8 @@ export class OrderService {
     dateRangePreset?: string,
     orderStatus?: OrderStatus,
     paymentStatus?: PaymentStatus,
+    page = 1,
+    limit = 50,
   ) {
     // --- Determine date range ---
     let from: Date | undefined;
@@ -1438,17 +1440,53 @@ export class OrderService {
       to = this.parseReportDate(toDate, true);
     }
 
-    // --- Build query ---
+    // --- Summary: single grouped SQL query so totals never load orders ---
+    const params: unknown[] = [];
+    const conditions: string[] = [];
+    if (from) {
+      params.push(from);
+      conditions.push(`"createdAt" >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`"createdAt" <= $${params.length}`);
+    }
+    if (orderStatus) {
+      params.push(orderStatus);
+      conditions.push(`"orderStatus" = $${params.length}`);
+    }
+    if (paymentStatus) {
+      params.push(paymentStatus);
+      conditions.push(`"paymentStatus" = $${params.length}`);
+    }
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
+
+    const [summaryRow]: Record<string, string>[] =
+      await this.orderRepository.query(
+        `SELECT
+           COUNT(*) AS total_orders,
+           COALESCE(SUM("totalValue"), 0) AS total_value,
+           COALESCE(SUM("totalDiscount"), 0) AS total_discount,
+           COALESCE(SUM("paidAmount"), 0) AS total_paid
+         FROM "order"
+         ${whereClause}`,
+        params,
+      );
+
+    // --- Orders list: one paginated page of the rows the report renders.
+    // Only to-one joins here (no items/product/coupon) so skip/take is safe
+    // and a page stays cheap regardless of how many line items orders have.
     const query = this.orderRepository
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.user', 'user')
       .leftJoinAndSelect('order.address', 'address')
       .leftJoinAndSelect('order.shippingMethod', 'shippingMethod')
       .leftJoinAndSelect('order.paymentMethod', 'paymentMethod')
-      .leftJoinAndSelect('order.items', 'items')
-      .leftJoinAndSelect('items.product', 'product')
-      .leftJoinAndSelect('order.coupon', 'coupon')
-      .orderBy('order.id', 'DESC');
+      .orderBy('order.id', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
 
     // --- Apply conditional filters ---
     if (from && to) {
@@ -1471,7 +1509,7 @@ export class OrderService {
 
     const orders = await query.getMany();
 
-    // --- Transform and aggregate data ---
+    // --- Transform ---
     const formattedOrders = orders.map((order) => ({
       id:order.id,
       orderNo: order.orderNo,
@@ -1500,35 +1538,22 @@ export class OrderService {
         : null,
       shippingMethod: order.shippingMethod?.name || null,
       paymentMethod: order.paymentMethod?.name || null,
-      items:
-        order.items?.map((item) => ({
-          productName: item.product?.name || 'N/A',
-          quantity: item.quantity,
-          unitPrice: Number(item.unitPrice || 0),
-          totalPrice: Number(item.totalPrice || 0),
-        })) || [],
     }));
 
-    // --- Aggregate summary ---
-    const totals = formattedOrders.reduce(
-      (acc, o) => {
-        acc.totalOrders += 1;
-        acc.totalValue += o.totalValue;
-        acc.totalDiscount += o.totalDiscount;
-        acc.totalPaid += o.paidAmount;
-        return acc;
-      },
-      { totalOrders: 0, totalValue: 0, totalDiscount: 0, totalPaid: 0 },
-    );
-
     // --- Return report ---
+    const totalOrders = parseInt(summaryRow.total_orders, 10) || 0;
     return {
       from: from ? formatDhakaDate(from) : null,
       to: to ? formatDhakaDate(to) : null,
-      totalOrders: totals.totalOrders,
-      totalValue: Math.round(totals.totalValue * 100) / 100,
-      totalDiscount: Math.round(totals.totalDiscount * 100) / 100,
-      totalPaid: Math.round(totals.totalPaid * 100) / 100,
+      totalOrders,
+      totalValue:
+        Math.round(parseFloat(summaryRow.total_value) * 100) / 100 || 0,
+      totalDiscount:
+        Math.round(parseFloat(summaryRow.total_discount) * 100) / 100 || 0,
+      totalPaid: Math.round(parseFloat(summaryRow.total_paid) * 100) / 100 || 0,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(totalOrders / limit)),
       orders: formattedOrders,
     };
   }

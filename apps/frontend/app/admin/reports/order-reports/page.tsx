@@ -1,10 +1,10 @@
 export const dynamic = "force-dynamic";
 
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import OrderReportList, {
   type Order,
 } from "@/components/admin/reports/order-reports/order-report-list";
 import { fetchProtectedData } from "@/utils/api-utils";
-import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 interface OrderReportData {
   orders: Order[];
@@ -12,6 +12,9 @@ interface OrderReportData {
   totalValue: number;
   totalDiscount: number;
   totalPaid: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 interface ResolvedSearchParams {
@@ -49,6 +52,10 @@ export default async function OrderReportPage({ searchParams }: Props) {
     typeof resolvedParams.paymentStatus === "string"
       ? resolvedParams.paymentStatus
       : undefined;
+  const page =
+    typeof resolvedParams.page === "string"
+      ? Math.max(1, parseInt(resolvedParams.page, 10) || 1)
+      : 1;
 
   let reportData: OrderReportData | null = null;
 
@@ -62,6 +69,8 @@ export default async function OrderReportPage({ searchParams }: Props) {
     }
     if (orderStatus) queryParams.append("orderStatus", orderStatus);
     if (paymentStatus) queryParams.append("paymentStatus", paymentStatus);
+    queryParams.append("page", String(page));
+    queryParams.append("limit", "50");
 
     const endpoint = `orders/reports/date-range${
       queryParams.toString() ? `?${queryParams.toString()}` : ""
@@ -93,6 +102,9 @@ export default async function OrderReportPage({ searchParams }: Props) {
         totalValue={totalValue}
         totalDiscount={totalDiscount}
         totalPaid={totalPaid}
+        currentPage={reportData?.page || page}
+        limit={reportData?.limit || 50}
+        totalPages={reportData?.totalPages || 1}
       />
     </AdminPageContainer>
   );
