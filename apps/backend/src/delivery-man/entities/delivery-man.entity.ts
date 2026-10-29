@@ -36,4 +36,9 @@ export class DeliveryMan {
 
   @OneToMany(() => Order, (order) => order.deliveryMan)
   orders: Order[];
+
+  // Display-only counters attached by DeliveryManService.findAll — plain
+  // (non-column) props, TypeORM ignores them on save.
+  assignedOrders?: number;
+  inProgressOrders?: number;
 }

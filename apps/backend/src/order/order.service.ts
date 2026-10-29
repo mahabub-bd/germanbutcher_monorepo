@@ -1785,10 +1785,7 @@ export class OrderService {
     }
 
     const params: unknown[] = [];
-    const conditions: string[] = [
-      `o."deliveryManId" = dm.id`,
-      `o."orderStatus" = 'delivered'`,
-    ];
+    const conditions: string[] = [`o."deliveryManId" = dm.id`];
     if (from) {
       params.push(from);
       conditions.push(`o."createdAt" >= $${params.length}`);
@@ -1800,12 +1797,14 @@ export class OrderService {
 
     const rows: Record<string, any>[] = await this.orderRepository.query(
       `SELECT dm.id, dm.name, dm."mobileNumber", dm."isActive",
-              COUNT(o.id) AS deliveries,
-              COALESCE(SUM(o."totalValue"), 0) AS delivered_value
+              COUNT(o.id) AS assigned,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'delivered') AS deliveries,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" IN ('pending', 'processing', 'on_hold', 'shipped')) AS in_progress,
+              COALESCE(SUM(o."totalValue") FILTER (WHERE o."orderStatus" = 'delivered'), 0) AS delivered_value
        FROM delivery_man dm
        LEFT JOIN "order" o ON ${conditions.join(' AND ')}
        GROUP BY dm.id, dm.name, dm."mobileNumber", dm."isActive"
-       ORDER BY COUNT(o.id) DESC, dm.name ASC`,
+       ORDER BY COUNT(o.id) FILTER (WHERE o."orderStatus" = 'delivered') DESC, dm.name ASC`,
       params,
     );
 
@@ -1817,11 +1816,14 @@ export class OrderService {
         row.isActive === true ||
         row.isActive === 'true' ||
         row.isActive === 't',
+      assigned: parseInt(row.assigned, 10) || 0,
       deliveries: parseInt(row.deliveries, 10) || 0,
+      inProgress: parseInt(row.in_progress, 10) || 0,
       deliveredValue: parseFloat(row.delivered_value) || 0,
     }));
 
     const summary = {
+      totalAssigned: deliveryMen.reduce((sum, d) => sum + d.assigned, 0),
       totalDeliveries: deliveryMen.reduce((sum, d) => sum + d.deliveries, 0),
       totalDeliveredValue: deliveryMen.reduce(
         (sum, d) => sum + d.deliveredValue,

@@ -255,6 +255,8 @@ export function DeliveryManList({
             <TableHead>Name</TableHead>
             <TableHead>Mobile Number</TableHead>
 
+            <TableHead className="text-right">Assigned</TableHead>
+            <TableHead className="text-right">In Progress</TableHead>
             <TableHead>Deliveries</TableHead>
             <TableHead>Earnings</TableHead>
             <TableHead>Joined</TableHead>
@@ -284,6 +286,12 @@ export function DeliveryManList({
                 </span>
               </TableCell>
 
+              <TableCell className="text-right font-medium">
+                {deliveryMan.assignedOrders ?? 0}
+              </TableCell>
+              <TableCell className="text-right">
+                {deliveryMan.inProgressOrders ?? 0}
+              </TableCell>
               <TableCell>
                 {deliveryMan.totalDeliveries}
               </TableCell>
