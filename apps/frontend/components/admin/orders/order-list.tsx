@@ -82,6 +82,38 @@ import { toast } from "sonner";
 
 const DIVISIONS = Object.keys(DIVISION_DISTRICTS);
 
+/** Compact elapsed time since the order was placed, e.g. "2D8H", "5H30M", "45M". */
+function formatElapsedTime(fromDate: string, now: number): string {
+  const diffMinutes = Math.max(
+    0,
+    Math.floor((now - new Date(fromDate).getTime()) / 60000)
+  );
+  const days = Math.floor(diffMinutes / 1440);
+  const hours = Math.floor((diffMinutes % 1440) / 60);
+  const minutes = diffMinutes % 60;
+  if (days > 0) return `${days}D${hours}H`;
+  if (hours > 0) return `${hours}H${minutes}M`;
+  return `${minutes}M`;
+}
+
+/** Elapsed-time chip that re-renders every minute so ages stay current. */
+function ElapsedTime({ createdAt }: { createdAt: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+  const elapsed = formatElapsedTime(createdAt, now);
+  return (
+    <span
+      title={`Order placed ${formatDateTime(createdAt)}`}
+      className="mt-1 inline-flex items-center rounded-md bg-muted px-1.5 py-px text-[10px] font-medium tabular-nums text-muted-foreground"
+    >
+      {elapsed}
+    </span>
+  );
+}
+
 // Same district → areas lookup the checkout page uses, sorted alphabetically
 const areasByDistrict = new Map(
   DISTRICT_AREAS.map(({ district, areas }) => [
@@ -636,6 +668,8 @@ export function OrderList({
                         {order.orderStatus}
                       </span>
                     </Badge>
+                    <br />
+                    <ElapsedTime createdAt={order.createdAt} />
                   </TableCell>
                   <TableCell>
                     <Badge
