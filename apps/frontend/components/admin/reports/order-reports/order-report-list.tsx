@@ -34,7 +34,7 @@ import {
 } from "@/lib/utils";
 import { formatOrderElapsedTime } from "@/utils/order-helper";
 import { PaymentStatus } from "@/utils/types";
-import { Eye, ShoppingCart, Wallet } from "lucide-react";
+import { CheckCircle2, Clock, Eye, ShoppingCart, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -351,14 +351,26 @@ export default function OrderReportList({
                         className="bg-emerald-100 font-normal text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
                         title={`Order → delivery: ${formatDateTime(o.orderDate)} → ${formatDateTime(o.deliveredAt)}`}
                       >
+                        <CheckCircle2 className="h-3 w-3" />
                         {formatOrderElapsedTime(o.orderDate, o.deliveredAt)}
+                      </Badge>
+                    ) : Date.now() - new Date(o.orderDate).getTime() >=
+                      3 * 86400000 ? (
+                      <Badge
+                        variant="secondary"
+                        className="bg-red-100 font-normal text-red-700 dark:bg-red-500/20 dark:text-red-400"
+                        title={`Order placed ${formatDateTime(o.orderDate)} — undelivered for 3+ days`}
+                      >
+                        <Clock className="h-3 w-3" />
+                        {formatOrderElapsedTime(o.orderDate)}
                       </Badge>
                     ) : (
                       <Badge
                         variant="secondary"
-                        className="bg-muted font-normal text-muted-foreground"
+                        className="bg-slate-100 font-normal text-slate-700 dark:bg-slate-500/20 dark:text-slate-300"
                         title={`Order placed ${formatDateTime(o.orderDate)}`}
                       >
+                        <Clock className="h-3 w-3" />
                         {formatOrderElapsedTime(o.orderDate)}
                       </Badge>
                     )}
