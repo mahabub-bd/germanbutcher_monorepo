@@ -148,7 +148,7 @@ const AdminNotifications = ({
                   {notification.title}
                 </span>
 
-                <span className="order-last w-full min-w-0 pl-12 text-sm text-gray-600 sm:order-none sm:w-auto sm:flex-1 sm:truncate sm:pl-0">
+                <span className="order-last w-full min-w-0 pl-12 text-sm text-gray-600 sm:order-0 sm:w-auto sm:flex-1 sm:truncate sm:pl-0">
                   {/* Older rows already contain the orderNo in the message —
                       only add the chip when it's not duplicated there. */}
                   {order && !notification.message.includes(order.orderNo) ? (

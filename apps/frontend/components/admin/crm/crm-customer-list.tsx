@@ -23,7 +23,18 @@ import {
   fetchProtectedData,
   resolveAuthToken,
 } from "@/utils/api-utils";
-import { FileSpreadsheet, MapPin, UserCircle, XCircle } from "lucide-react";
+import {
+  Crown,
+  FileSpreadsheet,
+  Heart,
+  MapPin,
+  Sparkles,
+  TrendingDown,
+  UserCircle,
+  UserX,
+  Users,
+  XCircle,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -100,36 +111,42 @@ const SEGMENTS = [
   {
     value: "all",
     label: "All",
+    icon: <Users className="size-3.5 sm:size-4" />,
     colors: "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900",
     activeColors: "data-[state=active]:bg-slate-800 data-[state=active]:text-white dark:data-[state=active]:bg-slate-200 dark:data-[state=active]:text-slate-900",
   },
   {
     value: "vip",
     label: "VIP",
+    icon: <Crown className="size-3.5 sm:size-4" />,
     colors: "bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70",
     activeColors: "data-[state=active]:bg-amber-500 data-[state=active]:text-white dark:data-[state=active]:bg-amber-400 dark:data-[state=active]:text-amber-950",
   },
   {
     value: "loyal",
     label: "Loyal",
+    icon: <Heart className="size-3.5 sm:size-4" />,
     colors: "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/70",
     activeColors: "data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-400 dark:data-[state=active]:text-emerald-950",
   },
   {
     value: "at_risk",
     label: "At Risk",
+    icon: <TrendingDown className="size-3.5 sm:size-4" />,
     colors: "bg-rose-50 text-rose-800 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/70",
     activeColors: "data-[state=active]:bg-rose-600 data-[state=active]:text-white dark:data-[state=active]:bg-rose-400 dark:data-[state=active]:text-rose-950",
   },
   {
     value: "new",
     label: "New",
+    icon: <Sparkles className="size-3.5 sm:size-4" />,
     colors: "bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/70",
     activeColors: "data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-400 dark:data-[state=active]:text-blue-950",
   },
   {
     value: "inactive",
     label: "Inactive",
+    icon: <UserX className="size-3.5 sm:size-4" />,
     colors: "bg-violet-50 text-violet-800 hover:bg-violet-100 dark:bg-violet-950/40 dark:text-violet-300 dark:hover:bg-violet-950/70",
     activeColors: "data-[state=active]:bg-violet-600 data-[state=active]:text-white dark:data-[state=active]:bg-violet-400 dark:data-[state=active]:text-violet-950",
   },
@@ -339,8 +356,9 @@ export function CrmCustomerList({
                 <TabsTrigger
                   key={seg.value}
                   value={seg.value}
-                  className={`h-auto flex-none rounded-lg border-0 px-3 py-1.5 text-xs font-semibold shadow-none transition-colors data-[state=active]:shadow-none sm:px-4 sm:py-2 sm:text-sm ${seg.colors} ${seg.activeColors}`}
+                  className={`inline-flex h-auto flex-none items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-xs font-semibold shadow-none transition-colors data-[state=active]:shadow-none sm:px-4 sm:py-2 sm:text-sm ${seg.colors} ${seg.activeColors}`}
                 >
+                  {seg.icon}
                   {seg.label}
                 </TabsTrigger>
               ))}

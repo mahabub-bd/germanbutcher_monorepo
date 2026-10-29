@@ -121,14 +121,14 @@ function MovementRow({
           >
             {meta.icon}
           </span>
-          <Badge className={`px-2.5 py-1 text-xs font-semibold ${meta.badgeClass}`}>
+          <Badge className={`px-2.5 py-1 text-xs font-medium ${meta.badgeClass}`}>
             {meta.label}
           </Badge>
         </div>
       </TableCell>
       <TableCell className="py-3">
         <span
-          className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ${
+          className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${
             isIncrease
               ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
               : "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400"
@@ -140,12 +140,12 @@ function MovementRow({
       </TableCell>
       <TableCell className="py-3">
         <div className="flex items-center gap-1.5">
-          <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-sm font-medium text-muted-foreground">
+          <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-sm font-normal text-muted-foreground">
             {entry.stockBefore}
           </span>
           <ArrowRight className="size-3.5 text-muted-foreground" />
           <span
-            className={`inline-flex items-center rounded-md px-2 py-0.5 text-sm font-bold ${
+            className={`inline-flex items-center rounded-md px-2 py-0.5 text-sm font-semibold ${
               isIncrease
                 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
                 : "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400"
@@ -160,12 +160,12 @@ function MovementRow({
           {entry.productId ? (
             <Link
               href={`/admin/products/${entry.productId}/view`}
-              className="font-bold hover:underline"
+              className="font-semibold hover:underline"
             >
               {entry.productName}
             </Link>
           ) : (
-            <span className="font-bold">{entry.productName}</span>
+            <span className="font-semibold">{entry.productName}</span>
           )}
         </TableCell>
       )}
@@ -255,7 +255,7 @@ export default function StockMovementHistory({
             <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
               <Package className="size-5" />
             </span>
-            <h2 className="text-lg font-bold sm:text-xl">
+            <h2 className="text-lg font-semibold sm:text-xl">
               <span className="text-blue-600 dark:text-blue-400">
                 {totalItems}
               </span>{" "}
@@ -290,30 +290,30 @@ export default function StockMovementHistory({
         <Table className="min-w-205">
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="py-3 pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:pl-6">
+              <TableHead className="py-3 pl-4 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:pl-6">
                 #
               </TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Type
               </TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Qty
               </TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Stock (Before → After)
               </TableHead>
               {!productId && (
-                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Product
                 </TableHead>
               )}
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Reference
               </TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Date &amp; Time
               </TableHead>
-              <TableHead className="pr-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:pr-6">
+              <TableHead className="pr-4 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:pr-6">
                 User
               </TableHead>
             </TableRow>

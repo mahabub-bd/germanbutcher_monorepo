@@ -72,6 +72,16 @@ export class CreateProductDto {
   @IsNumber()
   stock: number;
 
+  @ApiPropertyOptional({
+    example: 99.99,
+    description: 'Purchase (cost) price of the product',
+    minimum: 0,
+  })
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  purchasePrice?: number;
+
   @ApiProperty({
     description: 'Unit of measurement for the product',
     required: true,
