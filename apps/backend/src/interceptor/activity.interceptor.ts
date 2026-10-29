@@ -415,6 +415,10 @@ export class ActivityInterceptor implements NestInterceptor {
         return `Updated payment status to ${newStatus || 'new status'} for order ${orderLabel}`;
       } else if (routePath.includes('/cancel')) {
         return `Cancelled order ${orderLabel}`;
+      } else if (routePath.includes('/notes')) {
+        return action === 'POST'
+          ? `Added note to order ${orderLabel}`
+          : `Removed note from order ${orderLabel}`;
       } else if (action === 'POST') {
         return `Created new order${orderNo ? ` ${orderNo}` : orderLabel}`;
       }
