@@ -3,6 +3,7 @@ import AdminProfileView from "@/components/admin/profile/admin-profile-view";
 import { fetchProtectedData } from "@/utils/api-utils";
 import { User } from "@/utils/types";
 import { notFound } from "next/navigation";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export const metadata = {
   title: "Admin Profile | Dashboard",
@@ -18,8 +19,8 @@ export default async function AdminProfilePage() {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <AdminProfileView user={userdata} />
-    </div>
+    </AdminPageContainer>
   );
 }

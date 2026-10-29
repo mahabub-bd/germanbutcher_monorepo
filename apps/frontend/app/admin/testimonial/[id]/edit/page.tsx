@@ -9,6 +9,7 @@ import type { Testimonial } from "@/utils/types";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditTestimonialPage() {
   const router = useRouter();
@@ -51,7 +52,7 @@ export default function EditTestimonialPage() {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Testimonial</CardTitle>
@@ -66,6 +67,6 @@ export default function EditTestimonialPage() {
         testimonial={testimonial}
         onSuccess={handleSuccess}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

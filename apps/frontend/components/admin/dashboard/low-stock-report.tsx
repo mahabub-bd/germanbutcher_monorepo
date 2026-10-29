@@ -1,9 +1,9 @@
 "use client";
 
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -22,7 +22,7 @@ import {
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
 import type { Product } from "@/utils/types";
-import { AlertTriangle, Package, Search, SlidersHorizontal, XCircle } from "lucide-react";
+import { AlertTriangle, Package, SlidersHorizontal, XCircle } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -213,16 +213,16 @@ export function LowStockReport({
   const renderTableView = () => (
     <div className="bg-white dark:bg-gray-950">
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="min-w-205">
           <TableHeader>
             <TableRow>
               <TableHead className="w-20">Image</TableHead>
               <TableHead>Product Name</TableHead>
-              <TableHead className="hidden md:table-cell">Category</TableHead>
-              <TableHead className="hidden md:table-cell">Brand</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Brand</TableHead>
               <TableHead className="text-center">Stock</TableHead>
               <TableHead className="text-center">Status</TableHead>
-              <TableHead className="text-right hidden lg:table-cell">
+              <TableHead className="text-right">
                 Unit Price
               </TableHead>
               <TableHead className="text-right">Restock Value</TableHead>
@@ -278,12 +278,12 @@ export function LowStockReport({
                     <TableCell className="font-medium">
                       {product.name}
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell>
                       <Badge variant="outline">
                         {product.category?.name || "N/A"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell>
                       <Badge variant="outline">
                         {product.brand?.name || "N/A"}
                       </Badge>
@@ -294,7 +294,7 @@ export function LowStockReport({
                     <TableCell className="text-center">
                       {getStockStatusBadge(product.stock || 0)}
                     </TableCell>
-                    <TableCell className="text-right hidden lg:table-cell">
+                    <TableCell className="text-right">
                       {formatCurrencyEnglish(product.sellingPrice)}
                     </TableCell>
                     <TableCell className="text-right">
@@ -333,20 +333,16 @@ export function LowStockReport({
   return (
     <div className="w-full">
       <div className="flex flex-col sm:flex-row gap-4 mb-4">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search products..."
-            value={searchQuery}
-            className="pl-8"
-            onChange={handleSearchChange}
-          />
-        </div>
+        <TableSearch
+          wrapperClassName="w-full sm:max-w-xs"
+          placeholder="Search products..."
+          value={searchQuery}
+          onChange={handleSearchChange}
+        />
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
           <Select value={threshold.toString()} onValueChange={handleThresholdChange}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-35">
               <SelectValue placeholder="Threshold" />
             </SelectTrigger>
             <SelectContent>

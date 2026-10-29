@@ -1,28 +1,19 @@
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
+import {
+  parseListSearchParams,
+  type ListPageProps,
+} from "@/utils/admin-search-params";
 import { DiscountList } from "@/components/admin/discount/discount-list";
 
-export default async function DiscountsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const resolvedParams = await searchParams;
-
-  const page =
-    typeof resolvedParams.page === "string"
-      ? Number.parseInt(resolvedParams.page)
-      : 1;
-  const limit =
-    typeof resolvedParams.limit === "string"
-      ? Number.parseInt(resolvedParams.limit)
-      : 7;
-
+export default async function DiscountPage({ searchParams }: ListPageProps) {
+  const { page, limit, searchParams: params } = await parseListSearchParams(searchParams, 7);
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <DiscountList
         initialPage={page}
         initialLimit={limit}
-        initialSearchParams={resolvedParams}
+        initialSearchParams={params}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

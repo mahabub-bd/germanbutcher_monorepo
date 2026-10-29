@@ -102,7 +102,7 @@ export function ClientList() {
 
   const renderTableView = () => (
     <div>
-      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+      <Table className="min-w-160 [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Logo</TableHead>
@@ -110,7 +110,7 @@ export function ClientList() {
             <TableHead>Order</TableHead>
 
             <TableHead>CreateAt</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -119,7 +119,7 @@ export function ClientList() {
             .map((client: Client) => (
               <TableRow key={client.Id} className="hover:bg-muted/50">
                 <TableCell>
-                  <span className="flex aspect-[3/2] h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
+                  <span className="flex aspect-3/2 h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
                     <Image
                       src={client?.Image?.url || "/placeholder.svg"}
                       alt={client.name}
@@ -139,10 +139,10 @@ export function ClientList() {
                 </TableCell>
                 <TableCell>{client.order}</TableCell>
 
-                <TableCell className="hidden md:table-cell">
+                <TableCell>
                   {formatDateTime(client?.createdAt ?? "")}
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell>
                   <ActiveStatusToggle
                     isActive={client.isActive}
                     disabled={togglingId === client.Id}

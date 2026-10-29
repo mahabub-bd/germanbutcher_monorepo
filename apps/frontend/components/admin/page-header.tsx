@@ -28,17 +28,19 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
+        "mb-6 flex flex-row items-center justify-between gap-3",
         className,
       )}
     >
       <div className="min-w-0">
-        <h2 className="flex items-center gap-2 text-2xl font-bold">
+        <h2 className="flex items-center gap-2 text-[1.375rem] font-bold sm:text-2xl">
           {titleIcon}
           <span className="truncate">{title}</span>
         </h2>
         {description && (
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          <p className="mt-1 text-sm text-muted-foreground hidden sm:block">
+            {description}
+          </p>
         )}
       </div>
 
@@ -46,7 +48,8 @@ export function PageHeader({
         <div className="flex shrink-0 items-center gap-2">
           <Button asChild>
             <Link href={actionHref}>
-              {actionIcon} {actionLabel}
+              {actionIcon}
+              <span className="hidden sm:inline">{actionLabel}</span>
             </Link>
           </Button>
           {children}

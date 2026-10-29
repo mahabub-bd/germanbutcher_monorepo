@@ -7,6 +7,7 @@ import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { ProductForm } from "@/components/admin/products/product-form";
 import { fetchData } from "@/utils/api-utils";
 import type { Brand, Category } from "@/utils/types";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function AddProductPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -49,12 +50,12 @@ export default function AddProductPage() {
     return <LoadingIndicator message="Loading Products" />;
   }
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <FormPageHeader
         backHref="/admin/products/products-list"
         backLabel="Back to Products"
       />
       <ProductForm mode="create" brands={brands} categories={categories} />
-    </div>
+    </AdminPageContainer>
   );
 }

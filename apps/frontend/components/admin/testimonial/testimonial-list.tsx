@@ -124,16 +124,16 @@ export function TestimonialList() {
   // Main responsive table
   const renderTableView = () => (
     
-      <Table>
+      <Table className="min-w-180">
         <TableHeader>
           <TableRow>
             <TableHead>Customer</TableHead>
-            <TableHead className="hidden md:table-cell">Avatar</TableHead>
+            <TableHead>Avatar</TableHead>
             <TableHead>Rating</TableHead>
             <TableHead>Testimonial</TableHead>
 
-            <TableHead className="hidden md:table-cell">Status</TableHead>
-            <TableHead className="hidden md:table-cell">Created</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Created</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -151,7 +151,7 @@ export function TestimonialList() {
                   </span>
                 </div>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <Image
                   src={testimonial.attachment?.url || FALLBACK_IMAGE}
                   width={40}
@@ -167,7 +167,7 @@ export function TestimonialList() {
                 </p>
               </TableCell>
 
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <Badge
                   variant={testimonial.isPublish ? "default" : "outline"}
                   className="gap-1 flex items-center px-2"
@@ -180,7 +180,7 @@ export function TestimonialList() {
                   {testimonial.isPublish ? "Published" : "Draft"}
                 </Badge>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <span className="text-xs text-muted-foreground">
                   {formatDateTime(testimonial.createdAt)}
                 </span>

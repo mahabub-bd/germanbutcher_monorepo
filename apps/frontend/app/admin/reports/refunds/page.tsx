@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import RefundsList from "@/components/admin/reports/refunds/refunds-list";
 import { fetchProtectedData } from "@/utils/api-utils";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 interface ResolvedSearchParams {
   [key: string]: string | string[] | undefined;
@@ -65,7 +66,7 @@ export default async function RefundsReportPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <RefundsList
         fromDate={fromDate}
         toDate={toDate}
@@ -73,6 +74,6 @@ export default async function RefundsReportPage({ searchParams }: Props) {
         summary={reportData?.summary ?? null}
         orders={reportData?.orders ?? []}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

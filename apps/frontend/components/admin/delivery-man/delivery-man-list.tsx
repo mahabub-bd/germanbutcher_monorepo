@@ -6,6 +6,7 @@ import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +15,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -44,7 +44,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  Search,
   Truck,
   User,
   UserCircle,
@@ -250,16 +249,16 @@ export function DeliveryManList({
 
   const renderTableView = () => (
     <div className="overflow-x-auto">
-      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+      <Table className="min-w-180 [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Mobile Number</TableHead>
 
-            <TableHead className="hidden md:table-cell">Deliveries</TableHead>
-            <TableHead className="hidden md:table-cell">Earnings</TableHead>
-            <TableHead className="hidden lg:table-cell">Joined</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
+            <TableHead>Deliveries</TableHead>
+            <TableHead>Earnings</TableHead>
+            <TableHead>Joined</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -285,16 +284,16 @@ export function DeliveryManList({
                 </span>
               </TableCell>
 
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 {deliveryMan.totalDeliveries}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 ৳{Number(deliveryMan.totalEarnings).toFixed(2)}
               </TableCell>
-              <TableCell className="hidden lg:table-cell">
+              <TableCell>
                 {formatDateTime(deliveryMan.createdAt)}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <ActiveStatusToggle
                   isActive={deliveryMan.isActive}
                   disabled={togglingId === deliveryMan.id}
@@ -351,30 +350,27 @@ export function DeliveryManList({
       <PageHeader
         title="Delivery Men"
         description="View and manage delivery personnel"
-      />
+      >
+        {can(MENU_URL, "canCreate") && (
+          <Button asChild size="sm">
+            <Link href="/admin/delivery-man/create">
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Create Delivery Man</span>
+            </Link>
+          </Button>
+        )}
+      </PageHeader>
 
       <div className="space-y-4">
         {/* Search and Filters Bar */}
         <div className="flex flex-row justify-between gap-2">
-          <div className="relative w-full sm:max-w-md min-w-0">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search by name or mobile..."
-              className="h-8 pl-10 pr-4"
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
-          </div>
+          <TableSearch
+            wrapperClassName="w-full sm:max-w-md"
+            placeholder="Search by name or mobile..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+          />
           <div className="flex items-center gap-3">
-            {can(MENU_URL, "canCreate") && (
-              <Button asChild size="sm">
-                <Link href="/admin/delivery-man/create">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Delivery Man
-                </Link>
-              </Button>
-            )}
             <Select
               value={isActiveFilter}
               onValueChange={(value) => {

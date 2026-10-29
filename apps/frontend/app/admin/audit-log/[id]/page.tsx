@@ -1,4 +1,5 @@
 import { ActivityDetails } from "@/components/admin/reports/user-activity/activity-details";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default async function ActivityDetailsPage({
   params,
@@ -8,8 +9,8 @@ export default async function ActivityDetailsPage({
   const resolvedParams = await params;
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <ActivityDetails activityId={resolvedParams.id} />
-    </div>
+    </AdminPageContainer>
   );
 }

@@ -4,6 +4,7 @@ import TopCustomersReport, {
   type TopCustomer,
 } from "@/components/admin/reports/top-customers/top-customers";
 import { fetchProtectedData } from "@/utils/api-utils";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 interface ResolvedSearchParams {
   [key: string]: string | string[] | undefined;
@@ -66,13 +67,13 @@ export default async function TopCustomersReportPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <TopCustomersReport
         customers={customers}
         limit={limit}
         sortBy={sortBy}
         timeFilter={timeFilter}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

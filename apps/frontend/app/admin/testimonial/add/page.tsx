@@ -3,6 +3,7 @@
 import { TestimonialForm } from "@/components/admin/testimonial/testimonial-form";
 import { FormPageHeader } from "@/components/admin/form-page-header";
 import { useRouter } from "next/navigation";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function AddTestimonialPage() {
   const router = useRouter();
@@ -11,7 +12,7 @@ export default function AddTestimonialPage() {
     router.back();
   };
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <FormPageHeader
         title="Add New Testimonial"
         description="Create a new customer testimonial. Fill in all the required information."
@@ -21,6 +22,6 @@ export default function AddTestimonialPage() {
       <div>
         <TestimonialForm mode="create" onSuccess={handleSuccess} />
       </div>
-    </div>
+    </AdminPageContainer>
   );
 }

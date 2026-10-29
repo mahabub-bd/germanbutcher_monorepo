@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import AreaWiseOrdersList from "@/components/admin/reports/area-wise-orders/area-wise-orders-list";
 import { fetchProtectedData } from "@/utils/api-utils";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 interface ResolvedSearchParams {
   [key: string]: string | string[] | undefined;
@@ -74,7 +75,7 @@ export default async function AreaWiseOrdersReportPage({
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <AreaWiseOrdersList
         fromDate={fromDate}
         toDate={toDate}
@@ -82,6 +83,6 @@ export default async function AreaWiseOrdersReportPage({
         summary={reportData?.summary ?? null}
         areas={reportData?.areas ?? []}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

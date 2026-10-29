@@ -2,10 +2,11 @@
 
 import { SalesPartnerForm } from "@/components/admin/sales-partner/sales-partner-form"
 import { FormPageHeader } from "@/components/admin/form-page-header";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function AddSalesPartnerPage() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <FormPageHeader
         title="Add New Sales Partner"
         description="Create a new sales partner. Fill in all the required information."
@@ -15,6 +16,6 @@ export default function AddSalesPartnerPage() {
       <div>
         <SalesPartnerForm mode="create" />
       </div>
-    </div>
+    </AdminPageContainer>
   )
 }

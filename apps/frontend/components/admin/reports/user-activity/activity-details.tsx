@@ -189,8 +189,8 @@ export function ActivityDetails({ activityId }: { activityId: string }) {
       >
         <Button variant="outline" asChild>
           <Link href="/admin/audit-log">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
           </Link>
         </Button>
       </PageHeader>

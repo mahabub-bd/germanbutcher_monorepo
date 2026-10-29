@@ -3,6 +3,7 @@
 import { CouponForm } from "@/components/admin/coupon/coupon-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function AddCouponPage() {
   const router = useRouter();
@@ -13,8 +14,8 @@ export default function AddCouponPage() {
   };
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <CouponForm mode="create" onSuccess={handleSuccess} />
-    </div>
+    </AdminPageContainer>
   );
 }

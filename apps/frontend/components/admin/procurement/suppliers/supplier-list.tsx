@@ -12,7 +12,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -32,6 +31,7 @@ import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import { Supplier } from "@/utils/types";
 import {
@@ -44,7 +44,6 @@ import {
   Pencil,
   Phone,
   Plus,
-  Search,
   Trash2,
   Truck,
   XCircle,
@@ -330,13 +329,13 @@ export function SupplierList({
 
   const renderTableView = () => (
     <div className="overflow-x-auto">
-      <Table>
+      <Table className="min-w-160">
         <TableHeader>
           <TableRow>
             <TableHead>Supplier</TableHead>
-            <TableHead className="hidden lg:table-cell">Contact</TableHead>
-            <TableHead className="hidden xl:table-cell">Address</TableHead>
-            <TableHead className="hidden md:table-cell text-center">
+            <TableHead>Contact</TableHead>
+            <TableHead>Address</TableHead>
+            <TableHead className="text-center">
               Products
             </TableHead>
             <TableHead>Status</TableHead>
@@ -359,13 +358,10 @@ export function SupplierList({
                   </span>
                   <div className="min-w-0">
                     <p className="font-medium leading-tight">{supplier.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 lg:hidden">
-                      {supplier.email}
-                    </p>
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="hidden lg:table-cell">
+              <TableCell>
                 <div className="flex flex-col space-y-1">
                   <div className="flex items-center text-sm">
                     <Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground/70" />
@@ -377,12 +373,12 @@ export function SupplierList({
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="hidden xl:table-cell max-w-xs">
+              <TableCell className="max-w-xs">
                 <span className="line-clamp-2 text-sm text-muted-foreground">
                   {supplier.address || "No address provided"}
                 </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell text-center">
+              <TableCell className="text-center">
                 <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted">
                   <Boxes className="h-3 w-3" />
                   {supplier.products?.length || 0}
@@ -445,7 +441,7 @@ export function SupplierList({
         />
 
         {/* Summary tiles */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-3 gap-3">
           <StatsCard
             icon={Truck}
             title="Total Suppliers"
@@ -481,16 +477,12 @@ export function SupplierList({
               </div>
             </div>
             <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
-              <div className="relative w-full sm:w-64 min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search suppliers..."
-                  className="h-8 pl-9"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                />
-              </div>
+              <TableSearch
+                wrapperClassName="w-full sm:w-64 min-w-0"
+                placeholder="Search suppliers..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
               {renderFiltersMenu()}
             </div>
           </div>

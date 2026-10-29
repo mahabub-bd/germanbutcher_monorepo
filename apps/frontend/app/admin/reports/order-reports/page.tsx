@@ -4,6 +4,7 @@ import OrderReportList, {
   type Order,
 } from "@/components/admin/reports/order-reports/order-report-list";
 import { fetchProtectedData } from "@/utils/api-utils";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 interface OrderReportData {
   orders: Order[];
@@ -80,7 +81,7 @@ export default async function OrderReportPage({ searchParams }: Props) {
   const totalPaid = reportData?.totalPaid || 0;
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <OrderReportList
         orders={orders}
         fromDate={fromDate}
@@ -93,6 +94,6 @@ export default async function OrderReportPage({ searchParams }: Props) {
         totalDiscount={totalDiscount}
         totalPaid={totalPaid}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

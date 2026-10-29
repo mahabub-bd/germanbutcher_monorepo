@@ -4,6 +4,7 @@ import { RoleForm } from "@/components/admin/role/role-form";
 import { FormPageHeader } from "@/components/admin/form-page-header";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function AddRolePage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function AddRolePage() {
   };
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <FormPageHeader
         title="Role Information"
         description="Enter the details for the new role."
@@ -23,6 +24,6 @@ export default function AddRolePage() {
       />
 
       <RoleForm mode="create" onSuccess={handleSuccess} />
-    </div>
+    </AdminPageContainer>
   );
 }

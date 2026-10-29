@@ -5,6 +5,7 @@ import type React from "react";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -30,7 +30,6 @@ import {
   Filter,
   MessageSquare,
   MoreHorizontal,
-  Search,
   Star,
   Trash2,
   XCircle,
@@ -297,12 +296,12 @@ export function ReviewList({
   };
 
   const renderTableView = () => (
-    <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+    <Table className="min-w-160 [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
       <TableHeader>
         <TableRow>
           <TableHead>Review</TableHead>
-          <TableHead className="hidden md:table-cell">Date</TableHead>
-          <TableHead className="hidden md:table-cell">Status</TableHead>
+          <TableHead>Date</TableHead>
+          <TableHead>Status</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -314,7 +313,7 @@ export function ReviewList({
               <TableCell>
                 <div className="flex items-center gap-3">
                   {/* Reviewer avatar with initial */}
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-secondaryColor to-primaryColor text-xs font-semibold text-white">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-secondaryColor to-primaryColor text-xs font-semibold text-white">
                     {reviewerName.charAt(0).toUpperCase()}
                   </div>
 
@@ -325,7 +324,7 @@ export function ReviewList({
 
                   {review.title && (
                     <span
-                      className="hidden max-w-40 truncate text-sm font-medium text-foreground lg:inline"
+                      className="max-w-40 truncate text-sm font-medium text-foreground"
                       title={review.title}
                     >
                       {review.title}
@@ -339,7 +338,7 @@ export function ReviewList({
                     {review.comment}
                   </p>
 
-                  <span className="hidden shrink-0 items-center gap-1 text-xs text-muted-foreground xl:flex">
+                  <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
                     on{" "}
                     {review.product?.slug ? (
                       <Link
@@ -376,12 +375,12 @@ export function ReviewList({
                   )}
                 </div>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <span className="text-sm text-muted-foreground">
                   {formatDateTime(review.createdAt)}
                 </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <div className="flex flex-col items-start gap-2">
                   {/* The toggle's own label already says Approved/Pending —
                       only Rejected needs the extra badge. */}
@@ -442,16 +441,12 @@ export function ReviewList({
 
         <div className="space-y-4">
           <div className="flex flex-row justify-between gap-2">
-            <div className="relative w-full sm:max-w-xs min-w-0">
-              <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search reviews..."
-                className="h-8 pl-8"
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
-            </div>
+            <TableSearch
+              wrapperClassName="w-full sm:max-w-xs"
+              placeholder="Search reviews..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
 
             <div className="flex items-center gap-2">
               <DropdownMenu>

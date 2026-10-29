@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell } from "lucide-react";
 import Link from "next/link";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function NotificationsPage() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <Bell className="h-7 w-7 shrink-0" />
@@ -44,6 +45,6 @@ export default function NotificationsPage() {
           <SendMaintenanceNotification />
         </TabsContent>
       </Tabs>
-    </div>
+    </AdminPageContainer>
   );
 }

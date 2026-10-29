@@ -5,6 +5,7 @@ import type React from "react";
 import { StatusCard } from "@/components/admin/dashboard/status-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -32,7 +32,6 @@ import {
   MapPin,
   MoreHorizontal,
   Pencil,
-  Search,
   UserCircle,
   User as UserIcon,
   Users,
@@ -191,16 +190,16 @@ export function CustomerList({
 
   const renderTableView = () => (
     <div className="overflow-x-auto">
-      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+      <Table className="min-w-205 [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
-            <TableHead className="hidden md:table-cell">Mobile</TableHead>
-            <TableHead className="hidden sm:table-cell">Area</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
-            <TableHead className="hidden md:table-cell">Joined</TableHead>
-            <TableHead className="hidden lg:table-cell">Last Login</TableHead>
+            <TableHead>Mobile</TableHead>
+            <TableHead>Area</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Joined</TableHead>
+            <TableHead>Last Login</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -234,10 +233,10 @@ export function CustomerList({
                   {customer.email}
                 </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 {customer.mobileNumber || "—"}
               </TableCell>
-              <TableCell className="hidden sm:table-cell">
+              <TableCell>
                 {(() => {
                   const list = customer.addresses ?? [];
                   const area =
@@ -252,7 +251,7 @@ export function CustomerList({
                   );
                 })()}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${customer.isVerified
                     ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
@@ -267,10 +266,10 @@ export function CustomerList({
                   {customer.isVerified ? "Verified" : "Unverified"}
                 </span>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 {formatDateTime(customer.createdAt)}
               </TableCell>
-              <TableCell className="hidden lg:table-cell">
+              <TableCell>
                 {customer.lastLoginAt
                   ? formatDateTime(customer.lastLoginAt)
                   : "Never"}
@@ -318,16 +317,12 @@ export function CustomerList({
       <div className="space-y-4">
         {/* Search Bar */}
         <div className="flex flex-row justify-between gap-2">
-          <div className="relative w-full sm:max-w-md min-w-0">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search by name, email, or phone..."
-              className="h-8 pl-10 pr-4"
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
-          </div>
+          <TableSearch
+            wrapperClassName="w-full sm:max-w-md"
+            placeholder="Search by name, email, or phone..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+          />
         </div>
 
         {/* Active Search Filter */}

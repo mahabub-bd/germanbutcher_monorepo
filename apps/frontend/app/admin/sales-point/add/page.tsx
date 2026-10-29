@@ -2,10 +2,11 @@
 
 import { SalesPointForm } from "@/components/admin/sales-point/sales-point-form";
 import { FormPageHeader } from "@/components/admin/form-page-header";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function AddSalesPointPage() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <FormPageHeader
         title="Add New Sales Point"
         description="Create a new sales point. Fill in all the required information."
@@ -15,6 +16,6 @@ export default function AddSalesPointPage() {
       <div>
         <SalesPointForm mode="create" />
       </div>
-    </div>
+    </AdminPageContainer>
   );
 }

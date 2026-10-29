@@ -14,8 +14,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { TableSearch } from "@/components/common/table-search";
 import {
   Select,
   SelectContent,
@@ -72,7 +72,6 @@ import {
   MapPin,
   MoreHorizontal,
   Pencil,
-  Search,
   ShoppingCart,
   XCircle,
 } from "lucide-react";
@@ -991,16 +990,12 @@ export function OrderList({
     <div className="w-full space-y-2">
       <div className="space-y-2">
         <div className="flex flex-row justify-between gap-2">
-          <div className="relative w-full sm:max-w-xs min-w-0">
-            <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search orders..."
-              className="h-8 pl-8"
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
-          </div>
+          <TableSearch
+            wrapperClassName="w-full sm:max-w-xs"
+            placeholder="Search orders..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+          />
 
           <div className="flex items-center gap-2">
             {/* Desktop: dropdown panel */}

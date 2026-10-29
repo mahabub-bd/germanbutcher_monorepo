@@ -1,4 +1,5 @@
 import { CouponUsageLogDetail } from "@/components/admin/coupon/coupon-usage-log-detail";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default async function CouponUsageLogDetailPage({
   params,
@@ -7,8 +8,8 @@ export default async function CouponUsageLogDetailPage({
 }) {
   const { id } = await params;
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <CouponUsageLogDetail logId={id} />
-    </div>
+    </AdminPageContainer>
   );
 }

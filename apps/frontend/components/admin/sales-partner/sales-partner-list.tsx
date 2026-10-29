@@ -117,19 +117,19 @@ export function SalesPartnerList() {
 
   const renderTableView = () => (
     <div>
-      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+      <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0 min-w-205">
         <TableHeader>
           <TableRow>
             <TableHead>Logo</TableHead>
             <TableHead>Name</TableHead>
-            <TableHead className="hidden md:table-cell">Description</TableHead>
-            <TableHead className="hidden md:table-cell">Website</TableHead>
-            <TableHead className="hidden md:table-cell">
+            <TableHead>Description</TableHead>
+            <TableHead>Website</TableHead>
+            <TableHead>
               Display Order
             </TableHead>
 
             <TableHead>Created At</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -155,12 +155,12 @@ export function SalesPartnerList() {
                   {salesPartner.name}
                 </Link>
               </TableCell>
-              <TableCell className="hidden md:table-cell max-w-xs">
+              <TableCell className="max-w-xs">
                 <p className="line-clamp-1 text-sm text-muted-foreground">
                   {salesPartner.description || "-"}
                 </p>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 {salesPartner.website ? (
                   <Link
                     href={salesPartner.website}
@@ -175,14 +175,14 @@ export function SalesPartnerList() {
                   <span className="text-muted-foreground">-</span>
                 )}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 {salesPartner?.order}
               </TableCell>
 
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 {formatDateTime(salesPartner?.createdAt ?? "")}
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <ActiveStatusToggle
                   isActive={salesPartner.isActive}
                   disabled={togglingId === salesPartner.Id}

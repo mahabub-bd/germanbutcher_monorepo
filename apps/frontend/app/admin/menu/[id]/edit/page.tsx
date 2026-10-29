@@ -9,6 +9,7 @@ import type { MenuItem } from "@/utils/types";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditMenuPage() {
   const params = useParams();
@@ -45,7 +46,7 @@ export default function EditMenuPage() {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <div className="flex justify-between items-center">
           <div>
             <CardTitle>Edit Menu Item</CardTitle>
@@ -56,6 +57,6 @@ export default function EditMenuPage() {
         </div>
 
       <MenuForm mode="edit" menuItem={menuItem} />
-    </div>
+    </AdminPageContainer>
   );
 }

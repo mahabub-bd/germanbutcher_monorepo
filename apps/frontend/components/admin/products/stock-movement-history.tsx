@@ -169,7 +169,7 @@ function MovementRow({
           )}
         </TableCell>
       )}
-      <TableCell className="hidden max-w-80 py-3 xl:table-cell">
+      <TableCell className="max-w-80 py-3">
         {/* Prefer the backend note (already contains the order/purchase number
             and reason); the generated "Order #id" label is only a fallback. */}
         {entry.note || reference ? (
@@ -184,14 +184,9 @@ function MovementRow({
             <Calendar className="size-3.5 shrink-0" />
             {formatDateTime(entry.createdAt)}
           </span>
-          {/* User column is hidden below xl; show it here instead */}
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground xl:hidden">
-            <User className="size-3 shrink-0" />
-            {entry.userName || "System"}
-          </span>
         </div>
       </TableCell>
-      <TableCell className="hidden py-3 pr-4 sm:pr-6 xl:table-cell">
+      <TableCell className="py-3 pr-4 sm:pr-6">
         <span className="flex items-center gap-1.5 text-muted-foreground">
           <User className="size-3.5 shrink-0" />
           {entry.userName || "System"}
@@ -292,7 +287,7 @@ export default function StockMovementHistory({
           </p>
         </div>
       ) : (
-        <Table>
+        <Table className="min-w-205">
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="py-3 pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:pl-6">
@@ -312,13 +307,13 @@ export default function StockMovementHistory({
                   Product
                 </TableHead>
               )}
-              <TableHead className="hidden text-xs font-semibold uppercase tracking-wide text-muted-foreground xl:table-cell">
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Reference
               </TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Date &amp; Time
               </TableHead>
-              <TableHead className="hidden pr-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:pr-6 xl:table-cell">
+              <TableHead className="pr-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:pr-6">
                 User
               </TableHead>
             </TableRow>

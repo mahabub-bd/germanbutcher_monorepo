@@ -92,8 +92,8 @@ export function CouponUsageLogDetail({ logId }: { logId: string | number }) {
           asChild
         >
           <Link href="/admin/marketing/coupon/coupon-list">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Coupons
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back to Coupons</span>
           </Link>
         </Button>
       </div>

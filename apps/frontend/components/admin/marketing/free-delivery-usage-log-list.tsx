@@ -87,15 +87,15 @@ export function FreeDeliveryUsageLogList() {
         renderEmptyState()
       ) : (
         <div className="mt-6">
-          <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+          <Table className="min-w-160 [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
             <TableHeader>
               <TableRow>
                 <TableHead>Customer</TableHead>
                 <TableHead>Order</TableHead>
                 <TableHead>Campaign</TableHead>
-                <TableHead className="hidden md:table-cell">Shipping Waived</TableHead>
-                <TableHead className="hidden md:table-cell">Order Total</TableHead>
-                <TableHead className="hidden md:table-cell">Date</TableHead>
+                <TableHead>Shipping Waived</TableHead>
+                <TableHead>Order Total</TableHead>
+                <TableHead>Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -103,7 +103,7 @@ export function FreeDeliveryUsageLogList() {
                 <TableRow key={log.id} className="hover:bg-muted/50">
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-secondaryColor to-primaryColor text-xs font-semibold text-white">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-secondaryColor to-primaryColor text-xs font-semibold text-white">
                         {(log.user?.name || "U").charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
@@ -130,15 +130,15 @@ export function FreeDeliveryUsageLogList() {
                       {log.campaignName}
                     </Badge>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <span className="text-sm font-medium text-green-700 dark:text-green-400">
                       {formatMoney(log.shippingWaived)}
                     </span>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <span className="text-sm">{formatMoney(log.orderTotal)}</span>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <span className="text-sm text-muted-foreground">
                       {new Date(log.createdAt).toLocaleString()}
                     </span>

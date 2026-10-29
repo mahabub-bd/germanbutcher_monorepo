@@ -10,6 +10,7 @@ import type { Purchase } from "@/utils/types";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditPurchasePage() {
   const params = useParams();
@@ -48,7 +49,7 @@ export default function EditPurchasePage() {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Purchase</CardTitle>
@@ -59,6 +60,6 @@ export default function EditPurchasePage() {
         </div>
 
       <PurchaseForm mode="edit" purchase={purchase} />
-    </div>
+    </AdminPageContainer>
   );
 }

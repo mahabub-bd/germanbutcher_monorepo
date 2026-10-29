@@ -4,9 +4,9 @@ import type React from "react";
 
 import { SegmentBadge } from "@/components/admin/crm/segment-badge";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -23,7 +23,7 @@ import {
   fetchProtectedData,
   resolveAuthToken,
 } from "@/utils/api-utils";
-import { Download, MapPin, Search, UserCircle, XCircle } from "lucide-react";
+import { FileSpreadsheet, MapPin, UserCircle, XCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -55,6 +55,45 @@ interface ListResponse {
   data: CrmCustomer[];
   total: number;
   totalPages: number;
+}
+
+// Minimal RFC-4180 parser for the backend's fully-quoted CSV exports.
+function parseQuotedCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += char;
+      }
+    } else if (char === '"') {
+      inQuotes = true;
+    } else if (char === ",") {
+      row.push(field);
+      field = "";
+    } else if (char === "\n" || char === "\r") {
+      if (char === "\r" && text[i + 1] === "\n") i++;
+      row.push(field);
+      field = "";
+      if (row.length > 1 || row[0] !== "") rows.push(row);
+      row = [];
+    } else {
+      field += char;
+    }
+  }
+  row.push(field);
+  if (row.length > 1 || row[0] !== "") rows.push(row);
+  return rows;
 }
 
 const SEGMENTS = [
@@ -228,11 +267,44 @@ export function CrmCustomerList({
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!response.ok) throw new Error(`Export failed: ${response.status}`);
-      const blob = await response.blob();
+
+      // Backend streams fully-quoted CSV — parse it, then wrap in a real
+      // .xlsx so the download opens cleanly in Excel.
+      const csv = await response.text();
+      const records = parseQuotedCsv(csv);
+      if (records.length === 0) throw new Error("Empty export");
+
+      const ExcelJS = await import("exceljs");
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Customers");
+      for (const record of records) {
+        sheet.addRow(
+          record.map((value) =>
+            value !== "" && !Number.isNaN(Number(value)) ? Number(value) : value
+          )
+        );
+      }
+      const headerRow = sheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.height = 20;
+      for (let i = 0; i < records[0].length; i++) {
+        sheet.getColumn(i + 1).width = Math.min(
+          45,
+          Math.max(
+            8,
+            ...records.map((record) => (record[i] ?? "").length + 2)
+          )
+        );
+      }
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `crm-customers-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download = `crm-customers-${new Date().toISOString().slice(0, 10)}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -262,12 +334,12 @@ export function CrmCustomerList({
               setCurrentPage(1);
             }}
           >
-            <TabsList className="h-auto w-full justify-start gap-2 overflow-x-auto rounded-none bg-transparent p-0 md:w-fit">
+            <TabsList className="h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit">
               {SEGMENTS.map((seg) => (
                 <TabsTrigger
                   key={seg.value}
                   value={seg.value}
-                  className={`h-auto flex-none rounded-lg border-0 px-4 py-2 font-semibold shadow-none transition-colors data-[state=active]:shadow-none ${seg.colors} ${seg.activeColors}`}
+                  className={`h-auto flex-none rounded-lg border-0 px-3 py-1.5 text-xs font-semibold shadow-none transition-colors data-[state=active]:shadow-none sm:px-4 sm:py-2 sm:text-sm ${seg.colors} ${seg.activeColors}`}
                 >
                   {seg.label}
                 </TabsTrigger>
@@ -275,17 +347,13 @@ export function CrmCustomerList({
             </TabsList>
           </Tabs>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
-            <div className="relative w-full md:w-72">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search by name, email, or phone..."
-                className="h-8 pl-10 pr-4"
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
-            </div>
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <TableSearch
+              wrapperClassName="flex-1 sm:w-64 sm:flex-none"
+              placeholder="Search by name, email, or phone..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
             <Button
               variant="outline"
               size="sm"
@@ -293,8 +361,8 @@ export function CrmCustomerList({
               disabled={isExporting}
               onClick={handleExportCsv}
             >
-              <Download className="h-4 w-4 mr-1" />
-              {isExporting ? "Exporting..." : "Export CSV"}
+              <FileSpreadsheet className="h-4 w-4 mr-1 text-emerald-600" />
+              {isExporting ? "Exporting..." : "Export Excel"}
             </Button>
           </div>
         </div>
@@ -328,21 +396,16 @@ export function CrmCustomerList({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+            <Table className="min-w-205 [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
               <TableHeader>
                 <TableRow>
                   <TableHead>Customer</TableHead>
-                  <TableHead className="hidden md:table-cell">Mobile</TableHead>
-                  <TableHead className="hidden sm:table-cell">Area</TableHead>
-
+                  <TableHead>Mobile</TableHead>
+                  <TableHead>Area</TableHead>
                   <TableHead className="text-center">Orders</TableHead>
                   <TableHead className="text-right">Total Spent</TableHead>
-                  <TableHead className="hidden md:table-cell text-right">
-                    Avg Order
-                  </TableHead>
-                  <TableHead className="hidden lg:table-cell">
-                    Last Order
-                  </TableHead>
+                  <TableHead className="text-right">Avg Order</TableHead>
+                  <TableHead>Last Order</TableHead>
                   <TableHead>Segment</TableHead>
                 </TableRow>
               </TableHeader>
@@ -376,7 +439,7 @@ export function CrmCustomerList({
                         </span>
                       </Link>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell>
                       {customer.mobileNumber ? (
                         <Link
                           href={`tel:${customer.mobileNumber}`}
@@ -388,7 +451,7 @@ export function CrmCustomerList({
                         <span className="text-sm text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell>
                       {customer.area ? (
                         <span className="flex items-center gap-1 text-sm text-muted-foreground">
                           <MapPin className="h-3 w-3" />
@@ -405,10 +468,10 @@ export function CrmCustomerList({
                     <TableCell className="text-right">
                       {customer.rfm.totalSpent.toLocaleString()}
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-right">
+                    <TableCell className="text-right">
                       {customer.rfm.averageOrderValue.toLocaleString()}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">
+                    <TableCell>
                       {customer.rfm.lastOrderAt
                         ? formatDateTime(customer.rfm.lastOrderAt)
                         : "Never"}

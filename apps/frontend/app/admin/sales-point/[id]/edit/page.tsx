@@ -9,6 +9,7 @@ import type { SalesPoint } from "@/utils/types";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditSalesPointPage() {
   const params = useParams();
@@ -46,7 +47,7 @@ export default function EditSalesPointPage() {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Edit Sales Point</CardTitle>
@@ -58,6 +59,6 @@ export default function EditSalesPointPage() {
           </Button>
         </div>
       <SalesPointForm mode="edit" salesPoint={salesPoint} />
-    </div>
+    </AdminPageContainer>
   );
 }

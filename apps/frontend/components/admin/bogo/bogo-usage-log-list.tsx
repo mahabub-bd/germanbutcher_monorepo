@@ -86,7 +86,7 @@ export function BogoUsageLogList() {
         <Button variant="outline" asChild>
           <Link href="/admin/reports/bogo-usage">
             <Gift className="h-4 w-4 mr-1" />
-            View Report
+            <span className="hidden sm:inline">View Report</span>
           </Link>
         </Button>
       </PageHeader>
@@ -96,15 +96,15 @@ export function BogoUsageLogList() {
         renderEmptyState()
       ) : (
         <div className="mt-6">
-          <Table className="[&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
+          <Table className="min-w-160 [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
             <TableHeader>
               <TableRow>
                 <TableHead>Customer</TableHead>
                 <TableHead>Order</TableHead>
                 <TableHead>Campaign</TableHead>
-                <TableHead className="hidden md:table-cell">Discount</TableHead>
-                <TableHead className="hidden md:table-cell">Order Total</TableHead>
-                <TableHead className="hidden md:table-cell">Date</TableHead>
+                <TableHead>Discount</TableHead>
+                <TableHead>Order Total</TableHead>
+                <TableHead>Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -145,15 +145,15 @@ export function BogoUsageLogList() {
                       {log.campaignName}
                     </Badge>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <span className="text-sm font-medium text-green-700 dark:text-green-400">
                       −{formatMoney(log.discountAmount)}
                     </span>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <span className="text-sm">{formatMoney(log.orderTotal)}</span>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <span className="text-sm text-muted-foreground">
                       {new Date(log.createdAt).toLocaleString()}
                     </span>

@@ -19,6 +19,7 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { PaymentsTable } from "./payment-table";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 function OrderPaymentsListPageContent() {
   const params = useParams();
@@ -74,7 +75,7 @@ function OrderPaymentsListPageContent() {
   const remainingAmount = order.totalValue - order.paidAmount;
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       {/* Page header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="min-w-0">
@@ -132,7 +133,7 @@ function OrderPaymentsListPageContent() {
         onOpenChange={setShowAddPaymentModal}
         onUpdated={fetchOrderData}
       />
-    </div>
+    </AdminPageContainer>
   );
 }
 

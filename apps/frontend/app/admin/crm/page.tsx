@@ -1,4 +1,5 @@
 import { CrmDashboard } from "@/components/admin/crm/crm-dashboard";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export const metadata = {
   title: "CRM Dashboard",
@@ -7,8 +8,8 @@ export const metadata = {
 
 export default function CrmPage() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <CrmDashboard />
-    </div>
+    </AdminPageContainer>
   );
 }

@@ -1,9 +1,10 @@
 import { ClientList } from "@/components/admin/client/client-list";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function ClientListPage() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <ClientList />
-    </div>
+    </AdminPageContainer>
   )
 }

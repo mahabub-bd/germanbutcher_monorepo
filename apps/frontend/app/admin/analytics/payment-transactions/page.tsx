@@ -4,6 +4,7 @@ import OrderPaymentList, {
   type PaymentRecord,
 } from "@/components/admin/reports/order-payments/order-payment-list";
 import { fetchProtectedData } from "@/utils/api-utils";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 interface ResolvedSearchParams {
   [key: string]: string | string[] | undefined;
@@ -55,7 +56,7 @@ export default async function PaymentsPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <OrderPaymentList
         payments={payments || []}
         fromDate={fromDate}
@@ -63,6 +64,6 @@ export default async function PaymentsPage({ searchParams }: Props) {
         preset={preset}
         orderStatus={orderStatus}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

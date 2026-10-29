@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import ProductSalesList from "@/components/admin/reports/product-sales/product-sales-list";
 import { fetchProtectedData } from "@/utils/api-utils";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 interface ResolvedSearchParams {
   [key: string]: string | string[] | undefined;
@@ -67,7 +68,7 @@ export default async function ProductSalesReportPage({
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <ProductSalesList
         preset={preset}
         fromDate={fromDate}
@@ -75,6 +76,6 @@ export default async function ProductSalesReportPage({
         summary={reportData?.summary ?? null}
         products={reportData?.products ?? []}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

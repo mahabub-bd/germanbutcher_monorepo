@@ -2,10 +2,11 @@
 
 import { ClientForm } from "@/components/admin/client/client-form"
 import { FormPageHeader } from "@/components/admin/form-page-header";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function AddClientPage() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <FormPageHeader
         title="Add New Client"
         description="Create a new client. Fill in all the required information."
@@ -15,6 +16,6 @@ export default function AddClientPage() {
       <div>
         <ClientForm mode="create" />
       </div>
-    </div>
+    </AdminPageContainer>
   )
 }

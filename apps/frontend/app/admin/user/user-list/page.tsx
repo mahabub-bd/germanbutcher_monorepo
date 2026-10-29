@@ -1,27 +1,19 @@
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
+import {
+  parseListSearchParams,
+  type ListPageProps,
+} from "@/utils/admin-search-params";
 import { UserList } from "@/components/admin/user/user-list";
 
-export default async function UsersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const resolvedParams = await searchParams;
-  const page =
-    typeof resolvedParams.page === "string"
-      ? Number.parseInt(resolvedParams.page)
-      : 1;
-  const limit =
-    typeof resolvedParams.limit === "string"
-      ? Number.parseInt(resolvedParams.limit)
-      : 30;
-
+export default async function UserPage({ searchParams }: ListPageProps) {
+  const { page, limit, searchParams: params } = await parseListSearchParams(searchParams, 30);
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <UserList
         initialPage={page}
         initialLimit={limit}
-        initialSearchParams={resolvedParams}
+        initialSearchParams={params}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

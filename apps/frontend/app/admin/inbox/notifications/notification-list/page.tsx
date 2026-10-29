@@ -6,6 +6,7 @@ import {
   PersistedNotification,
 } from "@/utils/types";
 import Link from "next/link";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default async function AdminNotificationsPage({
   searchParams,
@@ -33,14 +34,14 @@ export default async function AdminNotificationsPage({
       );
 
     return (
-      <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <AdminPageContainer>
         <AdminNotifications
           notificationsData={notificationsData}
           currentPage={Number(page) || 1}
           onMarkRead={handleMarkRead}
           onMarkAllRead={handleMarkAllRead}
         />
-      </div>
+      </AdminPageContainer>
     );
   } catch (error) {
     console.error("Error fetching admin notifications:", error);

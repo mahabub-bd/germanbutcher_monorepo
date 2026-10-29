@@ -10,6 +10,7 @@ import { List } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function EditOrderPage() {
   const params = useParams();
@@ -46,7 +47,7 @@ export default function EditOrderPage() {
   }
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <div className="flex justify-between items-center mb-6">
           <div>
             <CardTitle>Update Order</CardTitle>
@@ -61,6 +62,6 @@ export default function EditOrderPage() {
         </div>
 
       <OrderForm order={order} />
-    </div>
+    </AdminPageContainer>
   );
 }

@@ -6,11 +6,6 @@ import StatsCard from "@/components/admin/dashboard/stats-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -18,6 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -35,8 +35,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { PaginationComponent } from "@/components/common/pagination";
 import StockMovementHistory from "@/components/admin/products/stock-movement-history";
+import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import {
   fetchData,
@@ -53,7 +54,6 @@ import {
   Package,
   PackageMinus,
   PackagePlus,
-  Search,
   SlidersHorizontal,
   XCircle,
 } from "lucide-react";
@@ -509,18 +509,18 @@ export function StockReport({
 
   const renderTableView = () => (
     <div className="overflow-x-auto">
-      <Table>
+      <Table className="min-w-205">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-full max-w-0">Product</TableHead>
-            <TableHead className="hidden xl:table-cell">Category</TableHead>
-            <TableHead className="hidden xl:table-cell">Brand</TableHead>
-            <TableHead className="hidden 2xl:table-cell">Supplier</TableHead>
-            <TableHead className="hidden md:table-cell text-center">
+            <TableHead>Product</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Brand</TableHead>
+            <TableHead>Supplier</TableHead>
+            <TableHead className="text-center">
               Stock
             </TableHead>
             <TableHead className="text-right">Price</TableHead>
-            <TableHead className="hidden lg:table-cell text-right">
+            <TableHead className="text-right">
               Stock Value
             </TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -529,7 +529,7 @@ export function StockReport({
         <TableBody>
           {products.map((product) => (
             <TableRow key={product.id} className="hover:bg-muted/50">
-              <TableCell className="w-full max-w-0">
+              <TableCell>
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="flex aspect-3/2 h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
                     <ProductImage product={product} width={64} height={48} />
@@ -544,16 +544,16 @@ export function StockReport({
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="hidden whitespace-nowrap md:table-cell">
+              <TableCell className="whitespace-nowrap">
                 {product.category?.name || "—"}
               </TableCell>
-              <TableCell className="hidden whitespace-nowrap xl:table-cell">
+              <TableCell className="whitespace-nowrap">
                 {product.brand?.name || "—"}
               </TableCell>
-              <TableCell className="hidden whitespace-nowrap 2xl:table-cell">
+              <TableCell className="whitespace-nowrap">
                 {product.supplier?.name || "—"}
               </TableCell>
-              <TableCell className="hidden md:table-cell text-center">
+              <TableCell className="text-center">
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${product.stock === 0
                     ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
@@ -572,7 +572,7 @@ export function StockReport({
                   Cost: {formatCurrencyEnglish(product.purchasePrice)}
                 </p>
               </TableCell>
-              <TableCell className="hidden lg:table-cell text-right">
+              <TableCell className="text-right">
                 <span className="font-medium">
                   {formatCurrencyEnglish(
                     product.totalValueBySalePrice ||
@@ -625,7 +625,7 @@ export function StockReport({
         />
 
         {/* Summary tiles */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-3 gap-3">
           <StatsCard
             icon={Package}
             title="Total Products"
@@ -663,16 +663,12 @@ export function StockReport({
               </div>
             </div>
             <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
-              <div className="relative w-full sm:w-64 min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search products..."
-                  className="h-8 pl-9"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                />
-              </div>
+              <TableSearch
+                wrapperClassName="w-full sm:w-64"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
               {renderFiltersMenu()}
             </div>
           </div>
@@ -799,10 +795,10 @@ export function StockReport({
                 <span className="font-semibold text-foreground">
                   {adjustMode === "remove"
                     ? Math.max(
-                        0,
-                        (adjustProduct?.stock ?? 0) -
-                          parseInt(adjustQty, 10)
-                      )
+                      0,
+                      (adjustProduct?.stock ?? 0) -
+                      parseInt(adjustQty, 10)
+                    )
                     : (adjustProduct?.stock ?? 0) + parseInt(adjustQty, 10)}
                 </span>
                 .
@@ -817,7 +813,7 @@ export function StockReport({
               disabled={isAdjusting}
             >
               Cancel
-              </Button>
+            </Button>
             <Button onClick={handleAdjustSubmit} disabled={isAdjusting}>
               {isAdjusting ? (
                 <>

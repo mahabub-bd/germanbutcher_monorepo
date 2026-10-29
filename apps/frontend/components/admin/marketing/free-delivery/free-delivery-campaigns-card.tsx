@@ -57,6 +57,7 @@ import { toast } from "sonner";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
+import { PageHeader } from "@/components/admin/page-header";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -374,15 +375,17 @@ export function FreeDeliveryCampaignsCard() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-4 flex justify-end">
+      <PageHeader
+        title="Free Delivery Campaigns"
+        description="Schedule free delivery offers by order threshold, area or customer group"
+      >
         {can(MENU_URL, "canCreate") && (
           <Button size="sm" onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" />
-            New Campaign
+            <span className="hidden sm:inline">New Campaign</span>
           </Button>
         )}
-      </div>
+      </PageHeader>
 
       {isLoading ? (
         <LoadingIndicator message="Loading campaigns..." />

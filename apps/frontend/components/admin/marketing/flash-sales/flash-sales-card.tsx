@@ -58,6 +58,7 @@ import { toast } from "sonner";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { LoadingIndicator } from "../../loading-indicator";
+import { PageHeader } from "../../page-header";
 
 const emptyForm = {
   name: "",
@@ -436,15 +437,17 @@ export function FlashSalesCard() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-4 flex justify-end">
+      <PageHeader
+        title="Flash Sales"
+        description="Time-limited discounts that override product prices while active"
+      >
         {can(MENU_URL, "canCreate") && (
           <Button size="sm" onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" />
-            New Flash Sale
+            <span className="hidden sm:inline">New Flash Sale</span>
           </Button>
         )}
-      </div>
+      </PageHeader>
 
       {isLoading ? (
         <LoadingIndicator message="Loading flash sale campaigns..." />

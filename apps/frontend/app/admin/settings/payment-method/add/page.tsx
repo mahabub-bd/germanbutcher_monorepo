@@ -4,6 +4,7 @@ import { PaymentMethodForm } from "@/components/admin/payment-method/payment-met
 import { FormPageHeader } from "@/components/admin/form-page-header";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function AddPaymentMethodPage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function AddPaymentMethodPage() {
   };
 
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
         <FormPageHeader
         title="Payment Method Information"
         description="Enter the details for the new payment method."
@@ -23,6 +24,6 @@ export default function AddPaymentMethodPage() {
       />
 
       <PaymentMethodForm mode="create" onSuccess={handleSuccess} />
-    </div>
+    </AdminPageContainer>
   );
 }

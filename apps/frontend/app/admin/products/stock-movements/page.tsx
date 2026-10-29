@@ -1,6 +1,7 @@
 import StockMovementHistory from "@/components/admin/products/stock-movement-history";
 import { PageHeader } from "@/components/admin/page-header";
 import { ArrowLeft, ArrowLeftRight } from "lucide-react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export const metadata = {
   title: "Stock Movements",
@@ -8,7 +9,7 @@ export const metadata = {
 
 export default function StockMovementsPage() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <PageHeader
         title="Stock Movements"
         titleIcon={<ArrowLeftRight className="size-6" />}
@@ -17,6 +18,6 @@ export default function StockMovementsPage() {
         actionIcon={<ArrowLeft className="mr-2 h-4 w-4" />}
       />
       <StockMovementHistory />
-    </div>
+    </AdminPageContainer>
   );
 }

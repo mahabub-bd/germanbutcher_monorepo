@@ -5,6 +5,7 @@ import type React from "react";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -41,7 +41,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  Search,
   Store,
   Trash2,
   XCircle,
@@ -338,14 +337,14 @@ export function ShopList({
 
   const renderTableView = () => (
 
-    <Table>
+    <Table className="min-w-160">
       <TableHeader>
         <TableRow>
           <TableHead>Shop Name</TableHead>
-          <TableHead className="hidden md:table-cell">Sales Point</TableHead>
-          <TableHead className="hidden lg:table-cell">Location</TableHead>
-          <TableHead className="hidden xl:table-cell">Address</TableHead>
-          <TableHead className="hidden md:table-cell">Status</TableHead>
+          <TableHead>Sales Point</TableHead>
+          <TableHead>Location</TableHead>
+          <TableHead>Address</TableHead>
+          <TableHead>Status</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -357,18 +356,15 @@ export function ShopList({
                 <Building className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <div className="font-medium">{shop.shopName}</div>
-                  <div className="text-sm text-muted-foreground md:hidden">
-                    {getSalesPointName(shop.salesPointId)}
-                  </div>
                 </div>
               </div>
             </TableCell>
-            <TableCell className="hidden md:table-cell">
+            <TableCell>
               <div className="font-medium">
                 {getSalesPointName(shop.salesPointId)}
               </div>
             </TableCell>
-            <TableCell className="hidden lg:table-cell">
+            <TableCell>
               <div className="flex items-center gap-1">
                 <MapPin className="h-3 w-3 text-muted-foreground" />
                 <span className="text-sm">
@@ -376,12 +372,12 @@ export function ShopList({
                 </span>
               </div>
             </TableCell>
-            <TableCell className="hidden xl:table-cell">
+            <TableCell>
               <div className="text-sm text-muted-foreground max-w-xs truncate">
                 {shop.address}
               </div>
             </TableCell>
-            <TableCell className="hidden md:table-cell">
+            <TableCell>
               <ActiveStatusToggle
                 isActive={shop.isActive}
                 disabled={togglingId === shop.id}
@@ -439,16 +435,12 @@ export function ShopList({
 
         <div className="space-y-4">
           <div className="flex flex-row justify-between gap-2">
-            <div className="relative w-full sm:max-w-xs min-w-0">
-              <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search shops..."
-                className="h-8 pl-8"
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
-            </div>
+            <TableSearch
+              wrapperClassName="w-full sm:max-w-xs min-w-0"
+              placeholder="Search shops..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
             <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

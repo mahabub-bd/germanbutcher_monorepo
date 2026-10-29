@@ -7,6 +7,7 @@ import { listSlugToRoute } from "@/utils/order-list-routes";
 import { Order } from "@/utils/types";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 interface OrderNeighbors {
   prevId: number | null;
@@ -75,13 +76,13 @@ function OrderPageContent() {
 
   if (!order) {
     return (
-      <div className="md:p-4 p-2 space-y-6 rounded-sm">
+      <AdminPageContainer>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <h2 className="text-xl font-semibold">Order Not Found</h2>
           </div>
         </div>
-      </div>
+      </AdminPageContainer>
     );
   }
 

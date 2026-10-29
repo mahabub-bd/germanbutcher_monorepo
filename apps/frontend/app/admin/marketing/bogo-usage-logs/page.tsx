@@ -1,9 +1,10 @@
 import { BogoUsageLogList } from "@/components/admin/bogo/bogo-usage-log-list";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function BogoUsageLogsPage() {
   return (
-    <div className="md:p-4 p-2 space-y-6 rounded-sm">
+    <AdminPageContainer>
       <BogoUsageLogList />
-    </div>
+    </AdminPageContainer>
   );
 }
