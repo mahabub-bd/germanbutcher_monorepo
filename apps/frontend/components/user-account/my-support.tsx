@@ -1,185 +1,75 @@
 "use client";
 
+import { ticketNo } from "@/components/admin/inbox/ticket-shared";
 import { AccountPageHeader } from "@/components/user-account/account-page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PaginationComponent } from "@/components/common/pagination";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  CreateTicketModal,
+  SUPPORT_STATUS_BADGES,
+  type CreateTicketPayload,
+  type SupportOrder,
+} from "@/components/user-account/support-modals";
+import { TicketViewModal } from "@/components/user-account/ticket-view-modal";
 import { formatDateTime } from "@/lib/utils";
 import { ContactMessage, PaginatedEnvelope } from "@/utils/types";
-import { LifeBuoy, Loader2, Plus, X } from "lucide-react";
+import { LifeBuoy, Package, Plus } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 interface MySupportProps {
   messagesData: PaginatedEnvelope<ContactMessage>;
   user: { name?: string; email?: string; mobileNumber?: string };
   userId: string;
   currentPage: number;
-  onSubmitMessage: (payload: {
-    name: string;
-    email: string;
-    mobile: string;
-    message: string;
-  }) => Promise<void>;
+  /** The customer's own orders — powers the optional order reference select. */
+  orders?: SupportOrder[];
+  onSubmitMessage: (payload: CreateTicketPayload) => Promise<void>;
 }
-
-const STATUS_BADGES: Record<
-  ContactMessage["contactStatus"],
-  { label: string; className: string }
-> = {
-  pending: {
-    label: "Pending",
-    className: "rounded-full bg-yellow-100 text-yellow-700",
-  },
-  in_progress: {
-    label: "In Progress",
-    className: "rounded-full bg-blue-100 text-blue-700",
-  },
-  resolved: {
-    label: "Resolved",
-    className: "rounded-full bg-green-100 text-green-700",
-  },
-  closed: {
-    label: "Closed",
-    className: "rounded-full bg-gray-100 text-gray-600",
-  },
-};
 
 const MySupport = ({
   messagesData,
   user,
   currentPage,
+  orders = [],
   onSubmitMessage,
 }: MySupportProps) => {
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [name, setName] = useState(user?.name || "");
-  const [email, setEmail] = useState(user?.email || "");
-  const [mobile, setMobile] = useState(user?.mobileNumber || "");
-  const [message, setMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<ContactMessage | null>(
+    null
+  );
 
   const messages = messagesData?.data ?? [];
   const totalMessages = messagesData?.total ?? 0;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (name.trim().length < 2) {
-      toast.error("Please enter your name");
-      return;
-    }
-    if (message.trim().length < 10) {
-      toast.error("Message must be at least 10 characters");
-      return;
-    }
-    if (message.trim().length > 1000) {
-      toast.error("Message must be at most 1000 characters");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await onSubmitMessage({
-        name: name.trim(),
-        email: email.trim(),
-        mobile: mobile.trim(),
-        message: message.trim(),
-      });
-      toast.success("Message sent — we'll get back to you soon");
-      setMessage("");
-      setIsFormOpen(false);
-    } catch {
-      toast.error("Failed to send message");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <div className="w-full">
       <AccountPageHeader
         title="Support"
-        icon={<LifeBuoy className="h-5 w-5" />}
         subtitle={`${totalMessages} ${
           totalMessages === 1 ? "message" : "messages"
         }`}
         action={
           <Button
-            onClick={() => setIsFormOpen((open) => !open)}
+            onClick={() => setIsCreateOpen(true)}
             className="rounded-lg px-5 py-2.5 font-semibold h-auto"
           >
-            {isFormOpen ? (
-              <>
-                <X className="h-4 w-4" />
-                Close
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4" />
-                New Message
-              </>
-            )}
+            <Plus className="h-4 w-4" />
+            New Message
           </Button>
         }
       />
 
-      {/* New Message Form */}
-      {isFormOpen && (
-        <form
-          onSubmit={handleSubmit}
-          className="mb-6 space-y-4 rounded-xl border border-gray-200 bg-white p-5"
-        >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="support-name">Name</Label>
-              <Input
-                id="support-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your name"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="support-email">Email</Label>
-              <Input
-                id="support-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="support-mobile">Mobile</Label>
-              <Input
-                id="support-mobile"
-                value={mobile}
-                onChange={(e) => setMobile(e.target.value)}
-                placeholder="+8801XXXXXXXXX"
-              />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="support-message">Message</Label>
-            <Textarea
-              id="support-message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Describe your issue (10–1000 characters)"
-              rows={4}
-            />
-          </div>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Send Message
-          </Button>
-        </form>
-      )}
-
       {/* Messages List */}
-      {messages.length === 0 && !isFormOpen ? (
+      {messages.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white py-16 text-center">
           <LifeBuoy className="mx-auto mb-4 h-16 w-16 text-gray-300" />
           <h2 className="mb-2 text-2xl font-bold text-gray-900">
@@ -188,42 +78,70 @@ const MySupport = ({
           <p className="mb-6 text-gray-600">
             Send us a message and we&apos;ll get back to you.
           </p>
-          <Button onClick={() => setIsFormOpen(true)}>New Message</Button>
+          <Button onClick={() => setIsCreateOpen(true)}>New Message</Button>
         </div>
       ) : (
         <div className="space-y-4">
-          {messages.map((msg) => {
-            const badge = STATUS_BADGES[msg.contactStatus] ?? {
-              label: msg.contactStatus,
-              className: "rounded-full bg-gray-100 text-gray-600",
-            };
-            return (
-              <div
-                key={msg.id}
-                className="rounded-xl border border-gray-200 bg-white p-5"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <p className="min-w-0 flex-1 text-sm leading-relaxed text-gray-700">
-                    {msg.message}
-                  </p>
-                  <Badge className={badge.className}>{badge.label}</Badge>
-                </div>
-                <p className="mt-2 text-xs text-gray-400">
-                  {formatDateTime(msg.createdAt)}
-                </p>
-                {msg.responseNotes && (
-                  <div className="mt-3 rounded-lg bg-green-50 p-3">
-                    <p className="text-xs font-semibold text-green-700">
-                      Response from support
-                    </p>
-                    <p className="mt-1 text-sm text-green-800">
-                      {msg.responseNotes}
-                    </p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+            <Table className="min-w-200 [&_td]:py-3 [&_th]:pb-3 [&_th]:pt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ticket</TableHead>
+                  <TableHead>Message</TableHead>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Created</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {messages.map((msg) => {
+                  const badge = SUPPORT_STATUS_BADGES[msg.contactStatus] ?? {
+                    label: msg.contactStatus,
+                    className: "rounded-full bg-gray-100 text-gray-600",
+                  };
+                  return (
+                    <TableRow
+                      key={msg.id}
+                      onClick={() => setSelectedTicket(msg)}
+                      className="cursor-pointer hover:bg-gray-50"
+                    >
+                      <TableCell className="font-mono text-xs font-semibold text-gray-500 whitespace-nowrap">
+                        {ticketNo(msg.id)}
+                      </TableCell>
+                      <TableCell className="max-w-96">
+                        <p className="text-sm leading-relaxed text-gray-700 line-clamp-2">
+                          {msg.message}
+                        </p>
+                        {msg.responseNotes && (
+                          <span className="mt-1 inline-flex rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                            Replied
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {msg.orderReference ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 font-mono text-[11px] text-gray-600">
+                            <Package className="h-3 w-3" />
+                            {msg.orderReference}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge className={badge.className}>
+                          {badge.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-xs text-gray-400 whitespace-nowrap">
+                        {formatDateTime(msg.createdAt)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
 
           {messagesData.totalPages > 1 && (
             <PaginationComponent
@@ -234,6 +152,18 @@ const MySupport = ({
           )}
         </div>
       )}
+
+      <CreateTicketModal
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        user={user}
+        orders={orders}
+        onSubmitMessage={onSubmitMessage}
+      />
+      <TicketViewModal
+        ticket={selectedTicket}
+        onClose={() => setSelectedTicket(null)}
+      />
     </div>
   );
 };

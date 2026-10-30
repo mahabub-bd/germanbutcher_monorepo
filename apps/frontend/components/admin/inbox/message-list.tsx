@@ -14,7 +14,7 @@ import { TicketList } from "@/components/admin/inbox/ticket-list";
 import { TicketStatsCards } from "@/components/admin/inbox/ticket-stats-cards";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { deleteData, fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
+import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import type { ContactMessage } from "@/utils/types";
 import {
   Archive,
@@ -29,7 +29,6 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import DeleteConfirmationDialog from "../delete-confirmation-dialog";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
@@ -74,10 +73,6 @@ export function ContactMessageList({
     getInitialParam("priority") as string
   );
   const [isLoading, setIsLoading] = useState(true);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(
-    null
-  );
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
@@ -165,27 +160,6 @@ export function ContactMessageList({
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-  };
-
-  const handleDeleteClick = (message: ContactMessage) => {
-    setSelectedMessage(message);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDelete = async () => {
-    if (!selectedMessage) return;
-
-    try {
-      await deleteData("contact-messages", selectedMessage.id);
-      fetchMessages();
-      fetchStatistics();
-      toast.success("Contact message deleted successfully");
-    } catch (error) {
-      console.error("Error deleting contact message:", error);
-      toast.error("Failed to delete contact message. Please try again.");
-    } finally {
-      setIsDeleteDialogOpen(false);
-    }
   };
 
   const handleViewDetails = (message: ContactMessage) => {
@@ -437,12 +411,6 @@ export function ContactMessageList({
         </div>
       </div>
 
-      <DeleteConfirmationDialog
-        open={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={handleDelete}
-      />
-
       <AddTicketModal
         open={isAddTicketOpen}
         onClose={() => setIsAddTicketOpen(false)}
@@ -455,12 +423,10 @@ export function ContactMessageList({
       <TicketDetailModal
         message={isDetailModalOpen ? selectedMessageForDetail : null}
         canEdit={can(MENU_URL, "canEdit")}
-        canDelete={can(MENU_URL, "canDelete")}
         onClose={() => setIsDetailModalOpen(false)}
         onUpdate={updateDetailMessage}
         onRefreshList={fetchMessages}
         onRefreshStats={fetchStatistics}
-        onDeleteClick={handleDeleteClick}
       />
     </>
   );

@@ -1,8 +1,12 @@
 import { getUser } from "@/actions/auth";
 import MySupport from "@/components/user-account/my-support";
-import { fetchDataPagination, postData } from "@/utils/api-utils";
+import {
+  fetchDataPagination,
+  fetchProtectedData,
+  postData,
+} from "@/utils/api-utils";
 import { serverRevalidate } from "@/utils/revalidatePath";
-import { ContactMessage, PaginatedEnvelope } from "@/utils/types";
+import { ContactMessage, Order, PaginatedEnvelope } from "@/utils/types";
 
 export default async function SupportPage({
   params,
@@ -19,8 +23,21 @@ export default async function SupportPage({
     email: string;
     mobile: string;
     message: string;
+    orderReference?: string;
   }) => {
     "use server";
+    if (payload.orderReference) {
+      // Only accept a reference that points at one of the customer's own orders.
+      const ownOrders: Order[] = await fetchProtectedData(
+        `orders/user/${id}`
+      );
+      const isOwn = ownOrders.some(
+        (order) => order.orderNo === payload.orderReference
+      );
+      if (!isOwn) {
+        throw new Error("Invalid order reference");
+      }
+    }
     await postData("contact-messages", payload);
     serverRevalidate(`/user/${id}/support`);
   };
@@ -31,6 +48,13 @@ export default async function SupportPage({
       await fetchDataPagination<PaginatedEnvelope<ContactMessage>>(
         `contact-messages/my?page=${page || 1}&limit=10`
       );
+    // Non-fatal: a failure here just hides the order picker, not the page.
+    let userOrders: Order[] = [];
+    try {
+      userOrders = await fetchProtectedData(`orders/user/${id}`);
+    } catch (error) {
+      console.error("Error fetching user orders for support form:", error);
+    }
 
     return (
       <MySupport
@@ -38,6 +62,7 @@ export default async function SupportPage({
         user={user}
         userId={id}
         currentPage={Number(page) || 1}
+        orders={userOrders}
         onSubmitMessage={handleSubmitMessage}
       />
     );

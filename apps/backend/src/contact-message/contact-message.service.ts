@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, SelectQueryBuilder } from 'typeorm';
 import { ActionTaken, ContactStatus } from 'src/common/enums';
@@ -9,12 +9,18 @@ import { CreateContactMessageDto } from './dto/create-contact-message.dto';
 import { UpdateContactMessageDto } from './dto/update-contact-message.dto';
 import { ContactMessageQueryDto } from './dto/contact-message-query.dto';
 import { ContactMessage } from './entities/contact-message.entity';
+import {
+  ContactMessageReply,
+  ReplySenderType,
+} from './entities/contact-message-reply.entity';
 
 @Injectable()
 export class ContactMessageService {
   constructor(
     @InjectRepository(ContactMessage)
     private contactMessageRepository: Repository<ContactMessage>,
+    @InjectRepository(ContactMessageReply)
+    private replyRepository: Repository<ContactMessageReply>,
     private emailService: EmailService,
     private notificationService: NotificationService,
   ) {}
@@ -185,12 +191,78 @@ export class ContactMessageService {
       ...(handledById ? { handledById } : {}),
     });
 
+    // The reply is also appended to the in-app thread so the customer can
+    // continue the conversation from their support page (not just email).
+    await this.replyRepository.save(
+      this.replyRepository.create({
+        contactMessageId: id,
+        message: responseNotes,
+        senderType: 'admin' satisfies ReplySenderType,
+        adminId: handledById ?? null,
+      }),
+    );
+
     return this.findOne(id);
   }
 
   async remove(id: number): Promise<void> {
     const contactMessage = await this.findOne(id);
     await this.contactMessageRepository.remove(contactMessage);
+  }
+
+  /**
+   * Customer follow-up on their own ticket. The ticket stays open for
+   * conversation: pending/resolved/closed all move to in_progress so the
+   * support team sees it again, and admins get the same realtime alert path
+   * as a brand-new ticket.
+   */
+  async addCustomerReply(
+    id: number,
+    message: string,
+    customerId: number,
+  ): Promise<ContactMessageReply> {
+    const contactMessage = await this.findOne(id);
+    if (Number(contactMessage.userId) !== Number(customerId)) {
+      throw new ForbiddenException(
+        'You can only reply to your own support tickets',
+      );
+    }
+
+    const reply = await this.replyRepository.save(
+      this.replyRepository.create({
+        contactMessageId: id,
+        message,
+        senderType: 'customer' satisfies ReplySenderType,
+        customerId,
+      }),
+    );
+
+    if (contactMessage.contactStatus !== ContactStatus.IN_PROGRESS) {
+      await this.contactMessageRepository.update(id, {
+        contactStatus: ContactStatus.IN_PROGRESS,
+      });
+    }
+
+    try {
+      await this.notificationService.notifyNewMessage({
+        id: contactMessage.id,
+        name: contactMessage.name,
+        email: contactMessage.email,
+        message,
+      });
+    } catch {
+      // Alerting must never fail the reply
+    }
+
+    return reply;
+  }
+
+  /** Full conversation for one ticket, oldest first. */
+  async getReplies(id: number): Promise<ContactMessageReply[]> {
+    return this.replyRepository.find({
+      where: { contactMessageId: id },
+      order: { createdAt: 'ASC' },
+    });
   }
 
   async getStatistics() {

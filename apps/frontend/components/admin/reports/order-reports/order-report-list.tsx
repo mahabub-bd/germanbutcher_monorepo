@@ -350,7 +350,6 @@ export default function OrderReportList({
     <div className="w-full">
       <PageHeader
         title="Sales Report"
-        titleIcon={<ReceiptText className="size-6 text-primaryColor" />}
         description={`Every order in ${rangeLabel
           .replace(/^Period: /, "")
           .toLowerCase()} — status, ageing, payment and amount.`}

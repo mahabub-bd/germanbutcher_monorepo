@@ -27,7 +27,6 @@ import {
   Mail,
   Phone,
   Send,
-  Trash2,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -39,14 +38,12 @@ import { toast } from "sonner";
 interface TicketDetailModalProps {
   message: ContactMessage | null;
   canEdit: boolean;
-  canDelete: boolean;
   onClose: () => void;
   /** Called with the updated ticket so the list can be patched in place. */
   onUpdate: (updated: ContactMessage) => void;
   /** Full list refresh — fallback when an update doesn't return the ticket. */
   onRefreshList: () => void;
   onRefreshStats: () => void;
-  onDeleteClick: (message: ContactMessage) => void;
 }
 
 const STATUS_META: Record<ContactStatus, { label: string; tone: PillTone }> = {
@@ -121,12 +118,10 @@ const formatDay = (input: string | Date) =>
 export function TicketDetailModal({
   message: selectedMessage,
   canEdit,
-  canDelete,
   onClose,
   onUpdate,
   onRefreshList,
   onRefreshStats,
-  onDeleteClick,
 }: TicketDetailModalProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [replyNotes, setReplyNotes] = useState("");
@@ -253,26 +248,10 @@ export function TicketDetailModal({
               Opened {formatDateTime(selectedMessage.createdAt)}
             </DialogDescription>
           </div>
-
-          {canDelete && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Delete ticket"
-              title="Delete ticket"
-              className="shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => {
-                onClose();
-                onDeleteClick(selectedMessage);
-              }}
-            >
-              <Trash2 className="size-4" />
-            </Button>
-          )}
         </header>
 
         {/* Mobile: one scrolling column. Desktop: conversation pane + fixed sidebar. */}
-        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_23rem] lg:overflow-hidden">
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_26rem] lg:overflow-hidden">
           <div className="flex min-h-0 flex-col lg:overflow-hidden">
             {/* WhatsApp-style thread: incoming on the left, replies on the right */}
             <div className="min-h-0 flex-1 overflow-y-auto bg-muted/30 px-4 py-4 lg:overflow-y-auto">
@@ -378,44 +357,42 @@ export function TicketDetailModal({
           <aside className="space-y-4 border-t bg-muted/20 p-4 lg:min-h-0 lg:overflow-y-auto lg:border-t-0 lg:border-l">
             <section className="overflow-hidden rounded-xl border bg-card">
               <SectionHeader icon={User} title="Requester" />
-              <div className="space-y-3.5 p-4">
-                <div className="flex items-center gap-3">
+              <div className="p-3">
+                <div className="flex items-center gap-2">
                   <TicketAvatar
                     src={customerAvatar}
                     name={selectedMessage.name}
-                    className="size-11 text-base font-semibold"
+                    className="size-8 text-xs font-semibold"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[15px] font-semibold">
+                    <p className="truncate text-sm font-semibold leading-tight">
                       {selectedMessage.name}
                     </p>
-                    <div className="mt-1">
-                      <PillBadge
-                        tone={selectedMessage.userId ? "violet" : "neutral"}
-                        className="text-xs"
-                      >
-                        {selectedMessage.userId
-                          ? "Registered customer"
-                          : "Guest visitor"}
-                      </PillBadge>
-                    </div>
+                    <PillBadge
+                      tone={selectedMessage.userId ? "violet" : "neutral"}
+                      className="mt-0.5 text-[10px]"
+                    >
+                      {selectedMessage.userId
+                        ? "Registered customer"
+                        : "Guest visitor"}
+                    </PillBadge>
                   </div>
                 </div>
 
-                <div className="space-y-1 text-sm">
+                <div className="mt-2 space-y-0.5 text-[13px]">
                   <a
                     href={`mailto:${selectedMessage.email}`}
-                    className="flex items-center gap-2 rounded-md px-1 py-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                    className="flex items-center gap-2 rounded-md px-1 py-0.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
                   >
-                    <Mail className="size-4 shrink-0" />
+                    <Mail className="size-3.5 shrink-0" />
                     <span className="truncate">{selectedMessage.email}</span>
                   </a>
                   {selectedMessage.mobile && (
                     <a
                       href={`tel:${selectedMessage.mobile}`}
-                      className="flex items-center gap-2 rounded-md px-1 py-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                      className="flex items-center gap-2 rounded-md px-1 py-0.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
                     >
-                      <Phone className="size-4 shrink-0" />
+                      <Phone className="size-3.5 shrink-0" />
                       <span className="truncate">
                         {selectedMessage.mobile}
                       </span>
@@ -426,10 +403,10 @@ export function TicketDetailModal({
                 {selectedMessage.userId && (
                   <Link
                     href={`/admin/crm/customers/${selectedMessage.userId}`}
-                    className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/50"
+                    className="mt-2 flex items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition-colors hover:bg-muted/50"
                   >
                     View customer profile
-                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                    <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
                   </Link>
                 )}
               </div>

@@ -19,17 +19,17 @@ export interface StatCardProps {
   sparklineData?: number[];
 
   bgColor?:
-    | "blue"
-    | "green"
-    | "purple"
-    | "orange"
-    | "pink"
-    | "indigo"
-    | "violet"
-    | "amber"
-    | "teal"
-    | "red"
-    | "default";
+  | "blue"
+  | "green"
+  | "purple"
+  | "orange"
+  | "pink"
+  | "indigo"
+  | "violet"
+  | "amber"
+  | "teal"
+  | "red"
+  | "default";
 
   className?: string;
 }
@@ -91,7 +91,7 @@ export default function StatsCard({
             {title}
           </p>
 
-          <p className="mt-1 text-base xl:text-sm 2xl:text-xl font-bold text-gray-800 dark:text-gray-300 leading-none">
+          <p className="mt-1 text-base xl:text-sm 2xl:text-basefont-bold text-gray-800 dark:text-gray-300 leading-none">
             {count !== undefined ? `${value} / ${count}` : value}
           </p>
         </div>
@@ -106,7 +106,7 @@ export default function StatsCard({
 
       {/* Sparkline */}
       {sparklineData && (
-          <div className="mt-2">
+        <div className="mt-2">
           <MiniSparkline data={sparklineData} stroke={sparklineColor} />
         </div>
       )}

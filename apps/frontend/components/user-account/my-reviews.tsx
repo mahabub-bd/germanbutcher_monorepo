@@ -196,7 +196,6 @@ const MyReviews = ({
     <div className="w-full">
       <AccountPageHeader
         title="My Reviews"
-        icon={<Star className="h-5 w-5" />}
         subtitle={`${reviewsData?.total ?? 0} ${
           reviewsData?.total === 1 ? "review" : "reviews"
         }`}

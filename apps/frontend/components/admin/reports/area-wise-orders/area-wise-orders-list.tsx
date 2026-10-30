@@ -369,7 +369,6 @@ export default function AreaWiseOrdersList({
     <div className="w-full">
       <PageHeader
         title="Area-wise orders"
-        titleIcon={<MapPin className="size-6 text-primaryColor" />}
         description={`Orders, deliveries and cancellations grouped by delivery area — ${rangeLabel
           .replace(/^Period: /, "")
           .toLowerCase()}.`}

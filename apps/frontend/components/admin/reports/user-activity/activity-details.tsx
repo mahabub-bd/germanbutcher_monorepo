@@ -185,7 +185,6 @@ export function ActivityDetails({ activityId }: { activityId: string }) {
       <PageHeader
         title="Activity Details"
         description="Security audit log event"
-        titleIcon={<Shield className="size-6 text-primaryColor" />}
       >
         <Button variant="outline" asChild>
           <Link href="/admin/audit-log">

@@ -3,6 +3,14 @@
 import { AccountPageHeader } from "@/components/user-account/account-page-header";
 import { Button } from "@/components/ui/button";
 import { PaginationComponent } from "@/components/common/pagination";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatDateTime } from "@/lib/utils";
 import {
   PaginatedEnvelope,
@@ -78,7 +86,6 @@ const MyNotifications = ({
     <div className="w-full">
       <AccountPageHeader
         title="Notifications"
-        icon={<Bell className="h-5 w-5" />}
         subtitle={`${unreadCount} unread`}
         action={
           <Button
@@ -103,54 +110,79 @@ const MyNotifications = ({
         </div>
       ) : (
         <div className="space-y-3">
-          {notifications.map((notification) => {
-            const Icon =
-              TYPE_ICONS[notification.type] ?? Bell;
-            return (
-              <button
-                key={notification.id}
-                type="button"
-                onClick={() =>
-                  !notification.isRead && handleMarkRead(notification.id)
-                }
-                disabled={markingId === notification.id}
-                className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-colors ${
-                  notification.isRead
-                    ? "border-gray-200 bg-white"
-                    : "border-primaryColor/20 bg-red-50/50"
-                }`}
-              >
-                <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                    notification.isRead
-                      ? "bg-gray-100 text-gray-500"
-                      : "bg-red-50 text-primaryColor"
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2">
-                    <span className="truncate font-semibold text-gray-900">
-                      {notification.title}
-                    </span>
-                    {!notification.isRead && (
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full bg-primaryColor"
-                        aria-label="Unread"
-                      />
-                    )}
-                  </span>
-                  <span className="mt-0.5 block text-sm text-gray-600">
-                    {notification.message}
-                  </span>
-                  <span className="mt-1 block text-xs text-gray-400">
-                    {getRelativeTime(notification.createdAt)}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
+          <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+            <Table className="min-w-200 [&_td]:py-3 [&_th]:pb-3 [&_th]:pt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">Type</TableHead>
+                  <TableHead>Notification</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Time</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {notifications.map((notification) => {
+                  const Icon = TYPE_ICONS[notification.type] ?? Bell;
+                  const isUnread = !notification.isRead;
+                  return (
+                    <TableRow
+                      key={notification.id}
+                      onClick={() =>
+                        isUnread &&
+                        markingId !== notification.id &&
+                        handleMarkRead(notification.id)
+                      }
+                      className={
+                        isUnread
+                          ? "cursor-pointer bg-red-50/50 hover:bg-red-50"
+                          : "cursor-pointer hover:bg-gray-50"
+                      }
+                    >
+                      <TableCell>
+                        <span
+                          className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                            isUnread
+                              ? "bg-red-50 text-primaryColor"
+                              : "bg-gray-100 text-gray-500"
+                          }`}
+                        >
+                          <Icon className="h-4.5 w-4.5" />
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-100">
+                        <p className="flex items-center gap-2 font-semibold text-gray-900">
+                          <span className="truncate">{notification.title}</span>
+                          {isUnread && (
+                            <span
+                              className="h-2 w-2 shrink-0 rounded-full bg-primaryColor"
+                              aria-label="Unread"
+                            />
+                          )}
+                        </p>
+                        <p className="mt-0.5 text-sm text-gray-600 line-clamp-2">
+                          {notification.message}
+                        </p>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            isUnread
+                              ? "bg-red-50 text-primaryColor"
+                              : "bg-gray-100 text-gray-500"
+                          }`}
+                        >
+                          {isUnread ? "Unread" : "Read"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right text-xs text-gray-400 whitespace-nowrap">
+                        {getRelativeTime(notification.createdAt)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
 
           {notificationsData.totalPages > 1 && (
             <PaginationComponent

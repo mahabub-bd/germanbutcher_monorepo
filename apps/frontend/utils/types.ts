@@ -978,6 +978,17 @@ export interface ContactMessageHandler {
   profilePhoto?: { id: string; url: string } | null;
 }
 
+/** One message in a support ticket's conversation thread. */
+export interface ContactMessageReply {
+  id: number;
+  contactMessageId: number;
+  message: string;
+  senderType: "customer" | "admin";
+  customerId?: number | null;
+  adminId?: number | null;
+  createdAt: string;
+}
+
 export interface Shop {
   id: number;
   salesPointId: number;

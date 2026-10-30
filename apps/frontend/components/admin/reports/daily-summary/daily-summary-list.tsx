@@ -409,7 +409,6 @@ export default function DailySummaryList({
     <div className="w-full">
       <PageHeader
         title="Daily Summary"
-        titleIcon={<CalendarDays className="size-6 text-primaryColor" />}
         description={`Orders, deliveries and collections day by day — ${rangeLabel.replace(
           /^Period: /,
           ""
