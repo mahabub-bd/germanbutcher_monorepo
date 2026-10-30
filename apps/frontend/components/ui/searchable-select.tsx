@@ -29,6 +29,13 @@ interface SearchableSelectProps {
   disabled?: boolean;
   id?: string;
   className?: string;
+  /**
+   * Server-side search: called (debounce upstream) as the user types. When set,
+   * the built-in client filtering is disabled and `options` are used as-is.
+   */
+  onSearch?: (search: string) => void;
+  /** While a server search is in flight, the empty state reads "Searching…". */
+  isSearching?: boolean;
 }
 
 /**
@@ -46,6 +53,8 @@ export function SearchableSelect({
   disabled,
   id,
   className,
+  onSearch,
+  isSearching,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const selected = useMemo(
@@ -70,10 +79,15 @@ export function SearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+        <Command shouldFilter={!onSearch}>
+          <CommandInput
+            placeholder={searchPlaceholder}
+            onValueChange={(search) => onSearch?.(search)}
+          />
           <CommandList>
-            <CommandEmpty>{emptyMessage}</CommandEmpty>
+            <CommandEmpty>
+              {isSearching ? "Searching…" : emptyMessage}
+            </CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem

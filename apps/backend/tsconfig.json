@@ -9,7 +9,6 @@
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
     "paths": {
       "src/*": ["./src/*"]
     },
@@ -20,7 +19,6 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "types": ["jest"],
-    "ignoreDeprecations": "6.0"
+    "types": ["jest"]
   }
 }

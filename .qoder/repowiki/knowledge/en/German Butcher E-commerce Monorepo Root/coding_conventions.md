@@ -1,3 +1,0 @@
-- Workspace-scoped commands are invoked through the root `package.json` scripts using `pnpm --filter <app-name>` rather than `cd`-ing into subdirectories.
-- Docker images use multi-stage builds: a `deps` stage installs dependencies with `pnpm install --frozen-lockfile`, a `builder` stage compiles source, and a minimal `production`/`runner` stage copies only artifacts and runs as a non-root system user.
-- Each app ships its own `.env` file consumed by Docker Compose via `env_file`, keeping runtime configuration separate from build-time ARGs.

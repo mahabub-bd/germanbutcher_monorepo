@@ -881,11 +881,11 @@ export class CrmService {
         sortOrder: 'DESC',
       }),
 
-      // Champions outrank VIP: the single highest lifetime spender among
-      // them is highlighted at the top of the dashboard.
+      // Champions outrank VIP: the three highest lifetime spenders among
+      // them are ranked at the top of the dashboard.
       this.getCustomers({
         page: 1,
-        limit: 1,
+        limit: 3,
         segment: CrmSegment.CHAMPIONS,
         sortBy: 'total_spent',
         sortOrder: 'DESC',
@@ -924,6 +924,8 @@ export class CrmService {
       },
       activitiesLast7Days: recentActivities,
       topCustomers: vipCustomers.data,
+      topChampions: championCustomers.data,
+      // Kept for older clients that only read the single champion.
       topChampion: championCustomers.data[0] ?? null,
     };
   }

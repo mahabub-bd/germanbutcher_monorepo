@@ -39,7 +39,7 @@ export function AccountPageHeader({
           </span>
         )}
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl dark:text-gray-50">
+          <h1 className="truncate text-xl font-extrabold tracking-tight text-gray-900 sm:text-2xl dark:text-gray-50">
             {title}
           </h1>
           {subtitle && (

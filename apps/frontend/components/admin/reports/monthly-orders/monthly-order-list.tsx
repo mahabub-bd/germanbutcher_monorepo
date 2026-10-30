@@ -255,7 +255,6 @@ export default function MonthlyOrderReportList({
     <div className="w-full space-y-4">
       <PageHeader
         title="Monthly Order Summary"
-        titleIcon={<BarChart3 className="size-6 text-primaryColor" />}
         description={
           selectedYear
             ? `Order mix and revenue for every month of ${selectedYear}.`

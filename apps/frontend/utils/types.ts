@@ -940,6 +940,8 @@ export interface ContactMessage {
   email: string;
   mobile?: string;
   message: string;
+  /** Order this ticket is about (the order's orderNo); null when unrelated. */
+  orderReference?: string | null;
   contactStatus: "pending" | "in_progress" | "resolved" | "closed";
   source?:
     | "website"
@@ -955,8 +957,36 @@ export interface ContactMessage {
   createdAt: string;
   updatedAt: string;
   handledById?: number | null;
-  /** Handler name as rendered in the admin inbox detail view. */
-  handledBy?: string | null;
+  /**
+   * Admin who last handled the ticket. The API joins the user relation, so this
+   * arrives as a user object; a plain name string is also accepted for safety.
+   */
+  handledBy?: ContactMessageHandler | string | null;
+  /** Joined sender user (partial — id, name, profile photo); null for guests. */
+  user?: {
+    id: number;
+    name?: string | null;
+    profilePhoto?: { id: string; url: string } | null;
+  } | null;
+}
+
+/** Minimal admin user shape returned on the joined `handledBy` relation. */
+export interface ContactMessageHandler {
+  id: number;
+  name?: string | null;
+  email?: string | null;
+  profilePhoto?: { id: string; url: string } | null;
+}
+
+/** One message in a support ticket's conversation thread. */
+export interface ContactMessageReply {
+  id: number;
+  contactMessageId: number;
+  message: string;
+  senderType: "customer" | "admin";
+  customerId?: number | null;
+  adminId?: number | null;
+  createdAt: string;
 }
 
 export interface Shop {

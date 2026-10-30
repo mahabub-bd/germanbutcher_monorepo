@@ -2,11 +2,13 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   Length,
   Matches,
+  Min,
 } from 'class-validator';
 import { ContactSource } from 'src/common/enums';
 
@@ -48,8 +50,27 @@ export class CreateContactMessageDto {
   @Length(10, 1000)
   message: string;
 
+  @ApiPropertyOptional({
+    example: 'ORD123456',
+    description: 'Order number this inquiry is about',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(1, 50)
+  orderReference?: string;
+
   @ApiPropertyOptional({ enum: ContactSource, default: ContactSource.WEBSITE })
   @IsOptional()
   @IsEnum(ContactSource)
   source?: ContactSource;
+
+  @ApiPropertyOptional({
+    example: 12,
+    description:
+      'Customer account to link the ticket to. Only accepted from staff callers.',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  userId?: number;
 }

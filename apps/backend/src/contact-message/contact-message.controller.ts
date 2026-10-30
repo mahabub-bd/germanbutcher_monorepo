@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
   Param,
   ParseIntPipe,
   Patch,
@@ -28,6 +29,7 @@ import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { ContactMessageService } from './contact-message.service';
 import { ContactMessageQueryDto } from './dto/contact-message-query.dto';
 import { CreateContactMessageDto } from './dto/create-contact-message.dto';
+import { CreateContactMessageReplyDto } from './dto/contact-message-reply.dto';
 import { UpdateContactMessageDto } from './dto/update-contact-message.dto';
 import { SendContactResponseDto } from './dto/send-contact-response.dto';
 
@@ -50,14 +52,22 @@ export class ContactMessageController {
     @Body() createContactMessageDto: CreateContactMessageDto,
     @Request() req,
   ) {
+    // Only staff may link a ticket to an arbitrary customer; public callers are
+    // always bound to their own account (guests stay anonymous). Staff-logged
+    // walk-ins without a picked customer are intentionally left unlinked rather
+    // than attached to the admin's own account.
+    const isStaff =
+      req.user?.role === 'admin' || req.user?.role === 'superadmin';
     const contactMessage = await this.contactMessageService.create(
       createContactMessageDto,
-      req.user?.userId,
+      isStaff
+        ? createContactMessageDto.userId ?? null
+        : req.user?.userId,
     );
     return {
       message: 'Contact message created successfully',
       statusCode: 201,
-      data: contactMessage,
+      data: contactMessage
     };
   }
 
@@ -113,6 +123,56 @@ export class ContactMessageController {
     );
   }
 
+  @Get(':id/replies')
+  @ApiOperation({
+    summary: 'Get the reply thread of a contact message',
+    description:
+      'Customers may only read threads of their own tickets; staff can read any.',
+  })
+  @ApiBearerAuth('token')
+  @UseGuards(JwtAuthGuard)
+  async getReplies(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser() user: any,
+  ) {
+    const contactMessage = await this.contactMessageService.findOne(id);
+    const isStaff =
+      user?.role === 'admin' || user?.role === 'superadmin';
+    if (!isStaff && Number(contactMessage.userId) !== Number(user?.userId)) {
+      throw new ForbiddenException(
+        'You can only view replies on your own support tickets',
+      );
+    }
+    const data = await this.contactMessageService.getReplies(id);
+    return {
+      message: 'Replies retrieved successfully',
+      statusCode: 200,
+      data,
+    };
+  }
+
+  @Post(':id/replies')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 replies per minute to prevent spam
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth('token')
+  @UseGuards(JwtAuthGuard)
+  async addReply(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreateContactMessageReplyDto,
+    @GetUser() user: any,
+  ) {
+    const data = await this.contactMessageService.addCustomerReply(
+      id,
+      dto.message,
+      user.userId,
+    );
+    return {
+      message: 'Reply added successfully',
+      statusCode: 201,
+      data,
+    };
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a contact message by ID' })
   @ApiResponse({
@@ -165,11 +225,13 @@ export class ContactMessageController {
   async sendReply(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: SendContactResponseDto,
+    @GetUser() user: any,
   ) {
     const contactMessage = await this.contactMessageService.sendReply(
       id,
       dto.responseNotes,
       dto.contactStatus,
+      user?.userId,
     );
     return {
       message: 'Response email sent successfully',

@@ -43,6 +43,10 @@ export class ContactMessage {
   @Column({ type: 'text' })
   message: string;
 
+  /** Order this ticket is about (the order's orderNo); null when unrelated. */
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  orderReference: string | null;
+
   @Column({
     type: 'enum',
     enum: ContactStatus,
