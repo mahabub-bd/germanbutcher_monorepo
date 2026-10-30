@@ -225,6 +225,8 @@ export function CrmCustomerList({
     vipMinOrders: number;
     atRiskDays: number;
     newDays: number;
+    sleepDays: number;
+    lostDays: number;
   } | null>(null);
 
   useEffect(() => {
@@ -233,6 +235,8 @@ export function CrmCustomerList({
       vipMinOrders: number;
       atRiskDays: number;
       newDays: number;
+      sleepDays: number;
+      lostDays: number;
     }>("crm/segment-rules")
       .then(setSegmentRules)
       .catch(() => {});
@@ -363,14 +367,31 @@ export function CrmCustomerList({
     }
   };
 
+  // Header rule list — mirrors SEGMENT_CASE in crm.service.ts (same order,
+  // so the precedence reads top-down) using the live Business Settings
+  // thresholds, so admins always see the rules actually being applied.
+  const segmentSummary = segmentRules
+    ? [
+        `Champions (VIP-level and ordered in the last ${segmentRules.newDays} days)`,
+        `VIP (${segmentRules.vipMinSpent.toLocaleString()}+ spent or ${segmentRules.vipMinOrders}+ orders)`,
+        `Lost (no order in ${segmentRules.lostDays}+ days)`,
+        `At Risk (no order in ${segmentRules.atRiskDays} days)`,
+        `About to Sleep (no order in ${segmentRules.sleepDays} days)`,
+        `Promising (2+ orders in the last ${segmentRules.newDays} days)`,
+        `New (joined in the last ${segmentRules.newDays} days, up to 1 order)`,
+        `Inactive (no orders)`,
+        `Loyal (everyone else with orders)`,
+      ].join(" · ")
+    : null;
+
   return (
     <div className="w-full">
       <PageHeader
         title="CRM Customers"
         description={
-          segmentRules
-            ? `Segments from order activity: VIP (${segmentRules.vipMinSpent.toLocaleString()}+ spent or ${segmentRules.vipMinOrders}+ orders), At Risk (no order in ${segmentRules.atRiskDays} days), New (joined in ${segmentRules.newDays} days), Inactive (no orders)`
-            : "Segments computed from live order activity — VIP, Loyal, At Risk, New and Inactive."
+          segmentSummary
+            ? `Segments from order activity: ${segmentSummary}`
+            : "Segments computed from live order activity — Champions, VIP, Loyal, Promising, About to Sleep, At Risk, Lost, New and Inactive."
         }
       />
 

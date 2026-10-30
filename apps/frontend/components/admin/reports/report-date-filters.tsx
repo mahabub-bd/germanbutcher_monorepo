@@ -35,7 +35,9 @@ export interface ReportFilterParams {
   toDate?: string;
 }
 
-const WEEK_STARTS_ON = 6; // Saturday
+// Bangladesh business week runs Sunday→Saturday (weekend is Fri/Sat), which
+// is also how the backend resolves the this_week / last_week presets.
+const WEEK_STARTS_ON = 0; // Sunday
 
 const PRESET_ITEMS: { value: DateRangePreset; label: string }[] = [
   { value: DateRangePreset.TODAY, label: "Today" },

@@ -165,11 +165,13 @@ export class ContactMessageController {
   async sendReply(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: SendContactResponseDto,
+    @GetUser() user: any,
   ) {
     const contactMessage = await this.contactMessageService.sendReply(
       id,
       dto.responseNotes,
       dto.contactStatus,
+      user?.userId,
     );
     return {
       message: 'Response email sent successfully',

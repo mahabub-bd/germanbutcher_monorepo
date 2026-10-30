@@ -57,7 +57,9 @@ interface DashboardData {
   tasks: { open: number; overdue: number };
   activitiesLast7Days: number;
   topCustomers: DashCustomer[];
-  /** Highest lifetime spender inside the champions segment, if any. */
+  /** Top champions by lifetime spend (up to 3), highest first. */
+  topChampions?: DashCustomer[];
+  /** Legacy single champion — kept as a fallback for older payloads. */
   topChampion: DashCustomer | null;
 }
 
@@ -89,7 +91,8 @@ const SEGMENT_BAR: Record<string, string> = {
   inactive: "bg-slate-400",
 };
 
-// Medal-tinted initials for the top three rows of the VIP table.
+// Medal-tinted markers for the top three ranks (VIP table initials, the
+// champion spotlight's rank numbers).
 const TOP_RANK_STYLES: Record<number, string> = {
   0: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
   1: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
@@ -178,7 +181,12 @@ export function CrmDashboard() {
     );
   }
 
-  const champion = stats.topChampion;
+  const champions =
+    stats.topChampions && stats.topChampions.length > 0
+      ? stats.topChampions
+      : stats.topChampion
+        ? [stats.topChampion]
+        : [];
   const totalCustomers = stats.totalCustomers || 0;
   const newShare = percentOf(stats.newCustomers, totalCustomers);
 
@@ -278,17 +286,17 @@ export function CrmDashboard() {
 
       {/* Spotlight + action queue */}
       <div className="mb-4 grid gap-3 xl:grid-cols-3">
-        {champion ? (
+        {champions.length > 0 ? (
           <div className="overflow-hidden rounded-xl border bg-card shadow-xs xl:col-span-2">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
               <div className="min-w-0">
                 <h3 className="flex items-center gap-2 text-sm font-semibold">
                   <Crown className="size-4 text-amber-500" />
-                  Top champion
-                  <PillBadge tone="amber">#1 spender</PillBadge>
+                  Top champions
+                  <PillBadge tone="amber">Top {champions.length}</PillBadge>
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Highest lifetime spend among champions
+                  Ranked by lifetime spend among champions
                 </p>
               </div>
               <Link
@@ -299,81 +307,90 @@ export function CrmDashboard() {
               </Link>
             </div>
 
-            <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-amber-100 text-lg font-bold uppercase text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                  {champion.name?.charAt(0) || "?"}
-                </span>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Link
-                      href={`/admin/crm/customers/${champion.id}`}
-                      className="truncate text-base font-semibold hover:text-primaryColor hover:underline"
-                    >
-                      {champion.name}
-                    </Link>
-                    <SegmentBadge segment={champion.segment} />
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    {champion.mobileNumber && (
-                      <Link
-                        href={`tel:${champion.mobileNumber}`}
-                        className="hover:underline"
-                      >
-                        {champion.mobileNumber}
-                      </Link>
-                    )}
-                    {champion.email && (
-                      <span className="max-w-56 truncate">{champion.email}</span>
-                    )}
-                    {champion.area && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="size-3" />
-                        {champion.area}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
-                {[
-                  {
-                    label: "Lifetime spend",
-                    value: formatMoney(champion.rfm.totalSpent),
-                    highlight: true,
-                  },
-                  {
-                    label: "Orders",
-                    value: formatCount(champion.rfm.orderCount),
-                  },
-                  {
-                    label: "Avg order",
-                    value: formatMoney(champion.rfm.averageOrderValue),
-                  },
-                  {
-                    label: "Last order",
-                    value: dateOnly(champion.rfm.lastOrderAt),
-                  },
-                ].map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="rounded-lg border bg-muted/30 px-3 py-2"
-                  >
-                    <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-                      {stat.label}
-                    </p>
-                    <p
+            <div className="divide-y">
+              {champions.map((customer, index) => (
+                <div
+                  key={customer.id}
+                  className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
                       className={cn(
-                        "mt-0.5 text-sm font-semibold tabular-nums",
-                        stat.highlight && "text-amber-700 dark:text-amber-400"
+                        "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums",
+                        TOP_RANK_STYLES[index] ?? "bg-muted text-muted-foreground"
                       )}
                     >
-                      {stat.value}
-                    </p>
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                          href={`/admin/crm/customers/${customer.id}`}
+                          className="max-w-48 truncate text-sm font-semibold hover:text-primaryColor hover:underline"
+                          title={customer.name}
+                        >
+                          {customer.name}
+                        </Link>
+                        <SegmentBadge segment={customer.segment} />
+                      </div>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                        {customer.mobileNumber && (
+                          <Link
+                            href={`tel:${customer.mobileNumber}`}
+                            className="hover:underline"
+                          >
+                            {customer.mobileNumber}
+                          </Link>
+                        )}
+                        {customer.area && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="size-3 shrink-0" />
+                            <span className="max-w-32 truncate">
+                              {customer.area}
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
+
+                  <div className="grid shrink-0 grid-cols-3 gap-2">
+                    {[
+                      {
+                        label: "Lifetime spend",
+                        value: formatMoney(customer.rfm.totalSpent),
+                        highlight: true,
+                      },
+                      {
+                        label: "Orders",
+                        value: formatCount(customer.rfm.orderCount),
+                      },
+                      {
+                        label: "Last order",
+                        value: dateOnly(customer.rfm.lastOrderAt),
+                      },
+                    ].map((stat) => (
+                      <div
+                        key={stat.label}
+                        className="rounded-lg border bg-muted/30 px-2.5 py-1.5"
+                      >
+                        <p className="text-[10px] font-medium tracking-wide whitespace-nowrap text-muted-foreground uppercase">
+                          {stat.label}
+                        </p>
+                        <p
+                          className={cn(
+                            "mt-0.5 text-sm font-semibold tabular-nums",
+                            stat.highlight &&
+                              "text-amber-700 dark:text-amber-400"
+                          )}
+                        >
+                          {stat.value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ) : (

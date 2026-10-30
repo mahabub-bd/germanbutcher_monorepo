@@ -48,6 +48,15 @@ export class CreateContactMessageDto {
   @Length(10, 1000)
   message: string;
 
+  @ApiPropertyOptional({
+    example: 'ORD123456',
+    description: 'Order number this inquiry is about',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(1, 50)
+  orderReference?: string;
+
   @ApiPropertyOptional({ enum: ContactSource, default: ContactSource.WEBSITE })
   @IsOptional()
   @IsEnum(ContactSource)

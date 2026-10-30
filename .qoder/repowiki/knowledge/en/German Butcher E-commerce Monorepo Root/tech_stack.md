@@ -1,1 +1,0 @@
-pnpm 9.x workspace with lockfileVersion 9.0, Next.js 16.4.3 (App Router, standalone output), NestJS 11.1.17, PostgreSQL + TypeORM, Docker multi-stage builds on node:24-alpine, Docker Compose.

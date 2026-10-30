@@ -29,7 +29,7 @@ export function ReviewItem({ review, action }: ReviewItemProps) {
           className="h-10 w-10 shrink-0 rounded-full border border-gray-100 object-contain bg-white"
         />
       ) : (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-secondaryColor to-primaryColor text-sm font-semibold text-white">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-secondaryColor to-primaryColor text-sm font-semibold text-white">
           {reviewerName.charAt(0).toUpperCase()}
         </div>
       )}
@@ -45,7 +45,7 @@ export function ReviewItem({ review, action }: ReviewItemProps) {
       <Stars rating={review.rating} />
 
       {/* Comment line: text left, photo right — stays a single second row */}
-      <span className="order-last flex w-full items-start gap-3 pl-[52px]">
+      <span className="order-last flex w-full items-start gap-3 pl-13">
         <span className="min-w-0 flex-1 text-sm text-gray-600">
           {review.title && (
             <span className="font-semibold text-gray-900">

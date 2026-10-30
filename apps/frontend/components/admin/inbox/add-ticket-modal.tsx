@@ -3,11 +3,15 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  SearchableSelect,
+} from "@/components/ui/searchable-select";
+import {
   ContactSource,
 } from "@/components/admin/inbox/ticket-shared";
-import { postData } from "@/utils/api-utils";
+import { fetchDataPagination, postData } from "@/utils/api-utils";
+import type { Order } from "@/utils/types";
 import { XCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 const EMPTY_FORM = {
@@ -15,7 +19,17 @@ const EMPTY_FORM = {
   email: "",
   mobile: "",
   message: "",
+  orderReference: "",
   source: ContactSource.PHONE,
+};
+
+/** How many recent orders the reference picker loads. */
+const ORDER_PICKER_LIMIT = 100;
+
+/** "ORD123456 · John Doe" — the picker's label for one order. */
+const orderOptionLabel = (order: Order) => {
+  const customer = order.user?.name?.trim() || "";
+  return customer ? `${order.orderNo} · ${customer}` : order.orderNo;
 };
 
 /** Admin-logged ticket (phone / Facebook / WhatsApp walk-in inquiries). */
@@ -30,11 +44,43 @@ export function AddTicketModal({
 }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [isAddingTicket, setIsAddingTicket] = useState(false);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setIsLoadingOrders(true);
+    fetchDataPagination<{ data: Order[] }>(
+      `orders?page=1&limit=${ORDER_PICKER_LIMIT}&sort=date_desc`
+    )
+      .then((response) => {
+        if (!cancelled) setRecentOrders(response.data ?? []);
+      })
+      .catch((error) => {
+        console.error("Error loading recent orders:", error);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingOrders(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  const orderOptions = useMemo(
+    () => recentOrders.map(orderOptionLabel),
+    [recentOrders]
+  );
 
   if (!open) return null;
 
+  const selectedOrder = recentOrders.find(
+    (order) => order.orderNo === form.orderReference
+  );
+
   const handleAddTicket = async () => {
-    const { name, email, mobile, message, source } = form;
+    const { name, email, mobile, message, orderReference, source } = form;
     if (!name.trim() || !email.trim() || !mobile.trim() || !message.trim()) {
       toast.error("All fields are required.");
       return;
@@ -46,6 +92,7 @@ export function AddTicketModal({
         email: email.trim(),
         mobile: mobile.trim(),
         message: message.trim(),
+        ...(orderReference ? { orderReference } : {}),
         source,
       });
       toast.success("Ticket added.");
@@ -124,6 +171,36 @@ export function AddTicketModal({
               onChange={(e) => setForm({ ...form, mobile: e.target.value })}
               placeholder="+8801XXXXXXXXX"
             />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">
+              Order reference{" "}
+              <span className="text-xs text-gray-400 font-normal">
+                (optional)
+              </span>
+            </label>
+            <SearchableSelect
+              value={selectedOrder ? orderOptionLabel(selectedOrder) : ""}
+              onValueChange={(label) => {
+                const selected = recentOrders.find(
+                  (order) => orderOptionLabel(order) === label
+                );
+                setForm({
+                  ...form,
+                  orderReference: selected ? selected.orderNo : "",
+                });
+              }}
+              options={orderOptions}
+              placeholder={
+                isLoadingOrders ? "Loading orders..." : "Select an order"
+              }
+              searchPlaceholder="Search order no. or customer..."
+              emptyMessage="No matching recent orders."
+              disabled={isLoadingOrders}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Showing the {ORDER_PICKER_LIMIT} most recent orders.
+            </p>
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Message</label>

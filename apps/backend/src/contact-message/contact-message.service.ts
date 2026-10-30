@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, Like, SelectQueryBuilder } from 'typeorm';
 import { ActionTaken, ContactStatus } from 'src/common/enums';
 import { EmailService } from 'src/email/email.service';
 import { NotificationService } from 'src/notification/notification.service';
@@ -45,14 +45,32 @@ export class ContactMessageService {
   }
 
   /**
+   * Joins the sender user and both users' profile photos. Both users are
+   * partially selected — only the columns the inbox UI needs — so private
+   * columns (password hash, OTP, ...) never leave the API.
+   */
+  private withAvatars(
+    qb: SelectQueryBuilder<ContactMessage>,
+  ): SelectQueryBuilder<ContactMessage> {
+    return qb
+      .leftJoinAndSelect('contact_message.handledBy', 'handledBy')
+      .leftJoin('handledBy.profilePhoto', 'handlerPhoto')
+      .addSelect(['handlerPhoto.id', 'handlerPhoto.url'])
+      .leftJoin('contact_message.user', 'customer')
+      .addSelect(['customer.id', 'customer.name', 'customer.profilePhotoId'])
+      .leftJoin('customer.profilePhoto', 'customerPhoto')
+      .addSelect(['customerPhoto.id', 'customerPhoto.url']);
+  }
+
+  /**
    * Paginated messages sent by a specific user (the authenticated customer).
    */
   async findForUser(userId: number, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
-    const [data, total] = await this.contactMessageRepository
-      .createQueryBuilder('contact_message')
-      .leftJoinAndSelect('contact_message.handledBy', 'handledBy')
+    const [data, total] = await this.withAvatars(
+      this.contactMessageRepository.createQueryBuilder('contact_message'),
+    )
       .where('contact_message.userId = :userId', { userId })
       .orderBy('contact_message.createdAt', 'DESC')
       .skip(skip)
@@ -74,10 +92,9 @@ export class ContactMessageService {
     const { page = 1, limit = 10, status, source, priority, search } = query;
     const skip = (page - 1) * limit;
 
-    const queryBuilder = this.contactMessageRepository
-      .createQueryBuilder('contact_message')
-      .leftJoinAndSelect('contact_message.handledBy', 'handledBy')
-      .orderBy('contact_message.createdAt', 'DESC');
+    const queryBuilder = this.withAvatars(
+      this.contactMessageRepository.createQueryBuilder('contact_message'),
+    ).orderBy('contact_message.createdAt', 'DESC');
 
     // Filter by status
     if (status) {
@@ -123,10 +140,11 @@ export class ContactMessageService {
   }
 
   async findOne(id: number): Promise<ContactMessage> {
-    const contactMessage = await this.contactMessageRepository.findOne({
-      where: { id },
-      relations: ['handledBy']
-    });
+    const contactMessage = await this.withAvatars(
+      this.contactMessageRepository.createQueryBuilder('contact_message'),
+    )
+      .where('contact_message.id = :id', { id })
+      .getOne();
 
     if (!contactMessage) {
       throw new NotFoundException(`Contact message with ID ${id} not found`);
@@ -146,6 +164,7 @@ export class ContactMessageService {
     id: number,
     responseNotes: string,
     contactStatus?: ContactStatus,
+    handledById?: number,
   ): Promise<ContactMessage> {
     const contactMessage = await this.findOne(id);
 
@@ -157,10 +176,16 @@ export class ContactMessageService {
       ticketId: contactMessage.id,
     });
 
-    contactMessage.actionTaken = ActionTaken.REPLIED_VIA_EMAIL;
-    contactMessage.responseNotes = responseNotes;
-    if (contactStatus) contactMessage.contactStatus = contactStatus;
-    return this.contactMessageRepository.save(contactMessage);
+    // Written through update() so the reply also records *who* answered —
+    // save() would keep the previously joined handler relation and its FK.
+    await this.contactMessageRepository.update(id, {
+      actionTaken: ActionTaken.REPLIED_VIA_EMAIL,
+      responseNotes,
+      ...(contactStatus ? { contactStatus } : {}),
+      ...(handledById ? { handledById } : {}),
+    });
+
+    return this.findOne(id);
   }
 
   async remove(id: number): Promise<void> {

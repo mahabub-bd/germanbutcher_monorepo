@@ -187,6 +187,9 @@ const STATUS_COLUMNS: StatusColumn[] = [
 
 const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+/** Bangladesh weekend: Friday (5) and Saturday (6). */
+const WEEKEND_DAYS = [5, 6];
+
 /** Whole-amount formatting: reports never show decimal fractions. */
 const formatCurrency = (value: number, maximumFractionDigits = 0) =>
   new Intl.NumberFormat("en-US", {
@@ -220,7 +223,7 @@ function parseDay(date: string) {
   ).getUTCDay();
   return {
     weekday: WEEKDAY[weekday],
-    isWeekend: [0, 5].includes(weekday), // Fri/Sat in Bangladesh
+    isWeekend: WEEKEND_DAYS.includes(weekday),
   };
 }
 
