@@ -758,17 +758,45 @@ export class ProductController {
       'Audit trail for every product: added, edited, activated/deactivated and deleted events, newest first.',
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 15 })
   @ApiQuery({
     name: 'action',
     required: false,
     enum: ProductHistoryAction,
     description: 'Filter history by event type',
   })
+  @ApiQuery({
+    name: 'productId',
+    required: false,
+    type: Number,
+    description: 'Limit the ledger to a single product.',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Case-insensitive match on the product name.',
+  })
+  @ApiQuery({
+    name: 'dateFrom',
+    required: false,
+    type: String,
+    description: 'ISO timestamp, inclusive lower bound on createdAt.',
+  })
+  @ApiQuery({
+    name: 'dateTo',
+    required: false,
+    type: String,
+    description: 'ISO timestamp, inclusive upper bound on createdAt.',
+  })
   async getProductHistory(
     @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Query('limit') limit: number = 15,
     @Query('action') action?: ProductHistoryAction,
+    @Query('productId') productId?: number,
+    @Query('search') search?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
   ) {
     // Ignore unknown values so a bad query param doesn't 500.
     const isValidAction = action
@@ -777,7 +805,13 @@ export class ProductController {
     const result = await this.productHistoryService.getHistoryPaginated(
       +page,
       +limit,
-      isValidAction ? action : undefined,
+      {
+        productId: productId ? +productId : undefined,
+        action: isValidAction ? action : undefined,
+        search,
+        dateFrom,
+        dateTo,
+      },
     );
     return {
       message: 'Product history retrieved successfully',
@@ -798,17 +832,43 @@ export class ProductController {
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 15 })
   @ApiQuery({ name: 'productId', required: false, type: Number })
   @ApiQuery({ name: 'type', required: false, enum: StockMovementType })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Case-insensitive match on the product name.',
+  })
+  @ApiQuery({
+    name: 'dateFrom',
+    required: false,
+    type: String,
+    description: 'ISO timestamp, inclusive lower bound on createdAt.',
+  })
+  @ApiQuery({
+    name: 'dateTo',
+    required: false,
+    type: String,
+    description: 'ISO timestamp, inclusive upper bound on createdAt.',
+  })
   async getStockMovements(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 15,
     @Query('productId') productId?: number,
     @Query('type') type?: StockMovementType,
+    @Query('search') search?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
   ) {
     const result = await this.stockMovementService.getMovementsPaginated(
       +page,
       +limit,
-      productId ? +productId : undefined,
-      type,
+      {
+        productId: productId ? +productId : undefined,
+        type,
+        search,
+        dateFrom,
+        dateTo,
+      },
     );
     return {
       message: 'Stock movements retrieved successfully',

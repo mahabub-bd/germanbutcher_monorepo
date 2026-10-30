@@ -73,8 +73,12 @@ export class BannerService {
   }
 
   /**
-   * Sets displayOrder of the given banners to their index in `ids`
-   * inside a single transaction.
+   * Sets displayOrder of the given banners to their index in `ids`.
+   *
+   * Runs as a single statement: a transaction holds one connection, and
+   * firing the per-banner UPDATEs in parallel on it makes pg log
+   * "client.query() when the client is already executing a query"
+   * (deprecated, removed in pg@9).
    */
   async reorder(reorderBannersDto: ReorderBannersDto): Promise<void> {
     const { ids } = reorderBannersDto;
@@ -86,14 +90,13 @@ export class BannerService {
       throw new NotFoundException(`Banners not found: ${missing.join(', ')}`);
     }
 
-    await this.dataSource.transaction(async (manager) => {
-      const repository = manager.getRepository(Banner);
-      await Promise.all(
-        ids.map((id, index) =>
-          repository.update({ id }, { displayOrder: index }),
-        ),
-      );
-    });
+    await this.dataSource.query(
+      `UPDATE "banner" AS b
+          SET "displayOrder" = v.ord - 1
+         FROM unnest($1::int[]) WITH ORDINALITY AS v(id, ord)
+        WHERE b."id" = v.id`,
+      [ids],
+    );
 
     await this.invalidateCaches();
   }

@@ -804,6 +804,7 @@ export class CrmService {
       newCustomers,
       recentActivities,
       vipCustomers,
+      championCustomers,
     ] = await Promise.all([
       this.userRepository
         .createQueryBuilder('user')
@@ -879,6 +880,16 @@ export class CrmService {
         sortBy: 'total_spent',
         sortOrder: 'DESC',
       }),
+
+      // Champions outrank VIP: the single highest lifetime spender among
+      // them is highlighted at the top of the dashboard.
+      this.getCustomers({
+        page: 1,
+        limit: 1,
+        segment: CrmSegment.CHAMPIONS,
+        sortBy: 'total_spent',
+        sortOrder: 'DESC',
+      }),
     ]);
 
     const segments = {
@@ -913,6 +924,7 @@ export class CrmService {
       },
       activitiesLast7Days: recentActivities,
       topCustomers: vipCustomers.data,
+      topChampion: championCustomers.data[0] ?? null,
     };
   }
 }
