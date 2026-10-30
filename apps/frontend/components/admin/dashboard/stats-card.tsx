@@ -91,7 +91,7 @@ export default function StatsCard({
             {title}
           </p>
 
-          <p className="mt-1 text-base xl:text-sm 2xl:text-basefont-bold text-gray-800 dark:text-gray-300 leading-none">
+          <p className="mt-1 text-base xl:text-sm 2xl:text-base font-bold text-gray-800 dark:text-gray-300 leading-none">
             {count !== undefined ? `${value} / ${count}` : value}
           </p>
         </div>
