@@ -1,8 +1,9 @@
 "use client";
 
 import { ShippingMethodForm } from "@/components/admin/shipping-method/shipping-method-form";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 import { Button } from "@/components/ui/button";
-import { CardTitle } from "@/components/ui/card";
+import { PillBadge } from "@/components/common/pill-badge";
 import { fetchData } from "@/utils/api-utils";
 import type { ShippingMethod } from "@/utils/types";
 import { Loader2 } from "lucide-react";
@@ -43,7 +44,12 @@ export default function EditShippingMethodPage() {
 
   const handleSuccess = () => {
     toast.success("Shipping method updated successfully");
-    router.back();
+    // Land on the detail page so the saved values are visible at a glance.
+    router.push(`/admin/settings/shipping-method/${methodId}`);
+  };
+
+  const handleCancel = () => {
+    router.push("/admin/settings/shipping-method");
   };
 
   if (isLoading) {
@@ -62,13 +68,13 @@ export default function EditShippingMethodPage() {
   if (!shippingMethod) {
     return (
       <AdminPageContainer>
-        <div className="text-center">
+        <div className="rounded-xl border bg-card p-10 text-center">
           <h2 className="text-xl font-semibold">Shipping method not found</h2>
-          <p className="text-muted-foreground mt-2">
+          <p className="mt-2 text-muted-foreground">
             The requested shipping method could not be found.
           </p>
           <Button asChild className="mt-4">
-            <Link href="/admin/shipping/method/list">
+            <Link href="/admin/settings/shipping-method">
               Back to Shipping Methods
             </Link>
           </Button>
@@ -79,21 +85,21 @@ export default function EditShippingMethodPage() {
 
   return (
     <AdminPageContainer>
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <CardTitle>Shipping Method Information</CardTitle>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/admin/settings/shipping-method">
-              Back to Shipping Methods
-            </Link>
-          </Button>
-        </div>
+      <FormPageHeader
+        title={`Edit — ${shippingMethod.name}`}
+        backHref="/admin/settings/shipping-method"
+        backLabel="Back to Shipping Methods"
+      >
+        <PillBadge tone={shippingMethod.isActive ? "emerald" : "red"}>
+          {shippingMethod.isActive ? "Active" : "Inactive"}
+        </PillBadge>
+      </FormPageHeader>
 
       <ShippingMethodForm
         mode="edit"
         shippingMethod={shippingMethod}
         onSuccess={handleSuccess}
+        onCancel={handleCancel}
       />
     </AdminPageContainer>
   );

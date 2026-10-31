@@ -116,9 +116,34 @@ export class BusinessSetting {
       'Delivery coverage: plain lists of divisions/cities/areas seeded from the BD dataset and fully editable (add/rename/delete/enable).',
   })
   deliveryCoverage: {
-    divisions: { name: string; enabled: boolean }[];
-    cities: { division: string; name: string; enabled: boolean }[];
-    areas: { city: string; name: string; enabled: boolean }[];
+    divisions: {
+      name: string;
+      enabled: boolean;
+      /** Division-wide delivery time inherited by cities/areas; null = none. */
+      deliveryTime?: string | null;
+    }[];
+    cities: {
+      division: string;
+      name: string;
+      enabled: boolean;
+      /** City-wide delivery charge (৳) inherited by its areas; null = shipping method cost. */
+      deliveryCharge?: number | null;
+      /** City-wide minimum order amount (৳) inherited by its areas; null = no minimum. */
+      minOrderAmount?: number | null;
+      /** City-wide delivery time inherited by its areas; null = division/none. */
+      deliveryTime?: string | null;
+    }[];
+    areas: {
+      city: string;
+      name: string;
+      enabled: boolean;
+      /** Area-specific delivery charge (৳); null = use the shipping method's cost. */
+      deliveryCharge?: number | null;
+      /** Minimum order subtotal (৳) for this area; null = no area minimum. */
+      minOrderAmount?: number | null;
+      /** Area-specific delivery time; null = inherit the city's, then the division's. */
+      deliveryTime?: string | null;
+    }[];
   } | null;
 
   // ── CRM segment rules ────────────────────────────────────────────────

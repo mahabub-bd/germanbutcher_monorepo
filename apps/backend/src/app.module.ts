@@ -14,6 +14,7 @@ import { BogoUsageLogModule } from './bogo-usage-log/bogo-usage-log.module';
 import { BannerModule } from './banner/banner.module';
 import { BrandModule } from './brand/brand.module';
 import { BusinessSettingsModule } from './business-settings/business-settings.module';
+import { DeliveryCoverageModule } from './delivery-coverage/delivery-coverage.module';
 import { CartModule } from './cart/cart.module';
 import { CategoryModule } from './category/category.module';
 import { ClientModule } from './client/client.module';
@@ -130,6 +131,7 @@ import { WishlistModule } from './wishlist/wishlist.module';
     ContactMessageModule,
     CouponModule,
     CouponUsageLogModule,
+    DeliveryCoverageModule,
     BusinessSettingsModule,
     FlashSaleCampaignsModule,
     FlashSaleUsageLogModule,

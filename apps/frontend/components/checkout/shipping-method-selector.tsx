@@ -13,6 +13,14 @@ interface ShippingMethodSelectorProps {
   onSelectMethod: (methodId: string) => void;
   /** When a free-delivery campaign waives standard shipping */
   isFreeDelivery?: boolean;
+  /** Returns the cost actually charged for a method (e.g. the area-wise
+   *  delivery charge overriding the method's base cost). When omitted the
+   *  method's own cost is shown. */
+  getAdjustedCost?: (method: ShippingMethod) => number;
+  /** Returns the delivery time shown for a method (e.g. the area/city/
+   *  division delivery time overriding the method's own). When omitted the
+   *  method's own deliveryTime is shown. */
+  getDeliveryTime?: (method: ShippingMethod) => string;
 }
 
 export function ShippingMethodSelector({
@@ -20,6 +28,8 @@ export function ShippingMethodSelector({
   selectedMethod,
   onSelectMethod,
   isFreeDelivery = false,
+  getAdjustedCost,
+  getDeliveryTime,
 }: ShippingMethodSelectorProps) {
   return (
     <section className="space-y-3 rounded-lg border bg-white p-4 md:p-5">
@@ -38,6 +48,12 @@ export function ShippingMethodSelector({
       </div>
 
       {/* Options */}
+      {shippingMethods.length === 0 ? (
+        <p className="rounded-lg border border-dashed bg-gray-50 px-3 py-4 text-center text-sm text-muted-foreground">
+          No shipping methods are available for the selected area. Please
+          choose a different area or contact support.
+        </p>
+      ) : (
       <RadioGroup
         value={selectedMethod}
         onValueChange={onSelectMethod}
@@ -47,6 +63,10 @@ export function ShippingMethodSelector({
           const value = method.id.toString();
           const isSelected = selectedMethod === value;
           const isFree = isFreeDelivery && !method.isExcludedFromFreeDelivery;
+          const baseCost = Number(method.cost || 0);
+          const adjustedCost = getAdjustedCost
+            ? getAdjustedCost(method)
+            : baseCost;
 
           return (
             <div
@@ -67,11 +87,11 @@ export function ShippingMethodSelector({
                   htmlFor={`shipping-${method.id}`}
                   className="cursor-pointer space-y-0.5 min-w-0"
                 >
-                  <span className="block font-medium text-sm truncate">
+                  <span className="block truncate font-medium text-sm">
                     {method.name}
                   </span>
                   <span className="block text-xs text-muted-foreground">
-                    {method.deliveryTime}
+                    {getDeliveryTime ? getDeliveryTime(method) : method.deliveryTime}
                   </span>
                 </Label>
               </div>
@@ -79,7 +99,7 @@ export function ShippingMethodSelector({
               {isFree ? (
                 <span className="flex flex-col items-end shrink-0">
                   <span className="text-xs text-muted-foreground line-through">
-                    {formatCurrencyEnglish(Number(method.cost))}
+                    {formatCurrencyEnglish(baseCost)}
                   </span>
                   <span className="font-semibold text-sm text-green-600 dark:text-green-400">
                     FREE
@@ -93,7 +113,7 @@ export function ShippingMethodSelector({
                       isSelected && "text-primary"
                     )}
                   >
-                    {formatCurrencyEnglish(Number(method.cost))}
+                    {formatCurrencyEnglish(adjustedCost)}
                   </span>
                   {isFreeDelivery && (
                     <span className="text-[10px] leading-tight text-amber-600 dark:text-amber-400 text-right">
@@ -106,6 +126,7 @@ export function ShippingMethodSelector({
           );
         })}
       </RadioGroup>
+      )}
     </section>
   );
 }

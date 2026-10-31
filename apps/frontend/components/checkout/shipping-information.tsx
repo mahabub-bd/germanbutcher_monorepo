@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
+  getAreaPricing,
   getEnabledAreas,
   getEnabledCities,
   getEnabledDivisions,
@@ -52,6 +53,8 @@ export function ShippingInformation({
   const enabledDivisions = getEnabledDivisions(coverage);
   const enabledCities = getEnabledCities(coverage, formData.division);
   const enabledAreas = getEnabledAreas(coverage, formData.city);
+  // Area-wise pricing shown under the Area field once an area is chosen.
+  const areaPricing = getAreaPricing(coverage, formData.area, formData.city);
   const showDivisionField = enabledDivisions.length > 0;
   const showCityField = enabledCities.length > 0;
   const showAreaField = enabledAreas.length > 0;
@@ -192,6 +195,33 @@ export function ShippingInformation({
                 {errors?.area && (
                   <p className="mt-1 text-xs text-red-500">{errors.area}</p>
                 )}
+                {formData.area &&
+                  (areaPricing.deliveryCharge != null ||
+                    areaPricing.minOrderAmount != null ||
+                    areaPricing.deliveryTime) && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {areaPricing.deliveryCharge != null && (
+                        <span>
+                          Delivery charge: ৳{areaPricing.deliveryCharge}
+                        </span>
+                      )}
+                      {areaPricing.deliveryCharge != null &&
+                        areaPricing.minOrderAmount != null &&
+                        " · "}
+                      {areaPricing.minOrderAmount != null && (
+                        <span>
+                          Minimum order: ৳{areaPricing.minOrderAmount}
+                        </span>
+                      )}
+                      {(areaPricing.deliveryCharge != null ||
+                        areaPricing.minOrderAmount != null) &&
+                        areaPricing.deliveryTime &&
+                        " · "}
+                      {areaPricing.deliveryTime && (
+                        <span>Delivery time: {areaPricing.deliveryTime}</span>
+                      )}
+                    </p>
+                  )}
               </div>
             )}
 

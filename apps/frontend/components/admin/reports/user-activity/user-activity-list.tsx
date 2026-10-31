@@ -597,6 +597,35 @@ export function UserActivityList({
         </Button>
       </PageHeader>
 
+      {/* Quick log switch: All / Admin / Customer — same userType filter as the Actor dropdown */}
+      <div className="mb-4 flex items-center gap-1.5 overflow-x-auto pb-1 sm:gap-2">
+        {[
+          { value: "", label: "All Log" },
+          { value: "admin", label: "Admin Log" },
+          { value: "customer", label: "Customer Log" },
+        ].map((tab) => {
+          const active = userTypeFilter === tab.value;
+          return (
+            <button
+              key={tab.label}
+              onClick={() => {
+                setUserTypeFilter(tab.value);
+                setCurrentPage(1);
+              }}
+              aria-pressed={active}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 sm:px-4 sm:py-2 sm:text-sm",
+                active
+                  ? "bg-slate-800 text-white hover:bg-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-200"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900"
+              )}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Toolbar: one line from md up, bottom sheet below it */}
       <div className="mb-4 rounded-xl border bg-card p-3 shadow-xs">
         <div className="flex flex-nowrap items-center gap-2 lg:gap-3">
