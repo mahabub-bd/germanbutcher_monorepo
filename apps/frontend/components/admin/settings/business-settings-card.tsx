@@ -1,6 +1,9 @@
 "use client";
 import { revalidatePublic } from "@/actions/revalidate";
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { PillBadge } from "@/components/common/pill-badge";
+import { cn, formatDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,6 +23,7 @@ import {
   Bell,
   Building2,
   Globe,
+  ImageIcon,
   ImageOff,
   Mail,
   MapPin,
@@ -120,15 +124,13 @@ function InfoField({
 }) {
   const content = value?.trim() ? value : "—";
   return (
-    <div className={`flex items-start gap-3 ${className || ""}`}>
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-primaryColor dark:bg-red-950/40 dark:text-red-400">
-        <Icon className="h-4 w-4" />
-      </div>
+    <div className={cn("flex items-start gap-3", className)}>
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primaryColor/10 text-primaryColor">
+        <Icon className="size-4" />
+      </span>
       <div className="min-w-0">
-        <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
-        </dt>
-        <dd className="mt-0.5 font-semibold text-gray-900 dark:text-gray-50 wrap-anywhere">
+        <dt className="text-[13px] font-medium text-foreground/60">{label}</dt>
+        <dd className="mt-0.5 text-sm font-medium wrap-anywhere">
           {value?.includes(",") && !href ? (
             // Comma-separated values (e.g. admin notification emails) render
             // as individual pills instead of one long wrapped string.
@@ -138,12 +140,9 @@ function InfoField({
                 .map((item) => item.trim())
                 .filter(Boolean)
                 .map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200"
-                  >
+                  <PillBadge key={item} tone="neutral">
                     {item}
-                  </span>
+                  </PillBadge>
                 ))}
             </span>
           ) : href && value?.trim() ? (
@@ -152,7 +151,7 @@ function InfoField({
               {...(external
                 ? { target: "_blank", rel: "noopener noreferrer" }
                 : {})}
-              className="text-blue-600 hover:underline dark:text-blue-400"
+              className="text-primaryColor underline-offset-2 hover:underline"
             >
               {content}
             </a>
@@ -176,8 +175,8 @@ function LogoTile({
   badge?: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1.5">
-      <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
+    <div className="flex flex-col items-center gap-2">
+      <div className="flex size-20 items-center justify-center overflow-hidden rounded-xl border bg-muted/30">
         {url ? (
           <Image
             src={url}
@@ -185,18 +184,28 @@ function LogoTile({
             width={72}
             height={72}
             unoptimized
-            className="h-full w-full object-contain p-1"
+            className="size-full object-contain p-1.5"
           />
         ) : (
-          <ImageOff className="h-6 w-6 text-gray-300 dark:text-gray-600" />
+          <ImageOff className="size-5 text-muted-foreground" />
         )}
       </div>
-      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <span className="text-[13px] font-medium text-foreground/70">
         {label}
-        {badge ? ` (${badge})` : ""}
+        {badge ? ` · ${badge}` : ""}
       </span>
     </div>
   );
+}
+
+/** Human-readable maintenance window, or a dash when the store is live. */
+function maintenanceWindowLabel(settings: BusinessSettings | null): string {
+  if (!settings?.maintenanceMode) return "—";
+  const { maintenanceStartsAt: from, maintenanceEndsAt: to } = settings;
+  if (from && to) return `${formatDateTime(from)} → ${formatDateTime(to)}`;
+  if (to) return `Ends ${formatDateTime(to)}`;
+  if (from) return `Starts ${formatDateTime(from)}`;
+  return "Until switched off";
 }
 
 export function BusinessSettingsCard() {
@@ -366,142 +375,251 @@ export function BusinessSettingsCard() {
     ["websiteUrl", "Website URL", "https://www.germanbutcherbd.com"],
   ];
 
+  const contactChannels = [
+    settings?.phone,
+    settings?.email,
+    settings?.whatsappNumber,
+    settings?.messengerUrl,
+    settings?.websiteUrl,
+  ].filter((value) => Boolean(value?.trim())).length;
+
+  const notificationEmails = (settings?.adminNotificationEmail ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean).length;
+
+  const logoCount = [settings?.logo?.url, settings?.invoiceLogo?.url].filter(
+    (value) => Boolean(value)
+  ).length;
+
+  const isMaintenance = settings?.maintenanceMode ?? false;
+
   return (
-    <div>
-      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5 dark:border-gray-800 dark:bg-gray-900">
-        {isLoading ? (
+    <div className="space-y-6">
+      {isLoading ? (
+        <div className="flex justify-center rounded-2xl border bg-card py-16">
           <LoadingIndicator message="Loading business settings..." />
-        ) : (
-          <div>
-            {/* Card header */}
-            <div className="flex flex-col-reverse gap-3 border-b border-gray-100 pb-5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 dark:border-gray-800">
-              <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50">
-                  Business Information
-                </h3>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                  Used across the storefront, chat, invoices and reports.
-                </p>
+        </div>
+      ) : (
+        <>
+          {/* Summary */}
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <StatsCard
+              icon={Phone}
+              title="Contact channels"
+              value={contactChannels}
+              count="5"
+              description="Phone, email, chat and site"
+              bgColor="blue"
+            />
+            <StatsCard
+              icon={Bell}
+              title="Notification emails"
+              value={notificationEmails.toLocaleString("en-US")}
+              description="Admins alerted on new orders"
+              bgColor="indigo"
+            />
+            <StatsCard
+              icon={ImageIcon}
+              title="Logos"
+              value={logoCount}
+              count="2"
+              description="Storefront and invoice"
+              bgColor="purple"
+            />
+            <StatsCard
+              icon={Wrench}
+              title="Maintenance"
+              value={isMaintenance ? "On" : "Off"}
+              description={
+                isMaintenance
+                  ? maintenanceWindowLabel(settings)
+                  : "Storefront is live"
+              }
+              bgColor={isMaintenance ? "red" : "green"}
+            />
+          </div>
+
+          {/* Business details */}
+          <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+              <div className="flex items-start gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primaryColor/10 text-primaryColor">
+                  <Building2 className="size-5" />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-semibold tracking-tight">
+                    Business information
+                  </h2>
+                  <p className="mt-0.5 text-[13px] text-foreground/70">
+                    Used across the storefront, chat, invoices and reports.
+                  </p>
+                </div>
               </div>
               {can(MENU_URL, "canEdit") && (
                 <Button
-                  variant="outline"
                   size="sm"
                   onClick={handleEdit}
                   className="w-full sm:w-auto sm:shrink-0"
                 >
-                  <Pencil className="mr-2 h-4 w-4" />
+                  <Pencil className="size-4" />
                   Edit
                 </Button>
               )}
             </div>
 
-            <div className="mt-6 grid gap-6 lg:grid-cols-[auto_1fr] lg:gap-8">
+            <div className="space-y-6 p-4 sm:p-5">
               {/* Logos */}
-              <div className="flex justify-center gap-5 sm:justify-start">
-                <LogoTile
-                  url={settings?.logo?.url}
-                  label="Website Logo"
-                />
-                <LogoTile
-                  url={settings?.invoiceLogo?.url}
-                  label="Invoice Logo"
-                  badge="PNG"
-                />
-              </div>
+              <section>
+                <h3 className="text-[13px] font-medium text-foreground/60">
+                  Brand logos
+                </h3>
+                <div className="mt-3 flex gap-5">
+                  <LogoTile url={settings?.logo?.url} label="Website logo" />
+                  <LogoTile
+                    url={settings?.invoiceLogo?.url}
+                    label="Invoice logo"
+                    badge="PNG"
+                  />
+                </div>
+              </section>
 
-              {/* Details */}
-              <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-                <InfoField
-                  icon={Building2}
-                  label="Business Name"
-                  value={settings?.businessName}
-                />
-                <InfoField
-                  icon={Phone}
-                  label="Phone"
-                  value={settings?.phone}
-                  href={settings?.phone ? `tel:${settings.phone}` : undefined}
-                />
-                <InfoField
-                  icon={Mail}
-                  label="Email"
-                  value={settings?.email}
-                  href={
-                    settings?.email ? `mailto:${settings.email}` : undefined
-                  }
-                />
-                <InfoField
-                  icon={MessageCircle}
-                  label="WhatsApp"
-                  value={settings?.whatsappNumber}
-                  href={
-                    settings?.whatsappNumber
-                      ? `https://wa.me/${settings.whatsappNumber.replace(/[^\d]/g, "")}`
-                      : undefined
-                  }
-                  external
-                />
-                <InfoField
-                  icon={MessagesSquare}
-                  label="Messenger"
-                  value={settings?.messengerUrl}
-                  href={settings?.messengerUrl || undefined}
-                  external
-                />
-                <InfoField
-                  icon={Globe}
-                  label="Website"
-                  value={settings?.websiteUrl}
-                  href={settings?.websiteUrl || undefined}
-                  external
-                />
-                <InfoField
-                  icon={Bell}
-                  label="Admin Notification Emails"
-                  value={settings?.adminNotificationEmail}
-                  className="sm:col-span-2 lg:col-span-3"
-                />
-                <InfoField
-                  icon={MapPin}
-                  label="Address"
-                  value={settings?.address}
-                  href={
-                    settings?.address
-                      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`
-                      : undefined
-                  }
-                  external
-                  className="sm:col-span-2 lg:col-span-3"
-                />
-                <InfoField
-                  icon={Wrench}
-                  label="Maintenance Mode"
-                  value={
-                    settings?.maintenanceMode
-                      ? `On${settings.maintenanceEndsAt ? ` — back by ${toLocalInputValue(settings.maintenanceEndsAt).replace("T", " ")}` : ""}`
-                      : "Off"
-                  }
-                  className="sm:col-span-2 lg:col-span-3"
-                />
-              </dl>
+              <hr className="border-t" />
+
+              {/* Contact & channels */}
+              <section>
+                <h3 className="text-[13px] font-medium text-foreground/60">
+                  Contact &amp; channels
+                </h3>
+                <dl className="mt-3 grid gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-3">
+                  <InfoField
+                    icon={Building2}
+                    label="Business name"
+                    value={settings?.businessName}
+                  />
+                  <InfoField
+                    icon={Phone}
+                    label="Phone"
+                    value={settings?.phone}
+                    href={settings?.phone ? `tel:${settings.phone}` : undefined}
+                  />
+                  <InfoField
+                    icon={Mail}
+                    label="Email"
+                    value={settings?.email}
+                    href={
+                      settings?.email ? `mailto:${settings.email}` : undefined
+                    }
+                  />
+                  <InfoField
+                    icon={MessageCircle}
+                    label="WhatsApp"
+                    value={settings?.whatsappNumber}
+                    href={
+                      settings?.whatsappNumber
+                        ? `https://wa.me/${settings.whatsappNumber.replace(/[^\d]/g, "")}`
+                        : undefined
+                    }
+                    external
+                  />
+                  <InfoField
+                    icon={MessagesSquare}
+                    label="Messenger"
+                    value={settings?.messengerUrl}
+                    href={settings?.messengerUrl || undefined}
+                    external
+                  />
+                  <InfoField
+                    icon={Globe}
+                    label="Website"
+                    value={settings?.websiteUrl}
+                    href={settings?.websiteUrl || undefined}
+                    external
+                  />
+                  <InfoField
+                    icon={Bell}
+                    label="Admin notification emails"
+                    value={settings?.adminNotificationEmail}
+                    className="sm:col-span-2 xl:col-span-3"
+                  />
+                  <InfoField
+                    icon={MapPin}
+                    label="Address"
+                    value={settings?.address}
+                    href={
+                      settings?.address
+                        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`
+                        : undefined
+                    }
+                    external
+                    className="sm:col-span-2 xl:col-span-3"
+                  />
+                </dl>
+              </section>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Maintenance mode */}
+          <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+              <div className="flex items-start gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primaryColor/10 text-primaryColor">
+                  <Wrench className="size-5" />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-semibold tracking-tight">
+                    Maintenance mode
+                  </h2>
+                  <p className="mt-0.5 text-[13px] text-foreground/70">
+                    Takes the storefront offline; the admin stays reachable.
+                  </p>
+                </div>
+              </div>
+              <PillBadge
+                tone={isMaintenance ? "red" : "emerald"}
+                className="w-fit shrink-0"
+              >
+                {isMaintenance ? "Storefront offline" : "Storefront live"}
+              </PillBadge>
+            </div>
+
+            <dl className="grid gap-x-6 gap-y-4 p-4 sm:grid-cols-2 sm:p-5">
+              <div>
+                <dt className="text-[13px] font-medium text-foreground/60">
+                  Window
+                </dt>
+                <dd className="mt-0.5 text-sm font-medium">
+                  {maintenanceWindowLabel(settings)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[13px] font-medium text-foreground/60">
+                  Message
+                </dt>
+                <dd className="mt-0.5 text-sm">
+                  {settings?.maintenanceMessage?.trim() ||
+                    (isMaintenance
+                      ? "Using the default “back soon” message."
+                      : "—")}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </>
+      )}
 
       {/* Edit modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl lg:max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Edit Business Settings</DialogTitle>
+            <DialogTitle>Edit business settings</DialogTitle>
             <DialogDescription>
-              Shown across the storefront: header/footer logo, contact info,
+              Shown across the storefront: header and footer logo, contact info,
               WhatsApp/Messenger chat, and order invoices.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto -mx-1 px-1 py-1">
+          <div className="-mx-1 space-y-4 px-1 py-1">
             {/* Logo upload */}
             <div className="space-y-2">
               <Label htmlFor="business-logo">Logo</Label>
@@ -513,10 +631,10 @@ export function BusinessSettingsCard() {
                     width={64}
                     height={64}
                     unoptimized
-                    className="w-16 h-16 rounded-lg object-contain border border-gray-100 dark:border-gray-800"
+                    className="size-16 rounded-lg border object-contain"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-lg border border-dashed border-gray-300 dark:border-gray-700" />
+                  <div className="size-16 rounded-lg border border-dashed border-muted-foreground/30" />
                 )}
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <Input
@@ -545,7 +663,7 @@ export function BusinessSettingsCard() {
             {/* Invoice logo upload (PNG only — used on PDF invoices/reports) */}
             <div className="space-y-2">
               <Label htmlFor="business-invoice-logo">
-                Invoice Logo (PNG only)
+                Invoice logo (PNG only)
               </Label>
               <div className="flex flex-wrap items-center gap-3">
                 {invoiceLogoPreview ? (
@@ -555,10 +673,10 @@ export function BusinessSettingsCard() {
                     width={64}
                     height={64}
                     unoptimized
-                    className="w-16 h-16 rounded-lg object-contain border border-gray-100 dark:border-gray-800"
+                    className="size-16 rounded-lg border object-contain"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-lg border border-dashed border-gray-300 dark:border-gray-700" />
+                  <div className="size-16 rounded-lg border border-dashed border-muted-foreground/30" />
                 )}
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <Input
@@ -589,23 +707,31 @@ export function BusinessSettingsCard() {
             </div>
 
             {/* Text fields */}
-            {textFields.map(([key, label, placeholder]) => (
-              <div className="space-y-2" key={key}>
-                <Label htmlFor={`business-${key}`}>{label}</Label>
-                <Input
-                  id={`business-${key}`}
-                  value={draft[key]}
-                  onChange={(e) =>
-                    setDraft((prev) => ({ ...prev, [key]: e.target.value }))
-                  }
-                  placeholder={placeholder}
-                />
-              </div>
-            ))}
+            <div className="grid gap-4 sm:grid-cols-2">
+              {textFields.map(([key, label, placeholder]) => (
+                <div
+                  className={cn(
+                    "space-y-2",
+                    key === "adminNotificationEmail" && "sm:col-span-2"
+                  )}
+                  key={key}
+                >
+                  <Label htmlFor={`business-${key}`}>{label}</Label>
+                  <Input
+                    id={`business-${key}`}
+                    value={draft[key]}
+                    onChange={(e) =>
+                      setDraft((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                    placeholder={placeholder}
+                  />
+                </div>
+              ))}
+            </div>
 
             {/* CRM segment rules */}
-            <div className="space-y-2 rounded-lg border p-3 sm:col-span-2">
-              <p className="text-sm font-semibold">CRM Segment Rules</p>
+            <div className="space-y-2 rounded-xl border bg-muted/30 p-3.5">
+              <p className="text-sm font-semibold">CRM segment rules</p>
               <p className="text-xs text-muted-foreground">
                 Control when customers become VIP, At Risk, or New. Leave a
                 field empty to use the built-in default. Segments apply
@@ -721,7 +847,7 @@ export function BusinessSettingsCard() {
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Starts At (optional)</Label>
+                      <Label>Starts at (optional)</Label>
                       <div className="flex gap-2">
                         <DatePicker
                           value={
@@ -764,7 +890,7 @@ export function BusinessSettingsCard() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Ends At (optional)</Label>
+                      <Label>Ends at (optional)</Label>
                       <div className="flex gap-2">
                         <DatePicker
                           value={
@@ -830,7 +956,7 @@ export function BusinessSettingsCard() {
               />
             </div>
 
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[13px] text-foreground/70">
               Public pages pick up changes within ~60 seconds (cache).
             </p>
           </div>
@@ -848,9 +974,9 @@ export function BusinessSettingsCard() {
               onClick={handleSave}
               disabled={isSaving}
               aria-busy={isSaving}
-              className="w-full bg-primaryColor hover:bg-primaryColor/90 sm:w-auto dark:bg-red-700 dark:hover:bg-red-600"
+              className="w-full sm:w-auto"
             >
-              {isSaving ? "Saving..." : "Save Changes"}
+              {isSaving ? "Saving..." : "Save changes"}
             </Button>
           </DialogFooter>
         </DialogContent>

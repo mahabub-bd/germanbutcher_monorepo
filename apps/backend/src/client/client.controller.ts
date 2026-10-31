@@ -64,6 +64,12 @@ export class ClientController {
   @ApiOperation({ summary: 'Get all clients' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Filter by client name',
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Clients retrieved successfully',
@@ -72,6 +78,7 @@ export class ClientController {
   async findAll(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('search') search?: string,
   ) {
     // Paginated envelope only when page/limit are provided — the public
     // homepage clients section and /clients page consume the plain array.
@@ -79,6 +86,7 @@ export class ClientController {
       const { data, total } = await this.clientService.findAll({
         page: +(page ?? 1),
         limit: +(limit ?? 10),
+        search: search?.trim() || undefined,
       });
       return {
         message: 'Clients retrieved successfully',

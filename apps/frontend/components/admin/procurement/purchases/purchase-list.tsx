@@ -5,8 +5,8 @@ import type React from "react";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
+import { PillBadge, type PillTone } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -29,24 +29,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import { cn, formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { Purchase } from "@/utils/types";
 import {
   BadgeDollarSign,
-  Ban,
-  Boxes,
   CheckCircle,
   DollarSign,
-  Filter,
   List,
   MoreHorizontal,
   Package,
   Pencil,
   Plus,
+  RefreshCw,
   ShoppingCart,
   Trash2,
-  XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -55,6 +52,41 @@ import { toast } from "sonner";
 import DeleteConfirmationDialog from "../../delete-confirmation-dialog";
 import { LoadingIndicator } from "../../loading-indicator";
 import { PageHeader } from "../../page-header";
+
+/** Purchase payment state → pill colour. */
+const PAYMENT_TONE: Record<string, PillTone> = {
+  paid: "emerald",
+  partial: "amber",
+  due: "red",
+};
+
+/** Purchase lifecycle state → pill colour. */
+const STATUS_TONE: Record<string, PillTone> = {
+  pending: "amber",
+  shipped: "violet",
+  delivered: "emerald",
+  cancelled: "red",
+};
+
+/** Sentence case for the raw API values ("pending" → "Pending"). */
+const capitalize = (value: string) =>
+  value.charAt(0).toUpperCase() + value.slice(1);
+
+/** Label + value block reused by the mobile cards. */
+function DetailField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[13px] font-medium text-foreground/60">{label}</p>
+      <div className="mt-0.5">{children}</div>
+    </div>
+  );
+}
 
 interface PurchaseListProps {
   initialPage: number;
@@ -213,423 +245,518 @@ export function PurchaseList({
   };
 
   const hasActiveFilters = () =>
-    Boolean(searchQuery || statusFilter || paymentStatusFilter);
+    Boolean(
+      searchQuery.trim() ||
+        (statusFilter && statusFilter !== "all") ||
+        (paymentStatusFilter && paymentStatusFilter !== "all")
+    );
 
-  const renderEmptyState = () => (
-    <div className="p-4 pb-6">
-      <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
-        <Package className="h-10 w-10 text-muted-foreground/50 mb-4" />
-        <h3 className="text-lg font-semibold">No purchases found</h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          {hasActiveFilters()
-            ? "No purchases match your search criteria. Try different filters."
-            : "Get started by adding your first purchase."}
-        </p>
-        {!hasActiveFilters() && can(MENU_URL, "canCreate") && (
-          <Button asChild className="mt-4">
-            <Link href="/admin/procurement/purchases/add">
-              <Plus className="mr-2 h-4 w-4" /> Add Purchase
-            </Link>
-          </Button>
-        )}
-        {hasActiveFilters() && (
-          <Button variant="outline" className="mt-4" onClick={clearFilters}>
-            Clear Filters
-          </Button>
-        )}
-      </div>
-    </div>
+  const paidCount = purchases.filter((p) => p.paymentStatus === "paid").length;
+  const partialCount = purchases.filter(
+    (p) => p.paymentStatus === "partial"
+  ).length;
+  const outstanding = purchases.reduce(
+    (sum, p) => sum + Math.max(Number(p.totalValue) - Number(p.amountPaid), 0),
+    0
   );
 
-  const renderActiveFilters = () => {
-    if (!hasActiveFilters()) return null;
+  const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
+  const lastRow = Math.min(currentPage * limit, totalItems);
 
-    return (
-      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-        {searchQuery && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Search: {searchQuery}
-            <button onClick={() => setSearchQuery("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {statusFilter && statusFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Status: {statusFilter}
-            <button onClick={() => setStatusFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {paymentStatusFilter && paymentStatusFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Payment: {paymentStatusFilter}
-            <button
-              onClick={() => setPaymentStatusFilter("")}
-              className="ml-1"
-            >
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="h-7 text-xs"
-        >
-          Clear all
-        </Button>
-      </div>
-    );
-  };
-
-  const renderFiltersMenu = () => (
+  const renderActions = (purchase: Purchase) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 px-3 shrink-0">
-          <Filter className="h-4 w-4" />
-          <span>Filters</span>
-          {(statusFilter || paymentStatusFilter) && (
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          )}
+        <Button variant="ghost" size="icon" className="size-8">
+          <MoreHorizontal className="size-4" />
+          <span className="sr-only">Open menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-100">
-        <div className="grid grid-cols-2 gap-3 p-3">
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Status</h4>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="shipped">Shipped</SelectItem>
-                <SelectItem value="delivered">Delivered</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Payment</h4>
-            <Select
-              value={paymentStatusFilter}
-              onValueChange={(value) => {
-                setPaymentStatusFilter(value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="All Payments" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Payments</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="partial">Partial</SelectItem>
-                <SelectItem value="due">Due</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {(statusFilter || paymentStatusFilter) && (
-            <div className="col-span-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="w-full mt-2"
-              >
-                Reset Filters
-              </Button>
-            </div>
+      <DropdownMenuContent align="end">
+        {can(MENU_URL, "canEdit") && (
+          <DropdownMenuItem asChild>
+            <Link href={`/admin/procurement/purchases/${purchase.id}/edit`}>
+              <Pencil className="size-4" /> Edit
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {can(MENU_URL, "canCreate") &&
+          parseFloat(purchase.amountPaid) < parseFloat(purchase.totalValue) && (
+            <DropdownMenuItem asChild>
+              <Link href={`/admin/procurement/purchases/${purchase.id}/payment`}>
+                <DollarSign className="size-4" /> Make payment
+              </Link>
+            </DropdownMenuItem>
           )}
-        </div>
+        <DropdownMenuItem asChild>
+          <Link href={`/admin/procurement/purchases/${purchase.id}/payments`}>
+            <List className="size-4" /> View payments
+          </Link>
+        </DropdownMenuItem>
+        {can(MENU_URL, "canDelete") && (
+          <DropdownMenuItem
+            variant="destructive"
+            onClick={() => handleDeleteClick(purchase)}
+          >
+            <Trash2 className="size-4" /> Delete
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 
-  const renderTableView = () => (
-    <div className="overflow-x-auto">
-      <Table className="min-w-215">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Purchase #</TableHead>
-            <TableHead>Supplier</TableHead>
-            <TableHead>Products</TableHead>
-            <TableHead className="text-center">
-              Total Quantity
-            </TableHead>
-            <TableHead className="text-right">Total Value</TableHead>
-            <TableHead className="text-right">
-              Paid Amount
-            </TableHead>
-            <TableHead>Payment</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Created By</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-
-        <TableBody>
-          {purchases?.map((purchase) => {
-            const {
-              id,
-              purchaseNumber,
-              supplier,
-              totalValue,
-              amountPaid,
-              paymentStatus,
-              purchaseDate,
-              status,
-              createdBy,
-              items,
-            } = purchase;
-
-            const formattedStatus = status
-              ? status.charAt(0).toUpperCase() + status.slice(1)
-              : "";
-
-            const totalQuantity =
-              items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-
-            return (
-              <TableRow key={id} className="hover:bg-muted/50">
-                <TableCell className="font-medium">{purchaseNumber}</TableCell>
-
-                <TableCell>{supplier?.name}</TableCell>
-
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    {items?.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex justify-between items-center"
-                      >
-                        <span className="font-medium text-sm">
-                          {item.product.name}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </TableCell>
-
-                <TableCell className="text-center">
-                  <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted">
-                    <Boxes className="h-3 w-3" />
-                    {totalQuantity}
-                  </span>
-                </TableCell>
-
-                <TableCell className="text-right font-medium">
-                  <span className="inline-flex items-center justify-end gap-1.5">
-                    <BadgeDollarSign className="h-3.5 w-3.5 text-green-600/70 dark:text-green-400/70" />
-                    {formatCurrencyEnglish(Number(totalValue))}
-                  </span>
-                </TableCell>
-
-                <TableCell className="text-right text-muted-foreground">
-                  <span className="inline-flex items-center justify-end gap-1.5">
-                    <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground/70" />
-                    {formatCurrencyEnglish(Number(amountPaid))}
-                  </span>
-                </TableCell>
-
-                <TableCell>
-                  <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${paymentStatus === "paid"
-                      ? "bg-emerald-600 text-white"
-                      : paymentStatus === "partial"
-                        ? "bg-amber-500 text-white"
-                        : "bg-red-600 text-white"
-                      }`}
-                  >
-                    {paymentStatus}
-                  </span>
-                </TableCell>
-
-                <TableCell>
-                  {formatDateTime(purchaseDate)}
-                </TableCell>
-
-                <TableCell>
-                  {createdBy?.name}
-                </TableCell>
-
-                <TableCell>
-                  <span
-                    className={`inline-flex items-center rounded-md px-3 py-1 text-xs font-semibold capitalize ${status === "delivered"
-                      ? "bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900"
-                      : status === "pending"
-                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300"
-                        : status === "shipped"
-                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
-                          : "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"
-                      }`}
-                  >
-                    {formattedStatus}
-                  </span>
-                </TableCell>
-
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {can(MENU_URL, "canEdit") && (
-                        <DropdownMenuItem asChild>
-                          <Link href={`/admin/procurement/purchases/${id}/edit`}>
-                            <Pencil className="mr-2 h-4 w-4" /> Edit
-                          </Link>
-                        </DropdownMenuItem>
-                      )}
-                      {can(MENU_URL, "canCreate") &&
-                        parseFloat(amountPaid) < parseFloat(totalValue) && (
-                          <DropdownMenuItem asChild>
-                            <Link href={`/admin/procurement/purchases/${id}/payment`}>
-                              <DollarSign className="mr-2 h-4 w-4" /> Make Payment
-                            </Link>
-                          </DropdownMenuItem>
-                        )}
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/procurement/purchases/${id}/payments`}>
-                          <List className="mr-2 h-4 w-4" /> View Payments
-                        </Link>
-                      </DropdownMenuItem>
-                      {can(MENU_URL, "canDelete") && (
-                        <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() => handleDeleteClick(purchase)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
-  );
-
   return (
     <>
-      <div className="w-full space-y-4">
+      <div className="w-full">
         <PageHeader
           title="Purchases"
-          description="Manage your product purchases"
-          {...(can(MENU_URL, "canCreate")
-            ? {
-              actionLabel: "Add Purchase",
-              actionHref: "/admin/procurement/purchases/add",
-            }
-            : {})}
-        />
+          description="Every stock purchase order, the supplier behind it and what is still owed."
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+            onClick={fetchPurchases}
+          >
+            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+          {can(MENU_URL, "canCreate") && (
+            <Button size="sm" asChild>
+              <Link href="/admin/procurement/purchases/add">
+                <Plus className="size-4" />
+                <span className="hidden sm:inline">Add Purchase</span>
+              </Link>
+            </Button>
+          )}
+        </PageHeader>
 
-        {/* Summary tiles */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <StatsCard
-            icon={Package}
-            title="Total Purchases"
-            value={totalItems}
-            bgColor="blue"
-          />
-          <StatsCard
-            icon={CheckCircle}
-            title="Paid"
-            value={purchases.filter((p) => p.paymentStatus === "paid").length}
-            bgColor="green"
-          />
-          <StatsCard
-            icon={Ban}
-            title="Unpaid"
-            value={purchases.filter((p) => p.paymentStatus !== "paid").length}
-            bgColor="orange"
-          />
-        </div>
+        {/* Toolbar */}
+        <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
+          <div className="flex flex-col gap-2.5 md:flex-row md:flex-nowrap md:items-center md:gap-3">
+            <TableSearch
+              wrapperClassName="w-full md:max-w-xs"
+              className="h-9"
+              placeholder="Search by purchase number or supplier..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
 
-        {/* List card: toolbar + table */}
-        <div className="rounded-sm border bg-card">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                <ShoppingCart className="h-4.5 w-4.5" />
-              </span>
-              <div>
-                <h3 className="font-semibold leading-tight">All Purchases</h3>
-                <p className="text-sm text-muted-foreground">
-                  {totalItems} purchase{totalItems === 1 ? "" : "s"}
-                </p>
+            <div className="grid grid-cols-2 gap-2.5 md:flex md:items-center md:gap-3">
+              <div className="md:w-40 md:shrink-0">
+                <Select
+                  value={statusFilter || "all"}
+                  onValueChange={(value) => {
+                    setStatusFilter(value === "all" ? "" : value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-full">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="shipped">Shipped</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="md:w-40 md:shrink-0">
+                <Select
+                  value={paymentStatusFilter || "all"}
+                  onValueChange={(value) => {
+                    setPaymentStatusFilter(value === "all" ? "" : value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-full">
+                    <SelectValue placeholder="Payment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All payments</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="partial">Partial</SelectItem>
+                    <SelectItem value="due">Due</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
-              <TableSearch
-                wrapperClassName="w-full sm:w-64 min-w-0"
-                placeholder="Search purchases..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
-              {renderFiltersMenu()}
+
+            {hasActiveFilters() && (
+              <div className="flex items-center gap-2 md:ml-auto">
+                <PillBadge className="font-medium">
+                  {[
+                    searchQuery.trim() && `Search: ${searchQuery.trim()}`,
+                    statusFilter &&
+                      statusFilter !== "all" &&
+                      `Status: ${capitalize(statusFilter)}`,
+                    paymentStatusFilter &&
+                      paymentStatusFilter !== "all" &&
+                      `Payment: ${capitalize(paymentStatusFilter)}`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </PillBadge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 text-muted-foreground"
+                  onClick={clearFilters}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <LoadingIndicator message="Loading purchases..." />
+          </div>
+        ) : purchases.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+            <div className="rounded-full bg-muted p-3">
+              <Package className="size-6 text-muted-foreground" />
             </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">No purchases found</p>
+              <p className="text-xs text-muted-foreground">
+                {hasActiveFilters()
+                  ? "No purchase matches these filters. Try another number, supplier or status."
+                  : "Record your first purchase to start tracking stock and supplier payments."}
+              </p>
+            </div>
+            {hasActiveFilters() ? (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : can(MENU_URL, "canCreate") ? (
+              <Button size="sm" asChild>
+                <Link href="/admin/procurement/purchases/add">
+                  <Plus className="size-4" /> Add purchase
+                </Link>
+              </Button>
+            ) : null}
           </div>
+        ) : (
+          <>
+            {/* Page totals */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+              <StatsCard
+                icon={Package}
+                title="Total purchases"
+                value={totalItems.toLocaleString("en-US")}
+                description={`Page ${currentPage} of ${Math.max(totalPages, 1)}`}
+                bgColor="blue"
+              />
+              <StatsCard
+                icon={CheckCircle}
+                title="Paid in full"
+                value={paidCount.toLocaleString("en-US")}
+                description="On this page"
+                bgColor="green"
+              />
+              <StatsCard
+                icon={BadgeDollarSign}
+                title="Partially paid"
+                value={partialCount.toLocaleString("en-US")}
+                description="Balance still open"
+                bgColor="amber"
+              />
+              <StatsCard
+                icon={DollarSign}
+                title="Outstanding"
+                value={formatCurrencyEnglish(outstanding)}
+                description="Owed on this page"
+                bgColor="red"
+              />
+            </div>
 
-          {renderActiveFilters()}
+            {/* Purchases */}
+            <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 ring-1 ring-indigo-500/15 dark:text-indigo-400">
+                    <ShoppingCart className="size-4.5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold">All purchases</h3>
+                    <p className="text-[13px] text-foreground/70">
+                      Supplier invoices, stock received and balances still open.
+                    </p>
+                  </div>
+                </div>
+                <PillBadge className="font-medium tabular-nums">
+                  {totalItems.toLocaleString("en-US")} total
+                </PillBadge>
+              </div>
 
-          {isLoading ? (
-            <LoadingIndicator message="Loading Purchases..." />
-          ) : purchases.length === 0 ? (
-            renderEmptyState()
-          ) : (
-            renderTableView()
-          )}
-        </div>
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                {/* Equal columns, fixed layout, no min-width: the six data
+                    columns split the panel width, so the table never scrolls
+                    sideways and every gutter is identical. Gutters are 12px
+                    (6px per side); the outer edges stay aligned to the panel,
+                    and the right-aligned Total value column gets extra right
+                    padding so the money does not crowd the Payment pill. */}
+                <Table className="report-table table-fixed [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_td:nth-child(3)]:pr-5 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4 [&_th:nth-child(3)]:pr-5">
+                  <TableHeader className="[&_th]:font-semibold">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>Purchase</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead className="text-right">Total value</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created by</TableHead>
+                      {/* Label is screen-reader only: at 56px the word
+                          "Actions" overflows the cell and makes the panel
+                          scroll sideways by those 2px. */}
+                      <TableHead className="w-14 text-right">
+                        <span className="sr-only">Actions</span>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {purchases.map((purchase) => {
+                      const productNames =
+                        purchase.items?.map((item) => item.product.name) ?? [];
+                      const totalQuantity =
+                        purchase.items?.reduce(
+                          (sum, item) => sum + item.quantity,
+                          0
+                        ) ?? 0;
+                      // formatDateTime yields "Oct 27, 2026, 10:30 AM", so the
+                      // date/time boundary is the LAST comma, not the first.
+                      const stamp = formatDateTime(purchase.purchaseDate);
+                      const stampSplit = stamp.lastIndexOf(", ");
+                      const purchaseDay =
+                        stampSplit === -1 ? stamp : stamp.slice(0, stampSplit);
+                      const purchaseClock =
+                        stampSplit === -1 ? "" : stamp.slice(stampSplit + 2);
 
-        {/* Pagination */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground text-center md:text-left truncate">
-              {`Showing ${purchases.length} of ${totalItems} purchases`}
-            </p>
-          </div>
+                      return (
+                        <TableRow key={purchase.id}>
+                          <TableCell className="py-2.5">
+                            <p
+                              className="truncate text-sm font-medium leading-tight"
+                              title={purchase.purchaseNumber}
+                            >
+                              {purchase.purchaseNumber}
+                            </p>
+                            <p
+                              className="mt-0.5 truncate text-[13px] text-foreground/70"
+                              title={purchase.supplier?.name || undefined}
+                            >
+                              {purchase.supplier?.name || "No supplier"}
+                            </p>
+                          </TableCell>
 
-          <div className="flex-1 w-full md:w-auto">
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={handlePageChange}
-            />
-          </div>
-        </div>
+                          <TableCell>
+                            {productNames.length === 0 ? (
+                              <span className="text-[13px] text-foreground/70">
+                                No items
+                              </span>
+                            ) : (
+                              <div className="min-w-0">
+                                <p
+                                  className="truncate text-sm font-medium"
+                                  title={productNames.join(", ")}
+                                >
+                                  {productNames[0]}
+                                </p>
+                                <p className="mt-0.5 truncate text-[13px] text-foreground/70">
+                                  {productNames.length > 1
+                                    ? `+${productNames.length - 1} more · `
+                                    : ""}
+                                  {totalQuantity} unit
+                                  {totalQuantity === 1 ? "" : "s"}
+                                </p>
+                              </div>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="text-right">
+                            <p className="truncate text-sm font-semibold tabular-nums">
+                              {formatCurrencyEnglish(Number(purchase.totalValue))}
+                            </p>
+                            <p className="mt-0.5 truncate text-[13px] tabular-nums text-foreground/70">
+                              Paid{" "}
+                              {formatCurrencyEnglish(Number(purchase.amountPaid))}
+                            </p>
+                          </TableCell>
+
+                          <TableCell>
+                            <PillBadge
+                              tone={
+                                PAYMENT_TONE[purchase.paymentStatus] ??
+                                "neutral"
+                              }
+                            >
+                              {capitalize(purchase.paymentStatus || "due")}
+                            </PillBadge>
+                          </TableCell>
+
+                          <TableCell>
+                            <p
+                              className="truncate text-sm tabular-nums"
+                              title={stamp}
+                            >
+                              {purchaseDay}
+                            </p>
+                            {purchaseClock && (
+                              <p className="mt-0.5 truncate text-[13px] text-foreground/70">
+                                {purchaseClock}
+                              </p>
+                            )}
+                          </TableCell>
+
+                          <TableCell>
+                            <PillBadge
+                              tone={STATUS_TONE[purchase.status] ?? "neutral"}
+                            >
+                              {capitalize(purchase.status || "pending")}
+                            </PillBadge>
+                          </TableCell>
+
+                          <TableCell>
+                            <p
+                              className="truncate text-sm"
+                              title={purchase.createdBy?.name || undefined}
+                            >
+                              {purchase.createdBy?.name || "—"}
+                            </p>
+                          </TableCell>
+
+                          <TableCell className="text-right">
+                            {renderActions(purchase)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="divide-y md:hidden">
+                {purchases.map((purchase) => {
+                  const productNames =
+                    purchase.items?.map((item) => item.product.name) ?? [];
+                  const totalQuantity =
+                    purchase.items?.reduce(
+                      (sum, item) => sum + item.quantity,
+                      0
+                    ) ?? 0;
+
+                  return (
+                    <article key={purchase.id} className="space-y-3 p-3.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 ring-1 ring-indigo-500/20 dark:text-indigo-400">
+                            <Package className="size-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold">
+                              {purchase.purchaseNumber}
+                            </p>
+                            <p className="mt-0.5 truncate text-[13px] text-foreground/70">
+                              {purchase.supplier?.name || "No supplier"}
+                            </p>
+                          </div>
+                        </div>
+                        {renderActions(purchase)}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-lg bg-muted/40 p-2.5">
+                        <DetailField label="Items">
+                          <p className="truncate text-sm font-medium">
+                            {productNames.length === 0
+                              ? "No items"
+                              : productNames[0]}
+                          </p>
+                          <p className="text-[13px] text-foreground/70">
+                            {productNames.length > 1
+                              ? `+${productNames.length - 1} more · `
+                              : ""}
+                            {totalQuantity} unit
+                            {totalQuantity === 1 ? "" : "s"}
+                          </p>
+                        </DetailField>
+
+                        <DetailField label="Total value">
+                          <p className="text-sm font-semibold tabular-nums">
+                            {formatCurrencyEnglish(Number(purchase.totalValue))}
+                          </p>
+                          <p className="text-[13px] tabular-nums text-foreground/70">
+                            Paid{" "}
+                            {formatCurrencyEnglish(Number(purchase.amountPaid))}
+                          </p>
+                        </DetailField>
+
+                        <DetailField label="Payment">
+                          <PillBadge
+                            tone={
+                              PAYMENT_TONE[purchase.paymentStatus] ?? "neutral"
+                            }
+                          >
+                            {capitalize(purchase.paymentStatus || "due")}
+                          </PillBadge>
+                        </DetailField>
+
+                        <DetailField label="Status">
+                          <PillBadge
+                            tone={STATUS_TONE[purchase.status] ?? "neutral"}
+                          >
+                            {capitalize(purchase.status || "pending")}
+                          </PillBadge>
+                        </DetailField>
+
+                        <div className="col-span-2">
+                          <DetailField label="Date">
+                            <p className="text-sm tabular-nums">
+                              {formatDateTime(purchase.purchaseDate)}
+                            </p>
+                          </DetailField>
+                        </div>
+
+                        <div className="col-span-2">
+                          <DetailField label="Created by">
+                            <p className="truncate text-sm">
+                              {purchase.createdBy?.name || "—"}
+                            </p>
+                          </DetailField>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
+                <p className="text-[13px] text-foreground/70">
+                  Showing {firstRow.toLocaleString("en-US")}–
+                  {lastRow.toLocaleString("en-US")} of{" "}
+                  {totalItems.toLocaleString("en-US")} purchase
+                  {totalItems === 1 ? "" : "s"}
+                  {searchQuery.trim() && ` matching “${searchQuery.trim()}”`}
+                </p>
+                {totalPages > 1 && (
+                  <PaginationComponent
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    baseUrl="#"
+                    onPageChange={handlePageChange}
+                  />
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Delete Confirmation Dialog */}

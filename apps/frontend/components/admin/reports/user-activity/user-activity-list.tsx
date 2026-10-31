@@ -1,14 +1,9 @@
 "use client";
 
 import { PaginationComponent } from "@/components/common/pagination";
+import { PillBadge } from "@/components/common/pill-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -17,6 +12,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   Table,
   TableBody,
   TableCell,
@@ -24,38 +29,51 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import type { UserActivity } from "@/utils/types";
 import {
   Activity,
-  CheckCircle2,
-  Clock,
-  Eye,
-  Filter,
-  LogIn,
-  MoreHorizontal,
-  Pencil,
-  Plus,
   RefreshCw,
-  Trash2,
+  SlidersHorizontal,
   User,
   XCircle,
 } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoadingIndicator } from "../../loading-indicator";
 import { PageHeader } from "../../page-header";
+import { MethodPill, StatusPill, formatAction } from "./audit-visuals";
 
-// Icons for HTTP-method action badges.
-const actionIcons: Record<string, React.ReactNode> = {
-  GET: <Eye className="h-3 w-3" />,
-  POST: <Plus className="h-3 w-3" />,
-  PATCH: <Pencil className="h-3 w-3" />,
-  PUT: <RefreshCw className="h-3 w-3" />,
-  DELETE: <Trash2 className="h-3 w-3" />,
-  LOGIN: <LogIn className="h-3 w-3" />,
-};
+/**
+ * Filter option lists. GET is deliberately absent — the backend never logs read
+ * requests. Status and actor values mirror the API enums exactly.
+ */
+const ACTION_OPTIONS = [
+  { value: "POST", label: "POST" },
+  { value: "PATCH", label: "PATCH" },
+  { value: "PUT", label: "PUT" },
+  { value: "DELETE", label: "DELETE" },
+  { value: "LOGIN", label: "LOGIN" },
+];
+
+const STATUS_OPTIONS = [
+  { value: "success", label: "Success" },
+  { value: "failure", label: "Failure" },
+];
+
+const USER_TYPE_OPTIONS = [
+  { value: "admin", label: "Admin" },
+  { value: "customer", label: "Customer" },
+  { value: "system", label: "System" },
+];
+
+const optionLabel = (
+  options: { value: string; label: string }[],
+  value: string
+) => options.find((option) => option.value === value)?.label ?? value;
 
 interface UserActivityListProps {
   initialPage: number;
@@ -84,6 +102,13 @@ export function UserActivityList({
   const [entityTypeFilter, setEntityTypeFilter] = useState(
     getInitialParam("entityType") as string
   );
+  // Both are supported by the endpoint but were not exposed in the UI.
+  const [statusFilter, setStatusFilter] = useState(
+    getInitialParam("status") as string
+  );
+  const [userTypeFilter, setUserTypeFilter] = useState(
+    getInitialParam("userType") as string
+  );
   const [entityTypes, setEntityTypes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalItems, setTotalItems] = useState(0);
@@ -93,6 +118,9 @@ export function UserActivityList({
   const [expandedMessages, setExpandedMessages] = useState<Set<number>>(
     new Set()
   );
+
+  // Below md the filters live in a bottom sheet instead of the toolbar strip.
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   const toggleMessage = (id: number) => {
     setExpandedMessages((prev) => {
@@ -116,9 +144,20 @@ export function UserActivityList({
       params.set("action", actionFilter);
 
     if (entityTypeFilter) params.set("entityType", entityTypeFilter);
+    if (statusFilter) params.set("status", statusFilter);
+    if (userTypeFilter) params.set("userType", userTypeFilter);
 
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname, currentPage, limit, actionFilter, entityTypeFilter]);
+  }, [
+    router,
+    pathname,
+    currentPage,
+    limit,
+    actionFilter,
+    entityTypeFilter,
+    statusFilter,
+    userTypeFilter,
+  ]);
 
   const fetchActivities = async () => {
     setIsLoading(true);
@@ -131,6 +170,8 @@ export function UserActivityList({
         params.append("action", actionFilter);
 
       if (entityTypeFilter) params.append("entityType", entityTypeFilter);
+      if (statusFilter) params.append("status", statusFilter);
+      if (userTypeFilter) params.append("userType", userTypeFilter);
 
       const response = await fetchDataPagination<{
         data: UserActivity[];
@@ -153,7 +194,14 @@ export function UserActivityList({
     fetchActivities();
     updateUrl();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, limit, actionFilter, entityTypeFilter]);
+  }, [
+    currentPage,
+    limit,
+    actionFilter,
+    entityTypeFilter,
+    statusFilter,
+    userTypeFilter,
+  ]);
 
   // Populate the entity filter from values actually present in the audit logs.
   useEffect(() => {
@@ -169,54 +217,128 @@ export function UserActivityList({
   const clearFilters = () => {
     setActionFilter("");
     setEntityTypeFilter("");
+    setStatusFilter("");
+    setUserTypeFilter("");
     setCurrentPage(1);
   };
 
-  const getActionColor = (action: string) => {
-    // Extract HTTP method from action string (e.g., "PATCH /v1/orders/:id/cancel" -> "PATCH")
-    const httpMethod = action.split(' ')[0].toUpperCase();
+  const hasActiveFilters = Boolean(
+    actionFilter || entityTypeFilter || statusFilter || userTypeFilter
+  );
 
-    switch (httpMethod) {
-      case "GET":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
-      case "POST":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-      case "PATCH":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
-      case "DELETE":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-      case "PUT":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
-    }
-  };
+  const activeFilterCount = [
+    actionFilter,
+    entityTypeFilter,
+    statusFilter,
+    userTypeFilter,
+  ].filter(Boolean).length;
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "success":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-      case "failed":
-      case "error":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
-    }
-  };
+  /** Plain sentence instead of removable chips, so the toolbar stays on one line. */
+  const activeFilterSummary = [
+    actionFilter && `Method: ${actionFilter}`,
+    entityTypeFilter && `Entity: ${entityTypeFilter}`,
+    statusFilter && `Status: ${optionLabel(STATUS_OPTIONS, statusFilter)}`,
+    userTypeFilter && `Actor: ${optionLabel(USER_TYPE_OPTIONS, userTypeFilter)}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
-  const formatAction = (action: string) => {
-    // Split action into method and path
-    const parts = action.split(' ');
-    if (parts.length >= 2) {
-      const [method, ...pathParts] = parts;
-      return {
-        method: method.toUpperCase(),
-        path: pathParts.join(' ')
-      };
-    }
-    return { method: action, path: '' };
+  const renderFilterSelect = (
+    value: string,
+    placeholder: string,
+    allLabel: string,
+    options: { value: string; label: string }[],
+    onChange: (value: string) => void,
+    triggerClass: string
+  ) => (
+    <Select
+      value={value || "all"}
+      onValueChange={(next) => {
+        onChange(next === "all" ? "" : next);
+        setCurrentPage(1);
+      }}
+    >
+      <SelectTrigger className={triggerClass}>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">{allLabel}</SelectItem>
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
+  /**
+   * One source for the filter controls so the desktop strip and the mobile sheet
+   * cannot drift apart — only the trigger sizing changes with the mode.
+   */
+  const renderFilterControls = (mode: "bar" | "sheet") => {
+    const triggerClass =
+      mode === "bar"
+        ? "h-9 w-full text-xs font-medium 2xl:text-sm"
+        : "h-11 w-full px-3 text-sm font-medium";
+
+    return [
+      {
+        key: "action",
+        label: "HTTP Method",
+        barClass: "md:w-36 md:shrink-0",
+        node: renderFilterSelect(
+          actionFilter,
+          "Method",
+          "All methods",
+          ACTION_OPTIONS,
+          setActionFilter,
+          triggerClass
+        ),
+      },
+      {
+        key: "entity",
+        label: "Entity Type",
+        barClass: "md:w-44 md:shrink-0",
+        node: renderFilterSelect(
+          entityTypeFilter,
+          "Entity",
+          "All entities",
+          entityTypes.map((entityType) => ({
+            value: entityType,
+            label: entityType,
+          })),
+          setEntityTypeFilter,
+          triggerClass
+        ),
+      },
+      {
+        key: "status",
+        label: "Status",
+        barClass: "md:w-36 md:shrink-0",
+        node: renderFilterSelect(
+          statusFilter,
+          "Status",
+          "Any status",
+          STATUS_OPTIONS,
+          setStatusFilter,
+          triggerClass
+        ),
+      },
+      {
+        key: "userType",
+        label: "Actor",
+        barClass: "md:w-36 md:shrink-0",
+        node: renderFilterSelect(
+          userTypeFilter,
+          "Actor",
+          "Any actor",
+          USER_TYPE_OPTIONS,
+          setUserTypeFilter,
+          triggerClass
+        ),
+      },
+    ];
   };
 
   // Two-line date cell: date on top, time below (Dhaka timezone, matches utils.formatDateTime).
@@ -241,70 +363,35 @@ export function UserActivityList({
   };
 
   const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-      <Activity className="h-10 w-10 text-muted-foreground mb-4" />
-      <h3 className="text-lg font-semibold">No activities found</h3>
-      <p className="text-sm text-muted-foreground mt-2">
-        {actionFilter || entityTypeFilter
-          ? "No activities match your filter criteria. Try different filters."
+    <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+      <span className="mb-4 flex size-12 items-center justify-center rounded-full bg-muted">
+        <Activity className="size-6 text-muted-foreground" />
+      </span>
+      <h3 className="text-base font-semibold">No activities found</h3>
+      <p className="mt-1 max-w-md text-sm text-muted-foreground">
+        {hasActiveFilters
+          ? "No audit log entries match the selected filters."
           : "No user activities have been recorded yet."}
       </p>
-      {(actionFilter || entityTypeFilter) && (
-        <Button variant="outline" className="mt-4" onClick={clearFilters}>
-          Clear Filters
+      {hasActiveFilters && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4"
+          onClick={clearFilters}
+        >
+          Clear filters
         </Button>
       )}
     </div>
   );
 
-  const renderActiveFilters = () => {
-    const hasFilters = actionFilter || entityTypeFilter;
-
-    if (!hasFilters) return null;
-
-    return (
-      <div className="flex flex-wrap gap-2 mt-4">
-        {actionFilter && actionFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Action: {actionFilter}
-            <button onClick={() => setActionFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {entityTypeFilter && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Entity: {entityTypeFilter}
-            <button onClick={() => setEntityTypeFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="h-7 text-xs"
-        >
-          Clear all
-        </Button>
-      </div>
-    );
-  };
-
   const renderTableView = () => (
-    <div className="overflow-x-auto">
-      <Table className="min-w-225 [&_td]:py-2.5 [&_th]:pb-3 [&_th]:pt-0">
+    <div className="hidden overflow-x-auto lg:block">
+      <Table className="report-table min-w-225 lg:min-w-0 [&_td]:py-2.5 [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
-          <TableRow>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="w-14">ID</TableHead>
             <TableHead>Date & Time</TableHead>
             <TableHead>Action</TableHead>
             <TableHead>Entity</TableHead>
@@ -312,7 +399,6 @@ export function UserActivityList({
             <TableHead>Message</TableHead>
             <TableHead>IP Address</TableHead>
             <TableHead>User</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -320,6 +406,16 @@ export function UserActivityList({
             const { method, path } = formatAction(activity.action);
             return (
               <TableRow key={activity.id} className="hover:bg-muted/50">
+                <TableCell>
+                  <Link
+                    href={`/admin/audit-log/${activity.id}`}
+                    className="font-mono text-xs font-medium text-primary whitespace-nowrap hover:underline"
+                    title="Open event details"
+                  >
+                    #{activity.id}
+                  </Link>
+                </TableCell>
+
                 <TableCell>
                   <div className="flex flex-col">
                     <span className="text-sm font-medium whitespace-nowrap">
@@ -332,50 +428,41 @@ export function UserActivityList({
                 </TableCell>
 
                 <TableCell>
-                  <div className="flex flex-col gap-1">
-                    <span
-                      className={`inline-flex w-fit items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${getActionColor(activity.action)}`}
+                  <div className="flex flex-col items-start gap-1">
+                    <MethodPill method={method} />
+                    <Link
+                      href={`/admin/audit-log/${activity.id}`}
+                      className="max-w-44 truncate text-xs text-muted-foreground font-mono hover:text-primary hover:underline"
+                      title={`Open details for ${activity.action}`}
                     >
-                      {actionIcons[method] ?? <Activity className="h-3 w-3" />}
-                      {method}
-                    </span>
-                    <span className="max-w-44 truncate text-xs text-muted-foreground font-mono">
                       {path}
-                    </span>
+                    </Link>
                   </div>
                 </TableCell>
 
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-medium text-sm">{activity.entityType}</span>
+                    <span className="font-medium text-sm capitalize">
+                      {activity.entityType}
+                    </span>
                     {activity.entityId && (
-                      <span className="text-xs text-muted-foreground">ID: {activity.entityId}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ID: {activity.entityId}
+                      </span>
                     )}
                   </div>
                 </TableCell>
 
                 <TableCell>
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium lowercase ${getStatusColor(activity.status)}`}
-                  >
-                    {activity.status.toLowerCase() === "success" ? (
-                      <CheckCircle2 className="h-3 w-3" />
-                    ) : activity.status.toLowerCase() === "pending" ? (
-                      <Clock className="h-3 w-3" />
-                    ) : (
-                      <XCircle className="h-3 w-3" />
-                    )}
-                    {activity.status}
-                  </span>
+                  <StatusPill status={activity.status} />
                 </TableCell>
 
                 <TableCell className="max-w-xs">
                   <span
-                    className={`text-sm ${
-                      expandedMessages.has(activity.id)
-                        ? "block whitespace-normal wrap-break-word"
-                        : "line-clamp-2 cursor-pointer wrap-break-word"
-                    }`}
+                    className={`text-sm ${expandedMessages.has(activity.id)
+                      ? "block whitespace-normal wrap-break-word"
+                      : "line-clamp-2 cursor-pointer wrap-break-word"
+                      }`}
                     title={
                       expandedMessages.has(activity.id)
                         ? undefined
@@ -400,27 +487,11 @@ export function UserActivityList({
                       <span className="font-medium text-sm">
                         {activity.user?.name || "Unknown User"}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground capitalize">
                         {activity.userType}
                       </span>
                     </div>
                   </div>
-                </TableCell>
-
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => router.push(`/admin/audit-log/${activity.id}`)}>
-                        <Eye className="mr-2 h-4 w-4" /> View Details
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             );
@@ -430,130 +501,236 @@ export function UserActivityList({
     </div>
   );
 
+  /**
+   * Below lg the eight columns cannot fit a phone, so each event becomes a
+   * compact card instead of forcing horizontal scroll.
+   */
+  const renderCardView = () => (
+    <div className="divide-y lg:hidden">
+      {activities.map((activity: UserActivity) => {
+        const { method, path } = formatAction(activity.action);
+        return (
+          <article key={activity.id} className="space-y-2.5 p-3.5">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Link
+                    href={`/admin/audit-log/${activity.id}`}
+                    className="font-mono text-xs font-semibold text-primary hover:underline"
+                    title="Open event details"
+                  >
+                    #{activity.id}
+                  </Link>
+                  <MethodPill method={method} />
+                  <StatusPill status={activity.status} />
+                </div>
+                <Link
+                  href={`/admin/audit-log/${activity.id}`}
+                  className="mt-1.5 block truncate font-mono text-xs text-muted-foreground hover:text-primary hover:underline"
+                  title={`Open details for ${activity.action}`}
+                >
+                  {path || activity.entityType}
+                </Link>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-xs font-medium whitespace-nowrap">
+                  {formatDate(activity.createdAt)}
+                </p>
+                <p className="text-[11px] text-muted-foreground whitespace-nowrap">
+                  {formatTime(activity.createdAt)}
+                </p>
+              </div>
+            </div>
+
+            <p
+              className="line-clamp-2 text-sm wrap-break-word"
+              title={activity.message}
+            >
+              {activity.message}
+            </p>
+
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span className="min-w-0 truncate capitalize">
+                {activity.entityType}
+                {activity.entityId ? ` · #${activity.entityId}` : ""}
+              </span>
+              <span className="shrink-0 font-mono">
+                {activity.ipAddress || "unknown"}
+              </span>
+            </div>
+
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full border bg-muted">
+                <User className="size-3.5 text-muted-foreground" />
+              </span>
+              <span className="min-w-0 truncate text-xs">
+                {activity.user?.name || "Unknown User"}
+                <span className="text-muted-foreground capitalize">
+                  {" · "}
+                  {activity.userType}
+                </span>
+              </span>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+
+  const firstRow = activities.length ? (currentPage - 1) * limit + 1 : 0;
+  const lastRow = Math.min(currentPage * limit, totalItems);
+
   return (
     <div className="w-full">
       <PageHeader
-        title="User Activity"
-        description="Monitor and track user activities across the system"
-      />
+        title="Audit Log"
+        description="Every write, auth and system event with its actor, entity, status and IP."
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isLoading}
+          onClick={fetchActivities}
+        >
+          <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+          Refresh
+        </Button>
+      </PageHeader>
 
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row justify-end gap-4">
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 px-3"
-                >
-                  <Filter className="h-4 w-4" />
-                  <span>Filters</span>
+      {/* Toolbar: one line from md up, bottom sheet below it */}
+      <div className="mb-4 rounded-xl border bg-card p-3 shadow-xs">
+        <div className="flex flex-nowrap items-center gap-2 lg:gap-3">
+          <div className="shrink-0 md:hidden">
+            <Sheet
+              open={filterSheetOpen}
+              onOpenChange={setFilterSheetOpen}
+            >
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                  <SlidersHorizontal className="size-3.5" />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <Badge className="size-4.5 rounded-full px-0 text-[0.65rem] font-semibold">
+                      {activeFilterCount}
+                    </Badge>
+                  )}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-64 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
-                sideOffset={8}
+              </SheetTrigger>
+              <SheetContent
+                side="bottom"
+                className="max-h-[82dvh] gap-0 overflow-y-auto rounded-t-2xl"
               >
-                <div className="space-y-3">
-                  {/* Header */}
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium">Filters</h4>
-                    {((actionFilter && actionFilter !== "all") ||
-                      entityTypeFilter) && (
-                      <button
-                        onClick={clearFilters}
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        Clear all
-                      </button>
-                    )}
-                  </div>
+                <SheetHeader className="border-b pr-14">
+                  <SheetTitle>Filters</SheetTitle>
+                  <SheetDescription>
+                    Narrow the log by method, entity, status and actor.
+                  </SheetDescription>
+                </SheetHeader>
 
-                  {/* Action Filter */}
-                  <div className="space-y-2">
-                    <label className="text-xs text-muted-foreground">
-                      HTTP Method
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {/* GET is excluded — the backend never logs GET requests */}
-                      {["all", "POST", "PATCH", "DELETE"].map(
-                        (action) => (
-                          <button
-                            key={action}
-                            onClick={() => {
-                              setActionFilter(action);
-                              setCurrentPage(1);
-                            }}
-                            className={`text-xs py-1.5 px-2 rounded-md border ${actionFilter === action
-                                ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                                : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                              }`}
-                          >
-                            {action === "all" ? "All" : action}
-                          </button>
-                        )
-                      )}
-                    </div>
+                {renderFilterControls("sheet").map((control) => (
+                  <div key={control.key} className="px-4 pt-4">
+                    <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {control.label}
+                    </p>
+                    {control.node}
                   </div>
+                ))}
 
-                  {/* Entity Type Filter */}
-                  <div className="space-y-2">
-                    <label className="text-xs text-muted-foreground">
-                      Entity Type
-                    </label>
-                    <Select
-                      value={entityTypeFilter || "all"}
-                      onValueChange={(value) => {
-                        setEntityTypeFilter(value === "all" ? "" : value);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All entities" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All entities</SelectItem>
-                        {entityTypes.map((entityType) => (
-                          <SelectItem key={entityType} value={entityType}>
-                            {entityType}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <SheetFooter className="sticky bottom-0 mt-4 flex-row border-t bg-background pb-[max(1rem,env(safe-area-inset-bottom))]">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      clearFilters();
+                      setFilterSheetOpen(false);
+                    }}
+                  >
+                    Clear all
+                  </Button>
+                  <SheetClose asChild>
+                    <Button className="flex-1">
+                      {totalItems > 0
+                        ? `Show ${totalItems.toLocaleString("en-US")} events`
+                        : "Done"}
+                    </Button>
+                  </SheetClose>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          <div className="hidden min-w-0 flex-1 items-center gap-3 md:flex md:flex-wrap">
+            {renderFilterControls("bar").map((control) => (
+              <div key={control.key} className={control.barClass}>
+                {control.node}
+              </div>
+            ))}
+
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 shrink-0 text-xs font-medium text-muted-foreground 2xl:text-sm"
+                onClick={clearFilters}
+                title={activeFilterSummary}
+              >
+                <XCircle className="size-3.5" />
+                Clear
+              </Button>
+            )}
           </div>
         </div>
+      </div>
 
-        {renderActiveFilters()}
+      {/* Results */}
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+          <div>
+            <h3 className="text-sm font-semibold">Activity log</h3>
+            <p className="text-xs text-muted-foreground">
+              Dhaka time · newest first · {limit} per page
+            </p>
+          </div>
+          <PillBadge className="font-medium tabular-nums">
+            {totalItems.toLocaleString("en-US")} total
+          </PillBadge>
+        </div>
 
         {isLoading ? (
-          <LoadingIndicator message="Loading Activities..." />
+          <div className="p-6">
+            <LoadingIndicator message="Loading activities..." />
+          </div>
         ) : activities.length === 0 ? (
           renderEmptyState()
         ) : (
-          <div className="mt-6">{renderTableView()}</div>
+          <>
+            {renderTableView()}
+            {renderCardView()}
+          </>
         )}
-      </div>
 
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
-        <div className="flex-1 min-w-0">
-          <p className="text-xs text-muted-foreground text-center md:text-left truncate">
-            {`Showing ${activities.length} of ${totalItems} activities`}
-          </p>
-        </div>
+        <div className="flex flex-col items-start gap-2 border-t px-4 py-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground 2xl:text-sm">
+            <span className="truncate">
+              {totalItems > 0
+                ? `Showing ${firstRow.toLocaleString("en-US")}–${lastRow.toLocaleString(
+                  "en-US"
+                )} of ${totalItems.toLocaleString("en-US")} events`
+                : "No events to show"}
+            </span>
+            {hasActiveFilters && (
+              <span className="min-w-0 truncate">· {activeFilterSummary}</span>
+            )}
+          </div>
 
-        <div className="flex-1 w-full md:w-auto">
-          <PaginationComponent
-            currentPage={currentPage}
-            totalPages={totalPages}
-            baseUrl="#"
-            onPageChange={handlePageChange}
-          />
+          {totalPages > 1 && (
+            <PaginationComponent
+              currentPage={currentPage}
+              totalPages={totalPages}
+              baseUrl="#"
+              onPageChange={handlePageChange}
+            />
+          )}
         </div>
       </div>
     </div>

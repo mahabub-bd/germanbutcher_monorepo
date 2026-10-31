@@ -187,7 +187,7 @@ export default function CustomerListReport({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <Table className="min-w-160">
+        <Table className="report-table min-w-160">
           <TableHeader>
             <TableRow>
               <TableHead className="text-xs">Name</TableHead>

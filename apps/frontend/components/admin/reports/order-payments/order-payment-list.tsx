@@ -237,7 +237,7 @@ export default function OrderPaymentList({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <Table className="min-w-180">
+        <Table className="report-table min-w-180">
           <TableHeader>
             <TableRow>
               <TableHead className="text-xs">Payment No</TableHead>

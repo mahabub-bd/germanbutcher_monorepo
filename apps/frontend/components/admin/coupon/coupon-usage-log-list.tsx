@@ -1,9 +1,14 @@
 "use client";
 
+import StatsCard from "@/components/admin/dashboard/stats-card";
+import {
+  ORDER_STATUS_TONE,
+  PAYMENT_STATUS_TONE,
+  PillBadge,
+} from "@/components/common/pill-badge";
 import { PaginationComponent } from "@/components/common/pagination";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,21 +28,62 @@ import {
   getCouponUsageLogsByCode,
   getCouponUsageStats,
 } from "@/lib/coupon-usage-log-service";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
+import type { CouponUsageLog } from "@/utils/types";
+import { format } from "date-fns";
 import {
-  getOrderStatusColor,
-  getPaymentStatusColor,
-  getStatusIcon,
-} from "@/utils/order-helper";
-import { CouponUsageLog } from "@/utils/types";
-import { ArrowLeft, Calendar, DollarSign, Eye, MoreHorizontal, Package, User } from "lucide-react";
+  ArrowLeft,
+  CalendarDays,
+  Eye,
+  Filter,
+  MoreHorizontal,
+  Package,
+  Percent,
+  RefreshCw,
+  ShoppingBag,
+  TicketPercent,
+  User,
+} from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
-export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
+interface CouponUsageLogListProps {
+  /** Scopes the list (and the stats cards) to a single coupon. */
+  couponCode?: string;
+  initialPage?: number;
+  initialLimit?: number;
+  initialSearchParams?: { [key: string]: string | string[] | undefined };
+}
+
+/** Grouped amount, up to 2 decimals — the ৳ mark is added at the call site. */
+const bare = (value: number | string) =>
+  Number(value || 0).toLocaleString("en-BD", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+
+const humanize = (status: string) =>
+  status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+export function CouponUsageLogList({
+  couponCode,
+  initialPage = 1,
+  initialLimit = 10,
+  initialSearchParams = {},
+}: CouponUsageLogListProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const getInitialParam = (key: string) => {
+    const param = searchParams?.get(key);
+    return param ? param : initialSearchParams?.[key] || "";
+  };
+
   const [logs, setLogs] = useState<CouponUsageLog[]>([]);
   const [stats, setStats] = useState<{
     totalUses: number;
@@ -46,26 +92,51 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
     totalOrderValue: number | string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [limit] = useState(initialLimit);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [limit] = useState(10);
+  const [fromDate, setFromDate] = useState(getInitialParam("fromDate") as string);
+  const [toDate, setToDate] = useState(getInitialParam("toDate") as string);
+  // DatePicker holds its own copy of the picked date, so Clear bumps this key
+  // to remount both pickers without a stale selection.
+  const [resetKey, setResetKey] = useState(0);
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    fromDate ? new Date(fromDate) : undefined
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    toDate ? new Date(toDate) : undefined
+  );
 
-  const fetchLogs = async () => {
+  const hasDateRange = Boolean(fromDate || toDate);
+
+  const updateUrl = useCallback(() => {
+    const params = new URLSearchParams();
+    params.set("page", currentPage.toString());
+    params.set("limit", limit.toString());
+    if (fromDate) params.set("fromDate", fromDate);
+    if (toDate) params.set("toDate", toDate);
+
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [router, pathname, currentPage, limit, fromDate, toDate]);
+
+  const fetchLogs = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = couponCode
-        ? await getCouponUsageLogsByCode(couponCode, currentPage, limit)
-        : await getAllCouponUsageLogs(currentPage, limit);
+        ? await getCouponUsageLogsByCode(couponCode, currentPage, limit, {
+            fromDate,
+            toDate,
+          })
+        : await getAllCouponUsageLogs(currentPage, limit, { fromDate, toDate });
       setLogs(Array.isArray(response?.data) ? response.data : []);
       setTotalItems(response?.total ?? 0);
       setTotalPages(response?.totalPages ?? 1);
 
-      // Fetch stats if couponCode is provided
+      // Per-coupon totals only exist for a single coupon.
       if (couponCode) {
         try {
-          const statsData = await getCouponUsageStats(couponCode);
-          setStats(statsData);
+          setStats(await getCouponUsageStats(couponCode));
         } catch (error) {
           console.error("Error fetching stats:", error);
         }
@@ -77,220 +148,430 @@ export function CouponUsageLogList({ couponCode }: { couponCode?: string }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [couponCode, currentPage, limit, fromDate, toDate]);
 
   useEffect(() => {
     fetchLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [couponCode, currentPage]);
+  }, [fetchLogs]);
 
-  // Helper function to format values (handles both string and number)
-  const formatValue = (value: number | string): string => {
-    return typeof value === 'number' ? value.toString() : value;
+  useEffect(() => {
+    updateUrl();
+  }, [updateUrl]);
+
+  const applyDateRange = () => {
+    setFromDate(startDate ? format(startDate, "yyyy-MM-dd") : "");
+    setToDate(endDate ? format(endDate, "yyyy-MM-dd") : "");
+    setCurrentPage(1);
   };
 
-  if (isLoading) {
-    return <LoadingIndicator message="Loading coupon usage logs..." />;
-  }
+  const clearDateRange = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setFromDate("");
+    setToDate("");
+    setResetKey((key) => key + 1);
+    setCurrentPage(1);
+  };
+
+  const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
+  const lastRow = Math.min(currentPage * limit, totalItems);
+
+  const pageDiscount = logs.reduce(
+    (sum, log) => sum + Number(log.discountAmount || 0),
+    0
+  );
+  const pageOrderValue = logs.reduce(
+    (sum, log) => sum + Number(log.orderTotal || 0),
+    0
+  );
+
+  const renderActions = (log: CouponUsageLog) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Open menu</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem asChild>
+          <Link href={`/admin/marketing/coupon/usage-logs/${log.id}/view`}>
+            <Eye className="mr-2 h-4 w-4" /> View Details
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href={`/admin/order/${log.order.id}/view`}>
+            <Package className="mr-2 h-4 w-4" /> View Order
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const renderCustomer = (log: CouponUsageLog) => (
+    <div className="flex min-w-0 items-center gap-2.5">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-muted text-[11px] font-semibold uppercase text-muted-foreground">
+        {log.user?.name?.charAt(0) || <User className="h-4 w-4" />}
+      </span>
+      <div className="min-w-0">
+        <p className="truncate font-medium leading-tight">
+          {log.user?.name || "Unknown"}
+        </p>
+        <p className="truncate text-[11px] text-muted-foreground">
+          {log.user?.email || "—"}
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderStatuses = (log: CouponUsageLog) => (
+    <div className="flex flex-col items-start gap-1">
+      <PillBadge
+        tone={ORDER_STATUS_TONE[log.order?.orderStatus] ?? "neutral"}
+      >
+        {humanize(log.order?.orderStatus ?? "unknown")}
+      </PillBadge>
+      <PillBadge
+        tone={PAYMENT_STATUS_TONE[log.order?.paymentStatus] ?? "neutral"}
+      >
+        {humanize(log.order?.paymentStatus ?? "unknown")}
+      </PillBadge>
+    </div>
+  );
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-6">
-        <PageHeader
-          title={couponCode ? `Usage Logs: ${couponCode}` : "Coupon Usage Logs"}
-          description={couponCode ? "View coupon usage history and statistics" : "View all coupon usage history"}
-        />
-        <Button className="ml-2 bg-primaryColor text-primary-foreground hover:bg-primary/90" asChild>
+      <PageHeader
+        title={couponCode ? `Usage Logs: ${couponCode}` : "Coupon Usage Logs"}
+        description={
+          couponCode
+            ? "Every order that redeemed this coupon, with the discount it took."
+            : "Every coupon redemption across the store, newest first."
+        }
+      >
+        <Button variant="outline" size="sm" asChild>
           <Link href="/admin/marketing/coupon/coupon-list">
-            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <ArrowLeft className="size-3.5" />
             <span className="hidden sm:inline">Back to Coupons</span>
           </Link>
         </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isLoading}
+          onClick={fetchLogs}
+        >
+          <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+          Refresh
+        </Button>
+      </PageHeader>
+
+      {/* Toolbar */}
+      <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
+        <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:items-center md:gap-3">
+          <div className="md:w-44">
+            <DatePicker
+              key={`from-${resetKey}`}
+              value={startDate}
+              onChange={setStartDate}
+              placeholder="From date"
+              maxDate={endDate}
+              showIcon={false}
+              className="h-9"
+            />
+          </div>
+          <div className="md:w-44">
+            <DatePicker
+              key={`to-${resetKey}`}
+              value={endDate}
+              onChange={setEndDate}
+              placeholder="To date"
+              minDate={startDate}
+              showIcon={false}
+              className="h-9"
+            />
+          </div>
+          <Button
+            size="sm"
+            className="h-9 gap-1.5 font-medium"
+            onClick={applyDateRange}
+          >
+            <Filter className="size-4" /> Apply
+          </Button>
+
+          {hasDateRange && (
+            <div className="flex items-center gap-2 md:ml-auto">
+              <PillBadge className="font-medium">
+                {[fromDate, toDate].filter(Boolean).join(" → ")}
+              </PillBadge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 text-muted-foreground"
+                onClick={clearDateRange}
+              >
+                Clear
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Statistics Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Uses</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalUses}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Discount Given</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">৳{formatValue(stats.totalDiscountGiven)}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Avg. Discount</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">৳{formatValue(stats.avgDiscountAmount)}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Order Value</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">৳{formatValue(stats.totalOrderValue)}</div>
-            </CardContent>
-          </Card>
+      {isLoading ? (
+        <div className="flex justify-center py-16">
+          <LoadingIndicator message="Loading usage logs..." />
         </div>
-      )}
-
-      {/* Usage Logs Table */}
-      {logs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-8 text-center">
-          <Calendar className="h-10 w-10 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold">No usage logs found</h3>
-          <p className="text-sm text-muted-foreground mt-2">
-            This coupon hasn&apos;t been used yet.
-          </p>
+      ) : logs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+          <div className="rounded-full bg-muted p-3">
+            <CalendarDays className="size-6 text-muted-foreground" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">No usage logs found</p>
+            <p className="text-xs text-muted-foreground">
+              {hasDateRange
+                ? "No coupon was redeemed within this date range. Try widening it."
+                : couponCode
+                  ? "This coupon hasn't been used yet."
+                  : "No coupon redemptions have been recorded yet."}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={hasDateRange ? clearDateRange : fetchLogs}
+          >
+            {hasDateRange ? "Clear date range" : "Refresh"}
+          </Button>
         </div>
       ) : (
-        <div className="rounded-sm border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Coupon Code</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Order</TableHead>
-                <TableHead>Order Total</TableHead>
-                <TableHead>Discount</TableHead>
-                <TableHead>Order Status</TableHead>
-                <TableHead>Payment Status</TableHead>
-                <TableHead>Used At</TableHead>
-                <TableHead className="text-right">
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="font-medium">
-                    <Badge variant="outline" className="font-mono">
-                      {log.couponCode}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <div className="font-medium">{log.user.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {log.user.email}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/admin/order/${log.order.id}/view`}
-                      className="text-blue-600 hover:underline font-mono text-sm"
-                    >
-                      {log.order.orderNo}
-                    </Link>
-                  </TableCell>
-                  <TableCell>৳{formatValue(log.orderTotal)}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">
-                        -৳{formatValue(log.discountAmount)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {log.discountType === "percentage" ? "Percentage" : "Fixed"}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className={`capitalize ${getOrderStatusColor(log.order.orderStatus)}`}
-                    >
-                      <span className="flex items-center gap-1.5">
-                        {getStatusIcon(log.order.orderStatus)}
-                        {log.order.orderStatus}
-                      </span>
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className={`capitalize ${getPaymentStatusColor(log.order.paymentStatus)}`}
-                    >
-                      <span className="flex items-center gap-1.5">
-                        {getStatusIcon(log.order.paymentStatus)}
-                        {log.order.paymentStatus}
-                      </span>
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDateTime(log.createdAt)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link
-                            href={`/admin/marketing/coupon/usage-logs/${log.id}/view`}
-                          >
-                            <Eye className="mr-2 h-4 w-4" /> View Details
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link
-                            href={`/admin/order/${log.order.id}/view`}
-                          >
-                            <Package className="mr-2 h-4 w-4" /> View Order
-                          </Link>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+        <>
+          {/* Range totals */}
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+            {stats ? (
+              <>
+                <StatsCard
+                  icon={TicketPercent}
+                  title="Total uses"
+                  value={stats.totalUses.toLocaleString("en-US")}
+                  description={couponCode}
+                  bgColor="blue"
+                />
+                <StatsCard
+                  icon={Percent}
+                  title="Discount given"
+                  value={`৳${bare(stats.totalDiscountGiven)}`}
+                  description="Across all uses"
+                  bgColor="green"
+                />
+                <StatsCard
+                  icon={ShoppingBag}
+                  title="Order value"
+                  value={`৳${bare(stats.totalOrderValue)}`}
+                  description="Orders that used this coupon"
+                  bgColor="violet"
+                />
+                <StatsCard
+                  icon={Package}
+                  title="Avg. discount"
+                  value={`৳${bare(stats.avgDiscountAmount)}`}
+                  description="Per redemption"
+                  bgColor="amber"
+                />
+              </>
+            ) : (
+              <>
+                <StatsCard
+                  icon={TicketPercent}
+                  title="Total logs"
+                  value={totalItems.toLocaleString("en-US")}
+                  description={`Page ${currentPage} of ${Math.max(totalPages, 1)}`}
+                  bgColor="blue"
+                />
+                <StatsCard
+                  icon={Package}
+                  title="Showing"
+                  value={logs.length.toLocaleString("en-US")}
+                  description={`Of ${totalItems.toLocaleString("en-US")} logs`}
+                  bgColor="violet"
+                />
+                <StatsCard
+                  icon={Percent}
+                  title="Discount given"
+                  value={`৳${bare(pageDiscount)}`}
+                  description="On this page"
+                  bgColor="green"
+                />
+                <StatsCard
+                  icon={ShoppingBag}
+                  title="Order value"
+                  value={`৳${bare(pageOrderValue)}`}
+                  description="On this page"
+                  bgColor="amber"
+                />
+              </>
+            )}
+          </div>
 
-      <div className="flex flex-row justify-between items-center p-4 border-t">
-        <div className="text-xs text-muted-foreground">
-          Showing{" "}
-          {totalItems === 0
-            ? 0
-            : Math.min((currentPage - 1) * limit + 1, totalItems)}{" "}
-          to {Math.min(currentPage * limit, totalItems)} of {totalItems} usage
-          logs
-        </div>
-        {totalPages > 1 && (
-          <PaginationComponent
-            currentPage={currentPage}
-            totalPages={totalPages}
-            baseUrl="#"
-            onPageChange={(page) => setCurrentPage(page)}
-          />
-        )}
-      </div>
+          {/* Usage logs */}
+          <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+              <div>
+                <h3 className="text-sm font-semibold">Usage logs</h3>
+                <p className="text-xs text-muted-foreground">
+                  Amounts in ৳ · newest first · {limit} per page
+                </p>
+              </div>
+              <PillBadge className="font-medium tabular-nums">
+                {totalItems.toLocaleString("en-US")} total
+              </PillBadge>
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <Table className="report-table min-w-180">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    {!couponCode && <TableHead className="pl-4">Coupon</TableHead>}
+                    <TableHead className={couponCode ? "pl-4" : undefined}>
+                      Customer
+                    </TableHead>
+                    <TableHead>Order</TableHead>
+                    <TableHead className="text-right">Order total</TableHead>
+                    <TableHead className="text-right">Discount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Used at</TableHead>
+                    <TableHead className="pr-4 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {logs.map((log) => (
+                    <TableRow key={log.id}>
+                      {!couponCode && (
+                        <TableCell className="py-2.5 pl-4">
+                          <PillBadge tone="blue" className="font-mono">
+                            {log.couponCode}
+                          </PillBadge>
+                        </TableCell>
+                      )}
+
+                      <TableCell
+                        className={cn("py-2.5", couponCode && "pl-4")}
+                      >
+                        {renderCustomer(log)}
+                      </TableCell>
+
+                      <TableCell>
+                        <Link
+                          href={`/admin/order/${log.order.id}/view`}
+                          className="font-mono text-sm text-foreground hover:text-primaryColor hover:underline"
+                        >
+                          {log.order.orderNo}
+                        </Link>
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <span className="text-sm tabular-nums">
+                          {bare(log.orderTotal)}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <span className="text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">
+                          −{bare(log.discountAmount)}
+                        </span>
+                        <p className="text-[11px] text-muted-foreground">
+                          {log.discountType === "percentage"
+                            ? `${bare(log.discountValue)}%`
+                            : "Fixed"}
+                        </p>
+                      </TableCell>
+
+                      <TableCell>{renderStatuses(log)}</TableCell>
+
+                      <TableCell className="text-muted-foreground">
+                        {formatDateTime(log.createdAt)}
+                      </TableCell>
+
+                      <TableCell className="pr-4 text-right">
+                        {renderActions(log)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="divide-y md:hidden">
+              {logs.map((log) => (
+                <article key={log.id} className="space-y-3 p-3.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <Link
+                        href={`/admin/order/${log.order.id}/view`}
+                        className="font-mono text-sm font-semibold hover:text-primaryColor hover:underline"
+                      >
+                        {log.order.orderNo}
+                      </Link>
+                      <p className="text-[11px] text-muted-foreground">
+                        {formatDateTime(log.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <PillBadge tone="blue" className="font-mono">
+                        {log.couponCode}
+                      </PillBadge>
+                      {renderActions(log)}
+                    </div>
+                  </div>
+
+                  {renderCustomer(log)}
+
+                  <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-2.5">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Order total
+                      </p>
+                      <p className="text-sm font-semibold tabular-nums">
+                        ৳{bare(log.orderTotal)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Discount
+                      </p>
+                      <p className="text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">
+                        −৳{bare(log.discountAmount)}
+                      </p>
+                    </div>
+                    <div className="col-span-2">{renderStatuses(log)}</div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            {/* Footer: what the list covers */}
+            <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
+              <p className="text-xs text-muted-foreground">
+                Showing {firstRow.toLocaleString("en-US")}–
+                {lastRow.toLocaleString("en-US")} of{" "}
+                {totalItems.toLocaleString("en-US")} usage log
+                {totalItems === 1 ? "" : "s"}
+                {hasDateRange && ` · ${[fromDate, toDate].filter(Boolean).join(" → ")}`}
+              </p>
+              {totalPages > 1 && (
+                <PaginationComponent
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  baseUrl="#"
+                  onPageChange={setCurrentPage}
+                />
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

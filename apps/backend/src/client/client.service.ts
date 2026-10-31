@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { AttachmentService } from 'src/attachment/attachment.service';
 import { Attachment } from 'src/attachment/entities/attachment.entity';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { Client } from './entities/client.entity';
@@ -75,24 +75,31 @@ export class ClientService {
   /**
    * Returns paginated `{ data, total }` when page/limit are provided,
    * otherwise the full list (public homepage + /clients page rely on it).
+   * `search` filters by name and is only applied to the paginated branch,
+   * which is what the admin list consumes.
    */
   async findAll(options?: {
     page?: number;
     limit?: number;
+    search?: string;
   }): Promise<any> {
     if (options?.page || options?.limit) {
       const page = options.page ?? 1;
       const limit = options.limit ?? 10;
+      const where = options.search
+        ? { name: ILike(`%${options.search}%`) }
+        : undefined;
 
       const [data, total] = await Promise.all([
         this.clientRepository.find({
+          where,
           order: {
             order: 'ASC',
           },
           skip: (page - 1) * limit,
           take: limit,
         }),
-        this.clientRepository.count(),
+        this.clientRepository.count({ where }),
       ]);
 
       return { data, total };

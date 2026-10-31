@@ -2,11 +2,11 @@
 
 import type React from "react";
 
-import { StatusCard } from "@/components/admin/dashboard/status-card";
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { PillBadge } from "@/components/common/pill-badge";
 import { PaginationComponent } from "@/components/common/pagination";
 import { TableSearch } from "@/components/common/table-search";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,20 +22,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
 import type { ApiResponseusers, User } from "@/utils/types";
 import {
   BadgeCheck,
   BadgeX,
-  CheckCircle,
+  CheckCircle2,
   MapPin,
   MoreHorizontal,
   Pencil,
+  RefreshCw,
   UserCircle,
   User as UserIcon,
   Users,
-  XCircle
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -50,6 +50,12 @@ interface CustomerListProps {
   initialLimit?: number;
   initialSearchParams?: { [key: string]: string | string[] | undefined };
 }
+
+/** Area of the customer's default (or first) saved address. */
+const areaOf = (customer: User) => {
+  const list = customer.addresses ?? [];
+  return (list.find((a) => a.isDefault) ?? list[0])?.area || null;
+};
 
 export function CustomerList({
   initialPage = 1,
@@ -151,258 +157,374 @@ export function CustomerList({
     setCurrentPage(1);
   };
 
-  const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-      <UserCircle className="h-10 w-10 text-muted-foreground mb-4" />
-      <h3 className="text-lg font-semibold">No customers found</h3>
-      <p className="text-sm text-muted-foreground mt-2">
-        {searchQuery
-          ? "No customers match your search criteria. Try a different search term."
-          : "No customers have been registered yet."}
-      </p>
+  const verifiedCount = customers.filter((c) => c.isVerified).length;
+  const unverifiedCount = customers.length - verifiedCount;
+  const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
+  const lastRow = Math.min(currentPage * limit, totalItems);
 
-      {searchQuery && (
-        <Button variant="outline" className="mt-4" onClick={clearSearch}>
-          Clear Search
+  const renderActions = (customer: User) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Open menu</span>
         </Button>
-      )}
-    </div>
-  );
-
-  const renderSearchFilter = () => {
-    if (!searchQuery) return null;
-
-    return (
-      <div className="flex flex-wrap gap-2 mt-4">
-        <Badge variant="outline" className="flex items-center gap-1 px-3 py-1">
-          Search: {searchQuery}
-          <button
-            onClick={clearSearch}
-            className="ml-1 hover:opacity-70"
-            aria-label="Clear search"
-          >
-            <XCircle className="h-3 w-3" />
-          </button>
-        </Badge>
-      </div>
-    );
-  };
-
-  const renderTableView = () => (
-    <div className="overflow-x-auto">
-      <Table className="min-w-205 [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Mobile</TableHead>
-            <TableHead>Area</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Joined</TableHead>
-            <TableHead>Last Login</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {customers.map((customer) => (
-            <TableRow key={customer.id} className="hover:bg-muted/50">
-              <TableCell>
-                <Link
-                  href={`/admin/customer/${customer.id}/view`}
-                  className="flex items-center gap-3 font-medium leading-tight hover:underline"
-                >
-                  {customer.profilePhoto?.url ? (
-                    <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border bg-muted">
-                      <Image
-                        src={customer.profilePhoto.url}
-                        alt={customer.name || "Customer"}
-                        fill
-                        className="object-contain"
-                      />
-                    </span>
-                  ) : (
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-muted text-sm font-semibold text-muted-foreground uppercase">
-                      {customer.name?.charAt(0) || <UserIcon className="h-5 w-5" />}
-                    </span>
-                  )}
-                  <span className="truncate">{customer.name}</span>
-                </Link>
-              </TableCell>
-              <TableCell>
-                <span className="truncate max-w-55 block text-muted-foreground">
-                  {customer.email}
-                </span>
-              </TableCell>
-              <TableCell>
-                {customer.mobileNumber || "—"}
-              </TableCell>
-              <TableCell>
-                {(() => {
-                  const list = customer.addresses ?? [];
-                  const area =
-                    (list.find((a) => a.isDefault) ?? list[0])?.area || null;
-                  return area ? (
-                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <MapPin className="h-3 w-3" />
-                      {area}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">—</span>
-                  );
-                })()}
-              </TableCell>
-              <TableCell>
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${customer.isVerified
-                    ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
-                    : "bg-gray-100 text-gray-600 dark:bg-gray-900/40 dark:text-gray-400"
-                    }`}
-                >
-                  {customer.isVerified ? (
-                    <BadgeCheck className="h-3 w-3" />
-                  ) : (
-                    <BadgeX className="h-3 w-3" />
-                  )}
-                  {customer.isVerified ? "Verified" : "Unverified"}
-                </span>
-              </TableCell>
-              <TableCell>
-                {formatDateTime(customer.createdAt)}
-              </TableCell>
-              <TableCell>
-                {customer.lastLoginAt
-                  ? formatDateTime(customer.lastLoginAt)
-                  : "Never"}
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/customer/${customer.id}/view`}>
-                        <UserCircle className="mr-2 h-4 w-4" />
-                        View
-                      </Link>
-                    </DropdownMenuItem>
-                    {can(MENU_URL, "canEdit") && (
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/customer/${customer.id}/edit?page=${currentPage}`}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem asChild>
+          <Link href={`/admin/customer/${customer.id}/view`}>
+            <UserCircle className="mr-2 h-4 w-4" />
+            View
+          </Link>
+        </DropdownMenuItem>
+        {can(MENU_URL, "canEdit") && (
+          <DropdownMenuItem asChild>
+            <Link
+              href={`/admin/customer/${customer.id}/edit?page=${currentPage}`}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Link>
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 
   return (
     <div className="w-full">
       <PageHeader
         title="Customers"
-        description="View and manage registered customers"
-      />
+        description="Registered customer accounts with their contact details and activity."
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isLoading}
+          onClick={fetchCustomers}
+        >
+          <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+          Refresh
+        </Button>
+      </PageHeader>
 
-      <div className="space-y-4">
-        {/* Search Bar */}
-        <div className="flex flex-row justify-between gap-2">
+      {/* Toolbar */}
+      <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
+        <div className="flex flex-col gap-2.5 md:flex-row md:flex-nowrap md:items-center md:gap-3">
           <TableSearch
-            wrapperClassName="w-full sm:max-w-md"
+            wrapperClassName="w-full md:max-w-xs"
+            className="h-9"
             placeholder="Search by name, email, or phone..."
             value={searchQuery}
             onChange={handleSearchChange}
           />
+          {searchQuery && (
+            <div className="flex items-center gap-2 md:ml-auto">
+              <PillBadge className="font-medium">
+                Search: {searchQuery}
+              </PillBadge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 text-muted-foreground"
+                onClick={clearSearch}
+              >
+                Clear
+              </Button>
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* Active Search Filter */}
-        {renderSearchFilter()}
-
-        {/* Content Area */}
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <LoadingIndicator message="Loading customers..." />
+      {isLoading ? (
+        <div className="flex justify-center py-16">
+          <LoadingIndicator message="Loading customers..." />
+        </div>
+      ) : customers.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+          <div className="rounded-full bg-muted p-3">
+            <UserCircle className="size-6 text-muted-foreground" />
           </div>
-        ) : customers.length === 0 ? (
-          renderEmptyState()
-        ) : (
-          <>
-            {/* Summary Cards */}
-            <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatusCard
-                title="Total Customers"
-                value={totalItems}
-                icon={Users}
-                href="#"
-                color="text-blue-600 dark:text-blue-400"
-                gradient="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20"
-              />
-              <StatusCard
-                title="Verified"
-                value={customers.filter((c) => c.isVerified).length}
-                icon={CheckCircle}
-                href="#"
-                color="text-green-600 dark:text-green-400"
-                gradient="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20"
-              />
-              <StatusCard
-                title="Unverified"
-                value={customers.filter((c) => !c.isVerified).length}
-                icon={XCircle}
-                href="#"
-                color="text-orange-600 dark:text-orange-400"
-                gradient="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20"
-              />
-              <StatusCard
-                title="Showing"
-                value={customers.length}
-                icon={UserCircle}
-                href="#"
-                color="text-purple-600 dark:text-purple-400"
-                gradient="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20"
-              />
-            </div>
-
-            {/* Customer Count */}
-            <div className="text-sm text-muted-foreground">
-              Found {totalItems.toLocaleString()} customer
-              {totalItems !== 1 ? "s" : ""}
-              {searchQuery && ` matching "${searchQuery}"`}
-            </div>
-
-            {/* Table */}
-            {renderTableView()}
-          </>
-        )}
-
-        {/* Pagination */}
-        {!isLoading && customers.length > 0 && totalPages > 1 && (
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
-            <div className="text-sm text-muted-foreground">
-              Showing {((currentPage - 1) * limit + 1).toLocaleString()} -{" "}
-              {Math.min(currentPage * limit, totalItems).toLocaleString()} of{" "}
-              {totalItems.toLocaleString()} customers
-            </div>
-
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={handlePageChange}
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">No customers found</p>
+            <p className="text-xs text-muted-foreground">
+              {searchQuery
+                ? "No customers match your search. Try a different name, email or phone."
+                : "No customers have been registered yet."}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={searchQuery ? clearSearch : fetchCustomers}
+          >
+            {searchQuery ? "Clear search" : "Refresh"}
+          </Button>
+        </div>
+      ) : (
+        <>
+          {/* Range totals */}
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+            <StatsCard
+              icon={Users}
+              title="Total customers"
+              value={totalItems.toLocaleString("en-US")}
+              description={`Page ${currentPage} of ${Math.max(totalPages, 1)}`}
+              bgColor="blue"
+            />
+            <StatsCard
+              icon={CheckCircle2}
+              title="Verified"
+              value={verifiedCount.toLocaleString("en-US")}
+              description="On this page"
+              bgColor="green"
+            />
+            <StatsCard
+              icon={BadgeX}
+              title="Unverified"
+              value={unverifiedCount.toLocaleString("en-US")}
+              description="On this page"
+              bgColor="orange"
+            />
+            <StatsCard
+              icon={UserCircle}
+              title="Showing"
+              value={customers.length.toLocaleString("en-US")}
+              description={`Of ${totalItems.toLocaleString("en-US")} customers`}
+              bgColor="purple"
             />
           </div>
-        )}
-      </div>
+
+          {/* Customers */}
+          <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+              <div>
+                <h3 className="text-sm font-semibold">Customers</h3>
+                <p className="text-xs text-muted-foreground">
+                  Newest first · {limit} per page
+                </p>
+              </div>
+              <PillBadge className="font-medium tabular-nums">
+                {totalItems.toLocaleString("en-US")} total
+              </PillBadge>
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <Table className="report-table">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="pl-4">Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Mobile</TableHead>
+                    <TableHead>Area</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead>Last Login</TableHead>
+                    <TableHead className="pr-4 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {customers.map((customer) => {
+                    const area = areaOf(customer);
+                    return (
+                      <TableRow key={customer.id}>
+                        <TableCell className="py-2.5 pl-4">
+                          <Link
+                            href={`/admin/customer/${customer.id}/view`}
+                            className="flex items-center gap-3 font-medium leading-tight hover:text-primaryColor hover:underline"
+                          >
+                            {customer.profilePhoto?.url ? (
+                              <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border bg-muted">
+                                <Image
+                                  src={customer.profilePhoto.url}
+                                  alt={customer.name || "Customer"}
+                                  fill
+                                  className="object-contain"
+                                />
+                              </span>
+                            ) : (
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-muted text-sm font-semibold uppercase text-muted-foreground">
+                                {customer.name?.charAt(0) || (
+                                  <UserIcon className="h-5 w-5" />
+                                )}
+                              </span>
+                            )}
+                            <span className="truncate">{customer.name}</span>
+                          </Link>
+                        </TableCell>
+
+                        <TableCell>
+                          <span className="block max-w-55 truncate text-muted-foreground">
+                            {customer.email}
+                          </span>
+                        </TableCell>
+
+                        <TableCell>
+                          {customer.mobileNumber ? (
+                            <a
+                              href={`tel:${customer.mobileNumber}`}
+                              className="text-blue-600 hover:underline dark:text-blue-400"
+                            >
+                              {customer.mobileNumber}
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          {area ? (
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              <MapPin className="h-3 w-3" />
+                              {area}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          <PillBadge
+                            tone={customer.isVerified ? "emerald" : "neutral"}
+                            className="gap-1"
+                          >
+                            {customer.isVerified ? (
+                              <BadgeCheck className="h-3 w-3" />
+                            ) : (
+                              <BadgeX className="h-3 w-3" />
+                            )}
+                            {customer.isVerified ? "Verified" : "Unverified"}
+                          </PillBadge>
+                        </TableCell>
+
+                        <TableCell className="text-muted-foreground">
+                          {formatDateTime(customer.createdAt)}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {customer.lastLoginAt
+                            ? formatDateTime(customer.lastLoginAt)
+                            : "Never"}
+                        </TableCell>
+
+                        <TableCell className="pr-4 text-right">
+                          {renderActions(customer)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="divide-y md:hidden">
+              {customers.map((customer) => {
+                const area = areaOf(customer);
+                return (
+                  <article key={customer.id} className="space-y-3 p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <Link
+                        href={`/admin/customer/${customer.id}/view`}
+                        className="flex min-w-0 items-center gap-2.5 hover:text-primaryColor"
+                      >
+                        {customer.profilePhoto?.url ? (
+                          <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border bg-muted">
+                            <Image
+                              src={customer.profilePhoto.url}
+                              alt={customer.name || "Customer"}
+                              fill
+                              className="object-contain"
+                            />
+                          </span>
+                        ) : (
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-muted text-sm font-semibold uppercase text-muted-foreground">
+                            {customer.name?.charAt(0) || (
+                              <UserIcon className="h-5 w-5" />
+                            )}
+                          </span>
+                        )}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">
+                            {customer.name}
+                          </p>
+                          <p className="truncate text-[11px] text-muted-foreground">
+                            {customer.email}
+                          </p>
+                        </div>
+                      </Link>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <PillBadge
+                          tone={customer.isVerified ? "emerald" : "neutral"}
+                        >
+                          {customer.isVerified ? "Verified" : "Unverified"}
+                        </PillBadge>
+                        {renderActions(customer)}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-2.5">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Mobile
+                        </p>
+                        <p className="text-sm font-semibold tabular-nums">
+                          {customer.mobileNumber || "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Area
+                        </p>
+                        <p className="truncate text-sm font-semibold">
+                          {area || "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Joined
+                        </p>
+                        <p className="text-sm">
+                          {formatDateTime(customer.createdAt)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Last Login
+                        </p>
+                        <p className="text-sm">
+                          {customer.lastLoginAt
+                            ? formatDateTime(customer.lastLoginAt)
+                            : "Never"}
+                        </p>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {/* Footer: what the list covers */}
+            <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
+              <p className="text-xs text-muted-foreground">
+                Showing {firstRow.toLocaleString("en-US")}–
+                {lastRow.toLocaleString("en-US")} of{" "}
+                {totalItems.toLocaleString("en-US")} customer
+                {totalItems === 1 ? "" : "s"}
+                {searchQuery && ` matching “${searchQuery}”`}
+              </p>
+              {totalPages > 1 && (
+                <PaginationComponent
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  baseUrl="#"
+                  onPageChange={handlePageChange}
+                />
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

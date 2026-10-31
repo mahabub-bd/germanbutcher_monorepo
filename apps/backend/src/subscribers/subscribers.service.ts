@@ -1,7 +1,7 @@
 // src/subscribers/subscribers.service.ts
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { Subscriber } from './entities/subscriber.entity';
 
 @Injectable()
@@ -20,19 +20,32 @@ export class SubscribersService {
     return this.subscribersRepository.save(subscriber);
   }
 
-  async getAllSubscribers(page: number, limit: number): Promise<any> {
+  /**
+   * Paginated subscribers, optionally filtered by email. `search` is what the
+   * admin list's search box sends.
+   */
+  async getAllSubscribers(
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+  ): Promise<any> {
+    const currentPage = Number(page) || 1;
+    const pageSize = Number(limit) || 10;
+    const where = search ? { email: ILike(`%${search}%`) } : undefined;
+
     const [data, total] = await this.subscribersRepository.findAndCount({
-      skip: (page - 1) * limit,
-      take: limit,
+      where,
+      skip: (currentPage - 1) * pageSize,
+      take: pageSize,
     });
 
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / pageSize);
 
     return {
       data,
       total,
-      page,
-      limit,
+      page: currentPage,
+      limit: pageSize,
       totalPages,
     };
   }

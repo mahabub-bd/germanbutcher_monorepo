@@ -13,11 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -27,6 +22,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   Table,
   TableBody,
   TableCell,
@@ -35,10 +40,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import StockMovementHistory from "@/components/admin/products/stock-movement-history";
 import { PaginationComponent } from "@/components/common/pagination";
+import { PillBadge } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
-import { formatCurrencyEnglish } from "@/lib/utils";
+import { cn, formatCurrencyEnglish } from "@/lib/utils";
 import {
   fetchData,
   fetchDataPagination,
@@ -48,15 +53,17 @@ import {
 import type { Brand, Category, Product, Supplier } from "@/utils/types";
 import {
   ArrowLeftRight,
+  Banknote,
   Boxes,
-  Filter,
   Loader2,
   Package,
   PackageMinus,
   PackagePlus,
+  RefreshCw,
   SlidersHorizontal,
   XCircle,
 } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -68,6 +75,22 @@ interface StockReportProps {
   initialPage: number;
   initialLimit: number;
   initialSearchParams?: { [key: string]: string | string[] | undefined };
+}
+
+/** Label + value block reused by the mobile cards. */
+function DetailField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[13px] font-medium text-foreground/60">{label}</p>
+      <div className="mt-0.5">{children}</div>
+    </div>
+  );
 }
 
 export function StockReport({
@@ -110,10 +133,8 @@ export function StockReport({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
   const [totalPages, setTotalPages] = useState(1);
-  // Product whose stock movements are shown in the dialog
-  const [movementsProduct, setMovementsProduct] = useState<Product | null>(
-    null
-  );
+  // Below md the filters live in a bottom sheet instead of the toolbar strip.
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   // Stock adjustment dialog state
   const [adjustProduct, setAdjustProduct] = useState<Product | null>(null);
   const [adjustMode, setAdjustMode] = useState<"add" | "remove">("add");
@@ -312,420 +333,581 @@ export function StockReport({
   const hasActiveFilters = () =>
     Boolean(searchQuery || categoryFilter || brandFilter || supplierFilter);
 
-  const renderEmptyState = () => (
-    <div className="p-4 pb-6">
-      <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
-        <Package className="h-10 w-10 text-muted-foreground/50 mb-4" />
-        <h3 className="text-lg font-semibold">No products found</h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          {hasActiveFilters()
-            ? "No products match your search criteria. Try different filters."
-            : "No products available in stock."}
-        </p>
-        {hasActiveFilters() && (
-          <Button variant="outline" className="mt-4" onClick={clearFilters}>
-            Clear Filters
-          </Button>
-        )}
-      </div>
-    </div>
+  // Count surfaced on the mobile Filters button so a closed sheet still shows
+  // that the inventory is narrowed.
+  const activeFilterCount = [
+    Boolean(searchQuery),
+    Boolean(categoryFilter),
+    Boolean(brandFilter),
+    Boolean(supplierFilter),
+  ].filter(Boolean).length;
+
+  const categoryLabel =
+    categories.find((c) => c.id.toString() === categoryFilter)?.name ||
+    categoryFilter;
+  const brandLabel =
+    brands.find((b) => b.id.toString() === brandFilter)?.name || brandFilter;
+  const supplierLabel =
+    suppliers.find((s) => s.id.toString() === supplierFilter)?.name ||
+    supplierFilter;
+
+  const activeFilterSummary = [
+    debouncedSearch && `Search: ${debouncedSearch}`,
+    categoryFilter && categoryFilter !== "all" && `Category: ${categoryLabel}`,
+    brandFilter && brandFilter !== "all" && `Brand: ${brandLabel}`,
+    supplierFilter &&
+    supplierFilter !== "all" &&
+    `Supplier: ${supplierLabel}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const stockValue = products.reduce(
+    (sum, product) =>
+      sum +
+      (product.totalValueBySalePrice || product.stock * product.sellingPrice),
+    0
+  );
+  const inStockCount = products.filter((p) => p.stock > 0).length;
+  const outOfStockCount = products.filter((p) => p.stock === 0).length;
+  const firstRow = products.length === 0 ? 0 : (currentPage - 1) * limit + 1;
+  const lastRow = Math.min(currentPage * limit, totalItems);
+
+  const renderFilterSelect = (
+    value: string,
+    placeholder: string,
+    allLabel: string,
+    options: { id: number; name: string }[],
+    onChange: (value: string) => void,
+    triggerClass: string
+  ) => (
+    <Select
+      value={value || "all"}
+      onValueChange={(next) => {
+        onChange(next === "all" ? "" : next);
+        setCurrentPage(1);
+      }}
+    >
+      <SelectTrigger className={triggerClass}>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">{allLabel}</SelectItem>
+        {options.map((option) => (
+          <SelectItem key={option.id} value={option.id.toString()}>
+            {option.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 
-  const renderActiveFilters = () => {
-    if (!hasActiveFilters()) return null;
+  // One source of truth for the filter controls: the toolbar renders them
+  // inline at their fixed widths, the mobile sheet renders the same nodes full
+  // width under a visible label.
+  const renderFilterControls = (mode: "bar" | "sheet") => {
+    const triggerClass =
+      mode === "bar"
+        ? "h-9 w-full"
+        : "h-11 w-full px-3 text-sm font-medium";
 
-    return (
-      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-        {searchQuery && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Search: {searchQuery}
-            <button onClick={() => setSearchQuery("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {categoryFilter && categoryFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Category:{" "}
-            {categories.find((c) => c.id.toString() === categoryFilter)?.name ||
-              categoryFilter}
-            <button onClick={() => setCategoryFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {brandFilter && brandFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Brand:{" "}
-            {brands.find((b) => b.id.toString() === brandFilter)?.name ||
-              brandFilter}
-            <button onClick={() => setBrandFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {supplierFilter && supplierFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Supplier:{" "}
-            {suppliers.find((s) => s.id.toString() === supplierFilter)?.name ||
-              supplierFilter}
-            <button onClick={() => setSupplierFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="h-7 text-xs"
-        >
-          Clear all
-        </Button>
-      </div>
-    );
+    return [
+      {
+        key: "category",
+        label: "Category",
+        barClass: "md:w-36 md:shrink-0",
+        node: renderFilterSelect(
+          categoryFilter,
+          "Category",
+          "All categories",
+          categories,
+          setCategoryFilter,
+          triggerClass
+        ),
+      },
+      {
+        key: "brand",
+        label: "Brand",
+        barClass: "md:w-36 md:shrink-0",
+        node: renderFilterSelect(
+          brandFilter,
+          "Brand",
+          "All brands",
+          brands,
+          setBrandFilter,
+          triggerClass
+        ),
+      },
+      {
+        key: "supplier",
+        label: "Supplier",
+        barClass: "md:w-36 md:shrink-0",
+        node: renderFilterSelect(
+          supplierFilter,
+          "Supplier",
+          "All suppliers",
+          suppliers,
+          setSupplierFilter,
+          triggerClass
+        ),
+      },
+    ];
   };
 
-  const renderFiltersMenu = () => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 px-3 shrink-0">
-          <Filter className="h-4 w-4" />
-          <span>Filters</span>
-          {(categoryFilter || brandFilter || supplierFilter) && (
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-100">
-        <div className="grid grid-cols-2 gap-3 p-3">
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Category</h4>
-            <Select
-              value={categoryFilter}
-              onValueChange={(value) => {
-                setCategoryFilter(value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem
-                    key={category.id}
-                    value={category.id.toString()}
-                  >
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Brand</h4>
-            <Select
-              value={brandFilter}
-              onValueChange={(value) => {
-                setBrandFilter(value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="All Brands" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Brands</SelectItem>
-                {brands.map((brand) => (
-                  <SelectItem key={brand.id} value={brand.id.toString()}>
-                    {brand.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Supplier</h4>
-            <Select
-              value={supplierFilter}
-              onValueChange={(value) => {
-                setSupplierFilter(value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="All Suppliers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Suppliers</SelectItem>
-                {suppliers.map((supplier) => (
-                  <SelectItem
-                    key={supplier.id}
-                    value={supplier.id.toString()}
-                  >
-                    {supplier.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {(categoryFilter || brandFilter || supplierFilter) && (
-            <div className="col-span-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="w-full mt-2"
-              >
-                Reset Filters
-              </Button>
-            </div>
-          )}
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-
   const renderTableView = () => (
-    <div className="overflow-x-auto">
-      <Table className="min-w-205">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Product</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Brand</TableHead>
-            <TableHead>Supplier</TableHead>
-            <TableHead className="text-center">
-              Stock
-            </TableHead>
-            <TableHead className="text-right">Price</TableHead>
-            <TableHead className="text-right">
-              Stock Value
-            </TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {products.map((product) => (
-            <TableRow key={product.id} className="hover:bg-muted/50">
-              <TableCell>
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="flex aspect-3/2 h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
-                    <ProductImage product={product} width={64} height={48} />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="font-medium leading-tight">
-                      {product.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                      {product?.productSku || "—"}
-                    </p>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell className="whitespace-nowrap">
-                {product.category?.name || "—"}
-              </TableCell>
-              <TableCell className="whitespace-nowrap">
-                {product.brand?.name || "—"}
-              </TableCell>
-              <TableCell className="whitespace-nowrap">
-                {product.supplier?.name || "—"}
-              </TableCell>
-              <TableCell className="text-center">
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${product.stock === 0
-                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                    : "bg-muted"
-                    }`}
-                >
-                  <Boxes className="h-3 w-3" />
-                  {product.stock}
-                </span>
-              </TableCell>
-              <TableCell className="text-right">
-                <span className="font-medium">
-                  {formatCurrencyEnglish(product.sellingPrice)}
-                </span>
-                <p className="text-xs text-muted-foreground">
-                  Cost: {formatCurrencyEnglish(product.purchasePrice)}
-                </p>
-              </TableCell>
-              <TableCell className="text-right">
-                <span className="font-medium">
-                  {formatCurrencyEnglish(
-                    product.totalValueBySalePrice ||
-                    product.stock * product.sellingPrice
-                  )}
-                </span>
-                <p className="text-xs text-muted-foreground">
-                  Cost:{" "}
-                  {formatCurrencyEnglish(
-                    product.totalValueByPurchasePrice ||
-                    product.stock * product.purchasePrice
-                  )}
-                </p>
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="inline-flex items-center justify-end gap-1.5">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => openAdjustDialog(product)}
-                  >
-                    <SlidersHorizontal className="h-3.5 w-3.5" />
-                    <span className="hidden 2xl:inline">Adjust</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => setMovementsProduct(product)}
-                  >
-                    <ArrowLeftRight className="h-3.5 w-3.5" />
-                    <span className="hidden 2xl:inline">Stock Movements</span>
-                  </Button>
-                </div>
-              </TableCell>
+    <>
+      {/* Desktop table — eight columns need lg; below that the cards
+          carry the same fields. Brand and supplier join at xl. */}
+      <div className="hidden lg:block">
+        <Table className="report-table table-fixed">
+          <TableHeader className="[&_th]:font-semibold">
+            <TableRow className="hover:bg-transparent">
+              {/* Product takes the widest share and grows again on 2xl;
+                  category and supplier split what is left. */}
+              <TableHead className="w-80 pl-4 2xl:w-96">Product</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead className="hidden xl:table-cell">Supplier</TableHead>
+              <TableHead className="w-16 text-right">Stock</TableHead>
+              <TableHead className="w-24 text-right">Price</TableHead>
+              <TableHead className="w-28 text-right">Stock value</TableHead>
+              <TableHead className="w-22 pr-4 text-right">
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {products.map((product) => (
+              <TableRow key={product.id}>
+                <TableCell className="py-2.5 pl-4">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                      <ProductImage product={product} width={40} height={40} />
+                    </span>
+                    <div className="min-w-0">
+                      <p
+                        className="truncate text-sm font-medium leading-tight"
+                        title={product.name}
+                      >
+                        {product.name}
+                      </p>
+                      <p className="mt-0.5 truncate font-mono text-[13px] text-foreground/70">
+                        {product?.productSku || "—"}
+                      </p>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <p
+                    className="truncate text-sm"
+                    title={product.category?.name || undefined}
+                  >
+                    {product.category?.name || "—"}
+                  </p>
+                </TableCell>
+
+                <TableCell className="hidden xl:table-cell">
+                  <p
+                    className="truncate text-sm"
+                    title={product.supplier?.name || undefined}
+                  >
+                    {product.supplier?.name || "—"}
+                  </p>
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <p
+                    className={cn(
+                      "truncate text-sm font-semibold tabular-nums",
+                      product.stock === 0 && "text-red-600 dark:text-red-400"
+                    )}
+                  >
+                    {product.stock}
+                  </p>
+                  <p className="mt-0.5 truncate text-[13px] text-foreground/70">
+                    {product.unit?.name || "units"}
+                  </p>
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <p className="truncate text-sm font-semibold tabular-nums">
+                    {formatCurrencyEnglish(product.sellingPrice)}
+                  </p>
+                  <p className="mt-0.5 truncate text-[13px] tabular-nums text-foreground/70">
+                    Cost {formatCurrencyEnglish(product.purchasePrice)}
+                  </p>
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <p className="truncate text-sm font-semibold tabular-nums">
+                    {formatCurrencyEnglish(
+                      product.totalValueBySalePrice ||
+                      product.stock * product.sellingPrice
+                    )}
+                  </p>
+                  <p className="mt-0.5 truncate text-[13px] tabular-nums text-foreground/70">
+                    Cost{" "}
+                    {formatCurrencyEnglish(
+                      product.totalValueByPurchasePrice ||
+                      product.stock * product.purchasePrice
+                    )}
+                  </p>
+                </TableCell>
+
+                <TableCell className="pr-4 text-right">
+                  <div className="inline-flex items-center justify-end gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="size-8"
+                      title={`Adjust stock for ${product.name}`}
+                      onClick={() => openAdjustDialog(product)}
+                    >
+                      <SlidersHorizontal className="size-3.5" />
+                      <span className="sr-only">Adjust stock</span>
+                    </Button>
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="icon"
+                      className="size-8"
+                      title={`Stock movements for ${product.name}`}
+                    >
+                      <Link href={`/admin/products/${product.id}/stock-movements`}>
+                        <ArrowLeftRight className="size-3.5" />
+                        <span className="sr-only">Stock movements</span>
+                      </Link>
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="divide-y lg:hidden">
+        {products.map((product) => (
+          <article key={product.id} className="space-y-3 p-3.5">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                  <ProductImage product={product} width={40} height={40} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">
+                    {product.name}
+                  </p>
+                  <p className="mt-0.5 truncate text-[13px] text-foreground/70">
+                    {product?.productSku || "—"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-8"
+                  title={`Adjust stock for ${product.name}`}
+                  onClick={() => openAdjustDialog(product)}
+                >
+                  <SlidersHorizontal className="size-3.5" />
+                  <span className="sr-only">Adjust stock</span>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="icon"
+                  className="size-8"
+                  title={`Stock movements for ${product.name}`}
+                >
+                  <Link href={`/admin/products/${product.id}/stock-movements`}>
+                    <ArrowLeftRight className="size-3.5" />
+                    <span className="sr-only">Stock movements</span>
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-lg bg-muted/40 p-2.5">
+              <DetailField label="Category">
+                <p className="truncate text-sm">
+                  {product.category?.name || "—"}
+                </p>
+              </DetailField>
+              <DetailField label="Supplier">
+                <p className="truncate text-sm">
+                  {product.supplier?.name || "—"}
+                </p>
+              </DetailField>
+              <DetailField label="Stock">
+                <p
+                  className={cn(
+                    "text-sm font-semibold tabular-nums",
+                    product.stock === 0 && "text-red-600 dark:text-red-400"
+                  )}
+                >
+                  {product.stock}
+                  <span className="ml-1 text-[13px] font-normal text-foreground/70">
+                    {product.unit?.name || "units"}
+                  </span>
+                </p>
+              </DetailField>
+              <DetailField label="Price">
+                <p className="text-sm font-semibold tabular-nums">
+                  {formatCurrencyEnglish(product.sellingPrice)}
+                </p>
+                <p className="text-[13px] tabular-nums text-foreground/70">
+                  Cost {formatCurrencyEnglish(product.purchasePrice)}
+                </p>
+              </DetailField>
+              <div className="col-span-2">
+                <DetailField label="Stock value">
+                  <p className="text-sm font-semibold tabular-nums">
+                    {formatCurrencyEnglish(
+                      product.totalValueBySalePrice ||
+                      product.stock * product.sellingPrice
+                    )}
+                  </p>
+                  <p className="text-[13px] tabular-nums text-foreground/70">
+                    Cost{" "}
+                    {formatCurrencyEnglish(
+                      product.totalValueByPurchasePrice ||
+                      product.stock * product.purchasePrice
+                    )}
+                  </p>
+                </DetailField>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
   );
 
   return (
     <>
-      <div className="w-full space-y-4">
+      <div className="w-full">
         <PageHeader
           title="Inventory"
-          description="Comprehensive view of inventory and stock values"
-        />
+          description="Stock on hand and what it is worth, product by product."
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+            onClick={fetchProducts}
+          >
+            <RefreshCw
+              className={isLoading ? "size-3.5 animate-spin" : "size-3.5"}
+            />
+            Refresh
+          </Button>
+        </PageHeader>
 
-        {/* Summary tiles */}
-        <div className="grid grid-cols-3 md:grid-cols-3 gap-3">
-          <StatsCard
-            icon={Package}
-            title="Total Products"
-            value={totalItems}
-            bgColor="blue"
-          />
-          <StatsCard
-            icon={Boxes}
-            title="In Stock"
-            value={products.filter((p) => p.stock > 0).length}
-            bgColor="green"
-          />
-          <StatsCard
-            icon={XCircle}
-            title="Out of Stock"
-            value={products.filter((p) => p.stock === 0).length}
-            bgColor="orange"
-          />
-        </div>
-
-        {/* List card: toolbar + table */}
-        <div className="rounded-sm border bg-card">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                <Package className="h-4.5 w-4.5" />
-              </span>
-              <div>
-                <h3 className="font-semibold leading-tight">
-                  Inventory Overview
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {totalItems} product{totalItems === 1 ? "" : "s"}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
+        {/* Toolbar */}
+        <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
+          <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:items-center md:gap-3">
+            {/* Search and the Filters button share one line on phones;
+                md:contents hands both back to the toolbar row from md up. */}
+            <div className="flex items-center gap-2 md:contents">
               <TableSearch
-                wrapperClassName="w-full sm:w-64"
-                placeholder="Search products..."
+                wrapperClassName="w-full md:max-w-xs"
+                className="h-9"
+                placeholder="Search by name or SKU..."
                 value={searchQuery}
                 onChange={handleSearchChange}
               />
-              {renderFiltersMenu()}
+
+              <div className="shrink-0 md:hidden">
+                <Sheet
+                  open={filterSheetOpen}
+                  onOpenChange={setFilterSheetOpen}
+                >
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                      <SlidersHorizontal className="size-3.5" />
+                      Filters
+                      {activeFilterCount > 0 && (
+                        <Badge className="size-4.5 rounded-full px-0 text-[0.65rem] font-semibold">
+                          {activeFilterCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent
+                    side="bottom"
+                    className="max-h-[82dvh] gap-0 overflow-y-auto rounded-t-2xl"
+                  >
+                    <SheetHeader className="border-b pr-14">
+                      <SheetTitle>Filters</SheetTitle>
+                      <SheetDescription>
+                        Narrow inventory by category, brand and supplier.
+                      </SheetDescription>
+                    </SheetHeader>
+
+                    {renderFilterControls("sheet").map((control) => (
+                      <div key={control.key} className="px-4 pt-4">
+                        <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          {control.label}
+                        </p>
+                        {control.node}
+                      </div>
+                    ))}
+
+                    <SheetFooter className="sticky bottom-0 mt-4 flex-row border-t bg-background pb-[max(1rem,env(safe-area-inset-bottom))]">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          clearFilters();
+                          setFilterSheetOpen(false);
+                        }}
+                      >
+                        Clear all
+                      </Button>
+                      <SheetClose asChild>
+                        <Button className="flex-1">
+                          {totalItems > 0
+                            ? `Show ${totalItems.toLocaleString("en-US")} products`
+                            : "Done"}
+                        </Button>
+                      </SheetClose>
+                    </SheetFooter>
+                  </SheetContent>
+                </Sheet>
+              </div>
             </div>
-          </div>
 
-          {renderActiveFilters()}
+            <div className="hidden items-center gap-3 md:flex md:flex-wrap">
+              {renderFilterControls("bar").map((control) => (
+                <div key={control.key} className={control.barClass}>
+                  {control.node}
+                </div>
+              ))}
+            </div>
 
-          {isLoading ? (
-            <LoadingIndicator message="Loading Stock Report..." />
-          ) : products.length === 0 ? (
-            renderEmptyState()
-          ) : (
-            renderTableView()
-          )}
-        </div>
-
-        {/* Pagination */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground text-center md:text-left truncate">
-              {`Showing ${products.length} of ${totalItems} products`}
-            </p>
-          </div>
-
-          <div className="flex-1 w-full md:w-auto">
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={handlePageChange}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Stock movements dialog for a single product */}
-      <Dialog
-        open={!!movementsProduct}
-        onOpenChange={(open) => !open && setMovementsProduct(null)}
-      >
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ArrowLeftRight className="size-4 text-primary" />
-              Stock Movements — {movementsProduct?.name}
-            </DialogTitle>
-            <DialogDescription>
-              Every stock change for this product: purchases in, sales out,
-              reversals and cancelled-order restocks.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="overflow-y-auto -mx-1 px-1">
-            {movementsProduct && (
-              <StockMovementHistory productId={movementsProduct.id} />
+            {hasActiveFilters() && (
+              <div className="hidden min-w-0 items-center gap-2 md:flex md:ml-auto">
+                <PillBadge className="font-medium" title={activeFilterSummary}>
+                  <span className="truncate">{activeFilterSummary}</span>
+                </PillBadge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 shrink-0 text-muted-foreground"
+                  onClick={clearFilters}
+                >
+                  Clear
+                </Button>
+              </div>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <LoadingIndicator message="Loading inventory..." />
+          </div>
+        ) : products.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+            <div className="rounded-full bg-muted p-3">
+              <Package className="size-6 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">No products found</p>
+              <p className="text-xs text-muted-foreground">
+                {hasActiveFilters()
+                  ? "No product matches these filters. Try another name, category, brand or supplier."
+                  : "Products appear here as soon as they are added to the catalogue."}
+              </p>
+            </div>
+            {hasActiveFilters() && (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Page totals */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+              <StatsCard
+                icon={Package}
+                title="Total products"
+                value={totalItems.toLocaleString("en-US")}
+                description={`Page ${currentPage} of ${Math.max(totalPages, 1)}`}
+                bgColor="blue"
+              />
+              <StatsCard
+                icon={Boxes}
+                title="In stock"
+                value={inStockCount.toLocaleString("en-US")}
+                description="On this page"
+                bgColor="green"
+              />
+              <StatsCard
+                icon={XCircle}
+                title="Out of stock"
+                value={outOfStockCount.toLocaleString("en-US")}
+                description="Needs restocking"
+                bgColor="orange"
+              />
+              <StatsCard
+                icon={Banknote}
+                title="Stock value"
+                value={formatCurrencyEnglish(stockValue)}
+                description="Selling value on this page"
+                bgColor="teal"
+              />
+            </div>
+
+            {/* Inventory */}
+            <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primaryColor/10 text-primaryColor ring-1 ring-primaryColor/15">
+                    <Package className="size-4.5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold">Inventory overview</h3>
+                    <p className="text-[13px] text-foreground/70">
+                      Quantity on hand, cost and the value each product holds.
+                    </p>
+                  </div>
+                </div>
+                <PillBadge className="font-medium tabular-nums">
+                  {products.length.toLocaleString("en-US")} of{" "}
+                  {totalItems.toLocaleString("en-US")}
+                </PillBadge>
+              </div>
+
+              {renderTableView()}
+
+              {/* Footer */}
+              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
+                <p className="text-[13px] text-foreground/70">
+                  Showing {firstRow.toLocaleString("en-US")}–
+                  {lastRow.toLocaleString("en-US")} of{" "}
+                  {totalItems.toLocaleString("en-US")} product
+                  {totalItems === 1 ? "" : "s"}
+                  {debouncedSearch && ` matching “${debouncedSearch}”`}
+                </p>
+                {totalPages > 1 && (
+                  <PaginationComponent
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    baseUrl="#"
+                    onPageChange={handlePageChange}
+                  />
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Stock adjustment dialog for a single product */}
       <Dialog
         open={!!adjustProduct}

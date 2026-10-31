@@ -3,8 +3,11 @@
 import type React from "react";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
-import { Badge } from "@/components/ui/badge";
+import { PaginationComponent } from "@/components/common/pagination";
+import { PillBadge } from "@/components/common/pill-badge";
+import { TableSearch } from "@/components/common/table-search";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -28,25 +31,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
-
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
-import { PaginationComponent } from "@/components/common/pagination";
-import { TableSearch } from "@/components/common/table-search";
+import { cn } from "@/lib/utils";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
-import { Supplier } from "@/utils/types";
+import type { Supplier } from "@/utils/types";
 import {
   Ban,
-  Boxes,
   CheckCircle,
-  Filter,
   Mail,
   MoreHorizontal,
   Pencil,
   Phone,
   Plus,
+  RefreshCw,
   Trash2,
   Truck,
-  XCircle,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -56,6 +54,22 @@ import { toast } from "sonner";
 import DeleteConfirmationDialog from "../../delete-confirmation-dialog";
 import { LoadingIndicator } from "../../loading-indicator";
 import { PageHeader } from "../../page-header";
+
+/** Label + value block reused by the mobile cards. */
+function DetailField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[13px] font-medium text-foreground/60">{label}</p>
+      <div className="mt-0.5">{children}</div>
+    </div>
+  );
+}
 
 interface SupplierListProps {
   initialPage: number;
@@ -208,313 +222,397 @@ export function SupplierList({
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = () => Boolean(searchQuery || statusFilter);
-
-  const renderEmptyState = () => (
-    <div className="p-4 pb-6">
-      <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
-        <Truck className="h-10 w-10 text-muted-foreground/50 mb-4" />
-        <h3 className="text-lg font-semibold">No suppliers found</h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          {hasActiveFilters()
-            ? "No suppliers match your search criteria. Try different filters."
-            : "Get started by adding your first supplier."}
-        </p>
-        {!hasActiveFilters() && can(MENU_URL, "canCreate") && (
-          <Button asChild className="mt-4">
-            <Link href="/admin/procurement/suppliers/add">
-              <Plus className="mr-2 h-4 w-4" /> Add Supplier
-            </Link>
-          </Button>
-        )}
-        {hasActiveFilters() && (
-          <Button variant="outline" className="mt-4" onClick={clearFilters}>
-            Clear Filters
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderActiveFilters = () => {
-    if (!hasActiveFilters()) return null;
-
-    return (
-      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-        {searchQuery && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Search: {searchQuery}
-            <button onClick={() => setSearchQuery("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {statusFilter && statusFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Status: {statusFilter === "true" ? "Active" : "Inactive"}
-            <button onClick={() => setStatusFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="h-7 text-xs"
-        >
-          Clear all
-        </Button>
-      </div>
+  const hasActiveFilters = () =>
+    Boolean(
+      searchQuery.trim() || (statusFilter && statusFilter !== "all")
     );
-  };
 
-  const renderFiltersMenu = () => (
+  const activeCount = suppliers.filter((s) => s.isActive).length;
+  const inactiveCount = suppliers.length - activeCount;
+
+  const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
+  const lastRow = Math.min(currentPage * limit, totalItems);
+
+  const renderActions = (supplier: Supplier) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 px-3 shrink-0">
-          <Filter className="h-4 w-4" />
-          <span>Filters</span>
-          {statusFilter && statusFilter !== "all" && (
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          )}
+        <Button variant="ghost" size="icon" className="size-8">
+          <MoreHorizontal className="size-4" />
+          <span className="sr-only">Open menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-100">
-        <div className="grid grid-cols-2 gap-3 p-3">
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Status</h4>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="true">Active</SelectItem>
-                <SelectItem value="false">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {statusFilter && statusFilter !== "all" && (
-            <div className="col-span-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="w-full mt-2"
-              >
-                Reset Filters
-              </Button>
-            </div>
-          )}
-        </div>
+      <DropdownMenuContent align="end">
+        {can(MENU_URL, "canEdit") && (
+          <DropdownMenuItem asChild>
+            <Link href={`/admin/procurement/suppliers/${supplier.id}/edit`}>
+              <Pencil className="size-4" /> Edit
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {can(MENU_URL, "canDelete") && (
+          <DropdownMenuItem
+            variant="destructive"
+            onClick={() => handleDeleteClick(supplier)}
+          >
+            <Trash2 className="size-4" /> Delete
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 
-  const renderTableView = () => (
-    <div className="overflow-x-auto">
-      <Table className="min-w-160">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Supplier</TableHead>
-            <TableHead>Contact</TableHead>
-            <TableHead>Address</TableHead>
-            <TableHead className="text-center">
-              Products
-            </TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {suppliers.map((supplier) => (
-            <TableRow key={supplier.id} className="hover:bg-muted/50">
-              <TableCell>
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex  h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
-                    <Image
-                      src={supplier?.attachment?.url || "/placeholder.svg"}
-                      alt={supplier.name}
-                      width={96}
-                      height={96}
-                      className="object-contain p-1"
-                    />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="font-medium leading-tight">{supplier.name}</p>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-col space-y-1">
-                  <div className="flex items-center text-sm">
-                    <Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground/70" />
-                    {supplier.email}
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground/70" />
-                    {supplier.phone}
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell className="max-w-xs">
-                <span className="line-clamp-2 text-sm text-muted-foreground">
-                  {supplier.address || "No address provided"}
-                </span>
-              </TableCell>
-              <TableCell className="text-center">
-                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted">
-                  <Boxes className="h-3 w-3" />
-                  {supplier.products?.length || 0}
-                </span>
-              </TableCell>
-              <TableCell>
-                <ActiveStatusToggle
-                  isActive={supplier.isActive}
-                  disabled={togglingId === supplier.id}
-                  onToggle={() => toggleActive(supplier)}
-                  label={supplier.name}
-                />
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {can(MENU_URL, "canEdit") && (
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/procurement/suppliers/${supplier.id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    {can(MENU_URL, "canDelete") && (
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDeleteClick(supplier)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+  const renderToggle = (supplier: Supplier, className?: string) => (
+    <ActiveStatusToggle
+      isActive={supplier.isActive}
+      disabled={togglingId === supplier.id}
+      onToggle={() => toggleActive(supplier)}
+      label={supplier.name}
+      className={className}
+    />
   );
 
   return (
     <>
-      <div className="w-full space-y-4">
+      <div className="w-full">
         <PageHeader
           title="Suppliers"
-          description="Manage your product suppliers"
-          {...(can(MENU_URL, "canCreate")
-            ? {
-              actionLabel: "Add Supplier",
-              actionHref: "/admin/procurement/suppliers/add",
-            }
-            : {})}
-        />
+          description="Who you buy stock from, how to reach them and whether they are active."
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+            onClick={fetchSuppliers}
+          >
+            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+          {can(MENU_URL, "canCreate") && (
+            <Button size="sm" asChild>
+              <Link href="/admin/procurement/suppliers/add">
+                <Plus className="size-4" />
+                <span className="hidden sm:inline">Add Supplier</span>
+              </Link>
+            </Button>
+          )}
+        </PageHeader>
 
-        {/* Summary tiles */}
-        <div className="grid grid-cols-3 md:grid-cols-3 gap-3">
-          <StatsCard
-            icon={Truck}
-            title="Total Suppliers"
-            value={totalItems}
-            bgColor="blue"
-          />
-          <StatsCard
-            icon={CheckCircle}
-            title="Active"
-            value={suppliers.filter((s) => s.isActive).length}
-            bgColor="green"
-          />
-          <StatsCard
-            icon={Ban}
-            title="Inactive"
-            value={suppliers.filter((s) => !s.isActive).length}
-            bgColor="orange"
-          />
+        {/* Toolbar */}
+        <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
+          <div className="flex flex-col gap-2.5 md:flex-row md:flex-nowrap md:items-center md:gap-3">
+            <TableSearch
+              wrapperClassName="w-full md:max-w-xs"
+              className="h-9"
+              placeholder="Search by name, email or phone..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
+
+            <div className="md:w-40 md:shrink-0">
+              <Select
+                value={statusFilter || "all"}
+                onValueChange={(value) => {
+                  setStatusFilter(value === "all" ? "" : value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="h-9 w-full">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="true">Active</SelectItem>
+                  <SelectItem value="false">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {hasActiveFilters() && (
+              <div className="flex items-center gap-2 md:ml-auto">
+                <PillBadge className="font-medium">
+                  {[
+                    searchQuery.trim() && `Search: ${searchQuery.trim()}`,
+                    statusFilter &&
+                      statusFilter !== "all" &&
+                      `Status: ${statusFilter === "true" ? "Active" : "Inactive"}`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </PillBadge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 text-muted-foreground"
+                  onClick={clearFilters}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* List card: toolbar + table */}
-        <div className="rounded-sm border bg-card">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                <Truck className="h-4.5 w-4.5" />
-              </span>
-              <div>
-                <h3 className="font-semibold leading-tight">All Suppliers</h3>
-                <p className="text-sm text-muted-foreground">
-                  {totalItems} supplier{totalItems === 1 ? "" : "s"}
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <LoadingIndicator message="Loading suppliers..." />
+          </div>
+        ) : suppliers.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+            <div className="rounded-full bg-muted p-3">
+              <Truck className="size-6 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">No suppliers found</p>
+              <p className="text-xs text-muted-foreground">
+                {hasActiveFilters()
+                  ? "No supplier matches these filters. Try another name, email or status."
+                  : "Add your first supplier to start recording purchases."}
+              </p>
+            </div>
+            {hasActiveFilters() ? (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : can(MENU_URL, "canCreate") ? (
+              <Button size="sm" asChild>
+                <Link href="/admin/procurement/suppliers/add">
+                  <Plus className="size-4" /> Add supplier
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <>
+            {/* Page totals */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <StatsCard
+                icon={Truck}
+                title="Total suppliers"
+                value={totalItems.toLocaleString("en-US")}
+                description={`Page ${currentPage} of ${Math.max(totalPages, 1)}`}
+                bgColor="blue"
+              />
+              <StatsCard
+                icon={CheckCircle}
+                title="Active"
+                value={activeCount.toLocaleString("en-US")}
+                description="Available for new purchases"
+                bgColor="green"
+              />
+              <StatsCard
+                icon={Ban}
+                title="Inactive"
+                value={inactiveCount.toLocaleString("en-US")}
+                description="Hidden from new purchases"
+                bgColor="orange"
+              />
+            </div>
+
+            {/* Suppliers */}
+            <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-teal-500/10 text-teal-600 ring-1 ring-teal-500/15 dark:text-teal-400">
+                    <Truck className="size-4.5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold">All suppliers</h3>
+                    <p className="text-[13px] text-foreground/70">
+                      Contact details and the products each supplier provides.
+                    </p>
+                  </div>
+                </div>
+                <PillBadge className="font-medium tabular-nums">
+                  {totalItems.toLocaleString("en-US")} total
+                </PillBadge>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <Table className="report-table min-w-190">
+                  <TableHeader className="[&_th]:font-semibold">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-72 pl-4">Supplier</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Address</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="pr-4 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {suppliers.map((supplier) => {
+                      const productCount = supplier.products?.length || 0;
+
+                      return (
+                        <TableRow key={supplier.id}>
+                          <TableCell className="py-2.5 pl-4">
+                            <div className="flex items-center gap-2.5">
+                              <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                                <Image
+                                  src={
+                                    supplier.attachment?.url ||
+                                    "/placeholder.svg"
+                                  }
+                                  alt={supplier.name}
+                                  width={36}
+                                  height={36}
+                                  className="size-full object-contain p-0.5"
+                                />
+                              </span>
+                              <div className="min-w-0">
+                                <p
+                                  className="truncate text-sm font-medium leading-tight"
+                                  title={supplier.name}
+                                >
+                                  {supplier.name}
+                                </p>
+                                <p className="mt-0.5 text-[13px] text-foreground/70">
+                                  {productCount} product
+                                  {productCount === 1 ? "" : "s"}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="space-y-1">
+                              <a
+                                href={
+                                  supplier.email
+                                    ? `mailto:${supplier.email}`
+                                    : undefined
+                                }
+                                className="flex items-center gap-1.5 text-[13px] text-foreground/80 hover:underline"
+                              >
+                                <Mail className="size-3.5 shrink-0 text-muted-foreground" />
+                                <span className="truncate">
+                                  {supplier.email || "No email"}
+                                </span>
+                              </a>
+                              <a
+                                href={
+                                  supplier.phone
+                                    ? `tel:${supplier.phone}`
+                                    : undefined
+                                }
+                                className="flex items-center gap-1.5 text-[13px] tabular-nums text-foreground/70 hover:underline"
+                              >
+                                <Phone className="size-3.5 shrink-0 text-muted-foreground" />
+                                <span className="truncate">
+                                  {supplier.phone || "No phone"}
+                                </span>
+                              </a>
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="max-w-xs">
+                            <p
+                              className="line-clamp-2 text-[13px] text-foreground/70"
+                              title={supplier.address || undefined}
+                            >
+                              {supplier.address || "No address"}
+                            </p>
+                          </TableCell>
+
+                          <TableCell>
+                            {renderToggle(supplier, "justify-start")}
+                          </TableCell>
+
+                          <TableCell className="pr-4 text-right">
+                            {renderActions(supplier)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="divide-y md:hidden">
+                {suppliers.map((supplier) => {
+                  const productCount = supplier.products?.length || 0;
+
+                  return (
+                    <article key={supplier.id} className="space-y-3 p-3.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                            <Image
+                              src={
+                                supplier.attachment?.url || "/placeholder.svg"
+                              }
+                              alt={supplier.name}
+                              width={40}
+                              height={40}
+                              className="size-full object-contain p-0.5"
+                            />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold">
+                              {supplier.name}
+                            </p>
+                            <p className="mt-0.5 text-[13px] text-foreground/70">
+                              {productCount} product
+                              {productCount === 1 ? "" : "s"}
+                            </p>
+                          </div>
+                        </div>
+                        {renderActions(supplier)}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-lg bg-muted/40 p-2.5">
+                        <DetailField label="Email">
+                          <p className="truncate text-sm">
+                            {supplier.email || "—"}
+                          </p>
+                        </DetailField>
+                        <DetailField label="Phone">
+                          <p className="truncate text-sm tabular-nums">
+                            {supplier.phone || "—"}
+                          </p>
+                        </DetailField>
+                        <div className="col-span-2">
+                          <DetailField label="Address">
+                            <p className="text-[13px] text-foreground/80">
+                              {supplier.address || "No address"}
+                            </p>
+                          </DetailField>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[13px] font-medium text-foreground/60">
+                          Status
+                        </span>
+                        {renderToggle(supplier)}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
+                <p className="text-[13px] text-foreground/70">
+                  Showing {firstRow.toLocaleString("en-US")}–
+                  {lastRow.toLocaleString("en-US")} of{" "}
+                  {totalItems.toLocaleString("en-US")} supplier
+                  {totalItems === 1 ? "" : "s"}
+                  {searchQuery.trim() && ` matching “${searchQuery.trim()}”`}
                 </p>
+                {totalPages > 1 && (
+                  <PaginationComponent
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    baseUrl="#"
+                    onPageChange={handlePageChange}
+                  />
+                )}
               </div>
             </div>
-            <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
-              <TableSearch
-                wrapperClassName="w-full sm:w-64 min-w-0"
-                placeholder="Search suppliers..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
-              {renderFiltersMenu()}
-            </div>
-          </div>
-
-          {renderActiveFilters()}
-
-          {isLoading ? (
-            <LoadingIndicator message="Loading Suppliers..." />
-          ) : suppliers.length === 0 ? (
-            renderEmptyState()
-          ) : (
-            renderTableView()
-          )}
-        </div>
-
-        {/* Pagination */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground text-center md:text-left truncate">
-              {`Showing ${suppliers.length} of ${totalItems} suppliers`}
-            </p>
-          </div>
-
-          <div className="flex-1 w-full md:w-auto">
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={handlePageChange}
-            />
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Delete Confirmation Dialog */}

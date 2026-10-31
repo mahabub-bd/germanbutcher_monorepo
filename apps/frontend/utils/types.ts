@@ -310,7 +310,7 @@ export interface Unit {
   name: string;
   isActive: boolean;
   createdAt: string;
-  updatedDate: string;
+  updatedAt: string;
   createdBy: User;
   updatedBy: User;
 }

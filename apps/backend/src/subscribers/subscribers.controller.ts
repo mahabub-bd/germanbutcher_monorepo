@@ -16,6 +16,7 @@ import {
   ApiBody,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -70,6 +71,12 @@ export class SubscribersController {
   @ModulePermissions('/admin/settings/subscriber-list')
   @Get()
   @ApiOperation({ summary: 'Get all subscribers with pagination' })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Filter by subscriber email',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of all subscribers with pagination',
@@ -78,10 +85,12 @@ export class SubscribersController {
   async getAllSubscribers(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
+    @Query('search') search?: string,
   ): Promise<ApiResponseDto<any>> {
     const subscribersData = await this.subscribersService.getAllSubscribers(
       page,
       limit,
+      search?.trim() || undefined,
     );
 
     return {

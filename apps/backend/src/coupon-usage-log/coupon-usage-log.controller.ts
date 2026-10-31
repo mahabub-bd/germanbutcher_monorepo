@@ -143,14 +143,18 @@ export class CouponUsageLogController {
   @ApiNotFoundResponse({ description: 'No logs found for this coupon' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'fromDate', required: false, type: String, example: '2026-10-01' })
+  @ApiQuery({ name: 'toDate', required: false, type: String, example: '2026-10-10' })
   async getCouponUsageLogsByCode(
     @Param('couponCode') couponCode: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
   ) {
     const { data, total } = await this.couponUsageLogService.findByCouponCode(
       couponCode,
-      { page: +page, limit: +limit },
+      { page: +page, limit: +limit, fromDate, toDate },
     );
     return {
       message: `Coupon usage logs for ${couponCode} retrieved successfully`,

@@ -15,6 +15,8 @@ const DeleteConfirmationDialog = ({
   open,
   onClose,
   onConfirm,
+  title = "Delete this item?",
+  description = "The item is removed from the list and can no longer be used.",
 }: {
   open: boolean;
   onClose: () => void;
@@ -22,6 +24,10 @@ const DeleteConfirmationDialog = ({
   onConfirm?: () => Promise<void>;
   defaultToast?: boolean;
   toastMessage?: string;
+  /** Overrides the generic heading, e.g. `Delete "Kilogram"?`. */
+  title?: string;
+  /** Overrides the generic body copy with entity-specific consequences. */
+  description?: string;
 }) => {
   const [isPending, startTransition] = useTransition();
 
@@ -39,11 +45,8 @@ const DeleteConfirmationDialog = ({
     <AlertDialog open={open}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete your
-            account and remove your data from our servers.
-          </AlertDialogDescription>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onClose} disabled={isPending}>

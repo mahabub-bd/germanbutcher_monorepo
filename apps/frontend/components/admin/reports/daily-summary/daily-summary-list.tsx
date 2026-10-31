@@ -586,7 +586,7 @@ export default function DailySummaryList({
 
             {/* Desktop table */}
             <div className="hidden md:block">
-              <Table>
+              <Table className="report-table">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <SortableHead

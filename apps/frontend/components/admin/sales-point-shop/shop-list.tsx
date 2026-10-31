@@ -2,11 +2,12 @@
 
 import type React from "react";
 
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
+import { PillBadge } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -29,18 +30,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
-import { deleteData, fetchDataPagination } from "@/utils/api-utils";
-
 import { divisions } from "@/constants";
+import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
+import { cn } from "@/lib/utils";
+import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { SalesPoint, Shop } from "@/utils/types";
 import {
   Building,
-  Filter,
+  CheckCircle2,
   MapPin,
   MoreHorizontal,
   Pencil,
   Plus,
+  RefreshCw,
   Store,
   Trash2,
   XCircle,
@@ -97,7 +99,6 @@ export function ShopList({
   const [limit] = useState(initialLimit);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Separate URL update function (like ProductList)
   const updateUrl = useCallback(() => {
     const params = new URLSearchParams();
 
@@ -135,7 +136,7 @@ export function ShopList({
     }
   };
 
-  const fetchShops = async () => {
+  const fetchShops = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -166,18 +167,6 @@ export function ShopList({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Initial fetch
-  useEffect(() => {
-    fetchSalesPoints();
-    fetchShops();
-  }, []);
-
-  // Fetch and update URL when dependencies change
-  useEffect(() => {
-    fetchShops();
-    updateUrl();
   }, [
     currentPage,
     limit,
@@ -186,6 +175,19 @@ export function ShopList({
     salesPointFilter,
     divisionFilter,
   ]);
+
+  useEffect(() => {
+    fetchShops();
+  }, [fetchShops]);
+
+  useEffect(() => {
+    updateUrl();
+  }, [updateUrl]);
+
+  // Sales point names are needed for the filter and the table, fetch once.
+  useEffect(() => {
+    fetchSalesPoints();
+  }, []);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -243,364 +245,406 @@ export function ShopList({
     return salesPoint?.name || "Unknown";
   };
 
-  const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-      <Store className="h-10 w-10 text-muted-foreground mb-4" />
-      <h3 className="text-lg font-semibold">No shops found</h3>
-      <p className="text-sm text-muted-foreground mt-2">
-        {searchQuery || statusFilter || salesPointFilter || divisionFilter
-          ? "No shops match your search criteria. Try different filters."
-          : "Get started by adding your first shop."}
-      </p>
-      {!(searchQuery || statusFilter || salesPointFilter || divisionFilter) &&
-        can(MENU_URL, "canCreate") && (
-          <Button asChild className="mt-4">
-            <Link href="/admin/sales-point-shop/add">
-              <Plus className="mr-2 h-4 w-4" /> Add Shop
-            </Link>
-          </Button>
-        )}
-      {(searchQuery || statusFilter || salesPointFilter || divisionFilter) && (
-        <Button
-          variant="outline"
-          className="mt-4 bg-transparent"
-          onClick={clearFilters}
-        >
-          Clear Filters
-        </Button>
-      )}
-    </div>
+  const activeCount = shops.filter((shop) => shop.isActive).length;
+  const inactiveCount = shops.length - activeCount;
+  const hasFilters = Boolean(
+    searchQuery ||
+      (statusFilter && statusFilter !== "all") ||
+      (salesPointFilter && salesPointFilter !== "all") ||
+      (divisionFilter && divisionFilter !== "all")
   );
+  const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
+  const lastRow = Math.min(currentPage * limit, totalItems);
 
-  const renderActiveFilters = () => {
-    const hasFilters =
-      searchQuery || statusFilter || salesPointFilter || divisionFilter;
-    if (!hasFilters) return null;
-
-    return (
-      <div className="flex flex-wrap gap-2 mt-4">
-        {searchQuery && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Search: {searchQuery}
-            <button onClick={() => setSearchQuery("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-        {statusFilter && statusFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Status: {statusFilter}
-            <button onClick={() => setStatusFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-        {salesPointFilter && salesPointFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Sales Point: {getSalesPointName(Number(salesPointFilter))}
-            <button onClick={() => setSalesPointFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-        {divisionFilter && divisionFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Division: {divisionFilter}
-            <button onClick={() => setDivisionFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="h-7 text-xs"
-        >
-          Clear all
+  const renderActions = (shop: Shop) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Open menu</span>
         </Button>
-      </div>
-    );
-  };
-
-  const renderTableView = () => (
-
-    <Table className="min-w-160">
-      <TableHeader>
-        <TableRow>
-          <TableHead>Shop Name</TableHead>
-          <TableHead>Sales Point</TableHead>
-          <TableHead>Location</TableHead>
-          <TableHead>Address</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {shops.map((shop) => (
-          <TableRow key={shop.id}>
-            <TableCell>
-              <div className="flex items-center gap-2">
-                <Building className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <div className="font-medium">{shop.shopName}</div>
-                </div>
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="font-medium">
-                {getSalesPointName(shop.salesPointId)}
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center gap-1">
-                <MapPin className="h-3 w-3 text-muted-foreground" />
-                <span className="text-sm">
-                  {shop.district}, {shop.division}
-                </span>
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="text-sm text-muted-foreground max-w-xs truncate">
-                {shop.address}
-              </div>
-            </TableCell>
-            <TableCell>
-              <ActiveStatusToggle
-                isActive={shop.isActive}
-                disabled={togglingId === shop.id}
-                onToggle={() => toggleActive(shop)}
-                label={shop.shopName}
-              />
-            </TableCell>
-            <TableCell className="text-right">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Open menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {can(MENU_URL, "canEdit") && (
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/sales-point-shop/${shop.id}/edit`}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  {can(MENU_URL, "canDelete") && (
-                    <DropdownMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDeleteClick(shop)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {can(MENU_URL, "canEdit") && (
+          <DropdownMenuItem asChild>
+            <Link href={`/admin/sales-point-shop/${shop.id}/edit`}>
+              <Pencil className="mr-2 h-4 w-4" /> Edit
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {can(MENU_URL, "canDelete") && (
+          <DropdownMenuItem
+            className="text-red-600"
+            onClick={() => handleDeleteClick(shop)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" /> Delete
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 
   return (
     <>
-      <div className="w-full ">
+      <div className="w-full">
         <PageHeader
           title="Sales Point Shops"
-          description="Manage shops for your sales points"
-          {...(can(MENU_URL, "canCreate")
-            ? {
-              actionLabel: "Add Shop",
-              actionHref: "/admin/sales-point-shop/add",
-            }
-            : {})}
-        />
+          description="Outlet addresses attached to each sales point."
+        >
+          {can(MENU_URL, "canCreate") && (
+            <Button asChild size="sm">
+              <Link href="/admin/sales-point-shop/add">
+                <Plus className="size-4" />
+                <span className="hidden sm:inline">Add Shop</span>
+              </Link>
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+            onClick={fetchShops}
+          >
+            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+        </PageHeader>
 
-        <div className="space-y-4">
-          <div className="flex flex-row justify-between gap-2">
+        {/* Toolbar */}
+        <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
+          <div className="flex flex-col gap-2.5 md:flex-row md:flex-nowrap md:items-center md:gap-3">
             <TableSearch
-              wrapperClassName="w-full sm:max-w-xs min-w-0"
+              wrapperClassName="w-full md:max-w-xs"
+              className="h-9"
               placeholder="Search shops..."
               value={searchQuery}
               onChange={handleSearchChange}
             />
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2 px-3 bg-transparent"
-                  >
-                    <Filter className="h-4 w-4" />
-                    <span>Filters</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-80 p-4 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
-                  sideOffset={8}
+
+            <div className="grid grid-cols-2 gap-2.5 md:flex md:items-center md:gap-3">
+              <div className="md:w-35 md:shrink-0">
+                <Select
+                  value={statusFilter || "all"}
+                  onValueChange={(value) => {
+                    setStatusFilter(value === "all" ? "" : value);
+                    setCurrentPage(1);
+                  }}
                 >
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium">Filters</h4>
-                      {(statusFilter || salesPointFilter || divisionFilter) && (
-                        <button
-                          onClick={clearFilters}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Clear all
-                        </button>
-                      )}
+                  <SelectTrigger className="h-9 w-full">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="md:w-52 md:shrink-0">
+                <Select
+                  value={salesPointFilter || "all"}
+                  onValueChange={(value) => {
+                    setSalesPointFilter(value === "all" ? "" : value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-full">
+                    <SelectValue placeholder="Sales point" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All sales points</SelectItem>
+                    {salesPoints.map((salesPoint) => (
+                      <SelectItem
+                        key={salesPoint.id}
+                        value={salesPoint.id.toString()}
+                      >
+                        {salesPoint.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="md:w-40 md:shrink-0">
+                <Select
+                  value={divisionFilter || "all"}
+                  onValueChange={(value) => {
+                    setDivisionFilter(value === "all" ? "" : value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-full">
+                    <SelectValue placeholder="Division" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All divisions</SelectItem>
+                    {divisions.map((division) => (
+                      <SelectItem key={division} value={division}>
+                        {division}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {hasFilters && (
+              <div className="flex items-center gap-2 md:ml-auto">
+                <PillBadge className="font-medium">
+                  {[
+                    searchQuery && `Search: ${searchQuery}`,
+                    statusFilter &&
+                      statusFilter !== "all" &&
+                      `Status: ${statusFilter === "active" ? "Active" : "Inactive"}`,
+                    salesPointFilter &&
+                      salesPointFilter !== "all" &&
+                      `Point: ${getSalesPointName(Number(salesPointFilter))}`,
+                    divisionFilter &&
+                      divisionFilter !== "all" &&
+                      `Division: ${divisionFilter}`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </PillBadge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 text-muted-foreground"
+                  onClick={clearFilters}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <LoadingIndicator message="Loading shops..." />
+          </div>
+        ) : shops.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+            <div className="rounded-full bg-muted p-3">
+              <Store className="size-6 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">No shops found</p>
+              <p className="text-xs text-muted-foreground">
+                {hasFilters
+                  ? "No shops match these filters. Try a different sales point, division or status."
+                  : "Get started by adding your first shop."}
+              </p>
+            </div>
+            {hasFilters ? (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : (
+              can(MENU_URL, "canCreate") && (
+                <Button size="sm" asChild>
+                  <Link href="/admin/sales-point-shop/add">
+                    <Plus className="size-4" /> Add Shop
+                  </Link>
+                </Button>
+              )
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Range totals */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+              <StatsCard
+                icon={Store}
+                title="Total shops"
+                value={totalItems.toLocaleString("en-US")}
+                description={`Page ${currentPage} of ${Math.max(totalPages, 1)}`}
+                bgColor="blue"
+              />
+              <StatsCard
+                icon={CheckCircle2}
+                title="Active"
+                value={activeCount.toLocaleString("en-US")}
+                description="On this page"
+                bgColor="green"
+              />
+              <StatsCard
+                icon={XCircle}
+                title="Inactive"
+                value={inactiveCount.toLocaleString("en-US")}
+                description="On this page"
+                bgColor="red"
+              />
+              <StatsCard
+                icon={Building}
+                title="Sales points"
+                value={salesPoints.length.toLocaleString("en-US")}
+                description="Available to assign"
+                bgColor="purple"
+              />
+            </div>
+
+            {/* Shops */}
+            <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+                <div>
+                  <h3 className="text-sm font-semibold">Shops</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Grouped by sales point · {limit} per page
+                  </p>
+                </div>
+                <PillBadge className="font-medium tabular-nums">
+                  {totalItems.toLocaleString("en-US")} total
+                </PillBadge>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <Table className="report-table min-w-190">
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="pl-4">Shop name</TableHead>
+                      <TableHead>Sales point</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead className="w-full">Address</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="pr-4 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {shops.map((shop) => (
+                      <TableRow key={shop.id}>
+                        <TableCell className="py-2.5 pl-4">
+                          <Link
+                            href={`/admin/sales-point-shop/${shop.id}/edit`}
+                            className="flex items-center gap-2 font-medium leading-tight hover:text-primaryColor hover:underline"
+                          >
+                            <Building className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <span className="truncate">{shop.shopName}</span>
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-muted-foreground">
+                            {getSalesPointName(shop.salesPointId)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="flex items-center gap-1 whitespace-nowrap text-muted-foreground">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            {shop.district}, {shop.division}
+                          </span>
+                        </TableCell>
+                        <TableCell className="w-full">
+                          <p
+                            className="line-clamp-2 text-sm text-muted-foreground"
+                            title={shop.address || undefined}
+                          >
+                            {shop.address || "—"}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          <ActiveStatusToggle
+                            isActive={shop.isActive}
+                            disabled={togglingId === shop.id}
+                            onToggle={() => toggleActive(shop)}
+                            label={shop.shopName}
+                          />
+                        </TableCell>
+                        <TableCell className="pr-4 text-right">
+                          {renderActions(shop)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="divide-y md:hidden">
+                {shops.map((shop) => (
+                  <article key={shop.id} className="space-y-3 p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <Link
+                        href={`/admin/sales-point-shop/${shop.id}/edit`}
+                        className="flex min-w-0 items-center gap-2 hover:text-primaryColor"
+                      >
+                        <Building className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">
+                            {shop.shopName}
+                          </p>
+                          <p className="truncate text-[11px] text-muted-foreground">
+                            {getSalesPointName(shop.salesPointId)}
+                          </p>
+                        </div>
+                      </Link>
+                      {renderActions(shop)}
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">
-                        Status
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          onClick={() => {
-                            setStatusFilter("all");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all" || !statusFilter
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          All
-                        </button>
-                        <button
-                          onClick={() => {
-                            setStatusFilter("active");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "active"
-                              ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          <span className="h-2 w-2 rounded-full bg-green-500" />
-                          Active
-                        </button>
-                        <button
-                          onClick={() => {
-                            setStatusFilter("inactive");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "inactive"
-                              ? "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          <span className="h-2 w-2 rounded-full bg-red-500" />
-                          Inactive
-                        </button>
+                    <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-2.5">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          District
+                        </p>
+                        <p className="truncate text-sm font-semibold">
+                          {shop.district || "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Division
+                        </p>
+                        <p className="truncate text-sm font-semibold">
+                          {shop.division || "—"}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Address
+                        </p>
+                        <p className="line-clamp-3 text-sm leading-snug wrap-break-word">
+                          {shop.address || "—"}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">
-                        Sales Point
-                      </label>
-                      <Select
-                        value={salesPointFilter || "all"}
-                        onValueChange={(value) => {
-                          setSalesPointFilter(value === "all" ? "" : value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="All Sales Points" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Sales Points</SelectItem>
-                          {salesPoints.map((salesPoint) => (
-                            <SelectItem
-                              key={salesPoint.id}
-                              value={salesPoint.id.toString()}
-                            >
-                              {salesPoint.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Status
+                      </span>
+                      <ActiveStatusToggle
+                        isActive={shop.isActive}
+                        disabled={togglingId === shop.id}
+                        onToggle={() => toggleActive(shop)}
+                        label={shop.shopName}
+                      />
                     </div>
+                  </article>
+                ))}
+              </div>
 
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">
-                        Division
-                      </label>
-                      <Select
-                        value={divisionFilter || "all"}
-                        onValueChange={(value) => {
-                          setDivisionFilter(value === "all" ? "" : value);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="All Divisions" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Divisions</SelectItem>
-                          {divisions.map((division) => (
-                            <SelectItem key={division} value={division}>
-                              {division}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Footer: what the list covers */}
+              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
+                <p className="text-xs text-muted-foreground">
+                  Showing {firstRow.toLocaleString("en-US")}–
+                  {lastRow.toLocaleString("en-US")} of{" "}
+                  {totalItems.toLocaleString("en-US")} shop
+                  {totalItems === 1 ? "" : "s"}
+                  {searchQuery && ` matching “${searchQuery}”`}
+                </p>
+                {totalPages > 1 && (
+                  <PaginationComponent
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    baseUrl="#"
+                    onPageChange={handlePageChange}
+                  />
+                )}
+              </div>
             </div>
-          </div>
-
-          {renderActiveFilters()}
-
-          {isLoading ? (
-            <LoadingIndicator message="Loading Shops..." />
-          ) : shops.length === 0 ? (
-            renderEmptyState()
-          ) : (
-            <div className="mt-6">{renderTableView()}</div>
-          )}
-        </div>
-
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground text-center md:text-left truncate">
-              {`Showing ${shops.length} of ${totalItems} shops`}
-            </p>
-          </div>
-          <div className="flex-1 w-full md:w-auto">
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={handlePageChange}
-            />
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       <DeleteConfirmationDialog

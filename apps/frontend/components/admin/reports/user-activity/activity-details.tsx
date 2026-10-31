@@ -1,348 +1,430 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { fetchProtectedData } from "@/utils/api-utils";
 import type { UserActivity } from "@/utils/types";
-import {
-  ArrowLeft,
-  Clock,
-  Copy,
-  Globe,
-  Server,
-  Shield,
-  User,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
+import { ArrowLeft, Copy, Shield, User } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoadingIndicator } from "../../loading-indicator";
 import { PageHeader } from "../../page-header";
+import { MethodPill, StatusPill, formatAction } from "./audit-visuals";
 
 /* -----------------------------------------------------
 Helper Components
 -----------------------------------------------------*/
 
-function InfoRow({
+function CopyButton({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="size-6 shrink-0 text-muted-foreground"
+      onClick={() => {
+        void navigator.clipboard.writeText(value);
+        toast.success(`Copied ${label.toLowerCase()}`);
+      }}
+      aria-label={`Copy ${label}`}
+    >
+      <Copy className="size-3.5" />
+    </Button>
+  );
+}
+
+function DetailPanel({
+  title,
+  description,
+  children,
+  className,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={cn(
+        "overflow-hidden rounded-xl border bg-card shadow-xs",
+        className
+      )}
+    >
+      <div className="border-b px-4 py-3">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {description && (
+          <p className="text-xs text-muted-foreground">{description}</p>
+        )}
+      </div>
+      <div className="p-4 md:p-5">{children}</div>
+    </section>
+  );
+}
+
+function Field({
   label,
   value,
   copy,
+  valueClassName,
 }: {
   label: string;
-  value: React.ReactNode;
+  value: ReactNode;
   copy?: string;
+  valueClassName?: string;
 }) {
-  const copyValue = () => {
-    if (!copy) return;
-    navigator.clipboard.writeText(copy);
-    toast.success("Copied");
-  };
-
   return (
     <div className="min-w-0">
-      <p className="mb-0.5 text-xs uppercase tracking-wide text-muted-foreground">
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <div className="flex items-start gap-1.5">
-        <div className="min-w-0 break-all text-sm font-medium">{value}</div>
-        {copy && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-6 shrink-0"
-            onClick={copyValue}
-            aria-label={`Copy ${label}`}
-          >
-            <Copy className="size-3.5" />
-          </Button>
-        )}
+      <div className="mt-1 flex items-start gap-1">
+        <div
+          className={cn(
+            "min-w-0 text-sm font-medium wrap-break-word",
+            valueClassName
+          )}
+        >
+          {value}
+        </div>
+        <CopyButton label={label} value={copy} />
       </div>
     </div>
   );
 }
 
-function JsonViewer({ data }: { data: unknown }) {
-  if (!data || (typeof data === "object" && Object.keys(data).length === 0)) {
-    return <span className="text-sm italic text-muted-foreground">null</span>;
-  }
+function JsonBlock({ label, data }: { label: string; data: unknown }) {
+  const isEmpty =
+    !data || (typeof data === "object" && Object.keys(data).length === 0);
+  const json = isEmpty ? "" : JSON.stringify(data, null, 2);
 
   return (
-    <pre className="max-h-80 overflow-auto rounded-md border bg-muted/50 p-3 text-xs whitespace-pre-wrap break-all">
-      {JSON.stringify(data, null, 2)}
-    </pre>
+    <div className="min-w-0">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        <CopyButton label={label} value={json} />
+      </div>
+
+      {isEmpty ? (
+        <div className="rounded-lg border border-dashed px-3 py-4 text-xs italic text-muted-foreground">
+          Nothing recorded
+        </div>
+      ) : (
+        <pre className="max-h-80 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs whitespace-pre-wrap break-all">
+          {json}
+        </pre>
+      )}
+    </div>
   );
 }
-
-/* Badge tones with dark-mode variants — the old bg-*-100/text-*-800
-   pairs were unreadable on dark backgrounds */
-const HTTP_METHOD_TONES: Record<string, string> = {
-  GET: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-  POST: "bg-green-500/10 text-green-700 dark:text-green-400",
-  PUT: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  PATCH: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  DELETE: "bg-red-500/10 text-red-700 dark:text-red-400",
-};
-
-const STATUS_TONES: Record<string, string> = {
-  success: "bg-green-500/10 text-green-700 dark:text-green-400",
-  failed: "bg-red-500/10 text-red-700 dark:text-red-400",
-  error: "bg-red-500/10 text-red-700 dark:text-red-400",
-  pending: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-};
-
-const FALLBACK_TONE = "bg-muted text-foreground";
 
 /* -----------------------------------------------------
 Main Component
 -----------------------------------------------------*/
 
 export function ActivityDetails({ activityId }: { activityId: string }) {
-  const router = useRouter();
-
   const [activity, setActivity] = useState<UserActivity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const id = activityId;
 
-  /* -----------------------------------------------------
-  Fetch Activity
-  -----------------------------------------------------*/
-
-  const fetchActivityDetails = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetchProtectedData<UserActivity>(
-        `user-activities/details/${id}`
-      );
-      setActivity(response);
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to load activity details";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (id) fetchActivityDetails();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    const fetchActivityDetails = async () => {
+      setIsLoading(true);
+      setError(null);
 
-  const formatAction = (action: string) => {
-    const [method, ...path] = action.split(" ");
-    if (path.length > 0) {
-      return { method, path: path.join(" ") };
-    }
-    return { method: action, path: "" };
-  };
+      try {
+        const response = await fetchProtectedData<UserActivity>(
+          `user-activities/details/${id}`
+        );
+        setActivity(response);
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to load activity details";
+        setError(message);
+        toast.error(message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (id) fetchActivityDetails();
+  }, [id]);
 
   if (isLoading) {
     return (
-      <div className="p-4 md:p-6">
-        <LoadingIndicator message="Loading activity details..." />
+      <div className="rounded-xl border bg-card p-6 shadow-xs">
+        <LoadingIndicator message="Loading audit event..." />
       </div>
     );
   }
 
   if (error || !activity) {
     return (
-      <div className="p-4 text-center md:p-6">
-        <Shield className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
-        <h2 className="mb-2 text-xl font-semibold">Activity Not Found</h2>
-        <p className="mb-4 text-muted-foreground">{error}</p>
-        <Button onClick={() => router.back()}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Go Back
-        </Button>
+      <div className="w-full">
+        <PageHeader
+          title="Audit Event"
+          description="Security audit log event"
+        >
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/admin/audit-log">
+              <ArrowLeft className="size-3.5" />
+              <span className="hidden sm:inline">Back to log</span>
+            </Link>
+          </Button>
+        </PageHeader>
+
+        <section className="flex flex-col items-center justify-center rounded-xl border bg-card px-6 py-16 text-center shadow-xs">
+          <span className="mb-4 flex size-12 items-center justify-center rounded-full bg-muted">
+            <Shield className="size-6 text-muted-foreground" />
+          </span>
+          <h3 className="text-base font-semibold">Event not found</h3>
+          <p className="mt-1 max-w-md text-sm text-muted-foreground">
+            {error || `No audit event exists with ID ${id}.`}
+          </p>
+          <Button variant="outline" size="sm" className="mt-4" asChild>
+            <Link href="/admin/audit-log">
+              <ArrowLeft className="size-3.5" />
+              Back to audit log
+            </Link>
+          </Button>
+        </section>
       </div>
     );
   }
 
   const { method, path } = formatAction(activity.action);
-  const methodTone =
-    HTTP_METHOD_TONES[method.toUpperCase()] ?? FALLBACK_TONE;
-  const statusTone =
-    STATUS_TONES[activity.status.toLowerCase()] ?? FALLBACK_TONE;
+
+  /* Plain-text dump of the event, handy for security tickets. */
+  const copyEvent = () => {
+    const lines = [
+      `Audit event #${activity.id}`,
+      `Action: ${activity.action}`,
+      `Status: ${activity.status}`,
+      `Message: ${activity.message}`,
+      `Entity: ${activity.entityType}${activity.entityId != null ? ` #${activity.entityId}` : ""
+      }`,
+      `Actor: ${activity.user?.name || "Unknown"} (${activity.userType}${activity.user?.email ? `, ${activity.user.email}` : ""
+      })`,
+      `IP: ${activity.ipAddress || "unknown"}`,
+      `Request ID: ${activity.requestId || "-"}`,
+      `Session ID: ${activity.sessionId || "-"}`,
+      `User agent: ${activity.userAgent || "-"}`,
+      `Recorded: ${formatDateTime(activity.createdAt)} (Dhaka) · ${activity.createdAt
+      }`,
+    ];
+
+    void navigator.clipboard.writeText(lines.join("\n"));
+    toast.success("Event copied");
+  };
 
   return (
-    <div className="space-y-4  md:space-y-6 ">
-      {/* Header */}
+    <div className="w-full space-y-4">
       <PageHeader
-        title="Activity Details"
-        description="Security audit log event"
+        title={`Audit Event #${activity.id}`}
+        description={`${method} on ${activity.entityType || "system"
+          } · recorded ${formatDateTime(activity.createdAt)}`}
       >
-        <Button variant="outline" asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={copyEvent}
+          title="Copy the full event as plain text"
+        >
+          <Copy className="size-3.5" />
+          <span className="hidden sm:inline">Copy event</span>
+        </Button>
+        <Button variant="outline" size="sm" asChild>
           <Link href="/admin/audit-log">
-            <ArrowLeft className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Back</span>
+            <ArrowLeft className="size-3.5" />
+            <span className="hidden sm:inline">Back to log</span>
           </Link>
         </Button>
       </PageHeader>
 
-      {/* Activity Summary */}
-      <Card className="rounded-sm">
-        <CardContent className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between lg:p-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <Badge className={`${methodTone} shrink-0`}>{method}</Badge>
-            <code className="min-w-0 break-all text-sm">{path}</code>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 border-t pt-3 lg:flex lg:flex-wrap lg:gap-6 lg:border-t-0 lg:pt-0">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Status
-              </p>
-              <Badge className={`${statusTone} mt-1`}>{activity.status}</Badge>
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Actor
-              </p>
-              <p className="mt-1 truncate text-sm font-medium">
-                {activity.user?.name || "Unknown"}
-              </p>
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Time
-              </p>
-              <p className="mt-1 truncate text-sm font-medium">
-                {formatDateTime(activity.createdAt)}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Main Layout */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
-        {/* LEFT COLUMN */}
-        <div className="space-y-4 lg:col-span-2 lg:space-y-6">
-          {/* Action Details */}
-          <Card className="rounded-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Action Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <InfoRow label="Message" value={activity.message} />
-              <InfoRow label="Entity Type" value={activity.entityType} />
-              <InfoRow
-                label="Entity ID"
-                value={activity.entityId ?? "N/A"}
-                copy={
-                  activity.entityId != null
-                    ? String(activity.entityId)
-                    : undefined
-                }
-              />
-            </CardContent>
-          </Card>
-
-          {/* Data Changes */}
-          <Card className="rounded-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Server className="h-5 w-5" />
-                Data Changes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-2">
-              <div className="min-w-0">
-                <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
-                  Old Value
-                </p>
-                <JsonViewer data={activity.oldValue} />
-              </div>
-
-              <div className="min-w-0">
-                <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
-                  New Value
-                </p>
-                <JsonViewer data={activity.newValue} />
-              </div>
-            </CardContent>
-          </Card>
+      {/* Summary */}
+      <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
+        <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
+          <MethodPill method={method} />
+          <StatusPill status={activity.status} />
+          <code
+            className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground"
+            title={activity.action}
+          >
+            {path || activity.entityType || "—"}
+          </code>
         </div>
 
-        {/* RIGHT COLUMN */}
-        <div className="space-y-4 lg:space-y-6">
-          {/* User */}
-          <Card className="rounded-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                User
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <InfoRow
-                label="User Name"
+        <dl className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-3 md:p-5">
+          <div className="min-w-0">
+            <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Entity
+            </dt>
+            <dd className="mt-1 truncate text-sm font-medium capitalize">
+              {activity.entityType || "—"}
+              {activity.entityId != null && (
+                <span className="ml-1 font-mono text-xs font-normal text-muted-foreground">
+                  #{activity.entityId}
+                </span>
+              )}
+            </dd>
+          </div>
+
+          <div className="min-w-0">
+            <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Actor
+            </dt>
+            <dd className="mt-1 flex min-w-0 items-center gap-2">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full border bg-muted">
+                <User className="size-3.5 text-muted-foreground" />
+              </span>
+              <span className="min-w-0 truncate text-sm font-medium">
+                {activity.user?.name || "Unknown"}
+                <span className="ml-1 text-xs font-normal text-muted-foreground capitalize">
+                  ({activity.userType})
+                </span>
+              </span>
+            </dd>
+          </div>
+
+          <div className="min-w-0">
+            <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Recorded
+            </dt>
+            <dd className="mt-1 text-sm font-medium whitespace-nowrap">
+              {formatDateTime(activity.createdAt)}
+            </dd>
+          </div>
+        </dl>
+
+        <div className="border-t px-4 py-3 md:px-5">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Message
+          </p>
+          <p className="mt-1 text-sm wrap-break-word">
+            {activity.message || "—"}
+          </p>
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* Main column */}
+        <div className="min-w-0 space-y-4 lg:col-span-2">
+          <DetailPanel
+            title="Data changes"
+            description="Field-level diff stored with the event"
+          >
+            <div className="grid gap-4 md:grid-cols-2">
+              <JsonBlock label="Old value" data={activity.oldValue} />
+              <JsonBlock label="New value" data={activity.newValue} />
+            </div>
+          </DetailPanel>
+
+          <DetailPanel
+            title="Request metadata"
+            description="Use these to correlate the event with server and proxy logs"
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label="Full action"
+                value={activity.action}
+                copy={activity.action}
+                valueClassName="font-mono text-xs font-normal wrap-break-word"
+              />
+              <Field
+                label="IP Address"
+                value={activity.ipAddress || "unknown"}
+                copy={activity.ipAddress}
+                valueClassName="font-mono text-xs font-normal"
+              />
+              <Field
+                label="Request ID"
+                value={activity.requestId || "—"}
+                copy={activity.requestId}
+                valueClassName="font-mono text-xs font-normal"
+              />
+              <Field
+                label="Session ID"
+                value={activity.sessionId || "—"}
+                copy={activity.sessionId || undefined}
+                valueClassName="font-mono text-xs font-normal"
+              />
+            </div>
+
+            <div className="mt-4 border-t pt-4">
+              <Field
+                label="User agent"
+                value={activity.userAgent || "—"}
+                copy={activity.userAgent}
+                valueClassName="text-xs font-normal"
+              />
+            </div>
+          </DetailPanel>
+        </div>
+
+        {/* Sidebar */}
+        <div className="min-w-0 space-y-4">
+          <DetailPanel
+            title="Actor"
+            description={
+              activity.user?.email
+                ? activity.user.email
+                : "Who triggered this event"
+            }
+          >
+            <div className="space-y-4">
+              <Field
+                label="Name"
                 value={activity.user?.name || "Unknown"}
+                copy={activity.user?.name}
               />
-              <InfoRow
+              <Field
                 label="Email"
-                value={activity.user?.email || "N/A"}
+                value={activity.user?.email || "—"}
                 copy={activity.user?.email}
+                valueClassName="text-xs font-normal"
               />
-              <InfoRow
+              <Field
                 label="User ID"
-                value={activity.user?.id ?? "N/A"}
+                value={activity.user?.id ?? "—"}
                 copy={
-                  activity.user?.id != null
-                    ? String(activity.user.id)
-                    : undefined
+                  activity.user?.id != null ? String(activity.user.id) : undefined
+                }
+                valueClassName="font-mono text-xs font-normal"
+              />
+              <Field
+                label="Actor Type"
+                value={
+                  <span className="capitalize">{activity.userType}</span>
                 }
               />
-            </CardContent>
-          </Card>
+            </div>
+          </DetailPanel>
 
-          {/* Request Metadata */}
-          <Card className="rounded-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="h-5 w-5" />
-                Request Metadata
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <InfoRow
-                label="Request ID"
-                value={activity.requestId}
-                copy={activity.requestId}
+          <DetailPanel title="Event" description="Identifiers for this row">
+            <div className="space-y-4">
+              <Field
+                label="Event ID"
+                value={`#${activity.id}`}
+                copy={String(activity.id)}
+                valueClassName="font-mono text-xs font-normal"
               />
-              <InfoRow
-                label="Session ID"
-                value={activity.sessionId || "N/A"}
-                copy={activity.sessionId || undefined}
+              <Field
+                label="Raw Timestamp"
+                value={activity.createdAt}
+                copy={activity.createdAt}
+                valueClassName="font-mono text-xs font-normal"
               />
-              <InfoRow
-                label="IP Address"
-                value={activity.ipAddress}
-                copy={activity.ipAddress}
-              />
-              <InfoRow label="User Agent" value={activity.userAgent} />
-            </CardContent>
-          </Card>
+            </div>
+          </DetailPanel>
         </div>
       </div>
     </div>

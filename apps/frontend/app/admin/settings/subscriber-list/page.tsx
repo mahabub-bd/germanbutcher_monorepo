@@ -9,7 +9,11 @@ export default async function SubscriberPage({ searchParams }: ListPageProps) {
   const { page, limit, searchParams: params } = await parseListSearchParams(searchParams);
   return (
     <AdminPageContainer>
-      <SubscriberList initialPage={page} initialLimit={limit} />
+      <SubscriberList
+        initialPage={page}
+        initialLimit={limit}
+        initialSearchParams={params}
+      />
     </AdminPageContainer>
   );
 }

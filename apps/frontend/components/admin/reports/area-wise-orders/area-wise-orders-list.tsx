@@ -572,7 +572,7 @@ export default function AreaWiseOrdersList({
               <>
                 {/* Desktop table */}
                 <div className="hidden overflow-x-auto md:block">
-                  <Table>
+                  <Table className="report-table">
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
                         <SortableHead

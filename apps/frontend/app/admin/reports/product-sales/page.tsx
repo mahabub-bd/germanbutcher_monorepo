@@ -51,9 +51,9 @@ export default async function ProductSalesReportPage({
 
   try {
     const queryParams = new URLSearchParams();
-    if (fromDate) queryParams.append("fromDate", fromDate);
-    if (preset) queryParams.append("preset", preset);
-    else {
+    if (preset) {
+      queryParams.append("preset", preset);
+    } else {
       if (fromDate) queryParams.append("fromDate", fromDate);
       if (toDate) queryParams.append("toDate", toDate);
     }
