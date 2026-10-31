@@ -2,10 +2,11 @@
 
 import type React from "react";
 
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { PillBadge } from "@/components/common/pill-badge";
 import { PaginationComponent } from "@/components/common/pagination";
 import { TableSearch } from "@/components/common/table-search";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,6 +15,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -21,15 +29,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
 import type { MenuItem } from "@/utils/types";
 import {
+  CheckCircle2,
   Copy,
-  Filter,
   LayoutList,
   MoreHorizontal,
   Pencil,
   Plus,
+  RefreshCw,
   Trash2,
   XCircle,
 } from "lucide-react";
@@ -111,6 +121,8 @@ export function MenuList({
     setCurrentPage(page);
   };
 
+  // Parent names resolve ids that fall outside the current page, so the full
+  // main-menu list is loaded once on mount.
   const fetchParentMenuItems = async () => {
     try {
       const response = await fetchData<MenuItem[]>(
@@ -122,7 +134,7 @@ export function MenuList({
     }
   };
 
-  const fetchMenuItems = async () => {
+  const fetchMenuItems = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -151,17 +163,21 @@ export function MenuList({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, limit, searchQuery, statusFilter, isMainMenuFilter]);
 
   useEffect(() => {
     fetchParentMenuItems();
-    fetchMenuItems();
   }, []);
 
+  // Fetch data when dependencies change
   useEffect(() => {
     fetchMenuItems();
+  }, [fetchMenuItems]);
+
+  // Update URL when state changes
+  useEffect(() => {
     updateUrl();
-  }, [currentPage, limit, searchQuery, statusFilter, isMainMenuFilter]);
+  }, [updateUrl]);
 
   const handleDeleteClick = (menuItem: MenuItem) => {
     setSelectedMenuItem(menuItem);
@@ -224,198 +240,44 @@ export function MenuList({
     return parentItem ? parentItem.name : "Unknown";
   };
 
-  const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-      <LayoutList className="h-10 w-10 text-muted-foreground mb-4" />
-      <h3 className="text-lg font-semibold">No menu items found</h3>
-      <p className="text-sm text-muted-foreground mt-2">
-        {searchQuery || statusFilter || isMainMenuFilter
-          ? "No menu items match your search criteria. Try different filters."
-          : "Get started by adding your first menu item."}
-      </p>
-      {!(searchQuery || statusFilter || isMainMenuFilter) &&
-        can(MENU_URL, "canCreate") && (
-          <Button asChild className="mt-4">
-            <Link href="/admin/menu/add">
-              <Plus className="mr-2 h-4 w-4" /> Add Menu Item
-            </Link>
-          </Button>
-        )}
-      {(searchQuery || statusFilter || isMainMenuFilter) && (
-        <Button variant="outline" className="mt-4" onClick={clearFilters}>
-          Clear Filters
-        </Button>
-      )}
-    </div>
+  const activeCount = menuItems.filter((item) => item.isActive).length;
+  const inactiveCount = menuItems.length - activeCount;
+  const mainMenuCount = menuItems.filter((item) => item.isMainMenu).length;
+  const subMenuCount = menuItems.length - mainMenuCount;
+  const hasFilters = Boolean(
+    searchQuery ||
+      (statusFilter && statusFilter !== "all") ||
+      (isMainMenuFilter && isMainMenuFilter !== "all")
   );
+  const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
+  const lastRow = Math.min(currentPage * limit, totalItems);
 
-  const renderActiveFilters = () => {
-    const hasFilters = searchQuery || statusFilter || isMainMenuFilter;
-
-    if (!hasFilters) return null;
-
-    return (
-      <div className="flex flex-wrap gap-2 mt-4">
-        {searchQuery && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Search: {searchQuery}
-            <button onClick={() => setSearchQuery("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {statusFilter && statusFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Status: {statusFilter}
-            <button onClick={() => setStatusFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {isMainMenuFilter && isMainMenuFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Menu Type: {isMainMenuFilter === "true" ? "Main Menu" : "Sub Menu"}
-            <button onClick={() => setIsMainMenuFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="h-7 text-xs"
-        >
-          Clear all
+  const renderActions = (menuItem: MenuItem) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Open menu</span>
         </Button>
-      </div>
-    );
-  };
-
-  const renderTableView = () => (
-  
-      <Table className="min-w-180">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>URL</TableHead>
-            <TableHead>Parent</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-center">
-              Order
-            </TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {menuItems.map((menuItem) => (
-            <TableRow key={menuItem.id}>
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-1">
-                  <span>{menuItem.name}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 shrink-0"
-                    onClick={() => handleCopyName(menuItem.name)}
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                    <span className="sr-only">Copy menu name</span>
-                  </Button>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1">
-                  <span
-                    className="text-sm max-w-[320px] truncate text-muted-foreground"
-                    title={menuItem.url}
-                  >
-                    {menuItem.url}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 shrink-0"
-                    onClick={() => handleCopyUrl(menuItem.url)}
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                    <span className="sr-only">Copy URL</span>
-                  </Button>
-                </div>
-              </TableCell>
-              <TableCell>{getParentMenuName(menuItem.parentId)}</TableCell>
-              <TableCell>
-                <Badge
-                  variant="outline"
-                  className={
-                    menuItem.isMainMenu
-                      ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800"
-                      : "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800"
-                  }
-                >
-                  {menuItem.isMainMenu ? "Main Menu" : "Sub Menu"}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <Badge
-                  variant="outline"
-                  className={
-                    menuItem.isActive
-                      ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
-                      : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
-                  }
-                >
-                  {menuItem.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-center">
-                {menuItem.order}
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {can(MENU_URL, "canEdit") && (
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/menu/${menuItem.id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    {can(MENU_URL, "canDelete") && (
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDeleteClick(menuItem)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {can(MENU_URL, "canEdit") && (
+          <DropdownMenuItem asChild>
+            <Link href={`/admin/menu/${menuItem.id}/edit`}>
+              <Pencil className="mr-2 h-4 w-4" /> Edit
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {can(MENU_URL, "canDelete") && (
+          <DropdownMenuItem
+            className="text-red-600"
+            onClick={() => handleDeleteClick(menuItem)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" /> Delete
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 
   return (
@@ -423,173 +285,367 @@ export function MenuList({
       <div className="w-full">
         <PageHeader
           title="Menus"
-          description="Manage your website menu items"
-          {...(can(MENU_URL, "canCreate")
-            ? {
-              actionLabel: "Add Menu",
-              actionHref: "/admin/menu/add",
-            }
-            : {})}
-        />
+          description="Website menu structure — main menus, their sub items and the order they appear in."
+        >
+          {can(MENU_URL, "canCreate") && (
+            <Button asChild size="sm">
+              <Link href="/admin/menu/add">
+                <Plus className="size-4" />
+                <span className="hidden sm:inline">Add Menu</span>
+              </Link>
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+            onClick={fetchMenuItems}
+          >
+            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+        </PageHeader>
 
-        <div className="space-y-4">
-          <div className="flex flex-row justify-between gap-2">
+        {/* Toolbar */}
+        <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
+          <div className="flex flex-col gap-2.5 md:flex-row md:flex-nowrap md:items-center md:gap-3">
             <TableSearch
-              wrapperClassName="w-full sm:max-w-xs"
+              wrapperClassName="w-full md:max-w-xs"
+              className="h-9"
               placeholder="Search menu items..."
               value={searchQuery}
               onChange={handleSearchChange}
             />
 
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2 px-3"
-                  >
-                    <Filter className="h-4 w-4" />
-                    <span>Filters</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-64 p-3 rounded-sm shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
-                  sideOffset={8}
+            <div className="grid grid-cols-2 gap-2.5 md:flex md:items-center md:gap-3">
+              <div className="md:w-35 md:shrink-0">
+                <Select
+                  value={statusFilter || "all"}
+                  onValueChange={(value) => {
+                    setStatusFilter(value === "all" ? "" : value);
+                    setCurrentPage(1);
+                  }}
                 >
-                  <div className="space-y-3">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium">Filters</h4>
-                      {(statusFilter || isMainMenuFilter) && (
-                        <button
-                          onClick={clearFilters}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Clear all
-                        </button>
-                      )}
-                    </div>
+                  <SelectTrigger className="h-9 w-full">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                    {/* Status Filter */}
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">
-                        Status
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          onClick={() => {
-                            setStatusFilter("all");
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${statusFilter === "all"
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          All
-                        </button>
-                        <button
-                          onClick={() => {
-                            setStatusFilter("active");
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "active"
-                              ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          <span className="h-2 w-2 rounded-full bg-green-500" />
-                          Active
-                        </button>
-                        <button
-                          onClick={() => {
-                            setStatusFilter("inactive");
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${statusFilter === "inactive"
-                              ? "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          <span className="h-2 w-2 rounded-full bg-red-500" />
-                          Inactive
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Menu Type Filter */}
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">
-                        Menu Type
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          onClick={() => {
-                            setIsMainMenuFilter("all");
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${isMainMenuFilter === "all"
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          All
-                        </button>
-                        <button
-                          onClick={() => {
-                            setIsMainMenuFilter("true");
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${isMainMenuFilter === "true"
-                              ? "bg-purple-50 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800 text-purple-600 dark:text-purple-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          Main Menu
-                        </button>
-                        <button
-                          onClick={() => {
-                            setIsMainMenuFilter("false");
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${isMainMenuFilter === "false"
-                              ? "bg-orange-50 border-orange-200 dark:bg-orange-900/30 dark:border-orange-800 text-orange-600 dark:text-orange-400"
-                              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          Sub Menu
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="md:w-37 md:shrink-0">
+                <Select
+                  value={isMainMenuFilter || "all"}
+                  onValueChange={(value) => {
+                    setIsMainMenuFilter(value === "all" ? "" : value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-full">
+                    <SelectValue placeholder="Menu type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All menu types</SelectItem>
+                    <SelectItem value="true">Main menu</SelectItem>
+                    <SelectItem value="false">Sub menu</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
+            {hasFilters && (
+              <div className="flex items-center gap-2 md:ml-auto">
+                <PillBadge className="font-medium">
+                  {[
+                    searchQuery && `Search: ${searchQuery}`,
+                    statusFilter &&
+                      statusFilter !== "all" &&
+                      `Status: ${statusFilter === "active" ? "Active" : "Inactive"}`,
+                    isMainMenuFilter &&
+                      isMainMenuFilter !== "all" &&
+                      `Type: ${isMainMenuFilter === "true" ? "Main menu" : "Sub menu"}`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </PillBadge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 text-muted-foreground"
+                  onClick={clearFilters}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
           </div>
-
-          {renderActiveFilters()}
-
-          {isLoading ? (
-            <LoadingIndicator message=" Loading Menus..." />
-          ) : menuItems.length === 0 ? (
-            renderEmptyState()
-          ) : (
-            <div className="mt-6">{renderTableView()}</div>
-          )}
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground text-center md:text-left truncate">
-              {`Showing ${menuItems.length} of ${totalItems} menu items`}
-            </p>
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <LoadingIndicator message="Loading menus..." />
           </div>
+        ) : menuItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+            <div className="rounded-full bg-muted p-3">
+              <LayoutList className="size-6 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">No menu items found</p>
+              <p className="text-xs text-muted-foreground">
+                {hasFilters
+                  ? "No menu items match these filters. Try a different name, status or type."
+                  : "Get started by adding your first menu item."}
+              </p>
+            </div>
+            {hasFilters ? (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : (
+              can(MENU_URL, "canCreate") && (
+                <Button size="sm" asChild>
+                  <Link href="/admin/menu/add">
+                    <Plus className="size-4" /> Add Menu
+                  </Link>
+                </Button>
+              )
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Range totals */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+              <StatsCard
+                icon={LayoutList}
+                title="Total items"
+                value={totalItems.toLocaleString("en-US")}
+                description={`Page ${currentPage} of ${Math.max(totalPages, 1)}`}
+                bgColor="blue"
+              />
+              <StatsCard
+                icon={CheckCircle2}
+                title="Active"
+                value={activeCount.toLocaleString("en-US")}
+                description="On this page"
+                bgColor="green"
+              />
+              <StatsCard
+                icon={XCircle}
+                title="Inactive"
+                value={inactiveCount.toLocaleString("en-US")}
+                description="On this page"
+                bgColor="red"
+              />
+              <StatsCard
+                icon={LayoutList}
+                title="Main menus"
+                value={mainMenuCount.toLocaleString("en-US")}
+                description="On this page"
+                bgColor="purple"
+              />
+              <StatsCard
+                icon={LayoutList}
+                title="Sub menus"
+                value={subMenuCount.toLocaleString("en-US")}
+                description="On this page"
+                bgColor="orange"
+              />
+            </div>
 
-          <div className="flex-1 w-full md:w-auto">
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={handlePageChange}
-            />
-          </div>
-        </div>
+            {/* Menu items */}
+            <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+                <div>
+                  <h3 className="text-sm font-semibold">Menu items</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Sorted by menu order · {limit} per page
+                  </p>
+                </div>
+                <PillBadge className="font-medium tabular-nums">
+                  {totalItems.toLocaleString("en-US")} total
+                </PillBadge>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <Table className="report-table min-w-180">
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="pl-4">Name</TableHead>
+                      <TableHead>URL</TableHead>
+                      <TableHead>Parent</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Order</TableHead>
+                      <TableHead className="pr-4 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {menuItems.map((menuItem) => (
+                      <TableRow key={menuItem.id}>
+                        <TableCell className="py-2.5 pl-4">
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm font-semibold">
+                              {menuItem.name}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 shrink-0"
+                              onClick={() => handleCopyName(menuItem.name)}
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                              <span className="sr-only">Copy menu name</span>
+                            </Button>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <span
+                              className="block max-w-55 truncate text-muted-foreground"
+                              title={menuItem.url}
+                            >
+                              {menuItem.url}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 shrink-0"
+                              onClick={() => handleCopyUrl(menuItem.url)}
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                              <span className="sr-only">Copy URL</span>
+                            </Button>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="text-muted-foreground">
+                          {getParentMenuName(menuItem.parentId)}
+                        </TableCell>
+
+                        <TableCell>
+                          <PillBadge
+                            tone={menuItem.isMainMenu ? "violet" : "orange"}
+                          >
+                            {menuItem.isMainMenu ? "Main Menu" : "Sub Menu"}
+                          </PillBadge>
+                        </TableCell>
+
+                        <TableCell>
+                          <PillBadge
+                            tone={menuItem.isActive ? "emerald" : "red"}
+                          >
+                            {menuItem.isActive ? "Active" : "Inactive"}
+                          </PillBadge>
+                        </TableCell>
+
+                        <TableCell className="text-right">
+                          <span className="text-sm font-semibold tabular-nums">
+                            {menuItem.order}
+                          </span>
+                        </TableCell>
+
+                        <TableCell className="pr-4 text-right">
+                          {renderActions(menuItem)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="divide-y md:hidden">
+                {menuItems.map((menuItem) => (
+                  <article key={menuItem.id} className="space-y-3 p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-1">
+                        <p className="truncate text-sm font-semibold">
+                          {menuItem.name}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0"
+                          onClick={() => handleCopyName(menuItem.name)}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          <span className="sr-only">Copy menu name</span>
+                        </Button>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <PillBadge
+                          tone={menuItem.isActive ? "emerald" : "red"}
+                        >
+                          {menuItem.isActive ? "Active" : "Inactive"}
+                        </PillBadge>
+                        {renderActions(menuItem)}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-2.5">
+                      <div className="col-span-2">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          URL
+                        </p>
+                        <p
+                          className="truncate text-sm font-semibold"
+                          title={menuItem.url}
+                        >
+                          {menuItem.url}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Parent
+                        </p>
+                        <p className="truncate text-sm">
+                          {getParentMenuName(menuItem.parentId)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Type · Order
+                        </p>
+                        <p className="text-sm">
+                          {menuItem.isMainMenu ? "Main Menu" : "Sub Menu"} ·{" "}
+                          <span className="font-semibold tabular-nums">
+                            {menuItem.order}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              {/* Footer: what the list covers */}
+              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
+                <p className="text-xs text-muted-foreground">
+                  Showing {firstRow.toLocaleString("en-US")}–
+                  {lastRow.toLocaleString("en-US")} of{" "}
+                  {totalItems.toLocaleString("en-US")} menu item
+                  {totalItems === 1 ? "" : "s"}
+                  {searchQuery && ` matching “${searchQuery}”`}
+                </p>
+                {totalPages > 1 && (
+                  <PaginationComponent
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    baseUrl="#"
+                    onPageChange={handlePageChange}
+                  />
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <DeleteConfirmationDialog

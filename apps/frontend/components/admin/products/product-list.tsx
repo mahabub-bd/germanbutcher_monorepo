@@ -2,8 +2,13 @@
 
 import type React from "react";
 
+import { revalidateProducts } from "@/actions/revalidate";
 import StatsCard from "@/components/admin/dashboard/stats-card";
+import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
+import { PaginationComponent } from "@/components/common/pagination";
+import { PillBadge } from "@/components/common/pill-badge";
+import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +25,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   Table,
   TableBody,
   TableCell,
@@ -28,12 +43,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
-
-import { revalidateProducts } from "@/actions/revalidate";
-import { usePermissions } from "@/components/admin/permissions/use-permissions";
-import { PaginationComponent } from "@/components/common/pagination";
-import { TableSearch } from "@/components/common/table-search";
-import { formatCurrencyEnglish, getUnitBadgeColor } from "@/lib/utils";
+import { cn, formatCurrencyEnglish } from "@/lib/utils";
 import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
 import type { Brand, Category, Product } from "@/utils/types";
 import {
@@ -42,14 +52,14 @@ import {
   Boxes,
   CheckCircle,
   Eye,
-  Filter,
   History,
   MoreHorizontal,
   Package,
   Pencil,
   Plus,
+  RefreshCw,
+  SlidersHorizontal,
   Trash2,
-  XCircle
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -64,6 +74,22 @@ interface ProductListProps {
   initialPage: number;
   initialLimit: number;
   initialSearchParams?: { [key: string]: string | string[] | undefined };
+}
+
+/** Labelled cell used by the mobile cards. */
+function DetailField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[13px] font-medium text-foreground/60">{label}</p>
+      {children}
+    </div>
+  );
 }
 
 export function ProductList({
@@ -112,6 +138,9 @@ export function ProductList({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Below md the filters live in a bottom sheet instead of the toolbar strip.
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   const updateUrl = useCallback(() => {
     const params = new URLSearchParams();
@@ -296,463 +325,669 @@ export function ProductList({
       featuredFilter
     );
 
-  const renderEmptyState = () => (
-    <div className="p-4 pb-6">
-      <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
-        <Package className="h-10 w-10 text-muted-foreground/50 mb-4" />
-        <h3 className="text-lg font-semibold">No products found</h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          {hasActiveFilters()
-            ? "No products match your search criteria. Try different filters."
-            : "Get started by adding your first product."}
-        </p>
-        {!hasActiveFilters() && can(MENU_URL, "canCreate") && (
-          <Button asChild className="mt-4">
-            <Link href="/admin/products/add">
-              <Plus className="mr-2 h-4 w-4" /> Add Product
-            </Link>
-          </Button>
-        )}
-        {hasActiveFilters() && (
-          <Button variant="outline" className="mt-4" onClick={clearFilters}>
-            Clear Filters
-          </Button>
-        )}
-      </div>
-    </div>
-  );
+  const categoryName =
+    categories.find((c) => c.id.toString() === categoryFilter)?.name ??
+    categoryFilter;
+  const brandName =
+    brands.find((b) => b.id.toString() === brandFilter)?.name ?? brandFilter;
 
-  const renderActiveFilters = () => {
-    if (!hasActiveFilters()) return null;
+  const activeFilterSummary = [
+    debouncedSearch && `Search: ${debouncedSearch}`,
+    categoryFilter &&
+    categoryFilter !== "all" &&
+    `Category: ${categoryName}`,
+    brandFilter && brandFilter !== "all" && `Brand: ${brandName}`,
+    statusFilter &&
+    statusFilter !== "all" &&
+    `Status: ${statusFilter === "true" ? "Active" : "Inactive"}`,
+    featuredFilter &&
+    featuredFilter !== "all" &&
+    (featuredFilter === "true" ? "Featured" : "Not featured"),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
-    return (
-      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-        {searchQuery && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
+  // Count surfaced on the mobile Filters button so a closed sheet still shows
+  // that the catalogue is narrowed.
+  const activeFilterCount = [
+    Boolean(searchQuery),
+    Boolean(categoryFilter),
+    Boolean(brandFilter),
+    Boolean(statusFilter),
+    Boolean(featuredFilter),
+  ].filter(Boolean).length;
+
+  // One source of truth for the filter controls: the toolbar renders them
+  // inline at their fixed widths, the mobile sheet renders the same nodes full
+  // width under a visible label.
+  const renderFilterControls = (mode: "bar" | "sheet") => {
+    const triggerClass =
+      mode === "bar"
+        ? "h-9 w-full"
+        : "h-11 w-full px-3 text-sm font-medium";
+
+    return [
+      {
+        key: "category",
+        label: "Category",
+        barClass: "md:w-36 md:shrink-0",
+        node: (
+          <Select
+            value={categoryFilter || "all"}
+            onValueChange={(value) => {
+              setCategoryFilter(value);
+              setCurrentPage(1);
+            }}
           >
-            Search: {searchQuery}
-            <button onClick={() => setSearchQuery("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {categoryFilter && categoryFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
+            <SelectTrigger className={triggerClass}>
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id.toString()}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        key: "brand",
+        label: "Brand",
+        barClass: "md:w-36 md:shrink-0",
+        node: (
+          <Select
+            value={brandFilter || "all"}
+            onValueChange={(value) => {
+              setBrandFilter(value);
+              setCurrentPage(1);
+            }}
           >
-            Category:{" "}
-            {categories.find((c) => c.id.toString() === categoryFilter)?.name ||
-              categoryFilter}
-            <button onClick={() => setCategoryFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {brandFilter && brandFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
+            <SelectTrigger className={triggerClass}>
+              <SelectValue placeholder="Brand" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All brands</SelectItem>
+              {brands.map((brand) => (
+                <SelectItem key={brand.id} value={brand.id.toString()}>
+                  {brand.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        key: "status",
+        label: "Status",
+        barClass: "md:w-32 md:shrink-0",
+        node: (
+          <Select
+            value={statusFilter || "all"}
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              setCurrentPage(1);
+            }}
           >
-            Brand:{" "}
-            {brands.find((b) => b.id.toString() === brandFilter)?.name ||
-              brandFilter}
-            <button onClick={() => setBrandFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {statusFilter && statusFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
+            <SelectTrigger className={triggerClass}>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="true">Active</SelectItem>
+              <SelectItem value="false">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        key: "featured",
+        label: "Featured",
+        barClass: "md:w-36 md:shrink-0",
+        node: (
+          <Select
+            value={featuredFilter || "all"}
+            onValueChange={(value) => {
+              setFeaturedFilter(value);
+              setCurrentPage(1);
+            }}
           >
-            Status: {statusFilter === "true" ? "Active" : "Inactive"}
-            <button onClick={() => setStatusFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {featuredFilter && featuredFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            {featuredFilter === "true" ? "Featured" : "Not Featured"}
-            <button onClick={() => setFeaturedFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="h-7 text-xs"
-        >
-          Clear all
-        </Button>
-      </div>
-    );
+            <SelectTrigger className={triggerClass}>
+              <SelectValue placeholder="Featured" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All products</SelectItem>
+              <SelectItem value="true">Featured</SelectItem>
+              <SelectItem value="false">Not featured</SelectItem>
+            </SelectContent>
+          </Select>
+        ),
+      },
+    ];
   };
 
-  const renderFiltersMenu = () => (
+  const activeCount = products.filter((p) => p.isActive).length;
+  const inactiveCount = products.filter((p) => !p.isActive).length;
+  const outOfStockCount = products.filter((p) => p.stock === 0).length;
+  const firstRow = products.length === 0 ? 0 : (currentPage - 1) * limit + 1;
+  const lastRow = Math.min(currentPage * limit, totalItems);
+
+  const renderToggle = (product: Product, className?: string) => (
+    <ActiveStatusToggle
+      isActive={product.isActive}
+      disabled={togglingId === product.id}
+      onToggle={() => toggleActive(product)}
+      label={product.name}
+      className={className}
+    />
+  );
+
+  const renderActions = (product: Product) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 px-3 shrink-0">
-          <Filter className="h-4 w-4" />
-          <span>Filters</span>
-          {(categoryFilter ||
-            brandFilter ||
-            statusFilter ||
-            featuredFilter) && (
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            )}
+        <Button variant="ghost" size="icon" className="size-8">
+          <MoreHorizontal className="size-4" />
+          <span className="sr-only">Open menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-100">
-        <div className="grid grid-cols-2 gap-3 p-3">
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Category</h4>
-            <Select
-              value={categoryFilter}
-              onValueChange={(value) => {
-                setCategoryFilter(value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem
-                    key={category.id}
-                    value={category.id.toString()}
-                  >
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Brand</h4>
-            <Select
-              value={brandFilter}
-              onValueChange={(value) => {
-                setBrandFilter(value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="All Brands" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Brands</SelectItem>
-                {brands.map((brand) => (
-                  <SelectItem key={brand.id} value={brand.id.toString()}>
-                    {brand.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Status</h4>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="true">Active</SelectItem>
-                <SelectItem value="false">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Featured</h4>
-            <Select
-              value={featuredFilter}
-              onValueChange={(value) => {
-                setFeaturedFilter(value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="All" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="true">Featured</SelectItem>
-                <SelectItem value="false">Not Featured</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {(categoryFilter ||
-            brandFilter ||
-            statusFilter ||
-            featuredFilter) && (
-              <div className="col-span-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearFilters}
-                  className="w-full mt-2"
-                >
-                  Reset Filters
-                </Button>
-              </div>
-            )}
-        </div>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem asChild>
+          <Link href={`/admin/products/${product.id}/view`}>
+            <Eye className="size-4" /> View
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href={`/admin/products/${product.id}/stock-movements`}>
+            <ArrowLeftRight className="size-4" /> Stock Movements
+          </Link>
+        </DropdownMenuItem>
+        {can(MENU_URL, "canEdit") && (
+          <DropdownMenuItem asChild>
+            <Link href={`/admin/products/${product.id}/edit`}>
+              <Pencil className="size-4" /> Edit
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {can(MENU_URL, "canDelete") && (
+          <DropdownMenuItem
+            variant="destructive"
+            onClick={() => handleDeleteClick(product)}
+          >
+            <Trash2 className="size-4" /> Delete
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 
-  const renderTableView = () => (
-    <div className="min-w-0">
-      <Table className="table-fixed min-w-215">
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[24%]">Product</TableHead>
-            <TableHead className="w-[11%] text-right">Purchase Price</TableHead>
-            <TableHead className="w-[11%] text-right">Sale Price</TableHead>
-            <TableHead className="w-[11%]">Brand</TableHead>
-            <TableHead className="w-[13%]">Category</TableHead>
-            <TableHead className="w-[10%] text-center">Stock</TableHead>
-            <TableHead className="w-[10%]">Status</TableHead>
-            <TableHead className="w-[8%] text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {products.map((product) => (
-            <TableRow key={product.id} className="hover:bg-muted/50">
-              <TableCell className="overflow-hidden">
-                <div className="flex min-w-0 items-center gap-2 xl:gap-2.5">
-                  <span className="flex aspect-3/2 h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
-                    <ProductImage product={product} width={64} height={48} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      href={`/admin/products/${product.id}/view`}
-                      title={product.name}
-                      className="block truncate font-medium leading-tight hover:underline"
-                    >
-                      {product.name}
-                    </Link>
-                    <p className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden text-xs text-muted-foreground">
-                      <span className="truncate font-mono">
-                        {product?.productSku || "—"}
-                      </span>
-                      {product?.unit?.name && (
-                        <span
-                          className={`inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-medium capitalize ${getUnitBadgeColor(product.unit.name)}`}
-                        >
-                          {product.unit.name}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell className="overflow-hidden text-ellipsis whitespace-nowrap text-right text-muted-foreground">
-                {formatCurrencyEnglish(product?.purchasePrice)}
-              </TableCell>
-              <TableCell className="overflow-hidden text-ellipsis whitespace-nowrap text-right font-medium">
-                {formatCurrencyEnglish(product?.sellingPrice)}
-              </TableCell>
-              <TableCell className="overflow-hidden text-ellipsis whitespace-nowrap">
-                <span title={product.brand?.name || "-"}>{product.brand?.name || "-"}</span>
-              </TableCell>
-              <TableCell className="overflow-hidden text-ellipsis whitespace-nowrap">
-                {product.category?.name || "-"}
-              </TableCell>
-              <TableCell className="text-center">
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${product.stock === 0
-                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                    : "bg-muted"
-                    }`}
-                >
-                  <Boxes className="h-3 w-3" />
-                  {product.stock}
-                </span>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {product.saleCount} sold
-                </p>
-              </TableCell>
-              <TableCell>
-                <ActiveStatusToggle
-                  isActive={product.isActive}
-                  disabled={togglingId === product.id}
-                  onToggle={() => toggleActive(product)}
-                  label={product.name}
-                />
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {/* View Option */}
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href={`/admin/products/${product.id}/view`}
-                        passHref
-                      >
-                        <Eye className="mr-2 h-4 w-4" /> View
-                      </Link>
-                    </DropdownMenuItem>
-                    {can(MENU_URL, "canEdit") && (
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/products/${product.id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    {can(MENU_URL, "canDelete") && (
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDeleteClick(product)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
-
   return (
     <>
-      <div className="w-full  space-y-4">
+      <div className="w-full">
         <PageHeader
           title="Products"
-          description="Manage your product inventory"
-          {...(can(MENU_URL, "canCreate")
-            ? {
-              actionLabel: "Add Product",
-              actionHref: "/admin/products/add",
-            }
-            : {})}
+          description="Catalogue, pricing and stock for every product in the store."
         >
-          <Button asChild variant="outline">
+          <Button variant="outline" size="sm" asChild>
             <Link href="/admin/products/stock-movements">
-              <ArrowLeftRight className="mr-2 h-4 w-4" />
+              <ArrowLeftRight className="size-3.5" />
               <span className="hidden sm:inline">Stock Movements</span>
             </Link>
           </Button>
-          <Button asChild variant="outline">
+          <Button variant="outline" size="sm" asChild>
             <Link href="/admin/products/history">
-              <History className="mr-2 h-4 w-4" />
+              <History className="size-3.5" />
               <span className="hidden sm:inline">History</span>
             </Link>
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+            onClick={fetchProducts}
+          >
+            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+          {can(MENU_URL, "canCreate") && (
+            <Button size="sm" asChild>
+              <Link href="/admin/products/add">
+                <Plus className="size-4" />
+                <span className="hidden sm:inline">Add Product</span>
+              </Link>
+            </Button>
+          )}
         </PageHeader>
 
-        {/* Summary tiles */}
-        <div className="grid grid-cols-3 md:grid-cols-3 gap-3">
-          <StatsCard
-            icon={Package}
-            title="Total Products"
-            value={totalItems}
-            bgColor="blue"
-          />
-          <StatsCard
-            icon={CheckCircle}
-            title="Active"
-            value={products.filter((p) => p.isActive).length}
-            bgColor="green"
-          />
-          <StatsCard
-            icon={Ban}
-            title="Inactive"
-            value={products.filter((p) => !p.isActive).length}
-            bgColor="orange"
-          />
-        </div>
-
-        {/* List card: toolbar + table */}
-        <div className="rounded-sm border bg-card">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                <Package className="h-4.5 w-4.5" />
-              </span>
-              <div>
-                <h3 className="font-semibold leading-tight">All Products</h3>
-                <p className="text-sm text-muted-foreground">
-                  {totalItems} product{totalItems === 1 ? "" : "s"}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
+        {/* Toolbar */}
+        <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
+          <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:items-center md:gap-3">
+            {/* Search and the Filters button share one line on phones;
+                md:contents hands both back to the toolbar row from md up. */}
+            <div className="flex items-center gap-2 md:contents">
               <TableSearch
-                wrapperClassName="w-full sm:w-64"
-                placeholder="Search products..."
+                wrapperClassName="w-full md:max-w-xs"
+                className="h-9"
+                placeholder="Search by name or SKU..."
                 value={searchQuery}
                 onChange={handleSearchChange}
               />
-              {renderFiltersMenu()}
+
+              <div className="shrink-0 md:hidden">
+                <Sheet
+                  open={filterSheetOpen}
+                  onOpenChange={setFilterSheetOpen}
+                >
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                      <SlidersHorizontal className="size-3.5" />
+                      Filters
+                      {activeFilterCount > 0 && (
+                        <Badge className="size-4.5 rounded-full px-0 text-[0.65rem] font-semibold">
+                          {activeFilterCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent
+                    side="bottom"
+                    className="max-h-[82dvh] gap-0 overflow-y-auto rounded-t-2xl"
+                  >
+                    <SheetHeader className="border-b pr-14">
+                      <SheetTitle>Filters</SheetTitle>
+                      <SheetDescription>
+                        Narrow the catalogue by category, brand, status and
+                        featured.
+                      </SheetDescription>
+                    </SheetHeader>
+
+                    {renderFilterControls("sheet").map((control) => (
+                      <div key={control.key} className="px-4 pt-4">
+                        <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          {control.label}
+                        </p>
+                        {control.node}
+                      </div>
+                    ))}
+
+                    <SheetFooter className="sticky bottom-0 mt-4 flex-row border-t bg-background pb-[max(1rem,env(safe-area-inset-bottom))]">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          clearFilters();
+                          setFilterSheetOpen(false);
+                        }}
+                      >
+                        Clear all
+                      </Button>
+                      <SheetClose asChild>
+                        <Button className="flex-1">
+                          {totalItems > 0
+                            ? `Show ${totalItems.toLocaleString("en-US")} products`
+                            : "Done"}
+                        </Button>
+                      </SheetClose>
+                    </SheetFooter>
+                  </SheetContent>
+                </Sheet>
+              </div>
             </div>
-          </div>
 
-          {renderActiveFilters()}
+            <div className="hidden items-center gap-3 md:flex md:flex-wrap">
+              {renderFilterControls("bar").map((control) => (
+                <div key={control.key} className={control.barClass}>
+                  {control.node}
+                </div>
+              ))}
+            </div>
 
-          {isLoading ? (
-            <LoadingIndicator message="Loading Products..." />
-          ) : products.length === 0 ? (
-            renderEmptyState()
-          ) : (
-            renderTableView()
-          )}
-        </div>
-
-        {/* Pagination */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground text-center md:text-left truncate">
-              {`Showing ${products.length} of ${totalItems} products`}
-            </p>
-          </div>
-
-          <div className="flex-1 w-full md:w-auto">
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={handlePageChange}
-            />
+            {hasActiveFilters() && (
+              <div className="hidden min-w-0 items-center gap-2 md:flex md:ml-auto">
+                <PillBadge className="font-medium" title={activeFilterSummary}>
+                  <span className="truncate">{activeFilterSummary}</span>
+                </PillBadge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 shrink-0 text-muted-foreground"
+                  onClick={clearFilters}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
           </div>
         </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <LoadingIndicator message="Loading products..." />
+          </div>
+        ) : products.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+            <div className="rounded-full bg-muted p-3">
+              <Package className="size-6 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">No products found</p>
+              <p className="text-xs text-muted-foreground">
+                {hasActiveFilters()
+                  ? "No product matches these filters. Try another name, category or brand."
+                  : "Create your first product to start selling it on the storefront."}
+              </p>
+            </div>
+            {hasActiveFilters() ? (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : can(MENU_URL, "canCreate") ? (
+              <Button size="sm" asChild>
+                <Link href="/admin/products/add">
+                  <Plus className="size-4" /> Add product
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <>
+            {/* Page totals */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+              <StatsCard
+                icon={Package}
+                title="Total products"
+                value={totalItems.toLocaleString("en-US")}
+                description={`Page ${currentPage} of ${Math.max(totalPages, 1)}`}
+                bgColor="blue"
+              />
+              <StatsCard
+                icon={CheckCircle}
+                title="Active"
+                value={activeCount.toLocaleString("en-US")}
+                description="On this page"
+                bgColor="green"
+              />
+              <StatsCard
+                icon={Ban}
+                title="Inactive"
+                value={inactiveCount.toLocaleString("en-US")}
+                description="Hidden from the shop"
+                bgColor="orange"
+              />
+              <StatsCard
+                icon={Boxes}
+                title="Out of stock"
+                value={outOfStockCount.toLocaleString("en-US")}
+                description="Needs restocking"
+                bgColor="red"
+              />
+            </div>
+
+            {/* Product panel */}
+            <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primaryColor/10 text-primaryColor ring-1 ring-primaryColor/15">
+                    <Package className="size-4.5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold">All products</h3>
+                    <p className="text-[13px] text-foreground/70">
+                      Prices, stock and visibility for the catalogue.
+                    </p>
+                  </div>
+                </div>
+                <PillBadge className="font-medium tabular-nums">
+                  {products.length.toLocaleString("en-US")} of{" "}
+                  {totalItems.toLocaleString("en-US")}
+                </PillBadge>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <Table className="report-table table-fixed">
+                  <TableHeader className="[&_th]:font-semibold">
+                    <TableRow className="hover:bg-transparent">
+                      {/* Category is its own column from md; unit and brand
+                          join as the row gets wider (lg / xl). Product gives
+                          up a little width so both name columns stay legible.
+                          On 2xl the four measure columns also gain width and
+                          side padding so they don't read as one crowded block. */}
+                      <TableHead className="pl-4 lg:w-64 2xl:w-96">
+                        Product
+                      </TableHead>
+                      <TableHead className="w-24 lg:w-auto">
+                        Category
+                      </TableHead>
+                      <TableHead className="hidden xl:table-cell">
+                        Brand
+                      </TableHead>
+                      <TableHead className="w-24 text-right 2xl:w-28 2xl:pr-4">
+                        Price
+                      </TableHead>
+                      <TableHead className="w-20 text-right 2xl:w-24 2xl:pr-4">
+                        Stock
+                      </TableHead>
+                      <TableHead className="hidden w-16 lg:table-cell 2xl:w-20">
+                        Unit
+                      </TableHead>
+                      <TableHead className="w-28 2xl:w-32 2xl:pl-4">
+                        Status
+                      </TableHead>
+                      <TableHead className="w-14 pr-4 text-right">
+                        <span className="sr-only">Actions</span>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {products.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell className="py-2.5 pl-4">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            {/* Below lg the row gives up the thumbnail so the
+                                category column has somewhere to sit. */}
+                            <span className="hidden size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted lg:flex">
+                              <ProductImage
+                                product={product}
+                                width={40}
+                                height={40}
+                              />
+                            </span>
+                            <div className="min-w-0">
+                              <Link
+                                href={`/admin/products/${product.id}/view`}
+                                title={product.name}
+                                className="block truncate text-sm font-medium leading-tight hover:underline"
+                              >
+                                {product.name}
+                              </Link>
+                              <p
+                                className="mt-0.5 truncate text-[13px] text-foreground/70 lg:hidden"
+                                title={[product.productSku, product.brand?.name]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              >
+                                <span className="font-mono">
+                                  {product.productSku || "—"}
+                                </span>
+                                {` · ${product.brand?.name || "No brand"}`}
+                              </p>
+                              <p
+                                className="mt-0.5 hidden truncate font-mono text-[13px] text-foreground/70 lg:block"
+                                title={product.productSku || undefined}
+                              >
+                                {product.productSku || "—"}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="w-24 lg:w-auto">
+                          <p
+                            className="truncate text-sm"
+                            title={product.category?.name || undefined}
+                          >
+                            {product.category?.name || "—"}
+                          </p>
+                        </TableCell>
+
+                        <TableCell className="hidden xl:table-cell">
+                          <p
+                            className="truncate text-sm"
+                            title={product.brand?.name || undefined}
+                          >
+                            {product.brand?.name || "—"}
+                          </p>
+                        </TableCell>
+
+                        <TableCell className="text-right 2xl:pr-4">
+                          <p className="truncate text-sm font-semibold tabular-nums">
+                            {formatCurrencyEnglish(product?.sellingPrice)}
+                          </p>
+                          <p className="mt-0.5 truncate text-[13px] tabular-nums text-foreground/70">
+                            Cost {formatCurrencyEnglish(product?.purchasePrice)}
+                          </p>
+                        </TableCell>
+
+                        <TableCell className="text-right 2xl:pr-4">
+                          <p
+                            className={cn(
+                              "truncate text-sm font-semibold tabular-nums",
+                              product.stock === 0 &&
+                              "text-red-600 dark:text-red-400"
+                            )}
+                            // The unit column is desktop-only, so keep the
+                            // pair readable on the narrow table via tooltip.
+                            title={[product.stock, product.unit?.name]
+                              .filter(Boolean)
+                              .join(" ")}
+                          >
+                            {product.stock}
+                          </p>
+                          <p className="mt-0.5 truncate text-[13px] text-foreground/70">
+                            {product.saleCount} sold
+                          </p>
+                        </TableCell>
+
+                        <TableCell className="hidden lg:table-cell">
+                          <p
+                            className="truncate text-sm"
+                            title={product.unit?.name || undefined}
+                          >
+                            {product.unit?.name || "—"}
+                          </p>
+                        </TableCell>
+
+                        <TableCell className="2xl:pl-4">
+                          {renderToggle(product)}
+                        </TableCell>
+
+                        <TableCell className="pr-4 text-right">
+                          {renderActions(product)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="divide-y md:hidden">
+                {products.map((product) => (
+                  <article key={product.id} className="space-y-3 p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                          <ProductImage
+                            product={product}
+                            width={40}
+                            height={40}
+                          />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">
+                            {product.name}
+                          </p>
+                          <p className="mt-0.5 truncate text-[13px] text-foreground/70">
+                            {product.productSku || "—"}
+                          </p>
+                        </div>
+                      </div>
+                      {renderActions(product)}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-lg bg-muted/40 p-2.5">
+                      <DetailField label="Price">
+                        <p className="text-sm font-semibold tabular-nums">
+                          {formatCurrencyEnglish(product?.sellingPrice)}
+                        </p>
+                        <p className="text-[13px] tabular-nums text-foreground/70">
+                          Cost {formatCurrencyEnglish(product?.purchasePrice)}
+                        </p>
+                      </DetailField>
+                      <DetailField label="Stock">
+                        <p
+                          className={cn(
+                            "text-sm font-semibold tabular-nums",
+                            product.stock === 0 &&
+                            "text-red-600 dark:text-red-400"
+                          )}
+                        >
+                          {product.stock}
+                          {product.unit?.name ? (
+                            <span className="ml-1 text-[13px] font-normal text-foreground/70">
+                              {product.unit.name}
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="text-[13px] text-foreground/70">
+                          {product.saleCount} sold
+                        </p>
+                      </DetailField>
+                      <DetailField label="Brand">
+                        <p className="truncate text-sm">
+                          {product.brand?.name || "No brand"}
+                        </p>
+                      </DetailField>
+                      <DetailField label="Category">
+                        <p className="truncate text-sm">
+                          {product.category?.name || "No category"}
+                        </p>
+                      </DetailField>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[13px] font-medium text-foreground/60">
+                        Status
+                      </span>
+                      {renderToggle(product)}
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
+                <p className="text-[13px] text-foreground/70">
+                  Showing {firstRow.toLocaleString("en-US")}–
+                  {lastRow.toLocaleString("en-US")} of{" "}
+                  {totalItems.toLocaleString("en-US")} product
+                  {totalItems === 1 ? "" : "s"}
+                  {debouncedSearch && ` matching “${debouncedSearch}”`}
+                </p>
+                {totalPages > 1 && (
+                  <PaginationComponent
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    baseUrl="#"
+                    onPageChange={handlePageChange}
+                  />
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Delete Confirmation Dialog */}

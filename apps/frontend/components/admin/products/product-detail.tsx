@@ -299,11 +299,10 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                       {allImages.map((image, index) => (
                         <button
                           key={image.id}
-                          className={`relative aspect-square w-14 overflow-hidden rounded-md border-2 cursor-pointer transition-all ${
-                            mainImage === image.url
+                          className={`relative aspect-square w-14 overflow-hidden rounded-md border-2 cursor-pointer transition-all ${mainImage === image.url
                               ? "border-primary"
                               : "border-transparent opacity-70 hover:opacity-100"
-                          }`}
+                            }`}
                           onClick={() => handleImageClick(image.url, index)}
                         >
                           <Image
@@ -334,11 +333,10 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               {allImages.map((image, index) => (
                 <button
                   key={image.id}
-                  className={`relative aspect-square overflow-hidden rounded-md border-2 cursor-pointer transition-all ${
-                    mainImage === image.url
+                  className={`relative aspect-square overflow-hidden rounded-md border-2 cursor-pointer transition-all ${mainImage === image.url
                       ? "border-primary"
                       : "border-border opacity-75 hover:opacity-100"
-                  }`}
+                    }`}
                   onClick={() => handleImageClick(image.url, index)}
                 >
                   <Image
@@ -525,9 +523,8 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                   >
                     <Tags className="size-3" />
                     {product.tags?.length
-                      ? `${product.tags.length} Tag${
-                          product.tags.length > 1 ? "s" : ""
-                        }`
+                      ? `${product.tags.length} Tag${product.tags.length > 1 ? "s" : ""
+                      }`
                       : "Add Tag"}
                   </Link>
                 </div>
@@ -650,49 +647,86 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
           {/* ── Tabs ─────────────────────────────────────────────── */}
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="w-full justify-start gap-1 rounded-none bg-transparent border-b p-0 h-auto overflow-x-auto">
-              <TabsTrigger
-                value="overview"
-                className="gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 h-auto shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-primary dark:data-[state=active]:bg-transparent"
-              >
-                <PieChart className="size-4" />
-                Overview
-              </TabsTrigger>
-              <TabsTrigger
-                value="productDetails"
-                className="gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 h-auto shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-primary dark:data-[state=active]:bg-transparent"
-              >
-                <FileText className="size-4" />
-                Product Details
-              </TabsTrigger>
-              <TabsTrigger
-                value="inventory"
-                className="gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 h-auto shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-primary dark:data-[state=active]:bg-transparent"
-              >
-                <Layers className="size-4" />
-                Inventory
-              </TabsTrigger>
-              <TabsTrigger
-                value="supplier"
-                className="gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 h-auto shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-primary dark:data-[state=active]:bg-transparent"
-              >
-                <Building2 className="size-4" />
-                Supplier
-              </TabsTrigger>
-              <TabsTrigger
-                value="history"
-                className="gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 h-auto shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-primary dark:data-[state=active]:bg-transparent"
-              >
-                <History className="size-4" />
-                History
-              </TabsTrigger>
-              <TabsTrigger
-                value="stockMovements"
-                className="gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 h-auto shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:border-primary dark:data-[state=active]:bg-transparent"
-              >
-                <ArrowLeftRight className="size-4" />
-                Stock Movements
-              </TabsTrigger>
+            <TabsList className="scrollbar-hide h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit">
+              {(
+                [
+                  {
+                    value: "overview",
+                    label: "Overview",
+                    icon: PieChart,
+                    count: undefined as number | undefined,
+                    colors:
+                      "bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/70",
+                    activeColors:
+                      "data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-400 dark:data-[state=active]:text-blue-950",
+                  },
+                  {
+                    value: "productDetails",
+                    label: "Product Details",
+                    icon: FileText,
+                    count: undefined as number | undefined,
+                    colors:
+                      "bg-sky-50 text-sky-800 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-950/70",
+                    activeColors:
+                      "data-[state=active]:bg-sky-600 data-[state=active]:text-white dark:data-[state=active]:bg-sky-400 dark:data-[state=active]:text-sky-950",
+                  },
+                  {
+                    value: "inventory",
+                    label: "Inventory",
+                    icon: Layers,
+                    count: product.stock,
+                    colors:
+                      "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/70",
+                    activeColors:
+                      "data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-400 dark:data-[state=active]:text-emerald-950",
+                  },
+                  {
+                    value: "supplier",
+                    label: "Supplier",
+                    icon: Building2,
+                    count: undefined as number | undefined,
+                    colors:
+                      "bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70",
+                    activeColors:
+                      "data-[state=active]:bg-amber-500 data-[state=active]:text-white dark:data-[state=active]:bg-amber-400 dark:data-[state=active]:text-amber-950",
+                  },
+                  {
+                    value: "history",
+                    label: "History",
+                    icon: History,
+                    count: undefined as number | undefined,
+                    colors:
+                      "bg-violet-50 text-violet-800 hover:bg-violet-100 dark:bg-violet-950/40 dark:text-violet-300 dark:hover:bg-violet-950/70",
+                    activeColors:
+                      "data-[state=active]:bg-violet-600 data-[state=active]:text-white dark:data-[state=active]:bg-violet-400 dark:data-[state=active]:text-violet-950",
+                  },
+                  {
+                    value: "stockMovements",
+                    label: "Stock Movements",
+                    icon: ArrowLeftRight,
+                    count: undefined as number | undefined,
+                    colors:
+                      "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900",
+                    activeColors:
+                      "data-[state=active]:bg-slate-800 data-[state=active]:text-white dark:data-[state=active]:bg-slate-200 dark:data-[state=active]:text-slate-900",
+                  },
+                ] as const
+              ).map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className={`h-auto flex-none gap-1.5 rounded-lg border-0 px-2.5 py-1.5 text-xs font-semibold shadow-none transition-colors sm:px-4 sm:py-2 sm:text-sm data-[state=active]:shadow-none ${tab.colors} ${tab.activeColors}`}
+                >
+                  <tab.icon className="size-4" />
+                  <span className="hidden md:inline">{tab.label}</span>
+                  <span className="sr-only md:hidden">{tab.label}</span>
+                  {tab.count !== undefined && (
+                    <span className="ml-0.5 rounded-full bg-white/40 px-1.5 text-[11px] font-medium tabular-nums dark:bg-black/20">
+                      {tab.count}
+                    </span>
+                  )}
+                </TabsTrigger>
+              ))}
             </TabsList>
 
             {/* ── Overview ─────────────────────────────────────── */}

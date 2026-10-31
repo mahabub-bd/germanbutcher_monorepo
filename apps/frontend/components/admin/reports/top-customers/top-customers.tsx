@@ -3,7 +3,8 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ReportExcelButton } from "@/components/admin/reports/download-excel-button";
 import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
-import { Badge } from "@/components/ui/badge";
+import { PillBadge } from "@/components/common/pill-badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -15,24 +16,23 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { formatCurrencyEnglish } from "@/lib/utils";
+import { cn, formatCurrencyEnglish, shortenArea } from "@/lib/utils";
 import {
-  BarChart3,
   Crown,
-  Phone,
-  ShoppingBag,
+  RefreshCw,
   ShoppingCart,
   TrendingUp,
   Users,
-  Wallet,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import StatsCard from "../../dashboard/stats-card";
 import { TopCustomersPDF } from "./TopCustomersPDF";
 
@@ -79,6 +79,9 @@ interface TopCustomersReportProps {
   timeFilter: TimeFilter;
 }
 
+/** Whole amounts only — report values never need decimal places. */
+const amount = (value: number) => `৳${formatCurrencyEnglish(value || 0, 0)}`;
+
 export default function TopCustomersReport({
   customers,
   limit,
@@ -86,8 +89,9 @@ export default function TopCustomersReport({
   timeFilter,
 }: TopCustomersReportProps) {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
   const settings = useBusinessSettings();
+  const [mounted, setMounted] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     setMounted(true);
@@ -95,20 +99,13 @@ export default function TopCustomersReport({
 
   const updateFilter = (key: string, value: string) => {
     const params = new URLSearchParams();
-    params.set(
-      "limit",
-      key === "limit" ? value : limit.toString()
-    );
-    params.set(
-      "sortBy",
-      key === "sortBy" ? value : sortBy
-    );
-    params.set(
-      "timeFilter",
-      key === "timeFilter" ? value : timeFilter
-    );
-    router.push(`?${params.toString()}`);
+    params.set("limit", key === "limit" ? value : limit.toString());
+    params.set("sortBy", key === "sortBy" ? value : sortBy);
+    params.set("timeFilter", key === "timeFilter" ? value : timeFilter);
+    startTransition(() => router.push(`?${params.toString()}`));
   };
+
+  const handleRefresh = () => startTransition(() => router.refresh());
 
   // Totals across the ranked customers, for the summary cards and PDF.
   const totalOrders = customers.reduce(
@@ -121,61 +118,83 @@ export default function TopCustomersReport({
   );
   const avgOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
 
+  const hasData = customers.length > 0;
+  const rangeLabel = TIME_FILTER_LABELS[timeFilter];
+  const rankLabel = sortBy === "spending" ? "spending" : "orders";
+
   return (
     <div className="w-full">
-      <div className="flex items-start justify-between gap-4">
-        <PageHeader
-          title="Top Customers Report"
-          description="Best customers by orders and spending"
-        />
-        <div className="flex shrink-0 gap-2">
-          {customers.length > 0 && mounted && (
-            <>
-              <ReportExcelButton
-                title="Top Customers Report"
-                subtitle={`${TIME_FILTER_LABELS[timeFilter]} - Ranked by ${sortBy === "spending" ? "Spending" : "Orders"}`}
-                headers={["Rank", "Customer Name", "Mobile", "Area", "Orders", "Total Spent", "Avg Order"]}
-                rows={customers.map((customer, index) => [
-                  index + 1,
-                  customer.name,
-                  customer.mobileNumber,
-                  customer.area || "-",
-                  customer.statistics.totalOrders,
-                  customer.statistics.totalSpent,
-                  customer.statistics.averageOrderValue,
-                ])}
-                summary={[
-                  { label: "Time Filter", value: TIME_FILTER_LABELS[timeFilter] },
-                  { label: "Ranked By", value: sortBy === "spending" ? "Spending" : "Orders" },
-                ]}
-                fileName={`top-customers-${timeFilter}`}
-              />
-              <LazyPdfDownloadLink
-                document={
-                  <TopCustomersPDF
-                    customers={customers}
-                    sortBy={sortBy}
-                    timeFilterLabel={TIME_FILTER_LABELS[timeFilter]}
-                    settings={settings}
-                  />
-                }
-                fileName={`top-customers-${timeFilter}-${new Date()
-                  .toISOString()
-                  .split("T")[0]}.pdf`}
-              />
-            </>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Top Customers Report"
+        description={`Best customers by ${rankLabel} in ${rangeLabel.toLowerCase()} — ranked, with contact and spend.`}
+      >
+        {mounted && hasData && (
+          <>
+            <ReportExcelButton
+              title="Top Customers Report"
+              subtitle={`${rangeLabel} - Ranked by ${sortBy === "spending" ? "Spending" : "Orders"}`}
+              headers={[
+                "Rank",
+                "Customer Name",
+                "Mobile",
+                "Area",
+                "Orders",
+                "Total Spent",
+                "Avg Order",
+              ]}
+              rows={customers.map((customer, index) => [
+                index + 1,
+                customer.name,
+                customer.mobileNumber,
+                customer.area || "-",
+                customer.statistics.totalOrders,
+                customer.statistics.totalSpent,
+                customer.statistics.averageOrderValue,
+              ])}
+              summary={[
+                { label: "Time Filter", value: rangeLabel },
+                {
+                  label: "Ranked By",
+                  value: sortBy === "spending" ? "Spending" : "Orders",
+                },
+              ]}
+              fileName={`top-customers-${timeFilter}`}
+            />
+            <LazyPdfDownloadLink
+              document={
+                <TopCustomersPDF
+                  customers={customers}
+                  sortBy={sortBy}
+                  timeFilterLabel={rangeLabel}
+                  settings={settings}
+                />
+              }
+              fileName={`top-customers-${timeFilter}-${new Date()
+                .toISOString()
+                .split("T")[0]}.pdf`}
+            />
+          </>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isPending}
+          onClick={handleRefresh}
+        >
+          <RefreshCw className={cn("size-3.5", isPending && "animate-spin")} />
+          Refresh
+        </Button>
+      </PageHeader>
 
-      {/* Filters — card-style filter panel matching ReportDateFilters */}
+      {/* Filters — same card panel as ReportDateFilters, with the report's
+          own limit / sort / time selects */}
       <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
         <div className="grid grid-cols-1 items-center gap-2.5 md:flex md:flex-nowrap md:items-center md:gap-3">
           <Select
             value={limit.toString()}
             onValueChange={(value) => updateFilter("limit", value)}
           >
-            <SelectTrigger className="w-full md:w-44 md:shrink-0 h-9">
+            <SelectTrigger className="h-9 w-full md:w-44 md:shrink-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -191,7 +210,7 @@ export default function TopCustomersReport({
             value={sortBy}
             onValueChange={(value) => updateFilter("sortBy", value)}
           >
-            <SelectTrigger className="w-full md:w-44 md:shrink-0 h-9">
+            <SelectTrigger className="h-9 w-full md:w-44 md:shrink-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -204,173 +223,349 @@ export default function TopCustomersReport({
             value={timeFilter}
             onValueChange={(value) => updateFilter("timeFilter", value)}
           >
-            <SelectTrigger className="w-full md:w-44 md:shrink-0 h-9">
+            <SelectTrigger className="h-9 w-full md:w-44 md:shrink-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="this_month">This Month</SelectItem>
-              <SelectItem value="last_3_months">Last 3 Months</SelectItem>
-              <SelectItem value="last_6_months">Last 6 Months</SelectItem>
-              <SelectItem value="last_year">Last Year</SelectItem>
-              <SelectItem value="this_year">This Year</SelectItem>
-              <SelectItem value="all_time">All Time</SelectItem>
+              {(
+                Object.entries(TIME_FILTER_LABELS) as [TimeFilter, string][]
+              ).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {/* Summary */}
-      <div className="mb-4 grid grid-cols-2 xl:grid-cols-4 2xl:grid-cols-4 gap-3">
-        <StatsCard
-          title="Top Customers"
-          value={String(customers.length)}
-          count={TIME_FILTER_LABELS[timeFilter]}
-          description={`Ranked by ${sortBy === "spending" ? "spending" : "orders"}`}
-          icon={Crown}
-          bgColor="blue"
-        />
-        <StatsCard
-          title="Total Orders"
-          value={String(totalOrders)}
-          count={String(customers.length)}
-          description="Orders of listed customers"
-          icon={ShoppingCart}
-          bgColor="green"
-        />
-        <StatsCard
-          title="Total Spent"
-          value={formatCurrencyEnglish(totalSpent, 0)}
-          count={String(customers.length)}
-          description="Sum of listed customers"
-          icon={TrendingUp}
-          bgColor="purple"
-        />
-        <StatsCard
-          title="Avg Order Value"
-          value={formatCurrencyEnglish(avgOrderValue, 0)}
-          count={String(totalOrders)}
-          description="Across listed customers"
-          icon={Users}
-          bgColor="orange"
-        />
-      </div>
+      {!hasData ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+          <div className="rounded-full bg-muted p-3">
+            <Users className="size-6 text-muted-foreground" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">No customers matched</p>
+            <p className="text-xs text-muted-foreground">
+              Widen the time filter or raise the limit.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              startTransition(() =>
+                router.push(
+                  `?limit=${limit}&sortBy=${sortBy}&timeFilter=all_time`
+                )
+              )
+            }
+          >
+            Search all time
+          </Button>
+        </div>
+      ) : (
+        <>
+          {/* Summary */}
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+            <StatsCard
+              title="Top customers"
+              value={String(customers.length)}
+              description={`Ranked by ${rankLabel} in ${rangeLabel.toLowerCase()}`}
+              icon={Crown}
+              bgColor="blue"
+            />
+            <StatsCard
+              title="Total orders"
+              value={totalOrders.toLocaleString("en-US")}
+              description="Orders placed by listed customers"
+              icon={ShoppingCart}
+              bgColor="green"
+            />
+            <StatsCard
+              title="Total spent"
+              value={amount(totalSpent)}
+              description="Spend of listed customers"
+              icon={TrendingUp}
+              bgColor="purple"
+            />
+            <StatsCard
+              title="Avg order value"
+              value={amount(avgOrderValue)}
+              description="Across listed customers"
+              icon={Users}
+              bgColor="orange"
+            />
+          </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <Table className="min-w-180">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12.5 sm:w-15 text-xs sm:text-sm font-bold h-9 sm:h-10">
-                Rank
-              </TableHead>
-              <TableHead className="text-xs sm:text-sm font-bold h-9 sm:h-10">Customer</TableHead>
-              <TableHead className="text-xs sm:text-sm font-bold h-9 sm:h-10">
-                Contact
-              </TableHead>
-              <TableHead className="text-xs sm:text-sm font-bold h-9 sm:h-10">
-                Area
-              </TableHead>
-              <TableHead className="text-center text-xs sm:text-sm font-bold h-9 sm:h-10">Orders</TableHead>
-              <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10">Spent</TableHead>
-              <TableHead className="text-right text-xs sm:text-sm font-bold h-9 sm:h-10">
-                Avg
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {customers.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="text-center py-6 sm:py-8 text-muted-foreground"
-                >
-                  <Users className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-2 opacity-50" />
-                  <p className="font-medium text-sm">No customers found</p>
-                </TableCell>
-              </TableRow>
-            ) : (
-              customers.map((customer, index) => (
-                <TableRow
-                  key={customer.id}
-                  className="cursor-pointer"
-                  onClick={() =>
-                    router.push(`/admin/customer/${customer.id}/view`)
-                  }
-                >
-                  {/* Rank */}
-                  <TableCell className="py-1.5 sm:py-2 text-xs sm:text-sm">
-                    {index + 1}
-                  </TableCell>
+          {/* Customers */}
+          <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+              <div>
+                <h3 className="text-sm font-semibold">Customers</h3>
+                <p className="text-xs text-muted-foreground">
+                  Ranked by {rankLabel} · amounts in ৳ · {rangeLabel}
+                </p>
+              </div>
+              <PillBadge className="font-medium tabular-nums">
+                {customers.length} row{customers.length === 1 ? "" : "s"}
+              </PillBadge>
+            </div>
 
-                  {/* Customer */}
-                  <TableCell className="py-1.5 sm:py-2">
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium text-xs sm:text-sm truncate max-w-25 sm:max-w-37.5">
-                        {customer.name}
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <Table className="report-table">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="pl-4">#</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Area</TableHead>
+                    <TableHead className="text-right">Orders</TableHead>
+                    <TableHead className="text-right">Spent</TableHead>
+                    <TableHead className="pr-4 text-right">Avg</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {customers.map((customer, index) => (
+                    <TableRow
+                      key={customer.id}
+                      className="cursor-pointer"
+                      onClick={() =>
+                        router.push(`/admin/customer/${customer.id}/view`)
+                      }
+                    >
+                      <TableCell className="py-2.5 pl-4">
+                        {index === 0 ? (
+                          <PillBadge tone="amber" className="gap-1">
+                            <Crown className="size-3" />1
+                          </PillBadge>
+                        ) : (
+                          <span className="text-xs tabular-nums text-muted-foreground">
+                            {index + 1}
+                          </span>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <Link
+                            href={`/admin/customer/${customer.id}/view`}
+                            className="truncate text-sm font-medium text-foreground hover:text-primaryColor hover:underline"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            {customer.name}
+                          </Link>
+                          {customer.isVerified && (
+                            <PillBadge
+                              tone="emerald"
+                              className="px-1.5"
+                              title="Verified customer"
+                            >
+                              ✓
+                            </PillBadge>
+                          )}
+                        </div>
+                        {customer.email && (
+                          <p className="truncate text-[11px] text-muted-foreground">
+                            {customer.email}
+                          </p>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        {customer.mobileNumber ? (
+                          <a
+                            href={`tel:${customer.mobileNumber}`}
+                            onClick={(event) => event.stopPropagation()}
+                            className="text-[11px] text-blue-600 hover:underline dark:text-blue-400"
+                          >
+                            {customer.mobileNumber}
+                          </a>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">
+                            No mobile
+                          </span>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        {customer.area ? (
+                          <PillBadge
+                            tone="violet"
+                            className="max-w-40 truncate font-normal"
+                            title={customer.area}
+                          >
+                            {shortenArea(customer.area)}
+                          </PillBadge>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">
+                            —
+                          </span>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <span className="text-sm font-semibold tabular-nums">
+                          {customer.statistics.totalOrders}
+                        </span>
+                        {customer.statistics.pendingOrders > 0 && (
+                          <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                            {customer.statistics.pendingOrders} pending
+                          </p>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <span className="text-sm font-semibold tabular-nums">
+                          {formatCurrencyEnglish(
+                            customer.statistics.totalSpent,
+                            0
+                          )}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="pr-4 text-right">
+                        <span className="text-sm tabular-nums text-muted-foreground">
+                          {customer.statistics.totalOrders > 0
+                            ? formatCurrencyEnglish(
+                                customer.statistics.averageOrderValue,
+                                0
+                              )
+                            : "—"}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Total
+                    </TableCell>
+                    <TableCell colSpan={3} />
+                    <TableCell className="text-right">
+                      <span className="text-sm font-bold tabular-nums">
+                        {totalOrders.toLocaleString("en-US")}
                       </span>
-                      {customer.isVerified && (
-                        <Badge
-                          variant="default"
-                          className="text-[10px] 2xl:text-xs h-3.5 sm:h-4 px-1"
-                        >
-                          ✓
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-sm font-bold tabular-nums">
+                        {formatCurrencyEnglish(totalSpent, 0)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="pr-4 text-right">
+                      <span className="text-sm font-bold tabular-nums">
+                        {formatCurrencyEnglish(avgOrderValue, 0)}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
 
-                  {/* Contact */}
-                  <TableCell className="py-1.5 sm:py-2">
-                    <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm">
-                      <Phone className="h-3.5 w-3.5 shrink-0" />{customer.mobileNumber}
-                    </Badge>
-                  </TableCell>
-
-                  {/* Area */}
-                  <TableCell className="py-1.5 sm:py-2">
-                    <span className="text-xs sm:text-sm">
-                      {customer.area || "—"}
-                    </span>
-                  </TableCell>
-
-                  {/* Orders */}
-                  <TableCell className="text-center py-1.5 sm:py-2">
-                    <div className="flex flex-col items-center">
-                      <Badge variant="secondary" className="h-5 px-1.5 text-xs sm:text-sm font-bold">
-                        <ShoppingBag className="h-3.5 w-3.5" />{customer.statistics.totalOrders}
-                      </Badge>
-                      {customer.statistics.pendingOrders > 0 && (
-                        <span className="text-xs sm:text-sm text-yellow-600">
-                          {customer.statistics.pendingOrders}p
+            {/* Mobile cards */}
+            <div className="divide-y md:hidden">
+              {customers.map((customer, index) => (
+                <article key={customer.id} className="space-y-3 p-3.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      {index === 0 ? (
+                        <PillBadge tone="amber" className="gap-1">
+                          <Crown className="size-3" />1
+                        </PillBadge>
+                      ) : (
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+                          {index + 1}
                         </span>
                       )}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Link
+                            href={`/admin/customer/${customer.id}/view`}
+                            className="truncate text-sm font-semibold hover:text-primaryColor hover:underline"
+                          >
+                            {customer.name}
+                          </Link>
+                          {customer.isVerified && (
+                            <PillBadge
+                              tone="emerald"
+                              className="px-1.5"
+                              title="Verified customer"
+                            >
+                              ✓
+                            </PillBadge>
+                          )}
+                        </div>
+                        {customer.mobileNumber && (
+                          <a
+                            href={`tel:${customer.mobileNumber}`}
+                            className="text-[11px] text-blue-600 hover:underline dark:text-blue-400"
+                          >
+                            {customer.mobileNumber}
+                          </a>
+                        )}
+                      </div>
                     </div>
-                  </TableCell>
+                    {customer.area && (
+                      <PillBadge
+                        tone="violet"
+                        className="max-w-36 shrink-0 truncate font-normal"
+                        title={customer.area}
+                      >
+                        {shortenArea(customer.area)}
+                      </PillBadge>
+                    )}
+                  </div>
 
-                  {/* Total Spent */}
-                  <TableCell className="text-right py-1.5 sm:py-2">
-                    <Badge variant="secondary" className="h-5 px-1.5 text-xs sm:text-sm font-bold">
-                      <Wallet className="h-3.5 w-3.5" />{formatCurrencyEnglish(customer.statistics.totalSpent)}
-                    </Badge>
-                  </TableCell>
+                  <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/40 p-2.5">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Orders
+                      </p>
+                      <p className="text-sm font-semibold tabular-nums">
+                        {customer.statistics.totalOrders}
+                      </p>
+                      {customer.statistics.pendingOrders > 0 && (
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                          {customer.statistics.pendingOrders} pending
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Spent
+                      </p>
+                      <p className="text-sm font-semibold tabular-nums">
+                        {amount(customer.statistics.totalSpent)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Avg
+                      </p>
+                      <p className="text-sm font-semibold tabular-nums">
+                        {customer.statistics.totalOrders > 0
+                          ? amount(customer.statistics.averageOrderValue)
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
 
-                  {/* Average */}
-                  <TableCell className="text-right py-1.5 sm:py-2">
-                    <Badge variant="outline" className="h-5 px-1.5 text-xs sm:text-sm font-normal text-muted-foreground">
-                      <BarChart3 className="h-3.5 w-3.5" />
-                      {customer.statistics.totalOrders > 0
-                        ? formatCurrencyEnglish(
-                          customer.statistics.averageOrderValue
-                        )
-                        : "—"}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            {/* Footer */}
+            <div className="border-t px-4 py-3">
+              <p className="text-xs text-muted-foreground">
+                Showing top {customers.length} customer
+                {customers.length === 1 ? "" : "s"} by {rankLabel} in{" "}
+                {rangeLabel.toLowerCase()}
+              </p>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

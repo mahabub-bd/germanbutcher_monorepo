@@ -1,10 +1,13 @@
 "use client";
 
+import type React from "react";
+
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
+import { PillBadge } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,6 +15,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -24,19 +34,20 @@ import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { Category } from "@/utils/types";
 import {
-  Filter,
+  Ban,
+  CheckCircle,
   LayoutGrid,
   MoreHorizontal,
   Pencil,
   Plus,
+  RefreshCw,
   Tags,
   Trash2,
-  XCircle,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import DeleteConfirmationDialog from "../delete-confirmation-dialog";
 import { LoadingIndicator } from "../loading-indicator";
@@ -46,6 +57,22 @@ interface CategoryListProps {
   initialPage: number;
   initialLimit: number;
   initialSearchParams?: { [key: string]: string | string[] | undefined };
+}
+
+/** Label + value block reused by the mobile cards. */
+function DetailField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[13px] font-medium text-foreground/60">{label}</p>
+      <div className="mt-0.5">{children}</div>
+    </div>
+  );
 }
 
 export function CategoryList({
@@ -68,8 +95,13 @@ export function CategoryList({
   const [searchQuery, setSearchQuery] = useState(
     getInitialParam("search") as string
   );
+  // Applied 400ms after typing stops — the input stays instant, the API call
+  // doesn't fire per keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState(
+    getInitialParam("search") as string
+  );
   const [statusFilter, setStatusFilter] = useState(
-    getInitialParam("status") as string
+    getInitialParam("isActive") as string
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -98,12 +130,12 @@ export function CategoryList({
     params.set("page", currentPage.toString());
     params.set("limit", limit.toString());
 
-    if (searchQuery) params.set("search", searchQuery);
+    if (debouncedSearch) params.set("search", debouncedSearch);
     if (statusFilter && statusFilter !== "all")
-      params.set("status", statusFilter);
+      params.set("isActive", statusFilter);
 
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname, currentPage, limit, searchQuery, statusFilter]);
+  }, [router, pathname, currentPage, limit, debouncedSearch, statusFilter]);
 
   const fetchCategories = async () => {
     setIsLoading(true);
@@ -112,7 +144,7 @@ export function CategoryList({
       params.append("page", currentPage.toString());
       params.append("limit", limit.toString());
 
-      if (searchQuery) params.append("search", searchQuery);
+      if (debouncedSearch) params.append("search", debouncedSearch);
       if (statusFilter && statusFilter !== "all")
         params.append("isActive", statusFilter);
 
@@ -133,14 +165,25 @@ export function CategoryList({
     }
   };
 
+  // Debounce the search box so typing doesn't fire a request per keystroke.
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     fetchCategories();
+  }, [currentPage, limit, debouncedSearch, statusFilter]);
+
+  // Sync the URL only for user-driven changes, not on first paint.
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     updateUrl();
-  }, [currentPage, limit, searchQuery, statusFilter]);
+  }, [updateUrl]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -177,319 +220,399 @@ export function CategoryList({
     setCurrentPage(1);
   };
 
-  const renderEmptyState = () => (
-    <div >
-      <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
-        <LayoutGrid className="h-10 w-10 text-muted-foreground/50 mb-4" />
-        <h3 className="text-lg font-semibold">No categories found</h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          {searchQuery || statusFilter
-            ? "No categories match your search criteria. Try different filters."
-            : "Get started by adding your first category."}
-        </p>
-        {!(searchQuery || statusFilter) && can(MENU_URL, "canCreate") && (
-          <Button asChild className="mt-4">
-            <Link href="/admin/categories/add">
-              <Plus className="mr-2 h-4 w-4" /> Add Category
-            </Link>
-          </Button>
-        )}
-        {(searchQuery || statusFilter) && (
-          <Button variant="outline" className="mt-4" onClick={clearFilters}>
-            Clear Filters
-          </Button>
-        )}
-      </div>
-    </div>
+  const hasActiveFilters = () => Boolean(searchQuery || statusFilter);
+
+  const activeFilterSummary = [
+    debouncedSearch && `Search: ${debouncedSearch}`,
+    statusFilter &&
+      statusFilter !== "all" &&
+      `Status: ${statusFilter === "true" ? "Active" : "Inactive"}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const renderToggle = (category: Category, className?: string) => (
+    <ActiveStatusToggle
+      isActive={category.isActive}
+      disabled={togglingId === category.id}
+      onToggle={() => toggleActive(category)}
+      label={category.name}
+      className={className}
+    />
   );
 
-  const renderActiveFilters = () => {
-    const hasFilters = searchQuery || statusFilter;
-
-    if (!hasFilters) return null;
-
-    return (
-      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-        {searchQuery && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Search: {searchQuery}
-            <button onClick={() => setSearchQuery("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {statusFilter && statusFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Status: {statusFilter}
-            <button onClick={() => setStatusFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="h-7 text-xs"
-        >
-          Clear all
-        </Button>
-      </div>
-    );
-  };
-
-  const renderStatusFilterButton = (
-    value: string,
-    label: string,
-    activeClasses: string,
-    dot?: string
-  ) => (
-    <button
-      onClick={() => {
-        setStatusFilter(value === "all" ? "" : value);
-        setCurrentPage(1);
-      }}
-      className={`text-xs py-1.5 px-2 rounded-md border flex items-center justify-center gap-1 ${(value === "all" ? "" : statusFilter) === value
-        ? activeClasses
-        : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-        }`}
-    >
-      {dot && <span className={`h-2 w-2 rounded-full ${dot}`} />}
-      {label}
-    </button>
-  );
-
-  const renderFiltersMenu = () => (
+  const renderActions = (category: Category) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 px-3 shrink-0">
-          <Filter className="h-4 w-4" />
-          <span>Filters</span>
-          {statusFilter && (
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          )}
+        <Button variant="ghost" size="icon" className="size-8">
+          <MoreHorizontal className="size-4" />
+          <span className="sr-only">Open menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="w-64 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
-        sideOffset={8}
-      >
-        <div className="space-y-3">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium">Filters</h4>
-            {statusFilter && (
-              <button
-                onClick={clearFilters}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Clear all
-              </button>
-            )}
-          </div>
-
-          {/* Status Filter */}
-          <div className="space-y-2">
-            <label className="text-xs text-muted-foreground">Status</label>
-            <div className="grid grid-cols-3 gap-2">
-              {renderStatusFilterButton(
-                "all",
-                "All",
-                "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-              )}
-              {renderStatusFilterButton(
-                "active",
-                "Active",
-                "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400",
-                "bg-green-500"
-              )}
-              {renderStatusFilterButton(
-                "inactive",
-                "Inactive",
-                "bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800 text-red-600 dark:text-red-400",
-                "bg-red-500"
-              )}
-            </div>
-          </div>
-        </div>
+      <DropdownMenuContent align="end">
+        {can(MENU_URL, "canEdit") && (
+          <DropdownMenuItem asChild>
+            <Link href={`/admin/categories/${category.id}/edit`}>
+              <Pencil className="size-4" /> Edit
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {can(MENU_URL, "canDelete") && (
+          <DropdownMenuItem
+            variant="destructive"
+            onClick={() => handleDeleteClick(category)}
+          >
+            <Trash2 className="size-4" /> Delete
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 
-  const renderTableView = () => (
-    <div className="overflow-x-auto">
-      <Table className="min-w-180">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Category</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Parent</TableHead>
-            <TableHead className="text-center">Display Order</TableHead>
-            <TableHead className="text-center">Products</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {categories.map((category) => (
-            <TableRow key={category.id} className="hover:bg-muted/50">
-              <TableCell>
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex aspect-3/2 h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
-                    <Image
-                      src={category?.attachment?.url || "/placeholder.svg"}
-                      alt={category.name}
-                      width={96}
-                      height={64}
-                      className="h-full w-full object-contain"
-                    />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="font-medium leading-tight">
-                      {category.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate max-w-55 mt-0.5">
-                      {category.description || "No description"}
-                    </p>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                {category.isMainCategory ? (
-                  <Badge variant="default">Main Category</Badge>
-                ) : (
-                  <Badge variant="outline">Sub Category</Badge>
-                )}
-              </TableCell>
-              <TableCell>
-                {category?.parent === null ? "None" : category?.parent?.name}
-              </TableCell>
-              <TableCell className="text-center">{category.order}</TableCell>
-              <TableCell className="text-center">
-                <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
-                  {category.products?.length || 0}
-                </span>
-              </TableCell>
-              <TableCell>
-                <ActiveStatusToggle
-                  isActive={category.isActive}
-                  disabled={togglingId === category.id}
-                  onToggle={() => toggleActive(category)}
-                  label={category.name}
-                />
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {can(MENU_URL, "canEdit") && (
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/categories/${category.id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    {can(MENU_URL, "canDelete") && (
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDeleteClick(category)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
+  const productCountOf = (category: Category) => category.products?.length || 0;
+
+  const activeCount = categories.filter((c) => c.isActive).length;
+  const inactiveCount = categories.filter((c) => !c.isActive).length;
+  const mainCount = categories.filter((c) => c.isMainCategory).length;
+  const subCount = categories.length - mainCount;
+  const firstRow =
+    categories.length === 0 ? 0 : (currentPage - 1) * limit + 1;
+  const lastRow = Math.min(currentPage * limit, totalItems);
 
   return (
     <>
-      <div className="w-full space-y-4">
+      <div className="w-full">
         <PageHeader
           title="Categories"
-          description="Manage your product categories"
-          {...(can(MENU_URL, "canCreate")
-            ? {
-              actionLabel: "Add Category",
-              actionHref: "/admin/categories/add",
-            }
-            : {})}
-        />
+          description="Departments and sub-categories that organise the catalogue."
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+            onClick={fetchCategories}
+          >
+            <RefreshCw className={isLoading ? "size-3.5 animate-spin" : "size-3.5"} />
+            Refresh
+          </Button>
+          {can(MENU_URL, "canCreate") && (
+            <Button size="sm" asChild>
+              <Link href="/admin/categories/add">
+                <Plus className="size-4" />
+                <span className="hidden sm:inline">Add Category</span>
+              </Link>
+            </Button>
+          )}
+        </PageHeader>
 
-        {/* List card: toolbar + table */}
-        <div className="rounded-sm border bg-card">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                <Tags className="h-4.5 w-4.5" />
-              </span>
-              <div>
-                <h3 className="font-semibold leading-tight">
-                  All Categories
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {totalItems} categor{totalItems === 1 ? "y" : "ies"}
+        {/* Toolbar */}
+        <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
+          <div className="flex flex-col gap-2.5 md:flex-row md:flex-nowrap md:items-center md:gap-3">
+            <TableSearch
+              wrapperClassName="w-full md:max-w-xs"
+              className="h-9"
+              placeholder="Search categories..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
+
+            <div className="md:w-40 md:shrink-0">
+              <Select
+                value={statusFilter || "all"}
+                onValueChange={(value) => {
+                  setStatusFilter(value === "all" ? "" : value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="h-9 w-full">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="true">Active</SelectItem>
+                  <SelectItem value="false">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {hasActiveFilters() && (
+              <div className="flex min-w-0 items-center gap-2 md:ml-auto">
+                <PillBadge className="font-medium" title={activeFilterSummary}>
+                  <span className="truncate">{activeFilterSummary}</span>
+                </PillBadge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 shrink-0 text-muted-foreground"
+                  onClick={clearFilters}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <LoadingIndicator message="Loading categories..." />
+          </div>
+        ) : categories.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+            <div className="rounded-full bg-muted p-3">
+              <LayoutGrid className="size-6 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">No categories found</p>
+              <p className="text-xs text-muted-foreground">
+                {hasActiveFilters()
+                  ? "No category matches these filters. Try another name or status."
+                  : "Add your first category so products can be grouped."}
+              </p>
+            </div>
+            {hasActiveFilters() ? (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : can(MENU_URL, "canCreate") ? (
+              <Button size="sm" asChild>
+                <Link href="/admin/categories/add">
+                  <Plus className="size-4" /> Add category
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <>
+            {/* Page totals */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <StatsCard
+                icon={Tags}
+                title="Total categories"
+                value={totalItems.toLocaleString("en-US")}
+                description={`${mainCount} main · ${subCount} sub on this page`}
+                bgColor="blue"
+              />
+              <StatsCard
+                icon={CheckCircle}
+                title="Active"
+                value={activeCount.toLocaleString("en-US")}
+                description="Visible in the shop"
+                bgColor="green"
+              />
+              <StatsCard
+                icon={Ban}
+                title="Inactive"
+                value={inactiveCount.toLocaleString("en-US")}
+                description="Hidden from the shop"
+                bgColor="orange"
+              />
+            </div>
+
+            {/* Categories */}
+            <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600 ring-1 ring-rose-500/15 dark:text-rose-400">
+                    <Tags className="size-4.5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold">All categories</h3>
+                    <p className="text-[13px] text-foreground/70">
+                      Departments, their parents and how many products each one
+                      holds.
+                    </p>
+                  </div>
+                </div>
+                <PillBadge className="font-medium tabular-nums">
+                  {categories.length.toLocaleString("en-US")} of{" "}
+                  {totalItems.toLocaleString("en-US")}
+                </PillBadge>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <Table className="report-table table-fixed">
+                  <TableHeader className="[&_th]:font-semibold">
+                    <TableRow className="hover:bg-transparent">
+                      {/* Category is pinned from lg so the remaining columns
+                          split what's left evenly instead of piling all the
+                          slack into the name column. */}
+                      <TableHead className="pl-4 lg:w-72 2xl:w-96">
+                        Category
+                      </TableHead>
+                      <TableHead className="w-20 lg:w-auto">Type</TableHead>
+                      {/* Parent joins at lg: below that the category name
+                          needs the width. */}
+                      <TableHead className="hidden lg:table-cell">
+                        Parent
+                      </TableHead>
+                      {/* Left-aligned like its neighbours: in an equal-width
+                          grid a right-aligned count would hug the Status column
+                          and strand a void after Parent. "Products" is the
+                          longest label in the row, so the column keeps a 96px
+                          floor below lg and Status indents above it. */}
+                      <TableHead className="w-24 lg:w-auto">
+                        Products
+                      </TableHead>
+                      <TableHead className="w-28 lg:w-auto lg:pl-4">
+                        Status
+                      </TableHead>
+                      <TableHead className="w-14 pr-4 text-right">
+                        <span className="sr-only">Actions</span>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {categories.map((category) => (
+                      <TableRow key={category.id}>
+                        <TableCell className="py-2.5 pl-4">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                              <Image
+                                src={
+                                  category?.attachment?.url || "/placeholder.svg"
+                                }
+                                alt={category.name}
+                                width={40}
+                                height={40}
+                                className="size-full object-contain p-0.5"
+                              />
+                            </span>
+                            <div className="min-w-0">
+                              <p
+                                className="truncate text-sm font-medium leading-tight"
+                                title={category.name}
+                              >
+                                {category.name}
+                              </p>
+                              <p
+                                className="mt-0.5 truncate text-[13px] text-foreground/70"
+                                title={category.description || undefined}
+                              >
+                                {category.description || "No description"}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <PillBadge
+                            tone={category.isMainCategory ? "blue" : "neutral"}
+                          >
+                            {category.isMainCategory ? "Main" : "Sub"}
+                          </PillBadge>
+                        </TableCell>
+
+                        <TableCell className="hidden lg:table-cell">
+                          <p
+                            className="truncate text-sm"
+                            title={category.parent?.name || undefined}
+                          >
+                            {category.parent?.name || "—"}
+                          </p>
+                        </TableCell>
+
+                        <TableCell>
+                          <p
+                            className="truncate text-sm font-semibold tabular-nums"
+                            title={`${productCountOf(category)} products`}
+                          >
+                            {productCountOf(category)}
+                          </p>
+                        </TableCell>
+
+                        <TableCell className="lg:pl-4">
+                          {renderToggle(category)}
+                        </TableCell>
+
+                        <TableCell className="pr-4 text-right">
+                          {renderActions(category)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="divide-y md:hidden">
+                {categories.map((category) => (
+                  <article key={category.id} className="space-y-3 p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                          <Image
+                            src={category?.attachment?.url || "/placeholder.svg"}
+                            alt={category.name}
+                            width={40}
+                            height={40}
+                            className="size-full object-contain p-0.5"
+                          />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">
+                            {category.name}
+                          </p>
+                          <p className="mt-0.5 truncate text-[13px] text-foreground/70">
+                            {category.isMainCategory ? "Main category" : "Sub category"}
+                          </p>
+                        </div>
+                      </div>
+                      {renderActions(category)}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-lg bg-muted/40 p-2.5">
+                      <DetailField label="Parent">
+                        <p className="truncate text-sm">
+                          {category.parent?.name || "—"}
+                        </p>
+                      </DetailField>
+                      <DetailField label="Products">
+                        <p className="truncate text-sm font-semibold tabular-nums">
+                          {productCountOf(category)}
+                        </p>
+                      </DetailField>
+                      <div className="col-span-2">
+                        <DetailField label="Description">
+                          <p className="line-clamp-2 text-[13px] text-foreground/80">
+                            {category.description || "No description"}
+                          </p>
+                        </DetailField>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[13px] font-medium text-foreground/60">
+                        Status
+                      </span>
+                      {renderToggle(category)}
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
+                <p className="text-[13px] text-foreground/70">
+                  Showing {firstRow.toLocaleString("en-US")}–
+                  {lastRow.toLocaleString("en-US")} of{" "}
+                  {totalItems.toLocaleString("en-US")} categor
+                  {totalItems === 1 ? "y" : "ies"}
+                  {debouncedSearch && ` matching “${debouncedSearch}”`}
                 </p>
+                {totalPages > 1 && (
+                  <PaginationComponent
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    baseUrl="#"
+                    onPageChange={handlePageChange}
+                  />
+                )}
               </div>
             </div>
-            <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
-              <TableSearch
-                wrapperClassName="w-full sm:w-64"
-                placeholder="Search categories..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
-              {renderFiltersMenu()}
-            </div>
-          </div>
-
-          {renderActiveFilters()}
-
-          {isLoading ? (
-            <LoadingIndicator message="Loading Categories..." />
-          ) : categories.length === 0 ? (
-            renderEmptyState()
-          ) : (
-            renderTableView()
-          )}
-        </div>
-
-        {/* Pagination */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground text-center md:text-left truncate">
-              {`Showing ${categories.length} of ${totalItems} categories`}
-            </p>
-          </div>
-
-          <div className="flex-1 w-full md:w-auto">
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={handlePageChange}
-            />
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Delete Confirmation Dialog */}

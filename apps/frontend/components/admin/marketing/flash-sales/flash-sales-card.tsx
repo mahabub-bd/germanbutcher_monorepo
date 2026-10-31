@@ -1,6 +1,9 @@
 "use client";
 import { revalidateProducts } from "@/actions/revalidate";
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { ProductSelector } from "@/components/admin/discount/product-selector";
+import { PillBadge } from "@/components/common/pill-badge";
+import { TableSearch } from "@/components/common/table-search";
 import {
   Accordion,
   AccordionContent,
@@ -29,7 +32,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { cn, formatCurrencyEnglish } from "@/lib/utils";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { cn, formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import {
   fetchData,
   fetchProtectedData,
@@ -40,21 +51,34 @@ import { applyTime, toTimeInputValue } from "@/utils/datetime";
 import type { FlashSaleCampaign, MinimalProduct } from "@/utils/types";
 import { DiscountType } from "@/utils/types";
 import {
-  Calendar,
+  Banknote,
   CalendarClock,
+  CheckCircle2,
   Clock,
+  Eye,
   Gauge,
   Package,
   Pencil,
   Percent,
   Plus,
+  RefreshCw,
   Search,
   Tags,
+  XCircle,
   Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  CAMPAIGN_STATUS_META,
+  CAMPAIGN_STATUS_OPTIONS,
+  campaignStatus,
+  scopeLabel,
+  usagePercent,
+  type CampaignStatus,
+} from "@/components/admin/marketing/campaign-status";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { LoadingIndicator } from "../../loading-indicator";
@@ -98,8 +122,10 @@ const formatRemaining = (ms: number): string => {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Remaining-time badge for a campaign window: "Starts in …" before it
- * opens, "… left" while running (amber inside the last 24h), "Expired"
- * once past. Renders nothing without a window. */
+ * opens, "… left" while running (amber inside the last 24h). Renders nothing
+ * without a window, and nothing once the window has closed — that terminal
+ * state is already the "Expired" status pill beside it, so a second identical
+ * chip only reads as a bug. */
 function CampaignTimeBadge({
   campaign,
   now,
@@ -121,8 +147,9 @@ function CampaignTimeBadge({
     className =
       "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400";
   } else if (until && now >= until) {
-    label = "Expired";
-    className = "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400";
+    // Past the window: the status pill beside this badge already reads
+    // "Expired", so this chip has nothing left to add.
+    return null;
   } else if (until) {
     const remaining = until - now;
     label = `${formatRemaining(remaining)} left`;
@@ -180,28 +207,31 @@ export function FlashSalesCard() {
         : [];
   const [isLoadingPickerProducts, setIsLoadingPickerProducts] = useState(false);
   const [productSearch, setProductSearch] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<CampaignStatus | "">("");
+
+  const loadCampaigns = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [campaignsData, categoriesData] = await Promise.all([
+        fetchProtectedData<FlashSaleCampaign[]>("flash-sale-campaigns"),
+        fetchData<{ id: number; name: string }[]>("categories"),
+      ]);
+      setCampaigns(campaignsData ?? []);
+      setCategories(
+        (categoriesData ?? []).map((c) => ({ value: c.id, label: c.name }))
+      );
+    } catch (error) {
+      console.error("Error loading flash sale campaigns:", error);
+      toast.error("Failed to load flash sale campaigns");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const load = async () => {
-      setIsLoading(true);
-      try {
-        const [campaignsData, categoriesData] = await Promise.all([
-          fetchProtectedData<FlashSaleCampaign[]>("flash-sale-campaigns"),
-          fetchData<{ id: number; name: string }[]>("categories"),
-        ]);
-        setCampaigns(campaignsData ?? []);
-        setCategories(
-          (categoriesData ?? []).map((c) => ({ value: c.id, label: c.name }))
-        );
-      } catch (error) {
-        console.error("Error loading flash sale campaigns:", error);
-        toast.error("Failed to load flash sale campaigns");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, []);
+    loadCampaigns();
+  }, [loadCampaigns]);
 
   // Load the chosen category's products via the minimal products/all endpoint
   useEffect(() => {
@@ -389,158 +419,492 @@ export function FlashSalesCard() {
     }
   };
 
-  /** Small icon chips summarizing a campaign window, discount and usage. */
-  const buildChips = (campaign: FlashSaleCampaign) => {
-    const chips: { icon: React.ElementType; text: string }[] = [];
-    if (campaign.validFrom || campaign.validUntil) {
-      const formatDateTime = (date: string | Date) =>
-        new Date(date).toLocaleString("en-GB", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        });
-      const from = campaign.validFrom ? formatDateTime(campaign.validFrom) : "…";
-      const until = campaign.validUntil
-        ? formatDateTime(campaign.validUntil)
-        : "…";
-      chips.push({ icon: Calendar, text: `${from} – ${until}` });
-    }
-    chips.push({
-      icon: Zap,
-      text:
-        campaign.discountType === DiscountType.PERCENTAGE
-          ? `${Number(campaign.discountValue)}% OFF`
-          : `${formatCurrencyEnglish(Number(campaign.discountValue))} OFF`,
+  const discountLabel = (campaign: FlashSaleCampaign) =>
+    campaign.discountType === DiscountType.PERCENTAGE
+      ? `${Number(campaign.discountValue)}% OFF`
+      : `${formatCurrencyEnglish(Number(campaign.discountValue))} OFF`;
+
+  const counts = useMemo(() => {
+    const statuses = campaigns.map((campaign) => campaignStatus(campaign));
+    return {
+      active: campaigns.filter(
+        (campaign, index) => campaign.isActive && statuses[index] !== "expired"
+      ).length,
+      expiringSoon: statuses.filter((status) => status === "expiring").length,
+      expired: statuses.filter((status) => status === "expired").length,
+    };
+  }, [campaigns]);
+
+  const filteredCampaigns = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return campaigns.filter((campaign) => {
+      if (statusFilter && campaignStatus(campaign) !== statusFilter) return false;
+      if (!query) return true;
+      return campaign.name.toLowerCase().includes(query);
     });
-    chips.push({
-      icon: Package,
-      text:
-        campaign.maxUsage > 0
-          ? `${campaign.timesUsed}/${campaign.maxUsage} used`
-          : `${campaign.timesUsed} used`,
-    });
-    if (campaign.products?.length)
-      chips.push({
-        icon: Package,
-        text: `${campaign.products.length} product${campaign.products.length > 1 ? "s" : ""}`,
-      });
-    if (campaign.categories?.length)
-      chips.push({
-        icon: Tags,
-        text: campaign.categories.map((c) => c.name).join(", "),
-      });
-    return chips;
+  }, [campaigns, searchQuery, statusFilter]);
+
+  const hasFilters = Boolean(searchQuery.trim() || statusFilter);
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("");
   };
 
   return (
     <div>
       <PageHeader
         title="Flash Sales"
-        description="Time-limited discounts that override product prices while active"
+        description="Limited-time discounts that replace each product's normal discount for the whole window."
       >
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/admin/marketing/flash-sale-usage-logs">
+            <Eye className="size-3.5" />
+            <span className="hidden sm:inline">Usage Logs</span>
+          </Link>
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isLoading}
+          onClick={loadCampaigns}
+        >
+          <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+          Refresh
+        </Button>
         {can(MENU_URL, "canCreate") && (
           <Button size="sm" onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="size-4" />
             <span className="hidden sm:inline">New Flash Sale</span>
           </Button>
         )}
       </PageHeader>
 
+      {/* Toolbar */}
+      <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
+        <div className="flex flex-col gap-2.5 md:flex-row md:flex-nowrap md:items-center md:gap-3">
+          <TableSearch
+            wrapperClassName="w-full md:max-w-xs"
+            className="h-9"
+            placeholder="Search by campaign name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+
+          <div className="grid grid-cols-2 gap-2.5 md:flex md:items-center md:gap-3">
+            <div className="md:w-40 md:shrink-0">
+              <Select
+                value={statusFilter || "all"}
+                onValueChange={(value) =>
+                  setStatusFilter(
+                    value === "all" ? "" : (value as CampaignStatus)
+                  )
+                }
+              >
+                <SelectTrigger className="h-9 w-full">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CAMPAIGN_STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {hasFilters && (
+            <div className="flex items-center gap-2 md:ml-auto">
+              <PillBadge className="font-medium">
+                {[
+                  searchQuery.trim() && `Search: ${searchQuery.trim()}`,
+                  statusFilter &&
+                  `Status: ${CAMPAIGN_STATUS_META[statusFilter].label}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </PillBadge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 text-muted-foreground"
+                onClick={clearFilters}
+              >
+                Clear
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
       {isLoading ? (
-        <LoadingIndicator message="Loading flash sale campaigns..." />
+        <div className="flex justify-center py-16">
+          <LoadingIndicator message="Loading flash sale campaigns..." />
+        </div>
       ) : campaigns.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-200 py-10 text-center text-sm text-muted-foreground dark:border-gray-700">
-          No flash sale campaigns yet — create one to discount selected products.
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+          <div className="rounded-full bg-muted p-3">
+            <Zap className="size-6 text-muted-foreground" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">No flash sales yet</p>
+            <p className="text-xs text-muted-foreground">
+              Create a campaign to discount selected products for a limited
+              window.
+            </p>
+          </div>
+          {can(MENU_URL, "canCreate") && (
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="size-4" /> New Flash Sale
+            </Button>
+          )}
         </div>
       ) : (
-        <div className="space-y-4">
-          {campaigns.map((campaign) => {
-            const chips = buildChips(campaign);
-            return (
-              <div
-                key={campaign.id}
-                className={`rounded-sm border p-5 transition-colors ${campaign.isActive
-                  ? "border-gray-100 bg-white shadow-sm hover:border-primaryColor/30 dark:border-gray-800 dark:bg-gray-900"
-                  : "border-dashed border-gray-200 bg-gray-50/60 dark:border-gray-800 dark:bg-gray-900/40"
-                  }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-start gap-4">
-                    <div
-                      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${campaign.isActive
-                        ? "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400"
-                        : "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500"
-                        }`}
-                    >
-                      <Zap className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <h4
-                          className={`text-base font-semibold leading-snug ${campaign.isActive
-                            ? "text-gray-900 dark:text-gray-50"
-                            : "text-gray-500 dark:text-gray-400"
-                            }`}
-                        >
-                          {campaign.name}
-                        </h4>
-                        <span
-                          className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${campaign.isActive
-                            ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400"
-                            : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                            }`}
-                        >
-                          {campaign.isActive ? "Active" : "Inactive"}
-                        </span>
-                        <CampaignTimeBadge campaign={campaign} now={now} />
-                      </div>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Flash prices override each product&apos;s own discount while active
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <ActiveStatusToggle
-                      isActive={campaign.isActive}
-                      disabled={togglingId === campaign.id}
-                      onToggle={() =>
-                        handleToggleActive(campaign, !campaign.isActive)
-                      }
-                      label={campaign.name}
-                    />
-                    {can(MENU_URL, "canEdit") && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9"
-                        onClick={() => openEdit(campaign)}
-                        aria-label={`Edit ${campaign.name}`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
+        <>
+          {/* Summary */}
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+            <StatsCard
+              icon={Zap}
+              title="Total campaigns"
+              value={campaigns.length.toLocaleString("en-US")}
+              description="Every sale on record"
+              bgColor="blue"
+            />
+            <StatsCard
+              icon={CheckCircle2}
+              title="Active"
+              value={counts.active.toLocaleString("en-US")}
+              description="Enabled and not expired"
+              bgColor="green"
+            />
+            <StatsCard
+              icon={Clock}
+              title="Expiring soon"
+              value={counts.expiringSoon.toLocaleString("en-US")}
+              description="Ends within 7 days"
+              bgColor="amber"
+            />
+            <StatsCard
+              icon={XCircle}
+              title="Expired"
+              value={counts.expired.toLocaleString("en-US")}
+              description="Already finished"
+              bgColor="red"
+            />
+          </div>
 
-                {/* Condition chips — wrap on mobile, single scrollable line from sm up */}
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-100 pt-4 sm:flex-nowrap sm:overflow-x-auto dark:border-gray-800">
-                  {chips.map((chip, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
-                    >
-                      <chip.icon className="h-3.5 w-3.5" />
-                      {chip.text}
-                    </span>
-                  ))}
+          {/* Campaigns */}
+          <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 ring-1 ring-amber-500/20 dark:text-amber-400">
+                  <Zap className="size-4.5" />
+                </span>
+                <div>
+                  <h3 className="text-sm font-semibold">All flash sales</h3>
+                  <p className="text-[13px] text-foreground/70">
+                    The sale price wins over the product&apos;s own discount while
+                    the window is open
+                  </p>
                 </div>
               </div>
-            );
-          })}
-        </div>
+              <PillBadge className="font-medium tabular-nums">
+                {filteredCampaigns.length.toLocaleString("en-US")} of{" "}
+                {campaigns.length.toLocaleString("en-US")}
+              </PillBadge>
+            </div>
+
+            {filteredCampaigns.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+                <div className="rounded-full bg-muted p-3">
+                  <Zap className="size-6 text-muted-foreground" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold">No campaigns found</p>
+                  <p className="text-xs text-muted-foreground">
+                    No campaigns match these filters. Try a different name or
+                    status.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              </div>
+            ) : (
+              <>
+                {/* Desktop table */}
+                <div className="hidden md:block">
+                  <Table className="report-table min-w-240">
+                    <TableHeader className="[&_th]:font-semibold">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="w-72 pl-4">Campaign</TableHead>
+                        <TableHead>Discount</TableHead>
+                        <TableHead>Window</TableHead>
+                        <TableHead>Usage</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Enabled</TableHead>
+                        <TableHead className="pr-4 text-right">
+                          Actions
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredCampaigns.map((campaign) => {
+                        const status = campaignStatus(campaign);
+                        const percent = usagePercent(
+                          campaign.timesUsed,
+                          campaign.maxUsage
+                        );
+
+                        return (
+                          <TableRow key={campaign.id}>
+                            <TableCell className="py-2.5 pl-4">
+                              <div className="flex items-center gap-2.5">
+                                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 ring-1 ring-amber-500/20 dark:text-amber-400">
+                                  <Zap className="size-4" />
+                                </span>
+                                <div className="min-w-0">
+                                  <p
+                                    className="truncate text-sm font-medium leading-tight"
+                                    title={campaign.name}
+                                  >
+                                    {campaign.name}
+                                  </p>
+                                  <p className="mt-0.5 truncate text-[13px] text-foreground/70">
+                                    {scopeLabel(
+                                      campaign.products?.length ?? 0,
+                                      campaign.categories?.length ?? 0
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                            </TableCell>
+
+                            <TableCell>
+                              <PillBadge
+                                tone={
+                                  campaign.discountType ===
+                                    DiscountType.PERCENTAGE
+                                    ? "emerald"
+                                    : "blue"
+                                }
+                                className="gap-1"
+                              >
+                                {campaign.discountType ===
+                                  DiscountType.PERCENTAGE ? (
+                                  <Percent className="size-3" />
+                                ) : (
+                                  <Banknote className="size-3" />
+                                )}
+                                {discountLabel(campaign)}
+                              </PillBadge>
+                            </TableCell>
+
+                            <TableCell>
+                              <div className="space-y-0.5">
+                                <p className="flex items-baseline gap-1.5 text-sm tabular-nums">
+                                  <span className="w-8 shrink-0 text-[13px] font-medium text-foreground/60">
+                                    From
+                                  </span>
+                                  <span>
+                                    {campaign.validFrom
+                                      ? formatDateTime(campaign.validFrom)
+                                      : "Any time"}
+                                  </span>
+                                </p>
+                                <p className="flex items-baseline gap-1.5 text-sm tabular-nums">
+                                  <span className="w-8 shrink-0 text-[13px] font-medium text-foreground/60">
+                                    To
+                                  </span>
+                                  <span>
+                                    {campaign.validUntil
+                                      ? formatDateTime(campaign.validUntil)
+                                      : "No end date"}
+                                  </span>
+                                </p>
+                              </div>
+                            </TableCell>
+
+                            <TableCell>
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-sm font-semibold tabular-nums">
+                                  {campaign.timesUsed}
+                                </span>
+                                <span className="text-[13px] text-foreground/70">
+                                  of{" "}
+                                  {campaign.maxUsage > 0
+                                    ? campaign.maxUsage.toLocaleString("en-US")
+                                    : "unlimited"}
+                                </span>
+                              </div>
+                              {campaign.maxUsage > 0 && (
+                                <div className="mt-1.5 h-1.5 w-24 overflow-hidden rounded-full bg-muted">
+                                  <div
+                                    className={cn(
+                                      "h-full rounded-full",
+                                      percent >= 100
+                                        ? "bg-red-500"
+                                        : "bg-emerald-500"
+                                    )}
+                                    style={{ width: `${percent}%` }}
+                                  />
+                                </div>
+                              )}
+                            </TableCell>
+
+                            <TableCell>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <PillBadge
+                                  tone={CAMPAIGN_STATUS_META[status].tone}
+                                >
+                                  {CAMPAIGN_STATUS_META[status].label}
+                                </PillBadge>
+                                <CampaignTimeBadge
+                                  campaign={campaign}
+                                  now={now}
+                                />
+                              </div>
+                            </TableCell>
+
+                            <TableCell>
+                              <ActiveStatusToggle
+                                isActive={campaign.isActive}
+                                disabled={togglingId === campaign.id}
+                                onToggle={() =>
+                                  handleToggleActive(
+                                    campaign,
+                                    !campaign.isActive
+                                  )
+                                }
+                                label={campaign.name}
+                              />
+                            </TableCell>
+
+                            <TableCell className="pr-4 text-right">
+                              {can(MENU_URL, "canEdit") && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-8"
+                                  onClick={() => openEdit(campaign)}
+                                  aria-label={`Edit ${campaign.name}`}
+                                >
+                                  <Pencil className="size-4" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile cards */}
+                <div className="divide-y md:hidden">
+                  {filteredCampaigns.map((campaign) => {
+                    const status = campaignStatus(campaign);
+                    return (
+                      <article key={campaign.id} className="space-y-3 p-3.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 ring-1 ring-amber-500/20 dark:text-amber-400">
+                              <Zap className="size-4" />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold">
+                                {campaign.name}
+                              </p>
+                              <p className="mt-0.5 truncate text-[13px] text-foreground/70">
+                                {scopeLabel(
+                                  campaign.products?.length ?? 0,
+                                  campaign.categories?.length ?? 0
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <PillBadge
+                            tone={CAMPAIGN_STATUS_META[status].tone}
+                          >
+                            {CAMPAIGN_STATUS_META[status].label}
+                          </PillBadge>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-lg bg-muted/40 p-2.5">
+                          <div>
+                            <p className="text-[13px] font-medium text-foreground/60">
+                              Times used
+                            </p>
+                            <p className="text-sm font-semibold tabular-nums">
+                              {campaign.timesUsed} of{" "}
+                              {campaign.maxUsage > 0
+                                ? campaign.maxUsage.toLocaleString("en-US")
+                                : "unlimited"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[13px] font-medium text-foreground/60">
+                              Discount
+                            </p>
+                            <p className="text-sm font-semibold">
+                              {discountLabel(campaign)}
+                            </p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-[13px] font-medium text-foreground/60">
+                              Valid period
+                            </p>
+                            <p className="text-sm tabular-nums">
+                              {campaign.validFrom
+                                ? formatDateTime(campaign.validFrom)
+                                : "Any time"}{" "}
+                              <span className="text-foreground/60">to</span>{" "}
+                              {campaign.validUntil
+                                ? formatDateTime(campaign.validUntil)
+                                : "No end date"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2">
+                          <ActiveStatusToggle
+                            isActive={campaign.isActive}
+                            disabled={togglingId === campaign.id}
+                            onToggle={() =>
+                              handleToggleActive(campaign, !campaign.isActive)
+                            }
+                            label={campaign.name}
+                          />
+                          {can(MENU_URL, "canEdit") && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEdit(campaign)}
+                            >
+                              <Pencil className="size-3.5" /> Edit
+                            </Button>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+
+                {/* Footer */}
+                <div className="border-t px-4 py-3">
+                  <p className="text-[13px] text-foreground/70">
+                    Showing {filteredCampaigns.length.toLocaleString("en-US")}{" "}
+                    of {campaigns.length.toLocaleString("en-US")} campaign
+                    {campaigns.length === 1 ? "" : "s"}
+                    {hasFilters && " matching the current filters"}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </>
       )}
 
       {/* Create / edit dialog */}

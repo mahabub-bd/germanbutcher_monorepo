@@ -587,7 +587,7 @@ export default function OrderReportList({
 
             {/* Desktop table */}
             <div className="hidden md:block">
-              <Table>
+              <Table className="report-table">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="pl-4">Order</TableHead>

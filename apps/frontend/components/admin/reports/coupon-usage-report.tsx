@@ -1,27 +1,43 @@
 "use client";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
-import { ReportPdfButton } from "@/components/admin/reports/generic-report-pdf";
+import { PageHeader } from "@/components/admin/page-header";
 import { ReportExcelButton } from "@/components/admin/reports/download-excel-button";
-import { ReportDateFilters, type ReportFilterParams } from "@/components/admin/reports/report-date-filters";
+import { ReportPdfButton } from "@/components/admin/reports/generic-report-pdf";
+import {
+  ReportDateFilters,
+  rangeForPreset,
+  type ReportFilterParams,
+} from "@/components/admin/reports/report-date-filters";
+import { PillBadge } from "@/components/common/pill-badge";
 import { PaginationComponent } from "@/components/common/pagination";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
-import { Tag, Ticket, TrendingUp, Users } from "lucide-react";
+import { format } from "date-fns";
+import {
+  Download,
+  Loader2,
+  RefreshCw,
+  Tag,
+  Ticket,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { LoadingIndicator } from "../loading-indicator";
-import { PageHeader } from "../page-header";
 
 interface CouponUsageLogRow {
   id: number;
@@ -47,6 +63,54 @@ interface CouponUsageReportProps {
   initialToDate?: string;
 }
 
+const EXPORT_HEADERS = [
+  "Date",
+  "Coupon",
+  "Customer",
+  "Order No",
+  "Discount",
+  "Order Total",
+];
+
+/**
+ * The usage-log endpoints only filter on explicit dates, so a quick-range
+ * preset is resolved into a concrete from/to pair before every request.
+ */
+const resolveRange = (params: ReportFilterParams) => {
+  if (params.fromDate || params.toDate) {
+    return { fromDate: params.fromDate, toDate: params.toDate };
+  }
+  if (params.preset) {
+    const [from, to] = rangeForPreset(params.preset);
+    return {
+      fromDate: from ? format(from, "yyyy-MM-dd") : undefined,
+      toDate: to ? format(to, "yyyy-MM-dd") : undefined,
+    };
+  }
+  return { fromDate: undefined, toDate: undefined };
+};
+
+/** Whole amounts only — report values never need decimal places. */
+const amount = (value: number | string) =>
+  `৳${Number(value || 0).toLocaleString("en-BD", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })}`;
+
+/** Desktop cells drop the symbol — the table header states "Amounts in ৳". */
+const bare = (value: number | string) =>
+  Number(value || 0).toLocaleString("en-BD", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+
+// @react-pdf's built-in fonts have no ৳ glyph, so exports use "BDT ".
+const formatMoney = (value: number | string, decimals = 0) =>
+  `BDT ${Number(value || 0).toLocaleString("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })}`;
+
 export function CouponUsageReport({
   initialPreset,
   initialFromDate,
@@ -61,10 +125,30 @@ export function CouponUsageReport({
   const [rows, setRows] = useState<CouponUsageLogRow[]>([]);
   const [stats, setStats] = useState<ReportStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [limit] = useState(10);
+  const [mounted, setMounted] = useState(false);
+
+  // Full-range rows for Excel/PDF export, fetched on demand (first export
+  // click of each filter combination) so the page load stays light. Rows are
+  // tagged with the filter they belong to, so a stale set is never exported.
+  const [exportState, setExportState] = useState<{
+    key: string;
+    rows: CouponUsageLogRow[];
+  } | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const range = useMemo(() => resolveRange(filters), [filters]);
+  const exportKey = `${range.fromDate ?? ""}|${range.toDate ?? ""}`;
+  const exportRows =
+    exportState && exportState.key === exportKey ? exportState.rows : null;
 
   const buildQuery = useCallback(
     (page: number, includePaging: boolean) => {
@@ -73,44 +157,55 @@ export function CouponUsageReport({
         params.set("page", String(page));
         params.set("limit", String(limit));
       }
-      if (filters.preset) params.set("preset", filters.preset);
-      if (filters.fromDate) params.set("fromDate", filters.fromDate);
-      if (filters.toDate) params.set("toDate", filters.toDate);
+      if (range.fromDate) params.set("fromDate", range.fromDate);
+      if (range.toDate) params.set("toDate", range.toDate);
       return params.toString();
     },
-    [filters, limit]
+    [range, limit]
   );
 
-  const fetchReport = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const query = buildQuery(1, false);
-      const [listResponse, statsResponse] = await Promise.all([
-        fetchDataPagination<{
-          data: CouponUsageLogRow[];
-          total: number;
-          totalPages: number;
-        }>(`coupon-usage-logs?${buildQuery(currentPage, true)}`),
-        fetchDataPagination<{ data: ReportStats }>(
-          `coupon-usage-logs/report-stats${query ? `?${query}` : ""}`
-        ),
-      ]);
-      setRows(listResponse.data);
-      setTotalItems(listResponse.total);
-      setTotalPages(listResponse.totalPages);
-      setStats(statsResponse.data);
-    } catch (error) {
-      console.error("Error fetching coupon usage report:", error);
-      toast.error("Failed to load coupon usage report.");
-      setRows([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [buildQuery, currentPage]);
+  const fetchReport = useCallback(
+    async (silent = false) => {
+      if (!silent) setIsLoading(true);
+      try {
+        const query = buildQuery(1, false);
+        const [listResponse, statsResponse] = await Promise.all([
+          fetchDataPagination<{
+            data: CouponUsageLogRow[];
+            total: number;
+            totalPages: number;
+          }>(`coupon-usage-logs?${buildQuery(currentPage, true)}`),
+          fetchDataPagination<{ data: ReportStats }>(
+            `coupon-usage-logs/report-stats${query ? `?${query}` : ""}`
+          ),
+        ]);
+        setRows(listResponse.data);
+        setTotalItems(listResponse.total);
+        setTotalPages(listResponse.totalPages);
+        setStats(statsResponse.data);
+      } catch (error) {
+        console.error("Error fetching coupon usage report:", error);
+        toast.error("Failed to load coupon usage report.");
+        setRows([]);
+      } finally {
+        if (!silent) setIsLoading(false);
+      }
+    },
+    [buildQuery, currentPage]
+  );
 
   useEffect(() => {
     fetchReport();
   }, [fetchReport]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchReport(true);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleFilterApply = (params: ReportFilterParams) => {
     setFilters(params);
@@ -124,11 +219,35 @@ export function CouponUsageReport({
     });
   };
 
-  // Whole-amount formatting: reports never show decimal fractions.
-  // The ASCII "BDT " prefix is used everywhere — the ৳ glyph is not supported
-  // by @react-pdf's built-in fonts.
-  const formatMoney = (value: number | string, decimals = 0) =>
-    `BDT ${Number(value).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+  const handleExportPrepare = async () => {
+    if (exporting || exportRows) return;
+    setExporting(true);
+    try {
+      const all: CouponUsageLogRow[] = [];
+      let page = 1;
+      let lastPage = 1;
+      do {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("limit", "500");
+        if (range.fromDate) params.set("fromDate", range.fromDate);
+        if (range.toDate) params.set("toDate", range.toDate);
+        const response = await fetchDataPagination<{
+          data: CouponUsageLogRow[];
+          totalPages: number;
+        }>(`coupon-usage-logs?${params.toString()}`);
+        all.push(...(response.data || []));
+        lastPage = response.totalPages || 1;
+        page += 1;
+      } while (page <= lastPage);
+      setExportState({ key: exportKey, rows: all });
+    } catch (error) {
+      console.error("Failed to prepare export:", error);
+      toast.error("Failed to load coupon usages for export");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const periodLabel = filters.fromDate || filters.toDate
     ? `Period: ${filters.fromDate ?? "start"} to ${filters.toDate ?? "today"}`
@@ -136,68 +255,104 @@ export function CouponUsageReport({
       ? `Period: ${filters.preset.replace(/_/g, " ")}`
       : "Period: all time";
 
+  const exportData = (exportRows ?? []).map((row) => [
+    formatDateTime(row.createdAt),
+    row.couponCode,
+    row.user?.name || "-",
+    row.order?.orderNo || "-",
+    formatMoney(row.discountAmount),
+    formatMoney(row.orderTotal),
+  ]);
+
+  const exportSummary = stats
+    ? [
+        { label: "Total Uses", value: String(stats.totalUses) },
+        { label: "Total Discount", value: formatMoney(stats.totalDiscountGiven) },
+        { label: "Total Order Value", value: formatMoney(stats.totalOrderValue) },
+      ]
+    : undefined;
+
+  // Current-page sums — the period totals shown in the cards come from the API.
+  const pageTotals = rows.reduce(
+    (sum, row) => ({
+      discount: sum.discount + (Number(row.discountAmount) || 0),
+      orderTotal: sum.orderTotal + (Number(row.orderTotal) || 0),
+    }),
+    { discount: 0, orderTotal: 0 }
+  );
+
+  const hasData = totalItems > 0;
+  const firstRow = Math.min((currentPage - 1) * limit + 1, totalItems);
+  const lastRow = Math.min(currentPage * limit, totalItems);
+
   return (
     <div className="w-full">
-      <div className="flex items-start justify-between gap-4">
-        <PageHeader
-          title="Coupon Usage Report"
-        />
-        <div className="flex shrink-0 gap-2">
-          <ReportExcelButton
-            title="Coupon Usage Report"
-            subtitle={periodLabel}
-                        headers={["Date", "Coupon", "Customer", "Order No", "Discount", "Order Total"]}
-            rows={rows.map((row) => [
-              formatDateTime(row.createdAt),
-              row.couponCode,
-              row.user?.name || "-",
-              row.order?.orderNo || "-",
-              formatMoney(row.discountAmount),
-              formatMoney(row.orderTotal),
-            ])}
-            summary={
-              stats
-                ? [
-                  { label: "Total Uses", value: String(stats.totalUses) },
-                  { label: "Total Discount", value: formatMoney(stats.totalDiscountGiven) },
-                  { label: "Total Order Value", value: formatMoney(stats.totalOrderValue) },
-                ]
-                : undefined
-            }
-            fileName="coupon-usage-report"
-          />
-          <ReportPdfButton
-            title="Coupon Usage Report"
-            subtitle={periodLabel}
-            fileName="coupon-usage-report"
-            columns={[
-              { header: "Date", width: 2 },
-              { header: "Coupon", width: 1.1 },
-              { header: "Customer", width: 1.6 },
-              { header: "Order No", width: 1.3 },
-              { header: "Discount", width: 1, align: "right" },
-              { header: "Order Total", width: 1, align: "right" },
-            ]}
-            rows={rows.map((row) => [
-              formatDateTime(row.createdAt),
-              row.couponCode,
-              row.user?.name || "-",
-              row.order?.orderNo || "-",
-              formatMoney(row.discountAmount),
-              formatMoney(row.orderTotal),
-            ])}
-            summary={
-              stats
-                ? [
-                  { label: "Total Uses", value: String(stats.totalUses) },
-                  { label: "Total Discount", value: formatMoney(stats.totalDiscountGiven) },
-                  { label: "Total Order Value", value: formatMoney(stats.totalOrderValue) },
-                ]
-                : undefined
-            }
-          />
-        </div>
-      </div>
+      <PageHeader
+        title="Coupon Usage Report"
+        description={`Every coupon redemption in ${periodLabel
+          .replace(/^Period: /, "")
+          .toLowerCase()} — customer, order, discount and order value.`}
+      >
+        {mounted && hasData && (
+          <>
+            {exportRows ? (
+              <>
+                <ReportExcelButton
+                  title="Coupon Usage Report"
+                  subtitle={periodLabel}
+                  headers={EXPORT_HEADERS}
+                  rows={exportData}
+                  summary={exportSummary}
+                  fileName="coupon-usage-report"
+                />
+                <ReportPdfButton
+                  title="Coupon Usage Report"
+                  subtitle={periodLabel}
+                  fileName="coupon-usage-report"
+                  columns={[
+                    { header: "Date", width: 2 },
+                    { header: "Coupon", width: 1.1 },
+                    { header: "Customer", width: 1.6 },
+                    { header: "Order No", width: 1.3 },
+                    { header: "Discount", width: 1, align: "right" },
+                    { header: "Order Total", width: 1, align: "right" },
+                  ]}
+                  rows={exportData}
+                  summary={exportSummary}
+                />
+              </>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPrepare}
+                disabled={exporting}
+              >
+                {exporting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Preparing…
+                  </>
+                ) : (
+                  <>
+                    <Download className="size-4" />
+                    Export
+                  </>
+                )}
+              </Button>
+            )}
+          </>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isRefreshing}
+          onClick={handleRefresh}
+        >
+          <RefreshCw className={cn("size-3.5", isRefreshing && "animate-spin")} />
+          Refresh
+        </Button>
+      </PageHeader>
 
       <ReportDateFilters
         preset={filters.preset}
@@ -207,31 +362,31 @@ export function CouponUsageReport({
       />
 
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
           <StatsCard
-            title="Total Uses"
-            value={stats.totalUses}
+            title="Total uses"
+            value={stats.totalUses.toLocaleString("en-US")}
             description="Coupon applications in period"
             icon={Ticket}
             bgColor="blue"
           />
           <StatsCard
-            title="Total Discount Given"
-            value={formatMoney(stats.totalDiscountGiven, 0)}
+            title="Discount given"
+            value={amount(stats.totalDiscountGiven)}
             description="Sum of all coupon discounts"
             icon={Tag}
             bgColor="red"
           />
           <StatsCard
-            title="Total Order Value"
-            value={formatMoney(stats.totalOrderValue, 0)}
+            title="Order value"
+            value={amount(stats.totalOrderValue)}
             description="Value of orders using coupons"
             icon={TrendingUp}
             bgColor="green"
           />
           <StatsCard
-            title="Unique Coupons Used"
-            value={stats.uniqueCoupons}
+            title="Unique coupons"
+            value={stats.uniqueCoupons.toLocaleString("en-US")}
             description="Distinct coupons applied"
             icon={Users}
             bgColor="purple"
@@ -240,79 +395,184 @@ export function CouponUsageReport({
       )}
 
       {isLoading ? (
-        <LoadingIndicator message="Loading coupon usage report..." />
+        <div className="rounded-xl border bg-card shadow-xs">
+          <LoadingIndicator message="Loading coupon usage report..." />
+        </div>
+      ) : !hasData ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+          <div className="rounded-full bg-muted p-3">
+            <Ticket className="size-6 text-muted-foreground" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">No coupon usages matched</p>
+            <p className="text-xs text-muted-foreground">
+              Widen the date range or clear the filters.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/admin/reports/coupon-usage")}
+          >
+            Clear filters
+          </Button>
+        </div>
       ) : (
-        <div className="mt-2">
-          <Table className="min-w-160 [&_td]:py-4 [&_td]:px-3 [&_th]:pb-3 [&_th]:pt-0 [&_th]:px-3">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[12%]">Date</TableHead>
-                <TableHead className="w-[14%]">Coupon</TableHead>
-                <TableHead className="w-[28%]">Customer</TableHead>
-                <TableHead className="w-[16%]">Order</TableHead>
-                <TableHead className="w-[14%] text-right">
-                  Discount
-                </TableHead>
-                <TableHead className="w-[16%] text-right">
-                  Order Total
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                    No coupon usage found for the selected period.
-                  </TableCell>
+        <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+            <div>
+              <h3 className="text-sm font-semibold">Redemptions</h3>
+              <p className="text-xs text-muted-foreground">
+                Amounts in ৳ · page {currentPage} of {Math.max(totalPages, 1)}
+              </p>
+            </div>
+            <PillBadge className="font-medium tabular-nums">
+              {rows.length} row{rows.length === 1 ? "" : "s"}
+            </PillBadge>
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block">
+            <Table className="report-table">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="pl-4">Coupon</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Order</TableHead>
+                  <TableHead className="text-right">Discount</TableHead>
+                  <TableHead className="pr-4 text-right">Order Total</TableHead>
                 </TableRow>
-              ) : (
-                rows.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-muted/50">
-                    <TableCell className="whitespace-nowrap">
-                      <span className="text-sm text-muted-foreground">
+              </TableHeader>
+              <TableBody>
+                {rows.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="py-2.5 pl-4">
+                      <PillBadge tone="violet">{row.couponCode}</PillBadge>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
                         {formatDateTime(row.createdAt)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="rounded-full bg-primaryColor/5 px-2.5 py-0.5 text-xs font-semibold text-primaryColor">
-                        {row.couponCode}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm font-medium">{row.user?.name || "—"}</p>
-                      <p className="text-xs text-muted-foreground truncate max-w-48">
-                        {row.user?.email || ""}
                       </p>
                     </TableCell>
+
+                    <TableCell>
+                      <p className="text-sm font-medium">
+                        {row.user?.name || "N/A"}
+                      </p>
+                      {row.user?.email ? (
+                        <p className="truncate text-[11px] text-muted-foreground">
+                          {row.user.email}
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">
+                          No email
+                        </p>
+                      )}
+                    </TableCell>
+
                     <TableCell>
                       {row.order?.orderNo ? (
                         <Link
                           href="/admin/orders"
-                          className="text-sm font-medium whitespace-nowrap hover:underline"
+                          className="text-sm font-semibold whitespace-nowrap text-foreground hover:text-primaryColor hover:underline"
                         >
                           {row.order.orderNo}
                         </Link>
                       ) : (
-                        <span className="text-sm">—</span>
+                        <span className="text-sm text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right whitespace-nowrap">
-                      <span className="text-sm font-medium text-primaryColor">
-                        {formatMoney(row.discountAmount)}
+
+                    <TableCell className="text-right">
+                      <span className="text-sm font-semibold tabular-nums text-amber-600 dark:text-amber-400">
+                        −{bare(row.discountAmount)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right whitespace-nowrap">
-                      <span className="text-sm">{formatMoney(row.orderTotal)}</span>
+
+                    <TableCell className="pr-4 text-right">
+                      <span className="text-sm font-semibold tabular-nums">
+                        {bare(row.orderTotal)}
+                      </span>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ))}
+              </TableBody>
+              <TableFooter>
+                <TableRow className="hover:bg-transparent">
+                  <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Page total
+                  </TableCell>
+                  <TableCell colSpan={2} />
+                  <TableCell className="text-right">
+                    <span className="text-sm font-bold tabular-nums text-amber-600 dark:text-amber-400">
+                      −{bare(pageTotals.discount)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="pr-4 text-right">
+                    <span className="text-sm font-bold tabular-nums">
+                      {bare(pageTotals.orderTotal)}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </div>
 
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
+          {/* Mobile cards */}
+          <div className="divide-y md:hidden">
+            {rows.map((row) => (
+              <article key={row.id} className="space-y-3 p-3.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <PillBadge tone="violet">{row.couponCode}</PillBadge>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {formatDateTime(row.createdAt)}
+                    </p>
+                  </div>
+                  {row.order?.orderNo && (
+                    <Link
+                      href="/admin/orders"
+                      className="shrink-0 text-sm font-semibold hover:text-primaryColor hover:underline"
+                    >
+                      {row.order.orderNo}
+                    </Link>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+                  <span className="font-medium">{row.user?.name || "N/A"}</span>
+                  {row.user?.email && (
+                    <span className="truncate text-muted-foreground">
+                      {row.user.email}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-2.5">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Discount
+                    </p>
+                    <p className="text-sm font-semibold tabular-nums text-amber-600 dark:text-amber-400">
+                      −{amount(row.discountAmount)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Order Total
+                    </p>
+                    <p className="text-sm font-semibold tabular-nums">
+                      {amount(row.orderTotal)}
+                    </p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {/* Footer: range position + pagination */}
+          <div className="flex flex-col gap-2 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
-              {`Showing ${rows.length} of ${totalItems} usages`}
+              Showing {firstRow}–{lastRow} of {totalItems} usage
+              {totalItems === 1 ? "" : "s"}
             </p>
             <PaginationComponent
               currentPage={currentPage}

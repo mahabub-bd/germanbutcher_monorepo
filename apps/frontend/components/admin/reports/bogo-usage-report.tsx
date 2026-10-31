@@ -1,28 +1,43 @@
 "use client";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
-import { ReportPdfButton } from "@/components/admin/reports/generic-report-pdf";
+import { PageHeader } from "@/components/admin/page-header";
 import { ReportExcelButton } from "@/components/admin/reports/download-excel-button";
-import { ReportDateFilters, type ReportFilterParams } from "@/components/admin/reports/report-date-filters";
+import { ReportPdfButton } from "@/components/admin/reports/generic-report-pdf";
+import {
+  ReportDateFilters,
+  rangeForPreset,
+  type ReportFilterParams,
+} from "@/components/admin/reports/report-date-filters";
+import { PillBadge } from "@/components/common/pill-badge";
 import { PaginationComponent } from "@/components/common/pagination";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
-import { Gift, Tag, TrendingUp, Users } from "lucide-react";
+import { format } from "date-fns";
+import {
+  Download,
+  Gift,
+  Loader2,
+  RefreshCw,
+  Tag,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { LoadingIndicator } from "../loading-indicator";
-import { PageHeader } from "../page-header";
 
 interface BogoUsageRow {
   id: number;
@@ -50,6 +65,55 @@ interface BogoUsageReportProps {
   initialToDate?: string;
 }
 
+const EXPORT_HEADERS = [
+  "Date",
+  "Customer",
+  "Order No",
+  "Campaign",
+  "Free Units",
+  "Discount",
+  "Total",
+];
+
+/**
+ * The usage-log endpoints only filter on explicit dates, so a quick-range
+ * preset is resolved into a concrete from/to pair before every request.
+ */
+const resolveRange = (params: ReportFilterParams) => {
+  if (params.fromDate || params.toDate) {
+    return { fromDate: params.fromDate, toDate: params.toDate };
+  }
+  if (params.preset) {
+    const [from, to] = rangeForPreset(params.preset);
+    return {
+      fromDate: from ? format(from, "yyyy-MM-dd") : undefined,
+      toDate: to ? format(to, "yyyy-MM-dd") : undefined,
+    };
+  }
+  return { fromDate: undefined, toDate: undefined };
+};
+
+/** Whole amounts only — report values never need decimal places. */
+const amount = (value: number | string) =>
+  `৳${Number(value || 0).toLocaleString("en-BD", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })}`;
+
+/** Desktop cells drop the symbol — the table header states "Amounts in ৳". */
+const bare = (value: number | string) =>
+  Number(value || 0).toLocaleString("en-BD", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+
+// @react-pdf's built-in fonts have no ৳ glyph, so exports use "BDT ".
+const formatMoney = (value: number | string, decimals = 0) =>
+  `BDT ${Number(value || 0).toLocaleString("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })}`;
+
 export function BogoUsageReport({
   initialPreset,
   initialFromDate,
@@ -64,10 +128,30 @@ export function BogoUsageReport({
   const [rows, setRows] = useState<BogoUsageRow[]>([]);
   const [stats, setStats] = useState<ReportStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [limit] = useState(10);
+  const [mounted, setMounted] = useState(false);
+
+  // Full-range rows for Excel/PDF export, fetched on demand (first export
+  // click of each filter combination) so the page load stays light. Rows are
+  // tagged with the filter they belong to, so a stale set is never exported.
+  const [exportState, setExportState] = useState<{
+    key: string;
+    rows: BogoUsageRow[];
+  } | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const range = useMemo(() => resolveRange(filters), [filters]);
+  const exportKey = `${range.fromDate ?? ""}|${range.toDate ?? ""}`;
+  const exportRows =
+    exportState && exportState.key === exportKey ? exportState.rows : null;
 
   const buildQuery = useCallback(
     (page: number, includePaging: boolean) => {
@@ -76,44 +160,55 @@ export function BogoUsageReport({
         params.set("page", String(page));
         params.set("limit", String(limit));
       }
-      if (filters.preset) params.set("preset", filters.preset);
-      if (filters.fromDate) params.set("fromDate", filters.fromDate);
-      if (filters.toDate) params.set("toDate", filters.toDate);
+      if (range.fromDate) params.set("fromDate", range.fromDate);
+      if (range.toDate) params.set("toDate", range.toDate);
       return params.toString();
     },
-    [filters, limit]
+    [range, limit]
   );
 
-  const fetchReport = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const query = buildQuery(1, false);
-      const [listResponse, statsResponse] = await Promise.all([
-        fetchDataPagination<{
-          data: BogoUsageRow[];
-          total: number;
-          totalPages: number;
-        }>(`bogo-usage-logs?${buildQuery(currentPage, true)}`),
-        fetchDataPagination<{ data: ReportStats }>(
-          `bogo-usage-logs/report-stats${query ? `?${query}` : ""}`
-        ),
-      ]);
-      setRows(listResponse.data);
-      setTotalItems(listResponse.total);
-      setTotalPages(listResponse.totalPages);
-      setStats(statsResponse.data);
-    } catch (error) {
-      console.error("Error fetching BOGO usage report:", error);
-      toast.error("Failed to load BOGO usage report.");
-      setRows([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [buildQuery, currentPage]);
+  const fetchReport = useCallback(
+    async (silent = false) => {
+      if (!silent) setIsLoading(true);
+      try {
+        const query = buildQuery(1, false);
+        const [listResponse, statsResponse] = await Promise.all([
+          fetchDataPagination<{
+            data: BogoUsageRow[];
+            total: number;
+            totalPages: number;
+          }>(`bogo-usage-logs?${buildQuery(currentPage, true)}`),
+          fetchDataPagination<{ data: ReportStats }>(
+            `bogo-usage-logs/report-stats${query ? `?${query}` : ""}`
+          ),
+        ]);
+        setRows(listResponse.data);
+        setTotalItems(listResponse.total);
+        setTotalPages(listResponse.totalPages);
+        setStats(statsResponse.data);
+      } catch (error) {
+        console.error("Error fetching BOGO usage report:", error);
+        toast.error("Failed to load BOGO usage report.");
+        setRows([]);
+      } finally {
+        if (!silent) setIsLoading(false);
+      }
+    },
+    [buildQuery, currentPage]
+  );
 
   useEffect(() => {
     fetchReport();
   }, [fetchReport]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchReport(true);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleFilterApply = (params: ReportFilterParams) => {
     setFilters(params);
@@ -127,13 +222,35 @@ export function BogoUsageReport({
     });
   };
 
-  const formatMoney = (value: number | string, decimals = 2) =>
-    `৳${Number(value).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
-
-  // Amounts use the ASCII "BDT " prefix for the PDF — the ৳ glyph is not
-  // embedded in the PDF font.
-  const formatMoneyPdf = (value: number | string) =>
-    `BDT ${Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const handleExportPrepare = async () => {
+    if (exporting || exportRows) return;
+    setExporting(true);
+    try {
+      const all: BogoUsageRow[] = [];
+      let page = 1;
+      let lastPage = 1;
+      do {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("limit", "500");
+        if (range.fromDate) params.set("fromDate", range.fromDate);
+        if (range.toDate) params.set("toDate", range.toDate);
+        const response = await fetchDataPagination<{
+          data: BogoUsageRow[];
+          totalPages: number;
+        }>(`bogo-usage-logs?${params.toString()}`);
+        all.push(...(response.data || []));
+        lastPage = response.totalPages || 1;
+        page += 1;
+      } while (page <= lastPage);
+      setExportState({ key: exportKey, rows: all });
+    } catch (error) {
+      console.error("Failed to prepare export:", error);
+      toast.error("Failed to load BOGO usages for export");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const periodLabel = filters.fromDate || filters.toDate
     ? `Period: ${filters.fromDate ?? "start"} to ${filters.toDate ?? "today"}`
@@ -141,73 +258,108 @@ export function BogoUsageReport({
       ? `Period: ${filters.preset.replace(/_/g, " ")}`
       : "Period: all time";
 
+  const exportData = (exportRows ?? []).map((row) => [
+    formatDateTime(row.createdAt),
+    row.user?.name || "-",
+    row.order?.orderNo || "-",
+    row.campaignName,
+    String(row.freeUnits ?? 0),
+    formatMoney(row.discountAmount),
+    formatMoney(row.orderTotal),
+  ]);
+
+  const exportSummary = stats
+    ? [
+        { label: "Total Uses", value: String(stats.totalUses) },
+        { label: "Discount Given", value: formatMoney(stats.totalDiscount) },
+        { label: "Free Units Given", value: String(stats.totalFreeUnits) },
+        { label: "Total Order Value", value: formatMoney(stats.totalOrderValue) },
+      ]
+    : undefined;
+
+  // Current-page sums — the period totals shown in the cards come from the API.
+  const pageTotals = rows.reduce(
+    (sum, row) => ({
+      freeUnits: sum.freeUnits + (Number(row.freeUnits) || 0),
+      discount: sum.discount + (Number(row.discountAmount) || 0),
+      orderTotal: sum.orderTotal + (Number(row.orderTotal) || 0),
+    }),
+    { freeUnits: 0, discount: 0, orderTotal: 0 }
+  );
+
+  const hasData = totalItems > 0;
+  const firstRow = Math.min((currentPage - 1) * limit + 1, totalItems);
+  const lastRow = Math.min(currentPage * limit, totalItems);
+
   return (
     <div className="w-full">
-      <div className="flex items-start justify-between gap-4">
-        <PageHeader
-          title="BOGO Usage Report"
-        />
-        <div className="flex shrink-0 gap-2">
-          <ReportExcelButton
-            title="BOGO Usage Report"
-            subtitle={periodLabel}
-                        headers={["Date", "Customer", "Order No", "Campaign", "Free Units", "Discount", "Total"]}
-            rows={rows.map((row) => [
-              formatDateTime(row.createdAt),
-              row.user?.name || "-",
-              row.order?.orderNo || "-",
-              row.campaignName,
-              String(row.freeUnits ?? 0),
-              formatMoneyPdf(row.discountAmount),
-              formatMoneyPdf(row.orderTotal),
-            ])}
-            summary={
-              stats
-                ? [
-                  { label: "Total Uses", value: String(stats.totalUses) },
-                  { label: "Discount Given", value: formatMoneyPdf(stats.totalDiscount) },
-                  { label: "Free Units Given", value: String(stats.totalFreeUnits) },
-                  { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
-                ]
-                : undefined
-            }
-            fileName="bogo-usage-report"
-          />
-          <ReportPdfButton
-            title="BOGO Usage Report"
-            subtitle={periodLabel}
-            fileName="bogo-usage-report"
-            columns={[
-              { header: "Date", width: 2 },
-              { header: "Customer", width: 1.5 },
-              { header: "Order No", width: 1.2 },
-              { header: "Campaign", width: 1.5 },
-              { header: "Free Units", width: 0.9, align: "right" },
-              { header: "Discount", width: 1.1, align: "right" },
-              { header: "Total", width: 1.1, align: "right" },
-            ]}
-            rows={rows.map((row) => [
-              formatDateTime(row.createdAt),
-              row.user?.name || "-",
-              row.order?.orderNo || "-",
-              row.campaignName,
-              String(row.freeUnits ?? 0),
-              formatMoneyPdf(row.discountAmount),
-              formatMoneyPdf(row.orderTotal),
-            ])}
-            summary={
-              stats
-                ? [
-                  { label: "Total Uses", value: String(stats.totalUses) },
-                  { label: "Discount Given", value: formatMoneyPdf(stats.totalDiscount) },
-                  { label: "Free Units Given", value: String(stats.totalFreeUnits) },
-                  { label: "Total Order Value", value: formatMoneyPdf(stats.totalOrderValue) },
-                ]
-                : undefined
-            }
-          />
-        </div>
-      </div>
+      <PageHeader
+        title="BOGO Usage Report"
+        description={`Every buy-one-get-one redemption in ${periodLabel
+          .replace(/^Period: /, "")
+          .toLowerCase()} — campaign, free units, discount and order value.`}
+      >
+        {mounted && hasData && (
+          <>
+            {exportRows ? (
+              <>
+                <ReportExcelButton
+                  title="BOGO Usage Report"
+                  subtitle={periodLabel}
+                  headers={EXPORT_HEADERS}
+                  rows={exportData}
+                  summary={exportSummary}
+                  fileName="bogo-usage-report"
+                />
+                <ReportPdfButton
+                  title="BOGO Usage Report"
+                  subtitle={periodLabel}
+                  fileName="bogo-usage-report"
+                  columns={[
+                    { header: "Date", width: 2 },
+                    { header: "Customer", width: 1.5 },
+                    { header: "Order No", width: 1.2 },
+                    { header: "Campaign", width: 1.5 },
+                    { header: "Free Units", width: 0.9, align: "right" },
+                    { header: "Discount", width: 1.1, align: "right" },
+                    { header: "Total", width: 1.1, align: "right" },
+                  ]}
+                  rows={exportData}
+                  summary={exportSummary}
+                />
+              </>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPrepare}
+                disabled={exporting}
+              >
+                {exporting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Preparing…
+                  </>
+                ) : (
+                  <>
+                    <Download className="size-4" />
+                    Export
+                  </>
+                )}
+              </Button>
+            )}
+          </>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isRefreshing}
+          onClick={handleRefresh}
+        >
+          <RefreshCw className={cn("size-3.5", isRefreshing && "animate-spin")} />
+          Refresh
+        </Button>
+      </PageHeader>
 
       <ReportDateFilters
         preset={filters.preset}
@@ -217,38 +369,38 @@ export function BogoUsageReport({
       />
 
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
           <StatsCard
-            title="Total Uses"
-            value={stats.totalUses}
+            title="Total uses"
+            value={stats.totalUses.toLocaleString("en-US")}
             description="Orders with a BOGO deal in period"
             icon={Gift}
             bgColor="blue"
           />
           <StatsCard
-            title="Total Discount Given"
-            value={formatMoney(stats.totalDiscount, 0)}
+            title="Discount given"
+            value={amount(stats.totalDiscount)}
             description="BOGO discounts on those orders"
             icon={Tag}
             bgColor="green"
           />
           <StatsCard
-            title="Free Units Given"
-            value={stats.totalFreeUnits}
+            title="Free units"
+            value={stats.totalFreeUnits.toLocaleString("en-US")}
             description="Items given free in period"
             icon={Users}
             bgColor="orange"
           />
           <StatsCard
-            title="Total Order Value"
-            value={formatMoney(stats.totalOrderValue, 0)}
+            title="Order value"
+            value={amount(stats.totalOrderValue)}
             description="Value of orders with a BOGO deal"
             icon={TrendingUp}
             bgColor="purple"
           />
           <StatsCard
-            title="Campaigns Used"
-            value={stats.uniqueCampaigns}
+            title="Campaigns used"
+            value={stats.uniqueCampaigns.toLocaleString("en-US")}
             description="Distinct campaigns applied"
             icon={Tag}
             bgColor="violet"
@@ -257,88 +409,216 @@ export function BogoUsageReport({
       )}
 
       {isLoading ? (
-        <LoadingIndicator message="Loading BOGO usage report..." />
+        <div className="rounded-xl border bg-card shadow-xs">
+          <LoadingIndicator message="Loading BOGO usage report..." />
+        </div>
+      ) : !hasData ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+          <div className="rounded-full bg-muted p-3">
+            <Gift className="size-6 text-muted-foreground" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">No BOGO usages matched</p>
+            <p className="text-xs text-muted-foreground">
+              Widen the date range or clear the filters.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/admin/reports/bogo-usage")}
+          >
+            Clear filters
+          </Button>
+        </div>
       ) : (
-        <div className="mt-2">
-          <Table className="min-w-180 [&_td]:py-4 [&_td]:px-3 [&_th]:pb-3 [&_th]:pt-0 [&_th]:px-3">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[12%]">Date</TableHead>
-                <TableHead className="w-[28%]">Customer</TableHead>
-                <TableHead className="w-[16%]">Order</TableHead>
-                <TableHead className="w-[17%]">Campaign</TableHead>
-                <TableHead className="w-[10%] text-right">
-                  Free Units
-                </TableHead>
-                <TableHead className="w-[11%] text-right">
-                  Discount
-                </TableHead>
-                <TableHead className="w-[12%] text-right">
-                  Order Total
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    No BOGO usage found for the selected period.
-                  </TableCell>
+        <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+            <div>
+              <h3 className="text-sm font-semibold">BOGO orders</h3>
+              <p className="text-xs text-muted-foreground">
+                Amounts in ৳ · page {currentPage} of {Math.max(totalPages, 1)}
+              </p>
+            </div>
+            <PillBadge className="font-medium tabular-nums">
+              {rows.length} row{rows.length === 1 ? "" : "s"}
+            </PillBadge>
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block">
+            <Table className="report-table">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="pl-4">Campaign</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Order</TableHead>
+                  <TableHead className="text-right">Free Units</TableHead>
+                  <TableHead className="text-right">Discount</TableHead>
+                  <TableHead className="pr-4 text-right">Order Total</TableHead>
                 </TableRow>
-              ) : (
-                rows.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-muted/50">
-                    <TableCell className="whitespace-nowrap">
-                      <span className="text-sm text-muted-foreground">
+              </TableHeader>
+              <TableBody>
+                {rows.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="py-2.5 pl-4">
+                      <PillBadge
+                        tone="violet"
+                        className="max-w-44 truncate font-normal"
+                        title={row.campaignName}
+                      >
+                        {row.campaignName}
+                      </PillBadge>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
                         {formatDateTime(row.createdAt)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm font-medium">{row.user?.name || "—"}</p>
-                      <p className="text-xs text-muted-foreground truncate max-w-48">
-                        {row.user?.email || ""}
                       </p>
                     </TableCell>
+
+                    <TableCell>
+                      <p className="text-sm font-medium">
+                        {row.user?.name || "N/A"}
+                      </p>
+                      {row.user?.email ? (
+                        <p className="truncate text-[11px] text-muted-foreground">
+                          {row.user.email}
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">
+                          No email
+                        </p>
+                      )}
+                    </TableCell>
+
                     <TableCell>
                       {row.order?.orderNo ? (
                         <Link
                           href="/admin/orders"
-                          className="text-sm font-medium whitespace-nowrap hover:underline"
+                          className="text-sm font-semibold whitespace-nowrap text-foreground hover:text-primaryColor hover:underline"
                         >
                           {row.order.orderNo}
                         </Link>
                       ) : (
-                        <span className="text-sm">—</span>
+                        <span className="text-sm text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <Badge
-                        variant="outline"
-                        className="whitespace-nowrap bg-primaryColor/5 text-primaryColor border-primaryColor/20 px-3 py-1"
-                      >
-                        {row.campaignName}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right whitespace-nowrap">
-                      <span className="text-sm">{row.freeUnits ?? 0}</span>
-                    </TableCell>
-                    <TableCell className="text-right whitespace-nowrap">
-                      <span className="text-sm font-medium text-green-700 dark:text-green-400">
-                        −{formatMoney(row.discountAmount)}
+
+                    <TableCell className="text-right">
+                      <span className="text-sm font-semibold tabular-nums">
+                        {row.freeUnits ?? 0}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right whitespace-nowrap">
-                      <span className="text-sm">{formatMoney(row.orderTotal)}</span>
+
+                    <TableCell className="text-right">
+                      <span className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                        −{bare(row.discountAmount)}
+                      </span>
+                    </TableCell>
+
+                    <TableCell className="pr-4 text-right">
+                      <span className="text-sm font-semibold tabular-nums">
+                        {bare(row.orderTotal)}
+                      </span>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ))}
+              </TableBody>
+              <TableFooter>
+                <TableRow className="hover:bg-transparent">
+                  <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Page total
+                  </TableCell>
+                  <TableCell colSpan={2} />
+                  <TableCell className="text-right">
+                    <span className="text-sm font-bold tabular-nums">
+                      {pageTotals.freeUnits.toLocaleString("en-US")}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                      −{bare(pageTotals.discount)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="pr-4 text-right">
+                    <span className="text-sm font-bold tabular-nums">
+                      {bare(pageTotals.orderTotal)}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </div>
 
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
+          {/* Mobile cards */}
+          <div className="divide-y md:hidden">
+            {rows.map((row) => (
+              <article key={row.id} className="space-y-3 p-3.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <PillBadge
+                      tone="violet"
+                      className="max-w-44 truncate font-normal"
+                      title={row.campaignName}
+                    >
+                      {row.campaignName}
+                    </PillBadge>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {formatDateTime(row.createdAt)}
+                    </p>
+                  </div>
+                  {row.order?.orderNo && (
+                    <Link
+                      href="/admin/orders"
+                      className="shrink-0 text-sm font-semibold hover:text-primaryColor hover:underline"
+                    >
+                      {row.order.orderNo}
+                    </Link>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+                  <span className="font-medium">{row.user?.name || "N/A"}</span>
+                  {row.user?.email && (
+                    <span className="truncate text-muted-foreground">
+                      {row.user.email}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/40 p-2.5">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Free Units
+                    </p>
+                    <p className="text-sm font-semibold tabular-nums">
+                      {row.freeUnits ?? 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Discount
+                    </p>
+                    <p className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                      −{amount(row.discountAmount)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Order Total
+                    </p>
+                    <p className="text-sm font-semibold tabular-nums">
+                      {amount(row.orderTotal)}
+                    </p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {/* Footer: range position + pagination */}
+          <div className="flex flex-col gap-2 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
-              {`Showing ${rows.length} of ${totalItems} usages`}
+              Showing {firstRow}–{lastRow} of {totalItems} usage
+              {totalItems === 1 ? "" : "s"}
             </p>
             <PaginationComponent
               currentPage={currentPage}

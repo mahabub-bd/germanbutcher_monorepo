@@ -2,10 +2,11 @@
 
 import type React from "react";
 
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { PillBadge, type PillTone } from "@/components/common/pill-badge";
 import { PaginationComponent } from "@/components/common/pagination";
 import { TableSearch } from "@/components/common/table-search";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,6 +15,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -21,17 +29,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime, getRoleColor } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
-import { ApiResponseusers, User } from "@/utils/types";
+import type { ApiResponseusers, User } from "@/utils/types";
 import {
   BadgeCheck,
   BadgeX,
   Briefcase,
-  Filter,
+  CheckCircle2,
   MoreHorizontal,
   Pencil,
   Plus,
+  RefreshCw,
   Shield,
   ShieldCheck,
   Store,
@@ -39,7 +48,6 @@ import {
   UserCircle,
   User as UserIcon,
   Users,
-  XCircle,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -61,10 +69,24 @@ const roleIcons: Record<string, React.ReactNode> = {
   customer: <UserIcon className="h-3 w-3" />,
 };
 
+const ROLE_TONE: Record<string, PillTone> = {
+  superadmin: "violet",
+  admin: "violet",
+  modaretor: "sky",
+  manager: "blue",
+  storemanager: "blue",
+  staff: "neutral",
+  customer: "emerald",
+};
+
+const roleKey = (roleName: string | undefined) =>
+  (roleName ?? "").trim().toLowerCase();
+
 const getRoleIcon = (roleName: string | undefined) =>
-  (roleName && roleIcons[roleName.trim().toLowerCase()]) || (
-    <UserCircle className="h-3 w-3" />
-  );
+  roleIcons[roleKey(roleName)] ?? <UserCircle className="h-3 w-3" />;
+
+const getRoleTone = (roleName: string | undefined): PillTone =>
+  ROLE_TONE[roleKey(roleName)] ?? "neutral";
 
 interface UserListProps {
   initialPage?: number;
@@ -100,6 +122,7 @@ export function UserList({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
+  const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
   const [totalPages, setTotalPages] = useState(1);
@@ -116,7 +139,7 @@ export function UserList({
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   }, [router, pathname, currentPage, limit, searchQuery, roleFilter]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -130,10 +153,8 @@ export function UserList({
         `users/users?${params.toString()}`
       );
 
-      const allUsers = [...response.data.users];
-
-      setUsers(allUsers);
-
+      setUsers(response.data.users);
+      setTotalItems(response.data.pagination.total);
       setTotalPages(response.data.pagination.totalPages);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -142,16 +163,17 @@ export function UserList({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    fetchUsers();
-    updateUrl();
   }, [currentPage, limit, searchQuery, roleFilter]);
+
+  // Fetch data when dependencies change
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // Update URL when state changes
+  useEffect(() => {
+    updateUrl();
+  }, [updateUrl]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -188,180 +210,39 @@ export function UserList({
     setCurrentPage(1);
   };
 
-  const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-      <UserCircle className="h-8 w-8 text-muted-foreground mb-4" />
-      <h3 className="text-lg font-semibold">No users found</h3>
-      <p className="text-sm text-muted-foreground mt-2">
-        {searchQuery || roleFilter
-          ? "No users match your search criteria. Try different filters."
-          : "Get started by adding your first user."}
-      </p>
-      {!(searchQuery || roleFilter) && can(MENU_URL, "canCreate") && (
-        <Button className="mt-4" asChild>
-          <Link href="/admin/user/add">
-            <Plus className="mr-2 h-4 w-4" /> Add User
-          </Link>
+  const hasFilters = Boolean(searchQuery || (roleFilter && roleFilter !== "all"));
+  const verifiedCount = users.filter((u) => u.isVerified).length;
+  const unverifiedCount = users.length - verifiedCount;
+  const adminCount = users.filter((u) => u.isAdmin).length;
+  const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
+  const lastRow = Math.min(currentPage * limit, totalItems);
+
+  const renderActions = (user: User) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Open menu</span>
         </Button>
-      )}
-      {(searchQuery || roleFilter) && (
-        <Button variant="outline" className="mt-4" onClick={clearFilters}>
-          Clear Filters
-        </Button>
-      )}
-    </div>
-  );
-
-  const renderActiveFilters = () => {
-    const hasFilters = searchQuery || roleFilter;
-
-    if (!hasFilters) return null;
-
-    return (
-      <div className="flex flex-wrap gap-2 mt-4">
-        {searchQuery && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Search: {searchQuery}
-            <button onClick={() => setSearchQuery("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {can(MENU_URL, "canEdit") && (
+          <DropdownMenuItem asChild>
+            <Link href={`/admin/user/${user?.id}/edit`}>
+              <Pencil className="mr-2 h-4 w-4" /> Edit
+            </Link>
+          </DropdownMenuItem>
         )}
-
-        {roleFilter && roleFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
+        {can(MENU_URL, "canDelete") && (
+          <DropdownMenuItem
+            className="text-red-600"
+            onClick={() => handleDeleteClick(user)}
           >
-            Role: {roleFilter}
-            <button onClick={() => setRoleFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
+            <Trash2 className="mr-2 h-4 w-4" /> Delete
+          </DropdownMenuItem>
         )}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="h-7 text-xs"
-        >
-          Clear all
-        </Button>
-      </div>
-    );
-  };
-
-  const renderTableView = () => (
-    <div>
-      <Table className="min-w-180 [&_td]:py-4 [&_th]:pb-3 [&_th]:pt-0">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Mobile</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Last Login</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map((user) => (
-            <TableRow key={user.id} className="hover:bg-muted/50">
-              <TableCell>
-                <Link
-                  href={`/admin/user/${user?.id}/edit`}
-                  className="flex items-center gap-3 font-medium leading-tight hover:underline"
-                >
-                  {user.profilePhoto?.url ? (
-                    <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border bg-muted">
-                      <Image
-                        src={user.profilePhoto.url}
-                        alt={user.name || "User"}
-                        fill
-                        className="object-contain"
-                      />
-                    </span>
-                  ) : (
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-muted text-sm font-semibold text-muted-foreground uppercase">
-                      {user.name?.charAt(0) || <UserIcon className="h-5 w-5" />}
-                    </span>
-                  )}
-                  <span className="truncate">{user.name}</span>
-                </Link>
-              </TableCell>
-              <TableCell>
-                <span className="block max-w-55 truncate text-muted-foreground">
-                  {user.email}
-                </span>
-              </TableCell>
-              <TableCell>
-                {user.mobileNumber || "N/A"}
-              </TableCell>
-              <TableCell>
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${user.isVerified
-                    ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
-                    : "bg-gray-100 text-gray-600 dark:bg-gray-900/40 dark:text-gray-400"
-                    }`}
-                >
-                  {user.isVerified ? (
-                    <BadgeCheck className="h-3 w-3" />
-                  ) : (
-                    <BadgeX className="h-3 w-3" />
-                  )}
-                  {user.isVerified ? "Verified" : "Unverified"}
-                </span>
-              </TableCell>
-              <TableCell>
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${getRoleColor(user?.role?.rolename)}`}
-                >
-                  {getRoleIcon(user?.role?.rolename)}
-                  {user?.role?.rolename}
-                </span>
-              </TableCell>
-              <TableCell>
-                {user.lastLoginAt
-                  ? formatDateTime(user.lastLoginAt)
-                  : "Never logged in"}
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {can(MENU_URL, "canEdit") && (
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/user/${user?.id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    {can(MENU_URL, "canDelete") && (
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDeleteClick(user)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 
   return (
@@ -369,132 +250,351 @@ export function UserList({
       <div className="w-full">
         <PageHeader
           title="Users"
-          description=" Manage your system users"
-          {...(can(MENU_URL, "canCreate")
-            ? {
-              actionLabel: "Add User",
-              actionHref: "/admin/user/add",
-            }
-            : {})}
-        />
+          description="Every account in the system, with its role, verification and last sign-in."
+        >
+          {can(MENU_URL, "canCreate") && (
+            <Button asChild size="sm">
+              <Link href="/admin/user/add">
+                <Plus className="size-4" />
+                <span className="hidden sm:inline">Add User</span>
+              </Link>
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+            onClick={fetchUsers}
+          >
+            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+        </PageHeader>
 
-        <div className="space-y-4">
-          <div className="flex flex-row justify-between gap-2">
+        {/* Toolbar */}
+        <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
+          <div className="flex flex-col gap-2.5 md:flex-row md:flex-nowrap md:items-center md:gap-3">
             <TableSearch
-              wrapperClassName="w-full sm:max-w-xs"
+              wrapperClassName="w-full md:max-w-xs"
+              className="h-9"
               placeholder="Search users..."
               value={searchQuery}
               onChange={handleSearchChange}
             />
 
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2 px-3"
-                  >
-                    <Filter className="h-4 w-4" />
-                    <span>Filters</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-64 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
-                  sideOffset={8}
-                >
-                  <div className="space-y-3">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium">Filters</h4>
-                      {roleFilter && roleFilter !== "all" && (
-                        <button
-                          onClick={clearFilters}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Clear all
-                        </button>
-                      )}
-                    </div>
+            <div className="w-full md:w-40 md:shrink-0">
+              <Select
+                value={roleFilter || "all"}
+                onValueChange={(value) => {
+                  setRoleFilter(value === "all" ? "" : value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="h-9 w-full">
+                  <SelectValue placeholder="Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All roles</SelectItem>
+                  <SelectItem value="customer">Customer</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                    {/* Role Filter */}
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">
-                        Role
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          onClick={() => {
-                            setRoleFilter("all");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${roleFilter === "all"
-                            ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          All
-                        </button>
-                        <button
-                          onClick={() => {
-                            setRoleFilter("customer");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${roleFilter === "customer"
-                            ? "bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800 text-green-600 dark:text-green-400"
-                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          Customer
-                        </button>
-                        <button
-                          onClick={() => {
-                            setRoleFilter("admin");
-                            setCurrentPage(1);
-                          }}
-                          className={`text-xs py-1.5 px-2 rounded-md border ${roleFilter === "admin"
-                            ? "bg-purple-50 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800 text-purple-600 dark:text-purple-400"
-                            : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                            }`}
-                        >
-                          Admin
-                        </button>
+            {hasFilters && (
+              <div className="flex items-center gap-2 md:ml-auto">
+                <PillBadge className="font-medium">
+                  {[searchQuery && `Search: ${searchQuery}`, roleFilter && roleFilter !== "all" && `Role: ${roleFilter}`]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </PillBadge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 text-muted-foreground"
+                  onClick={clearFilters}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <LoadingIndicator message="Loading users..." />
+          </div>
+        ) : users.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+            <div className="rounded-full bg-muted p-3">
+              <UserCircle className="size-6 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">No users found</p>
+              <p className="text-xs text-muted-foreground">
+                {hasFilters
+                  ? "No users match these filters. Try different search terms."
+                  : "Get started by adding your first user."}
+              </p>
+            </div>
+            {hasFilters ? (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : (
+              can(MENU_URL, "canCreate") && (
+                <Button size="sm" asChild>
+                  <Link href="/admin/user/add">
+                    <Plus className="size-4" /> Add User
+                  </Link>
+                </Button>
+              )
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Range totals */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+              <StatsCard
+                icon={Users}
+                title="Total users"
+                value={totalItems.toLocaleString("en-US")}
+                description={`Page ${currentPage} of ${Math.max(totalPages, 1)}`}
+                bgColor="blue"
+              />
+              <StatsCard
+                icon={ShieldCheck}
+                title="Admins"
+                value={adminCount.toLocaleString("en-US")}
+                description="On this page"
+                bgColor="purple"
+              />
+              <StatsCard
+                icon={CheckCircle2}
+                title="Verified"
+                value={verifiedCount.toLocaleString("en-US")}
+                description="On this page"
+                bgColor="green"
+              />
+              <StatsCard
+                icon={BadgeX}
+                title="Unverified"
+                value={unverifiedCount.toLocaleString("en-US")}
+                description="On this page"
+                bgColor="orange"
+              />
+            </div>
+
+            {/* Users */}
+            <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+                <div>
+                  <h3 className="text-sm font-semibold">Users</h3>
+                  <p className="text-xs text-muted-foreground">
+                    All accounts · {limit} per page
+                  </p>
+                </div>
+                <PillBadge className="font-medium tabular-nums">
+                  {totalItems.toLocaleString("en-US")} total
+                </PillBadge>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <Table className="report-table">
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="pl-4">Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Mobile</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Last Login</TableHead>
+                      <TableHead className="pr-4 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="py-2.5 pl-4">
+                          <Link
+                            href={`/admin/user/${user?.id}/edit`}
+                            className="flex items-center gap-3 font-medium leading-tight hover:text-primaryColor hover:underline"
+                          >
+                            {user.profilePhoto?.url ? (
+                              <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border bg-muted">
+                                <Image
+                                  src={user.profilePhoto.url}
+                                  alt={user.name || "User"}
+                                  fill
+                                  className="object-contain"
+                                />
+                              </span>
+                            ) : (
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-muted text-sm font-semibold uppercase text-muted-foreground">
+                                {user.name?.charAt(0) || (
+                                  <UserIcon className="h-5 w-5" />
+                                )}
+                              </span>
+                            )}
+                            <span className="truncate">{user.name}</span>
+                          </Link>
+                        </TableCell>
+
+                        <TableCell>
+                          <span className="block max-w-55 truncate text-muted-foreground">
+                            {user.email}
+                          </span>
+                        </TableCell>
+
+                        <TableCell>
+                          {user.mobileNumber ? (
+                            <a
+                              href={`tel:${user.mobileNumber}`}
+                              className="text-blue-600 hover:underline dark:text-blue-400"
+                            >
+                              {user.mobileNumber}
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          <PillBadge
+                            tone={user.isVerified ? "emerald" : "neutral"}
+                            className="gap-1"
+                          >
+                            {user.isVerified ? (
+                              <BadgeCheck className="h-3 w-3" />
+                            ) : (
+                              <BadgeX className="h-3 w-3" />
+                            )}
+                            {user.isVerified ? "Verified" : "Unverified"}
+                          </PillBadge>
+                        </TableCell>
+
+                        <TableCell>
+                          <PillBadge
+                            tone={getRoleTone(user?.role?.rolename)}
+                            className="gap-1 capitalize"
+                          >
+                            {getRoleIcon(user?.role?.rolename)}
+                            {user?.role?.rolename ?? "—"}
+                          </PillBadge>
+                        </TableCell>
+
+                        <TableCell className="text-muted-foreground">
+                          {user.lastLoginAt
+                            ? formatDateTime(user.lastLoginAt)
+                            : "Never"}
+                        </TableCell>
+
+                        <TableCell className="pr-4 text-right">
+                          {renderActions(user)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="divide-y md:hidden">
+                {users.map((user) => (
+                  <article key={user.id} className="space-y-3 p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <Link
+                        href={`/admin/user/${user?.id}/edit`}
+                        className="flex min-w-0 items-center gap-2.5 hover:text-primaryColor"
+                      >
+                        {user.profilePhoto?.url ? (
+                          <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border bg-muted">
+                            <Image
+                              src={user.profilePhoto.url}
+                              alt={user.name || "User"}
+                              fill
+                              className="object-contain"
+                            />
+                          </span>
+                        ) : (
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-muted text-sm font-semibold uppercase text-muted-foreground">
+                            {user.name?.charAt(0) || (
+                              <UserIcon className="h-5 w-5" />
+                            )}
+                          </span>
+                        )}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">
+                            {user.name}
+                          </p>
+                          <p className="truncate text-[11px] text-muted-foreground">
+                            {user.email}
+                          </p>
+                        </div>
+                      </Link>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <PillBadge tone={getRoleTone(user?.role?.rolename)}>
+                          {user?.role?.rolename ?? "—"}
+                        </PillBadge>
+                        {renderActions(user)}
                       </div>
                     </div>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+
+                    <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-2.5">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Mobile
+                        </p>
+                        <p className="text-sm font-semibold tabular-nums">
+                          {user.mobileNumber || "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Status
+                        </p>
+                        <p className="text-sm font-semibold">
+                          {user.isVerified ? "Verified" : "Unverified"}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Last Login
+                        </p>
+                        <p className="text-sm">
+                          {user.lastLoginAt
+                            ? formatDateTime(user.lastLoginAt)
+                            : "Never"}
+                        </p>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              {/* Footer: what the list covers */}
+              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
+                <p className="text-xs text-muted-foreground">
+                  Showing {firstRow.toLocaleString("en-US")}–
+                  {lastRow.toLocaleString("en-US")} of{" "}
+                  {totalItems.toLocaleString("en-US")} user
+                  {totalItems === 1 ? "" : "s"}
+                  {searchQuery && ` matching “${searchQuery}”`}
+                </p>
+                {totalPages > 1 && (
+                  <PaginationComponent
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    baseUrl="#"
+                    onPageChange={handlePageChange}
+                  />
+                )}
+              </div>
             </div>
-          </div>
-
-          {renderActiveFilters()}
-
-          {isLoading ? (
-            <LoadingIndicator message="   Loading users..." />
-          ) : users.length === 0 ? (
-            renderEmptyState()
-          ) : (
-            <div className="mt-6">{renderTableView()}</div>
-          )}
-        </div>
-
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground text-center md:text-left truncate">
-              {`Showing ${users.length} user `}
-            </p>
-          </div>
-
-          <div className="flex-1 w-full md:w-auto">
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={handlePageChange}
-            />
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Delete Confirmation Dialog */}

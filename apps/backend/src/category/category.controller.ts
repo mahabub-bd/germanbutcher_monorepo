@@ -1,4 +1,4 @@
-import { CacheKey, CacheTTL } from '@nestjs/cache-manager';
+import { CacheTTL } from '@nestjs/cache-manager';
 import {
   Body,
   Controller,
@@ -145,7 +145,8 @@ export class CategoryController {
       },
     },
   })
-  @CacheKey('categories_key')
+  // No fixed @CacheKey: the interceptor keys on the request URL, so every
+  // search/filter/page combination is cached separately for the 30s TTL.
   @CacheTTL(30)
   async findAll(
     @Query('page') page = 1,
@@ -153,6 +154,7 @@ export class CategoryController {
     @Query('search') search?: string,
     @Query('parentId') parentId?: number,
     @Query('slug') slug?: string,
+    @Query('isActive') isActive?: string,
     @Query('isMainCategory') isMainCategory?: boolean,
     @Query('sort') sort?: 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc',
     @Query('minPrice') minPrice?: number,
@@ -163,6 +165,7 @@ export class CategoryController {
       limit,
       search,
       slug,
+      isActive: isActive === undefined ? undefined : isActive === 'true',
       isMainCategory,
       parentId: parentId ? Number(parentId) : undefined,
       sort,

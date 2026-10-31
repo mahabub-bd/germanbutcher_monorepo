@@ -4,6 +4,7 @@ import type React from "react";
 
 import { AddPaymentModal } from "@/components/admin/orders/add-payment-modal";
 import { EditOrderModal } from "@/components/admin/orders/edit-order-modal";
+import { PageHeader } from "@/components/admin/page-header";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
 import { TableSearch } from "@/components/common/table-search";
@@ -27,6 +28,7 @@ import {
   Sheet,
   SheetClose,
   SheetContent,
+  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -46,6 +48,7 @@ import {
   getDistrictsByDivision,
 } from "@/data/districts-areas";
 import {
+  cn,
   formatCurrencyEnglish,
   formatDateTime,
   shortenArea,
@@ -69,13 +72,14 @@ import {
   Copy,
   DollarSign,
   Eye,
-  Filter,
   List,
   Lock,
   MapPin,
   MoreHorizontal,
   Pencil,
+  RefreshCw,
   ShoppingCart,
+  SlidersHorizontal,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -85,7 +89,51 @@ import { toast } from "sonner";
 
 const DIVISIONS = Object.keys(DIVISION_DISTRICTS);
 
+const STATUS_FILTERS = [
+  { value: "all", label: "All statuses" },
+  { value: "pending", label: "Pending" },
+  { value: "processing", label: "Processing" },
+  // The /admin/orders/on-hold route seeds this value, so it needs an option
+  // even though it isn't a step in the main fulfilment flow.
+  { value: "on_hold", label: "On hold" },
+  { value: "shipped", label: "Shipped" },
+  { value: "delivered", label: "Delivered" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
 const STALE_AFTER_DAYS = 3;
+
+// Each status route keeps its own heading; the default list covers everything.
+const LIST_HEADER: Record<string, { title: string; description: string }> = {
+  orders: {
+    title: "Orders",
+    description: "Every order with its payment, shipping and delivery status.",
+  },
+  pending: {
+    title: "Pending Orders",
+    description: "Orders waiting to be confirmed.",
+  },
+  processing: {
+    title: "Processing Orders",
+    description: "Orders being prepared for dispatch.",
+  },
+  "on-hold": {
+    title: "On Hold Orders",
+    description: "Orders paused before dispatch.",
+  },
+  shipped: {
+    title: "Shipped Orders",
+    description: "Orders handed over for delivery.",
+  },
+  delivered: {
+    title: "Delivered Orders",
+    description: "Orders completed at the customer address.",
+  },
+  cancelled: {
+    title: "Cancelled Orders",
+    description: "Orders called off before delivery.",
+  },
+};
 
 /** Elapsed-time chip: neutral while fresh, red once the order sits
  *  UNDELIVERED for 3+ days; delivered orders show the order→delivery
@@ -169,6 +217,8 @@ export function OrderList({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const MENU_URL = "/admin/orders";
+  const listSlug = listRouteToSlug(pathname) ?? "orders";
+  const headerCopy = LIST_HEADER[listSlug] ?? LIST_HEADER.orders;
   const { can } = usePermissions();
 
   const getInitialParam = (key: string) => {
@@ -210,6 +260,8 @@ export function OrderList({
     null
   );
   const [payingOrderId, setPayingOrderId] = useState<Order["id"] | null>(null);
+
+  // Below md the filters live in a bottom sheet instead of the toolbar strip.
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   // Skip URL writes until the first fetch resolves: totalPages starts at 1,
@@ -419,129 +471,6 @@ export function OrderList({
     } catch {
       toast.error("Failed to copy order number");
     }
-  };
-
-  const renderActiveFilters = () => {
-    const hasFilters = searchQuery || statusFilter || paymentMethodFilter || shippingMethodFilter || areaFilter || divisionFilter || cityFilter;
-
-    if (!hasFilters) return null;
-
-    return (
-      <div className="flex flex-wrap gap-2 mt-2">
-        {searchQuery && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Search: {searchQuery}
-            <button onClick={() => setSearchQuery("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {statusFilter && statusFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Status: {statusFilter}
-            <button onClick={() => setStatusFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {paymentMethodFilter && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Payment:{" "}
-            {paymentMethods.find((m) => m.id.toString() === paymentMethodFilter)
-              ?.name || paymentMethodFilter}
-            <button onClick={() => setPaymentMethodFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {shippingMethodFilter && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Shipping:{" "}
-            {shippingMethods.find((m) => m.id.toString() === shippingMethodFilter)
-              ?.name || shippingMethodFilter}
-            <button
-              onClick={() => setShippingMethodFilter("")}
-              className="ml-1"
-            >
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {areaFilter && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Area: {areaFilter}
-            <button onClick={() => setAreaFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {divisionFilter && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Division: {divisionFilter}
-            <button
-              onClick={() => {
-                setDivisionFilter("");
-                setCityFilter("");
-                setAreaFilter("");
-              }}
-              className="ml-1"
-            >
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {cityFilter && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            City: {cityFilter}
-            <button
-              onClick={() => {
-                setCityFilter("");
-                setAreaFilter("");
-              }}
-              className="ml-1"
-            >
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="h-7 text-xs"
-        >
-          Clear all
-        </Button>
-      </div>
-    );
   };
 
   const renderTableView = () => (
@@ -844,10 +773,22 @@ export function OrderList({
 
       {/* Pagination Section */}
       {!isLoading && orders.length > 0 && (
-        <div className="flex flex-row justify-between items-center p-2 border-t">
-          <div className="text-xs text-muted-foreground whitespace-nowrap hidden md:flex 2xl:text-sm">
-            Showing {Math.min((currentPage - 1) * limit + 1, totalItems)} to{" "}
-            {Math.min(currentPage * limit, totalItems)} of {totalItems} orders
+        <div className="flex flex-col items-start gap-2 border-t p-2 md:flex-row md:items-center md:justify-between">
+          {/* The applied-filter summary lives with the results line, not in
+              the toolbar, so the filter row never has to make room for it. */}
+          <div className="flex min-w-0 items-center gap-2 text-[0.7rem] text-muted-foreground md:text-xs 2xl:text-sm">
+            <span className="whitespace-nowrap">
+              Showing {Math.min((currentPage - 1) * limit + 1, totalItems)} to{" "}
+              {Math.min(currentPage * limit, totalItems)} of {totalItems} orders
+            </span>
+            {activeFilterSummary && (
+              <span
+                className="min-w-0 truncate opacity-80"
+                title={activeFilterSummary}
+              >
+                · {activeFilterSummary}
+              </span>
+            )}
           </div>
           <PaginationComponent
             currentPage={currentPage}
@@ -871,299 +812,321 @@ export function OrderList({
     </div>
   );
 
-  const hasActiveFilters =
+  const hasActiveFilters = Boolean(
+    searchQuery ||
     (statusFilter && statusFilter !== "all") ||
     paymentMethodFilter ||
     shippingMethodFilter ||
     areaFilter ||
     divisionFilter ||
-    cityFilter;
-
-  // Shared filter sections, rendered inside the desktop dropdown and the
-  // mobile bottom sheet so both stay in sync.
-  const renderFilterSections = () => (
-    <>
-      {/* Status Filter */}
-      <div className="space-y-2">
-        <label className="text-xs text-muted-foreground">
-          Order Status
-        </label>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {[
-            "all",
-            "pending",
-            "processing",
-            "shipped",
-            "delivered",
-            "cancelled",
-          ].map((status) => (
-            <button
-              key={status}
-              onClick={() => {
-                setStatusFilter(status);
-                setCurrentPage(1);
-              }}
-              className={`text-xs py-1.5 px-2 rounded-md border capitalize ${statusFilter === status ||
-                (!statusFilter && status === "all")
-                ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                }`}
-            >
-              {status}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Payment Method Filter */}
-      <div className="space-y-2">
-        <label className="text-xs text-muted-foreground">
-          Payment Method
-        </label>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 max-h-40 overflow-y-auto">
-          <button
-            onClick={() => {
-              setPaymentMethodFilter("");
-              setCurrentPage(1);
-            }}
-            className={`text-xs py-1.5 px-2 rounded-md border capitalize ${!paymentMethodFilter
-              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-              }`}
-          >
-            all
-          </button>
-          {paymentMethods.map((method) => (
-            <button
-              key={method.id}
-              onClick={() => {
-                setPaymentMethodFilter(method.id.toString());
-                setCurrentPage(1);
-              }}
-              className={`text-xs py-1.5 px-2 rounded-md border capitalize truncate ${paymentMethodFilter === method.id.toString()
-                ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                }`}
-            >
-              {method.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Shipping Method Filter */}
-      <div className="space-y-2">
-        <label className="text-xs text-muted-foreground">
-          Shipping Method
-        </label>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 max-h-40 overflow-y-auto">
-          <button
-            onClick={() => {
-              setShippingMethodFilter("");
-              setCurrentPage(1);
-            }}
-            className={`text-xs py-1.5 px-2 rounded-md border capitalize ${!shippingMethodFilter
-              ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-              : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-              }`}
-          >
-            all
-          </button>
-          {shippingMethods.map((method) => (
-            <button
-              key={method.id}
-              onClick={() => {
-                setShippingMethodFilter(method.id.toString());
-                setCurrentPage(1);
-              }}
-              className={`text-xs py-1.5 px-2 rounded-md border capitalize truncate ${shippingMethodFilter === method.id.toString()
-                ? "bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 text-blue-600 dark:text-blue-400"
-                : "bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                }`}
-            >
-              {method.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Location Filter — cascading Division → City → Area, same data
-          source as checkout */}
-      <div className="space-y-2">
-        <label className="text-xs text-muted-foreground">
-          Division
-        </label>
-        <Select
-          value={divisionFilter}
-          onValueChange={(value) => {
-            if (value !== divisionFilter) {
-              // Reset downstream selections when the division changes
-              setCityFilter("");
-              setAreaFilter("");
-            }
-            setDivisionFilter(value);
-            setCurrentPage(1);
-          }}
-        >
-          <SelectTrigger className="h-8 w-full text-xs">
-            <SelectValue placeholder="Select Division" />
-          </SelectTrigger>
-          <SelectContent>
-            {DIVISIONS.map((division) => (
-              <SelectItem key={division} value={division}>
-                {division}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-xs text-muted-foreground">
-          City
-        </label>
-        <SearchableSelect
-          value={cityFilter}
-          onValueChange={(value) => {
-            if (value !== cityFilter) {
-              setAreaFilter("");
-            }
-            setCityFilter(value);
-            setCurrentPage(1);
-          }}
-          options={getDistrictsByDivision(divisionFilter)}
-          placeholder={
-            divisionFilter ? "Select City" : "Select Division first"
-          }
-          searchPlaceholder="Search city..."
-          disabled={!divisionFilter}
-          className="h-8 text-xs"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-xs text-muted-foreground">
-          Area
-        </label>
-        <SearchableSelect
-          value={areaFilter}
-          onValueChange={(value) => {
-            setAreaFilter(value);
-            setCurrentPage(1);
-          }}
-          options={areasByDistrict.get(cityFilter) ?? []}
-          placeholder={cityFilter ? "Select Area" : "Select City first"}
-          searchPlaceholder="Search area..."
-          emptyMessage="No area found."
-          disabled={!cityFilter}
-          className="h-8 text-xs"
-        />
-      </div>
-    </>
+    cityFilter
   );
+
+  // Count surfaced on the mobile Filters button so a collapsed sheet still
+  // shows that the list is narrowed.
+  const activeFilterCount = [
+    Boolean(searchQuery),
+    Boolean(statusFilter && statusFilter !== "all"),
+    Boolean(paymentMethodFilter),
+    Boolean(shippingMethodFilter),
+    Boolean(divisionFilter),
+    Boolean(cityFilter),
+    Boolean(areaFilter),
+  ].filter(Boolean).length;
+
+  const paymentMethodName =
+    paymentMethods.find((m) => m.id.toString() === paymentMethodFilter)?.name ||
+    paymentMethodFilter;
+  const shippingMethodName =
+    shippingMethods.find((m) => m.id.toString() === shippingMethodFilter)?.name ||
+    shippingMethodFilter;
+
+  // Compact summary of everything applied, shown beside Clear: the toolbar
+  // stays a single line instead of stacking removable badges underneath.
+  const activeFilterSummary = [
+    searchQuery && `Search: ${searchQuery}`,
+    statusFilter &&
+    statusFilter !== "all" &&
+    `Status: ${STATUS_FILTERS.find((s) => s.value === statusFilter)?.label ?? statusFilter}`,
+    paymentMethodFilter && `Payment: ${paymentMethodName}`,
+    shippingMethodFilter && `Shipping: ${shippingMethodName}`,
+    divisionFilter && `Division: ${divisionFilter}`,
+    cityFilter && `City: ${cityFilter}`,
+    areaFilter && `Area: ${areaFilter}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  // One source of truth for the filter controls: the toolbar renders them
+  // inline and compact, the mobile sheet renders the same nodes full width
+  // under a visible label.
+  const renderFilterControls = (mode: "bar" | "sheet") => {
+    const triggerClass =
+      mode === "bar"
+        ? "h-9 w-full px-2 text-xs font-medium lg:px-3 2xl:text-sm"
+        : "h-11 w-full px-3 text-sm font-medium";
+
+    return [
+      {
+        key: "status",
+        label: "Order Status",
+        node: (
+          <Select
+            value={statusFilter || "all"}
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className={triggerClass}>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_FILTERS.map((status) => (
+                <SelectItem key={status.value} value={status.value}>
+                  {status.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        key: "payment",
+        label: "Payment Method",
+        node: (
+          <Select
+            value={paymentMethodFilter || "all"}
+            onValueChange={(value) => {
+              setPaymentMethodFilter(value === "all" ? "" : value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className={triggerClass}>
+              <SelectValue placeholder="Payment" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All methods</SelectItem>
+              {paymentMethods.map((method) => (
+                <SelectItem key={method.id} value={method.id.toString()}>
+                  {method.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        key: "shipping",
+        label: "Shipping Method",
+        node: (
+          <Select
+            value={shippingMethodFilter || "all"}
+            onValueChange={(value) => {
+              setShippingMethodFilter(value === "all" ? "" : value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className={triggerClass}>
+              <SelectValue placeholder="Shipping" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All methods</SelectItem>
+              {shippingMethods.map((method) => (
+                <SelectItem key={method.id} value={method.id.toString()}>
+                  {method.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        key: "division",
+        label: "Division",
+        node: (
+          // Division → City → Area keeps the checkout cascade: each step
+          // resets the ones below it.
+          <Select
+            value={divisionFilter || "all"}
+            onValueChange={(value) => {
+              const next = value === "all" ? "" : value;
+              if (next !== divisionFilter) {
+                setCityFilter("");
+                setAreaFilter("");
+              }
+              setDivisionFilter(next);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className={triggerClass}>
+              <SelectValue placeholder="Division" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All divisions</SelectItem>
+              {DIVISIONS.map((division) => (
+                <SelectItem key={division} value={division}>
+                  {division}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        key: "city",
+        label: "City",
+        node: (
+          <SearchableSelect
+            value={cityFilter}
+            onValueChange={(value) => {
+              if (value !== cityFilter) {
+                setAreaFilter("");
+              }
+              setCityFilter(value);
+              setCurrentPage(1);
+            }}
+            options={getDistrictsByDivision(divisionFilter)}
+            placeholder="City"
+            searchPlaceholder="Search city..."
+            disabled={!divisionFilter}
+            className={triggerClass}
+          />
+        ),
+      },
+      {
+        key: "area",
+        label: "Area",
+        node: (
+          <SearchableSelect
+            value={areaFilter}
+            onValueChange={(value) => {
+              setAreaFilter(value);
+              setCurrentPage(1);
+            }}
+            options={areasByDistrict.get(cityFilter) ?? []}
+            placeholder="Area"
+            searchPlaceholder="Search area..."
+            emptyMessage="No area found."
+            disabled={!cityFilter}
+            className={triggerClass}
+          />
+        ),
+      },
+    ];
+  };
 
   return (
     <div className="w-full space-y-2">
-      <div className="space-y-2">
-        <div className="flex flex-row justify-between gap-2">
+      <PageHeader
+        title={headerCopy.title}
+        description={headerCopy.description}
+        className="mb-2"
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isLoading}
+          onClick={fetchOrders}
+        >
+          <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+          Refresh
+        </Button>
+      </PageHeader>
+
+      {/* Toolbar — product-list shell: search, filters and Clear on one row
+          from md up; below md the filters collapse into a bottom sheet. */}
+      <div className="rounded-xl border bg-card p-3 shadow-xs">
+        <div className="flex flex-nowrap items-center gap-2 lg:gap-3">
           <TableSearch
-            wrapperClassName="w-full sm:max-w-xs"
+            wrapperClassName="min-w-0 flex-1 md:w-40 md:flex-none lg:w-48 xl:w-56 2xl:w-64"
+            className="h-9 text-xs font-medium md:text-xs 2xl:text-sm"
             placeholder="Search orders..."
             value={searchQuery}
             onChange={handleSearchChange}
           />
 
-          <div className="flex items-center gap-2">
-            {/* Desktop: dropdown panel */}
-            <div className="hidden sm:block">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+          {/* Phones and small tablets: six controls cannot share one row, so
+              the filters collapse into a bottom sheet opened from the toolbar.
+              Same controls as the strip, full width under visible labels. */}
+          <div className="shrink-0 md:hidden">
+            <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                  <SlidersHorizontal className="size-3.5" />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <Badge className="size-4.5 rounded-full px-0 text-[0.65rem] font-semibold">
+                      {activeFilterCount}
+                    </Badge>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="bottom"
+                className="max-h-[82dvh] gap-0 overflow-y-auto rounded-t-2xl"
+              >
+                <SheetHeader className="border-b pr-14">
+                  <SheetTitle>Filters</SheetTitle>
+                  <SheetDescription>
+                    Narrow the list by status, payment, shipping and location.
+                  </SheetDescription>
+                </SheetHeader>
+
+                {renderFilterControls("sheet").map((control) => (
+                  <div key={control.key} className="px-4 pt-4">
+                    <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {control.label}
+                    </p>
+                    {control.node}
+                  </div>
+                ))}
+
+                <SheetFooter className="sticky bottom-0 mt-4 flex-row border-t bg-background pb-[max(1rem,env(safe-area-inset-bottom))]">
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2 px-3"
+                    className="flex-1"
+                    onClick={() => {
+                      clearFilters();
+                      setFilterSheetOpen(false);
+                    }}
                   >
-                    <Filter className="h-4 w-4" />
-                    <span>Filters</span>
+                    Clear all
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-130 p-3 rounded-lg shadow-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800"
-                  sideOffset={8}
-                >
-                  <div className="space-y-3">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium">Filters</h4>
-                      {hasActiveFilters ? (
-                        <button
-                          onClick={clearFilters}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Clear all
-                        </button>
-                      ) : null}
-                    </div>
-
-                    {/* Filter sections (shared with the mobile sheet) */}
-                    {renderFilterSections()}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            {/* Mobile: bottom sheet */}
-            <div className="sm:hidden">
-              <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-                <SheetTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2 px-3"
-                  >
-                    <Filter className="h-4 w-4" />
-                    <span>Filters</span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent
-                  side="bottom"
-                  className="rounded-t-xl max-h-[85dvh]"
-                >
-                  <SheetHeader>
-                    <SheetTitle className="text-sm">Filters</SheetTitle>
-                  </SheetHeader>
-                  <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-2">
-                    <div className="space-y-3">
-                      {renderFilterSections()}
-                    </div>
-                  </div>
-                  <SheetFooter className="flex-row gap-2 pt-0!">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={clearFilters}
-                      disabled={!hasActiveFilters}
-                    >
-                      Clear all
+                  <SheetClose asChild>
+                    <Button className="flex-1">
+                      {totalItems > 0 ? `Show ${totalItems} orders` : "Done"}
                     </Button>
-                    <SheetClose asChild>
-                      <Button size="sm" className="flex-1">
-                        Show Results
-                      </Button>
-                    </SheetClose>
-                  </SheetFooter>
-                </SheetContent>
-              </Sheet>
-            </div>
+                  </SheetClose>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          {/* md and up: filters and Clear stay on one row with the search. */}
+          <div className="hidden min-w-0 flex-1 items-center gap-1.5 md:flex lg:gap-2">
+            {renderFilterControls("bar").map((control) => (
+              <div key={control.key} className="min-w-16 flex-1">
+                {control.node}
+              </div>
+            ))}
+
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 shrink-0 text-xs font-medium text-muted-foreground 2xl:text-sm"
+                title={activeFilterSummary}
+                onClick={clearFilters}
+              >
+                Clear
+              </Button>
+            )}
           </div>
         </div>
-
-        {renderActiveFilters()}
-
-        {renderTableView()}
       </div>
+
+      {renderTableView()}
 
       <EditOrderModal
         orderId={editingOrderId}

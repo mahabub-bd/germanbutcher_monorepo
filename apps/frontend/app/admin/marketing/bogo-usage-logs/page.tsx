@@ -1,10 +1,22 @@
-import { BogoUsageLogList } from "@/components/admin/bogo/bogo-usage-log-list";
 import { AdminPageContainer } from "@/components/admin/admin-page-container";
+import {
+  parseListSearchParams,
+  type ListPageProps,
+} from "@/utils/admin-search-params";
+import { BogoUsageLogList } from "@/components/admin/bogo/bogo-usage-log-list";
 
-export default function BogoUsageLogsPage() {
+export default async function BogoUsageLogsPage({
+  searchParams,
+}: ListPageProps) {
+  const { page, limit, searchParams: params } =
+    await parseListSearchParams(searchParams);
   return (
     <AdminPageContainer>
-      <BogoUsageLogList />
+      <BogoUsageLogList
+        initialPage={page}
+        initialLimit={limit}
+        initialSearchParams={params}
+      />
     </AdminPageContainer>
   );
 }

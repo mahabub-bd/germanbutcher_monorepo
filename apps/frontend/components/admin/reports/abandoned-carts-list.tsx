@@ -147,7 +147,7 @@ export function AbandonedCartsList() {
           </div>
         ) : (
           <>
-            <Table>
+            <Table className="report-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Customer</TableHead>
