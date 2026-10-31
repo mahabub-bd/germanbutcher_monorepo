@@ -222,8 +222,8 @@ export function BrandList({
   const activeFilterSummary = [
     debouncedSearch && `Search: ${debouncedSearch}`,
     statusFilter &&
-      statusFilter !== "all" &&
-      `Status: ${statusFilter === "true" ? "Active" : "Inactive"}`,
+    statusFilter !== "all" &&
+    `Status: ${statusFilter === "true" ? "Active" : "Inactive"}`,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -425,16 +425,23 @@ export function BrandList({
                 </PillBadge>
               </div>
 
-              {/* Desktop table */}
+              {/* Desktop table — fixed layout split across five columns with
+                  one uniform gutter: every cell takes 12px per side (px-1.5)
+                  while the first and last keep the panel edge at 16px, so the
+                  spacing reads identical between every pair of columns. Brand
+                  and Actions are pinned; Description absorbs the remainder.
+                  The Products count stays left-aligned like the text columns —
+                  a right-aligned figure ends flush against its boundary and
+                  closes the following gutter. */}
               <div className="hidden md:block">
-                <Table className="report-table table-fixed">
+                <Table className="report-table table-fixed [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
                   <TableHeader className="[&_th]:font-semibold">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-56 pl-4">Brand</TableHead>
+                      <TableHead className="w-56">Brand</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead className="w-20 text-right">Products</TableHead>
+                      <TableHead className="w-24">Products</TableHead>
                       <TableHead className="w-28">Status</TableHead>
-                      <TableHead className="w-14 pr-4 text-right">
+                      <TableHead className="w-14 text-right">
                         <span className="sr-only">Actions</span>
                       </TableHead>
                     </TableRow>
@@ -442,7 +449,7 @@ export function BrandList({
                   <TableBody>
                     {brands.map((brand) => (
                       <TableRow key={brand.id}>
-                        <TableCell className="py-2.5 pl-4">
+                        <TableCell className="py-2.5">
                           <div className="flex min-w-0 items-center gap-2.5">
                             <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
                               <Image
@@ -455,13 +462,10 @@ export function BrandList({
                             </span>
                             <div className="min-w-0">
                               <p
-                                className="truncate text-sm font-medium leading-tight"
+                                className="truncate text-sm font-medium"
                                 title={brand.name}
                               >
                                 {brand.name}
-                              </p>
-                              <p className="mt-0.5 truncate font-mono text-[13px] text-foreground/70">
-                                {brand.slug ? `/${brand.slug}` : "—"}
                               </p>
                             </div>
                           </div>
@@ -476,7 +480,7 @@ export function BrandList({
                           </p>
                         </TableCell>
 
-                        <TableCell className="text-right">
+                        <TableCell>
                           <p
                             className="truncate text-sm font-semibold tabular-nums"
                             title={`${productCountOf(brand)} products`}
@@ -487,7 +491,7 @@ export function BrandList({
 
                         <TableCell>{renderToggle(brand)}</TableCell>
 
-                        <TableCell className="pr-4 text-right">
+                        <TableCell className="text-right">
                           {renderActions(brand)}
                         </TableCell>
                       </TableRow>

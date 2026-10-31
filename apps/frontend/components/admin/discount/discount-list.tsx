@@ -130,10 +130,10 @@ export function DiscountList({
 
   const hasFilters = Boolean(
     searchQuery ||
-      categoryFilter ||
-      brandFilter ||
-      statusFilter ||
-      discountTypeFilter
+    categoryFilter ||
+    brandFilter ||
+    statusFilter ||
+    discountTypeFilter
   );
 
   const updateUrl = useCallback(() => {
@@ -485,24 +485,22 @@ export function DiscountList({
                   {[
                     searchQuery && `Search: ${searchQuery}`,
                     statusFilter &&
-                      statusFilter !== "all" &&
-                      `Status: ${
-                        STATUS_LABEL[statusFilter as DiscountStatus] ??
-                        statusFilter
-                      }`,
+                    statusFilter !== "all" &&
+                    `Status: ${STATUS_LABEL[statusFilter as DiscountStatus] ??
+                    statusFilter
+                    }`,
                     discountTypeFilter &&
-                      discountTypeFilter !== "all" &&
-                      `Type: ${
-                        discountTypeFilter === "percentage"
-                          ? "Percentage"
-                          : "Fixed amount"
-                      }`,
+                    discountTypeFilter !== "all" &&
+                    `Type: ${discountTypeFilter === "percentage"
+                      ? "Percentage"
+                      : "Fixed amount"
+                    }`,
                     categoryFilter &&
-                      categoryFilter !== "all" &&
-                      `Category: ${categoryName(categoryFilter)}`,
+                    categoryFilter !== "all" &&
+                    `Category: ${categoryName(categoryFilter)}`,
                     brandFilter &&
-                      brandFilter !== "all" &&
-                      `Brand: ${brandName(brandFilter)}`,
+                    brandFilter !== "all" &&
+                    `Brand: ${brandName(brandFilter)}`,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
@@ -599,17 +597,31 @@ export function DiscountList({
                 </PillBadge>
               </div>
 
-              {/* Desktop table */}
-              <div className="hidden md:block">
-                <Table className="report-table min-w-190">
-                  <TableHeader>
+              {/* Desktop table — equal columns, fixed layout, no min-width:
+                  Product and Actions are pinned, the rest split the panel width
+                  equally and every column is left-aligned, so the gutters read
+                  identical: a right-aligned price would end flush against the
+                  next column's boundary and close its gap. Six columns need lg
+                  before each share is wide enough; below that the cards run. */}
+              <div className="hidden lg:block">
+                <Table className="report-table table-fixed [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
+                  <TableHeader className="[&_th]:font-semibold">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-72 pl-4">Product</TableHead>
+                      {/* Identity column: pinned, and it gains width at xl and
+                          again on 2xl so long product names and SKUs are not
+                          truncated. */}
+                      <TableHead className="w-56 xl:w-72 2xl:w-96">
+                        Product
+                      </TableHead>
                       <TableHead>Discount</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
+                      <TableHead>Price</TableHead>
                       <TableHead>Period</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="pr-4 text-right">Actions</TableHead>
+                      {/* Label is screen-reader only: at 56px the word
+                          "Actions" overflows the cell. */}
+                      <TableHead className="w-14 text-right">
+                        <span className="sr-only">Actions</span>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -617,7 +629,7 @@ export function DiscountList({
                       const status = getDiscountStatus(product);
                       return (
                         <TableRow key={product.id}>
-                          <TableCell className="py-2.5 pl-4">
+                          <TableCell className="py-2.5">
                             <div className="flex min-w-0 items-center gap-3">
                               <span className="flex aspect-3/2 h-12 w-18 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
                                 <ProductImage
@@ -653,29 +665,43 @@ export function DiscountList({
                             >
                               {product.discountType ===
                                 DiscountType.PERCENTAGE && (
-                                <BadgePercent className="h-3 w-3" />
-                              )}
+                                  <BadgePercent className="h-3 w-3" />
+                                )}
                               {discountLabel(product)}
                             </PillBadge>
                           </TableCell>
 
-                          <TableCell className="text-right">
-                            <span className="text-sm font-semibold tabular-nums">
+                          <TableCell>
+                            <p
+                              className="truncate text-sm font-semibold tabular-nums"
+                              title={bare(calculateDiscountedPrice(product))}
+                            >
                               {bare(calculateDiscountedPrice(product))}
-                            </span>
-                            <p className="text-[11px] tabular-nums text-muted-foreground line-through">
+                            </p>
+                            <p
+                              className="truncate text-[11px] tabular-nums text-muted-foreground line-through"
+                              title={bare(product.sellingPrice)}
+                            >
                               {bare(product.sellingPrice)}
                             </p>
                           </TableCell>
 
                           <TableCell className="text-muted-foreground">
                             {product.discountStartDate &&
-                            product.discountEndDate ? (
+                              product.discountEndDate ? (
                               <>
-                                <p className="text-xs tabular-nums">
+                                <p
+                                  className="truncate text-xs tabular-nums"
+                                  title={formatDateTime(
+                                    product.discountStartDate
+                                  )}
+                                >
                                   {formatDateTime(product.discountStartDate)}
                                 </p>
-                                <p className="text-[11px] tabular-nums">
+                                <p
+                                  className="truncate text-[11px] tabular-nums"
+                                  title={formatDateTime(product.discountEndDate)}
+                                >
                                   → {formatDateTime(product.discountEndDate)}
                                 </p>
                               </>
@@ -690,7 +716,7 @@ export function DiscountList({
                             </PillBadge>
                           </TableCell>
 
-                          <TableCell className="pr-4 text-right">
+                          <TableCell className="text-right">
                             {renderActions(product)}
                           </TableCell>
                         </TableRow>
@@ -701,7 +727,7 @@ export function DiscountList({
               </div>
 
               {/* Mobile cards */}
-              <div className="divide-y md:hidden">
+              <div className="divide-y lg:hidden">
                 {products.map((product) => {
                   const status = getDiscountStatus(product);
                   return (
@@ -762,12 +788,12 @@ export function DiscountList({
                           </p>
                           <p className="text-xs">
                             {product.discountStartDate &&
-                            product.discountEndDate
+                              product.discountEndDate
                               ? `${formatDateTime(
-                                  product.discountStartDate
-                                )} → ${formatDateTime(
-                                  product.discountEndDate
-                                )}`
+                                product.discountStartDate
+                              )} → ${formatDateTime(
+                                product.discountEndDate
+                              )}`
                               : "No period set"}
                           </p>
                         </div>
