@@ -19,7 +19,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { cn, formatCurrencyEnglish } from "@/lib/utils";
 import {
-  BarChart3,
   CalendarRange,
   CalendarX,
   Clock,
@@ -28,7 +27,7 @@ import {
   PauseCircle,
   RefreshCw,
   ShoppingCart,
-  XCircle,
+  XCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
@@ -464,23 +463,21 @@ export default function MonthlyOrderReportList({
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="pl-4">Period</TableHead>
                     <TableHead className="text-right">All orders</TableHead>
-                    {STATUS_COLUMNS.map((column) => (
-                      <TableHead key={column.key} className="text-right">
+                    {STATUS_COLUMNS.map((column, index) => (
+                      <TableHead
+                        key={column.key}
+                        className={cn(
+                          "text-right",
+                          index === STATUS_COLUMNS.length - 1 && "pr-4"
+                        )}
+                      >
                         {column.label}
                       </TableHead>
                     ))}
-                    <TableHead className="pr-4 text-right">
-                      Cancel rate
-                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {monthlyData.map((item) => {
-                    const cancelRate = percentOf(
-                      item.cancelOrderCount,
-                      item.allOrderCount
-                    );
-
                     return (
                       <TableRow key={`${item.year}-${item.month}`}>
                         <TableCell className="py-2.5 pl-4">
@@ -504,7 +501,7 @@ export default function MonthlyOrderReportList({
                           </div>
                         </TableCell>
 
-                        {STATUS_COLUMNS.map((column) => {
+                        {STATUS_COLUMNS.map((column, index) => {
                           const percent = percentOf(
                             column.count(item),
                             item.allOrderCount
@@ -513,7 +510,10 @@ export default function MonthlyOrderReportList({
                           return (
                             <TableCell
                               key={column.key}
-                              className="min-w-37 text-right"
+                              className={cn(
+                                "min-w-37 text-right",
+                                index === STATUS_COLUMNS.length - 1 && "pr-4"
+                              )}
                             >
                               <div className="flex items-baseline justify-end gap-1.5">
                                 <span
@@ -550,15 +550,6 @@ export default function MonthlyOrderReportList({
                             </TableCell>
                           );
                         })}
-
-                        <TableCell className="pr-4 text-right">
-                          <PillBadge
-                            tone={cancelRate >= 25 ? "red" : "neutral"}
-                            className="font-medium tabular-nums"
-                          >
-                            {cancelRate}%
-                          </PillBadge>
-                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -576,10 +567,16 @@ export default function MonthlyOrderReportList({
                         / {totals.allOrders}
                       </span>
                     </TableCell>
-                    {STATUS_COLUMNS.map((column) => {
+                    {STATUS_COLUMNS.map((column, index) => {
                       const total = statusTotals(column.key);
                       return (
-                        <TableCell key={column.key} className="text-right">
+                        <TableCell
+                          key={column.key}
+                          className={cn(
+                            "text-right",
+                            index === STATUS_COLUMNS.length - 1 && "pr-4"
+                          )}
+                        >
                           <span
                             className={cn(
                               "text-sm font-bold tabular-nums",
@@ -594,14 +591,6 @@ export default function MonthlyOrderReportList({
                         </TableCell>
                       );
                     })}
-                    <TableCell className="pr-4 text-right">
-                      <PillBadge
-                        tone={overallCancelRate >= 25 ? "red" : "neutral"}
-                        className="font-medium tabular-nums"
-                      >
-                        {overallCancelRate}%
-                      </PillBadge>
-                    </TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>

@@ -6,6 +6,7 @@ import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
 import { PaginationComponent } from "@/components/common/pagination";
+import { PillBadge } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   Table,
   TableBody,
   TableCell,
@@ -31,19 +42,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
 import type { Category, Recipe } from "@/utils/types";
 import {
   CheckCircle,
   FileEdit,
-  Filter,
   MoreHorizontal,
   Pencil,
   Plus,
+  RefreshCw,
+  SlidersHorizontal,
   Trash2,
-  Utensils,
-  XCircle,
+  Utensils
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -59,6 +70,36 @@ interface RecipeListProps {
   initialLimit: number;
   initialSearchParams?: { [key: string]: string | string[] | undefined };
 }
+
+/** Labelled cell used by the mobile cards. */
+function DetailField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[13px] font-medium text-foreground/60">{label}</p>
+      {children}
+    </div>
+  );
+}
+
+/** formatDateTime yields "31 Oct 2026, 10:30 AM" — split on the LAST comma so
+ *  the day and the clock can sit on two lines inside a narrow column. */
+const splitStamp = (value: string) => {
+  const stamp = formatDateTime(value);
+  const cut = stamp.lastIndexOf(", ");
+  return cut === -1
+    ? { day: stamp, clock: "" }
+    : { day: stamp.slice(0, cut), clock: stamp.slice(cut + 2) };
+};
+
+/** Recipe details are rich text; the list only needs the plain sentence. */
+const stripHtml = (html?: string) =>
+  (html || "").replace(/<[^>]*>/g, "").trim();
 
 export function RecipeList({
   initialPage,
@@ -99,6 +140,9 @@ export function RecipeList({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Below md the filters live in a bottom sheet instead of the toolbar strip.
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   const { togglingId, toggleActive } = useActiveStatusToggle<Recipe>({
     getId: (recipe) => recipe.id,
@@ -247,344 +291,534 @@ export function RecipeList({
   const hasActiveFilters = () =>
     Boolean(searchQuery || statusFilter || categoryFilter);
 
-  const renderEmptyState = () => (
-    <div className="p-4 pb-6">
-      <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
-        <Utensils className="h-10 w-10 text-muted-foreground/50 mb-4" />
-        <h3 className="text-lg font-semibold">No recipes found</h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          {hasActiveFilters()
-            ? "No recipes match your search criteria. Try different filters."
-            : "Get started by adding your first recipe."}
-        </p>
-        {!hasActiveFilters() && can(MENU_URL, "canCreate") && (
-          <Button asChild className="mt-4">
-            <Link href="/admin/recipe/add">
-              <Plus className="mr-2 h-4 w-4" /> Add Recipe
-            </Link>
-          </Button>
-        )}
-        {hasActiveFilters() && (
-          <Button variant="outline" className="mt-4" onClick={clearFilters}>
-            Clear Filters
-          </Button>
-        )}
-      </div>
-    </div>
-  );
+  const publishedCount = recipes.filter((r) => r.isPublished).length;
+  const draftCount = recipes.length - publishedCount;
+  const firstRow = recipes.length === 0 ? 0 : (currentPage - 1) * limit + 1;
+  const lastRow = Math.min(currentPage * limit, totalItems);
 
-  const renderActiveFilters = () => {
-    if (!hasActiveFilters()) return null;
+  const statusLabel =
+    statusFilter === "published"
+      ? "Published"
+      : statusFilter === "draft"
+        ? "Draft"
+        : statusFilter;
+  const categoryLabel =
+    categories.find((c) => c.slug === categoryFilter)?.name || categoryFilter;
 
-    return (
-      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-        {searchQuery && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
+  const activeFilterSummary = [
+    debouncedSearch && `Search: ${debouncedSearch}`,
+    statusFilter && statusFilter !== "all" && `Status: ${statusLabel}`,
+    categoryFilter && categoryFilter !== "all" && `Category: ${categoryLabel}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  // Count surfaced on the mobile Filters button so a closed sheet still shows
+  // that the list is narrowed.
+  const activeFilterCount = [
+    Boolean(searchQuery),
+    Boolean(statusFilter),
+    Boolean(categoryFilter),
+  ].filter(Boolean).length;
+
+  // One source of truth for the filter controls: the toolbar renders them
+  // inline at their fixed widths, the mobile sheet renders the same nodes full
+  // width under a visible label.
+  const renderFilterControls = (mode: "bar" | "sheet") => {
+    const triggerClass =
+      mode === "bar"
+        ? "h-9 w-full"
+        : "h-11 w-full px-3 text-sm font-medium";
+
+    return [
+      {
+        key: "status",
+        label: "Status",
+        barClass: "md:w-32 md:shrink-0",
+        node: (
+          <Select
+            value={statusFilter || "all"}
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              setCurrentPage(1);
+            }}
           >
-            Search: {searchQuery}
-            <button onClick={() => setSearchQuery("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {statusFilter && statusFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
+            <SelectTrigger className={triggerClass}>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="published">Published</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        key: "category",
+        label: "Category",
+        barClass: "md:w-44 md:shrink-0",
+        node: (
+          <Select
+            value={categoryFilter || "all"}
+            onValueChange={(value) => {
+              setCategoryFilter(value);
+              setCurrentPage(1);
+            }}
           >
-            Status: {statusFilter}
-            <button onClick={() => setStatusFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {categoryFilter && categoryFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Category:{" "}
-            {categories.find((c) => c.slug === categoryFilter)?.name ||
-              categoryFilter}
-            <button onClick={() => setCategoryFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="h-7 text-xs"
-        >
-          Clear all
-        </Button>
-      </div>
-    );
+            <SelectTrigger className={triggerClass}>
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categories.map((category) => (
+                <SelectItem
+                  key={category.id}
+                  value={category.slug || String(category.id)}
+                >
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ),
+      },
+    ];
   };
 
-  const renderFiltersMenu = () => (
+  const renderToggle = (recipe: Recipe, className?: string) => (
+    <ActiveStatusToggle
+      isActive={recipe.isPublished}
+      disabled={togglingId === recipe.id}
+      onToggle={() => toggleActive(recipe)}
+      label={recipe.title}
+      labels={{ on: "Published", off: "Draft" }}
+      className={className}
+    />
+  );
+
+  const renderActions = (recipe: Recipe) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 px-3 shrink-0">
-          <Filter className="h-4 w-4" />
-          <span>Filters</span>
-          {(statusFilter || categoryFilter) && (
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          )}
+        <Button variant="ghost" size="icon" className="size-8">
+          <MoreHorizontal className="size-4" />
+          <span className="sr-only">Open menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-100">
-        <div className="grid grid-cols-2 gap-3 p-3">
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Status</h4>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Category</h4>
-            <Select
-              value={categoryFilter}
-              onValueChange={(value) => {
-                setCategoryFilter(value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem
-                    key={category.id}
-                    value={category.slug || String(category.id)}
-                  >
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {(statusFilter || categoryFilter) && (
-            <div className="col-span-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="w-full mt-2"
-              >
-                Reset Filters
-              </Button>
-            </div>
-          )}
-        </div>
+      <DropdownMenuContent align="end">
+        {can(MENU_URL, "canEdit") && (
+          <DropdownMenuItem asChild>
+            <Link href={`/admin/recipe/${recipe.id}/edit`}>
+              <Pencil className="size-4" /> Edit
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {can(MENU_URL, "canDelete") && (
+          <DropdownMenuItem
+            variant="destructive"
+            onClick={() => handleDeleteClick(recipe)}
+          >
+            <Trash2 className="size-4" /> Delete
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 
-  const renderTableView = () => (
-    <div className="overflow-x-auto">
-      <Table className="min-w-160">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Recipe</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Created By</TableHead>
-            <TableHead>Created At</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {recipes?.map((recipe) => (
-            <TableRow key={recipe.id} className="hover:bg-muted/50">
-              <TableCell>
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex aspect-3/2 h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1">
-                    <Image
-                      src={recipe?.attachment?.url || "/placeholder.svg"}
-                      alt={recipe.title}
-                      width={96}
-                      height={64}
-                      className="h-full w-full object-contain"
-                    />
-                  </span>
-                  <div className="min-w-0">
-                    <Link
-                      href={`/admin/recipe/${recipe.id}/edit`}
-                      className="font-medium leading-tight hover:underline"
-                    >
-                      {recipe.title}
-                    </Link>
-                    <p className="mt-0.5 line-clamp-1 max-w-64 text-xs text-muted-foreground">
-                      {recipe.details?.replace(/<[^>]*>/g, "") || ""}
-                    </p>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell className="capitalize">
-                {recipe.category?.name || "Uncategorized"}
-              </TableCell>
-              <TableCell>
-                {recipe.createdBy?.name || "Unknown"}
-              </TableCell>
-              <TableCell>
-                {formatDateTime(recipe.createdAt)}
-              </TableCell>
-              <TableCell>
-                <ActiveStatusToggle
-                  isActive={recipe.isPublished}
-                  disabled={togglingId === recipe.id}
-                  onToggle={() => toggleActive(recipe)}
-                  label={recipe.title}
-                  labels={{ on: "Published", off: "Draft" }}
-                />
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {can(MENU_URL, "canEdit") && (
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/recipe/${recipe.id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    {can(MENU_URL, "canDelete") && (
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDeleteClick(recipe)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
-
   return (
     <>
-      <div className="w-full space-y-4">
+      <div className="w-full">
         <PageHeader
           title="Recipes"
-          description="Manage your recipes"
-          {...(can(MENU_URL, "canCreate")
-            ? {
-              actionLabel: "Add Recipe",
-              actionHref: "/admin/recipe/add",
-            }
-            : {})}
-        />
+          description="Titles, categories and publish state for every recipe in the kitchen."
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+            onClick={fetchRecipes}
+          >
+            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+          {can(MENU_URL, "canCreate") && (
+            <Button size="sm" asChild>
+              <Link href="/admin/recipe/add">
+                <Plus className="size-4" />
+                <span className="hidden sm:inline">Add Recipe</span>
+              </Link>
+            </Button>
+          )}
+        </PageHeader>
 
-        {/* Summary tiles */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <StatsCard
-            icon={Utensils}
-            title="Total Recipes"
-            value={totalItems}
-            bgColor="blue"
-          />
-          <StatsCard
-            icon={CheckCircle}
-            title="Published"
-            value={recipes.filter((r) => r.isPublished).length}
-            bgColor="green"
-          />
-          <StatsCard
-            icon={FileEdit}
-            title="Drafts"
-            value={recipes.filter((r) => !r.isPublished).length}
-            bgColor="orange"
-          />
-        </div>
-
-        {/* List card: toolbar + table */}
-        <div className="rounded-sm border bg-card">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                <Utensils className="h-4.5 w-4.5" />
-              </span>
-              <div>
-                <h3 className="font-semibold leading-tight">All Recipes</h3>
-                <p className="text-sm text-muted-foreground">
-                  {totalItems} recipe{totalItems === 1 ? "" : "s"}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
+        {/* Toolbar */}
+        <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
+          <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:items-center md:gap-3">
+            {/* Search and the Filters button share one line on phones;
+                md:contents hands both back to the toolbar row from md up. */}
+            <div className="flex items-center gap-2 md:contents">
               <TableSearch
-                wrapperClassName="w-full sm:w-64"
+                wrapperClassName="w-full md:max-w-xs"
+                className="h-9"
                 placeholder="Search recipes..."
                 value={searchQuery}
                 onChange={handleSearchChange}
               />
-              {renderFiltersMenu()}
+
+              <div className="shrink-0 md:hidden">
+                <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                      <SlidersHorizontal className="size-3.5" />
+                      Filters
+                      {activeFilterCount > 0 && (
+                        <Badge className="size-4.5 rounded-full px-0 text-[0.65rem] font-semibold">
+                          {activeFilterCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent
+                    side="bottom"
+                    className="max-h-[82dvh] gap-0 overflow-y-auto rounded-t-2xl"
+                  >
+                    <SheetHeader className="border-b pr-14">
+                      <SheetTitle>Filters</SheetTitle>
+                      <SheetDescription>
+                        Narrow the list by category and publish state.
+                      </SheetDescription>
+                    </SheetHeader>
+
+                    {renderFilterControls("sheet").map((control) => (
+                      <div key={control.key} className="px-4 pt-4">
+                        <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          {control.label}
+                        </p>
+                        {control.node}
+                      </div>
+                    ))}
+
+                    <SheetFooter className="sticky bottom-0 mt-4 flex-row border-t bg-background pb-[max(1rem,env(safe-area-inset-bottom))]">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          clearFilters();
+                          setFilterSheetOpen(false);
+                        }}
+                      >
+                        Clear all
+                      </Button>
+                      <SheetClose asChild>
+                        <Button className="flex-1">
+                          {totalItems > 0
+                            ? `Show ${totalItems.toLocaleString("en-US")} recipes`
+                            : "Done"}
+                        </Button>
+                      </SheetClose>
+                    </SheetFooter>
+                  </SheetContent>
+                </Sheet>
+              </div>
             </div>
-          </div>
 
-          {renderActiveFilters()}
+            <div className="hidden items-center gap-3 md:flex md:flex-wrap">
+              {renderFilterControls("bar").map((control) => (
+                <div key={control.key} className={control.barClass}>
+                  {control.node}
+                </div>
+              ))}
+            </div>
 
-          {isLoading ? (
-            <LoadingIndicator message="Loading Recipes..." />
-          ) : recipes.length === 0 ? (
-            renderEmptyState()
-          ) : (
-            renderTableView()
-          )}
-        </div>
-
-        {/* Pagination */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground text-center md:text-left truncate">
-              {`Showing ${recipes.length} of ${totalItems} recipes`}
-            </p>
-          </div>
-
-          <div className="flex-1 w-full md:w-auto">
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={handlePageChange}
-            />
+            {hasActiveFilters() && (
+              <div className="hidden min-w-0 items-center gap-2 md:flex md:ml-auto">
+                <PillBadge className="font-medium" title={activeFilterSummary}>
+                  <span className="truncate">{activeFilterSummary}</span>
+                </PillBadge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 shrink-0 text-muted-foreground"
+                  onClick={clearFilters}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
           </div>
         </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <LoadingIndicator message="Loading recipes..." />
+          </div>
+        ) : recipes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+            <div className="rounded-full bg-muted p-3">
+              <Utensils className="size-6 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">No recipes found</p>
+              <p className="text-xs text-muted-foreground">
+                {hasActiveFilters()
+                  ? "No recipe matches these filters. Try another name, category or status."
+                  : "Create your first recipe to publish it on the storefront."}
+              </p>
+            </div>
+            {hasActiveFilters() ? (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : can(MENU_URL, "canCreate") ? (
+              <Button size="sm" asChild>
+                <Link href="/admin/recipe/add">
+                  <Plus className="size-4" /> Add recipe
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <>
+            {/* Page totals */}
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <StatsCard
+                icon={Utensils}
+                title="Total recipes"
+                value={totalItems.toLocaleString("en-US")}
+                description={`Page ${currentPage} of ${Math.max(totalPages, 1)}`}
+                bgColor="blue"
+              />
+              <StatsCard
+                icon={CheckCircle}
+                title="Published"
+                value={publishedCount.toLocaleString("en-US")}
+                description="On this page"
+                bgColor="green"
+              />
+              <StatsCard
+                icon={FileEdit}
+                title="Drafts"
+                value={draftCount.toLocaleString("en-US")}
+                description="Not published yet"
+                bgColor="orange"
+              />
+            </div>
+
+            {/* Recipe panel */}
+            <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primaryColor/10 text-primaryColor ring-1 ring-primaryColor/15">
+                    <Utensils className="size-4.5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold">All recipes</h3>
+                    <p className="text-[13px] text-foreground/70">
+                      Category, author and publish state for every recipe.
+                    </p>
+                  </div>
+                </div>
+                <PillBadge className="font-medium tabular-nums">
+                  {recipes.length.toLocaleString("en-US")} of{" "}
+                  {totalItems.toLocaleString("en-US")}
+                </PillBadge>
+              </div>
+
+              {/* Desktop table — equal columns, fixed layout, no min-width:
+                  Recipe and Actions are pinned, the rest split the panel width
+                  equally and every column is left-aligned, so the gutters read
+                  identical. Created by only joins at xl, where the extra share
+                  keeps the author names legible. */}
+              <div className="hidden lg:block">
+                <Table className="report-table table-fixed [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
+                  <TableHeader className="[&_th]:font-semibold">
+                    <TableRow className="hover:bg-transparent">
+                      {/* Identity column: pinned, and it gains width at xl and
+                          again on 2xl so long recipe titles and excerpts are
+                          not truncated. */}
+                      <TableHead className="w-64 xl:w-72 2xl:w-96">
+                        Recipe
+                      </TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead className="hidden xl:table-cell">
+                        Created by
+                      </TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Status</TableHead>
+                      {/* Label is screen-reader only: at 56px the word
+                          "Actions" overflows the cell. */}
+                      <TableHead className="w-14 text-right">
+                        <span className="sr-only">Actions</span>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recipes.map((recipe) => {
+                      const created = splitStamp(recipe.createdAt);
+                      const excerpt = stripHtml(recipe.details);
+                      return (
+                        <TableRow key={recipe.id}>
+                          <TableCell className="py-2.5">
+                            <div className="flex min-w-0 items-center gap-2.5">
+                              <span className="flex aspect-3/2 h-10 w-15 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                                <Image
+                                  src={
+                                    recipe.attachment?.url ||
+                                    "/placeholder.svg"
+                                  }
+                                  alt={recipe.title}
+                                  width={60}
+                                  height={40}
+                                  className="h-full w-full object-cover"
+                                />
+                              </span>
+                              <div className="min-w-0">
+                                <Link
+                                  href={`/admin/recipe/${recipe.id}/edit`}
+                                  title={recipe.title}
+                                  className="block truncate text-sm font-medium leading-tight hover:underline"
+                                >
+                                  {recipe.title}
+                                </Link>
+                                <p
+                                  className="mt-0.5 truncate text-[13px] text-foreground/70"
+                                  title={excerpt || undefined}
+                                >
+                                  {excerpt || "No description"}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <p
+                              className="truncate text-sm capitalize"
+                              title={recipe.category?.name || undefined}
+                            >
+                              {recipe.category?.name || "Uncategorized"}
+                            </p>
+                          </TableCell>
+
+                          <TableCell className="hidden xl:table-cell">
+                            <p
+                              className="truncate text-sm"
+                              title={recipe.createdBy?.name || undefined}
+                            >
+                              {recipe.createdBy?.name || "Unknown"}
+                            </p>
+                          </TableCell>
+
+                          <TableCell className="text-muted-foreground">
+                            <p
+                              className="truncate text-sm tabular-nums"
+                              title={formatDateTime(recipe.createdAt)}
+                            >
+                              {created.day}
+                            </p>
+                            {created.clock && (
+                              <p className="truncate text-[13px] tabular-nums">
+                                {created.clock}
+                              </p>
+                            )}
+                          </TableCell>
+
+                          <TableCell>{renderToggle(recipe)}</TableCell>
+
+                          <TableCell className="text-right">
+                            {renderActions(recipe)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="divide-y lg:hidden">
+                {recipes.map((recipe) => {
+                  const created = splitStamp(recipe.createdAt);
+                  const excerpt = stripHtml(recipe.details);
+                  return (
+                    <article key={recipe.id} className="space-y-3 p-3.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span className="flex aspect-3/2 h-11 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                            <Image
+                              src={recipe.attachment?.url || "/placeholder.svg"}
+                              alt={recipe.title}
+                              width={64}
+                              height={44}
+                              className="h-full w-full object-cover"
+                            />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold">
+                              {recipe.title}
+                            </p>
+                            <p className="mt-0.5 truncate text-[13px] text-foreground/70">
+                              {excerpt || "No description"}
+                            </p>
+                          </div>
+                        </div>
+                        {renderActions(recipe)}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-lg bg-muted/40 p-2.5">
+                        <DetailField label="Category">
+                          <p className="truncate text-sm capitalize">
+                            {recipe.category?.name || "Uncategorized"}
+                          </p>
+                        </DetailField>
+                        <DetailField label="Created by">
+                          <p className="truncate text-sm">
+                            {recipe.createdBy?.name || "Unknown"}
+                          </p>
+                        </DetailField>
+                        <DetailField label="Created">
+                          <p className="truncate text-sm tabular-nums">
+                            {created.day}
+                          </p>
+                          {created.clock && (
+                            <p className="truncate text-[13px] tabular-nums text-foreground/70">
+                              {created.clock}
+                            </p>
+                          )}
+                        </DetailField>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[13px] font-medium text-foreground/60">
+                          Status
+                        </span>
+                        {renderToggle(recipe)}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
+                <p className="text-[13px] text-foreground/70">
+                  Showing {firstRow.toLocaleString("en-US")}–
+                  {lastRow.toLocaleString("en-US")} of{" "}
+                  {totalItems.toLocaleString("en-US")} recipe
+                  {totalItems === 1 ? "" : "s"}
+                  {debouncedSearch && ` matching “${debouncedSearch}”`}
+                </p>
+                {totalPages > 1 && (
+                  <PaginationComponent
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    baseUrl="#"
+                    onPageChange={handlePageChange}
+                  />
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Delete Confirmation Dialog */}

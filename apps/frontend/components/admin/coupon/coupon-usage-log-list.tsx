@@ -1,12 +1,12 @@
 "use client";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
+import { PaginationComponent } from "@/components/common/pagination";
 import {
   ORDER_STATUS_TONE,
   PAYMENT_STATUS_TONE,
   PillBadge,
 } from "@/components/common/pill-badge";
-import { PaginationComponent } from "@/components/common/pagination";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
@@ -69,6 +69,16 @@ const bare = (value: number | string) =>
 const humanize = (status: string) =>
   status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
+/** formatDateTime yields "31 Oct 2026, 10:30 AM" — split on the LAST comma so
+ *  the day and the clock can sit on two lines inside a narrow column. */
+const splitStamp = (value: string) => {
+  const stamp = formatDateTime(value);
+  const cut = stamp.lastIndexOf(", ");
+  return cut === -1
+    ? { day: stamp, clock: "" }
+    : { day: stamp.slice(0, cut), clock: stamp.slice(cut + 2) };
+};
+
 export function CouponUsageLogList({
   couponCode,
   initialPage = 1,
@@ -125,9 +135,9 @@ export function CouponUsageLogList({
     try {
       const response = couponCode
         ? await getCouponUsageLogsByCode(couponCode, currentPage, limit, {
-            fromDate,
-            toDate,
-          })
+          fromDate,
+          toDate,
+        })
         : await getAllCouponUsageLogs(currentPage, limit, { fromDate, toDate });
       setLogs(Array.isArray(response?.data) ? response.data : []);
       setTotalItems(response?.total ?? 0);
@@ -224,19 +234,16 @@ export function CouponUsageLogList({
     </div>
   );
 
-  const renderStatuses = (log: CouponUsageLog) => (
-    <div className="flex flex-col items-start gap-1">
-      <PillBadge
-        tone={ORDER_STATUS_TONE[log.order?.orderStatus] ?? "neutral"}
-      >
-        {humanize(log.order?.orderStatus ?? "unknown")}
-      </PillBadge>
-      <PillBadge
-        tone={PAYMENT_STATUS_TONE[log.order?.paymentStatus] ?? "neutral"}
-      >
-        {humanize(log.order?.paymentStatus ?? "unknown")}
-      </PillBadge>
-    </div>
+  const renderOrderStatus = (log: CouponUsageLog) => (
+    <PillBadge tone={ORDER_STATUS_TONE[log.order?.orderStatus] ?? "neutral"}>
+      {humanize(log.order?.orderStatus ?? "unknown")}
+    </PillBadge>
+  );
+
+  const renderPaymentStatus = (log: CouponUsageLog) => (
+    <PillBadge tone={PAYMENT_STATUS_TONE[log.order?.paymentStatus] ?? "neutral"}>
+      {humanize(log.order?.paymentStatus ?? "unknown")}
+    </PillBadge>
   );
 
   return (
@@ -427,83 +434,107 @@ export function CouponUsageLogList({
               </PillBadge>
             </div>
 
-            {/* Desktop table */}
-            <div className="hidden md:block">
-              <Table className="report-table min-w-180">
-                <TableHeader>
+            {/* Desktop table — nine columns need xl; below that the cards
+                carry the same fields. Customer and Actions are pinned, the
+                rest split the panel width equally and every column is left-
+                aligned, so the gutters read identical: a right-aligned amount
+                would end flush against the next column's boundary and close
+                its gap. */}
+            <div className="hidden xl:block">
+              <Table className="report-table table-fixed [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
+                <TableHeader className="[&_th]:font-semibold">
                   <TableRow className="hover:bg-transparent">
-                    {!couponCode && <TableHead className="pl-4">Coupon</TableHead>}
-                    <TableHead className={couponCode ? "pl-4" : undefined}>
+                    {!couponCode && <TableHead>Coupon</TableHead>}
+                    <TableHead className="w-56 xl:w-64 2xl:w-72">
                       Customer
                     </TableHead>
                     <TableHead>Order</TableHead>
-                    <TableHead className="text-right">Order total</TableHead>
-                    <TableHead className="text-right">Discount</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Order total</TableHead>
+                    <TableHead>Discount</TableHead>
+                    <TableHead>Order status</TableHead>
+                    <TableHead>Payment status</TableHead>
                     <TableHead>Used at</TableHead>
-                    <TableHead className="pr-4 text-right">Actions</TableHead>
+                    {/* Label is screen-reader only: at 56px the word
+                        "Actions" overflows the cell. */}
+                    <TableHead className="w-14 text-right">
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.map((log) => (
-                    <TableRow key={log.id}>
-                      {!couponCode && (
-                        <TableCell className="py-2.5 pl-4">
-                          <PillBadge tone="blue" className="font-mono">
-                            {log.couponCode}
-                          </PillBadge>
+                  {logs.map((log) => {
+                    const usedAt = splitStamp(log.createdAt);
+                    return (
+                      <TableRow key={log.id}>
+                        {!couponCode && (
+                          <TableCell className="py-2.5">
+                            <PillBadge tone="blue" className="font-mono">
+                              {log.couponCode}
+                            </PillBadge>
+                          </TableCell>
+                        )}
+
+                        <TableCell className="py-2.5">
+                          {renderCustomer(log)}
                         </TableCell>
-                      )}
 
-                      <TableCell
-                        className={cn("py-2.5", couponCode && "pl-4")}
-                      >
-                        {renderCustomer(log)}
-                      </TableCell>
+                        <TableCell>
+                          <Link
+                            href={`/admin/order/${log.order.id}/view`}
+                            className="block truncate font-mono text-sm text-foreground hover:text-primaryColor hover:underline"
+                            title={log.order.orderNo}
+                          >
+                            {log.order.orderNo}
+                          </Link>
+                        </TableCell>
 
-                      <TableCell>
-                        <Link
-                          href={`/admin/order/${log.order.id}/view`}
-                          className="font-mono text-sm text-foreground hover:text-primaryColor hover:underline"
-                        >
-                          {log.order.orderNo}
-                        </Link>
-                      </TableCell>
+                        <TableCell>
+                          <p className="truncate text-sm tabular-nums">
+                            {bare(log.orderTotal)}
+                          </p>
+                        </TableCell>
 
-                      <TableCell className="text-right">
-                        <span className="text-sm tabular-nums">
-                          {bare(log.orderTotal)}
-                        </span>
-                      </TableCell>
+                        <TableCell>
+                          <p className="truncate text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">
+                            −{bare(log.discountAmount)}
+                          </p>
+                          <p className="truncate text-[11px] text-muted-foreground">
+                            {log.discountType === "percentage"
+                              ? `${bare(log.discountValue)}%`
+                              : "Fixed"}
+                          </p>
+                        </TableCell>
 
-                      <TableCell className="text-right">
-                        <span className="text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">
-                          −{bare(log.discountAmount)}
-                        </span>
-                        <p className="text-[11px] text-muted-foreground">
-                          {log.discountType === "percentage"
-                            ? `${bare(log.discountValue)}%`
-                            : "Fixed"}
-                        </p>
-                      </TableCell>
+                        <TableCell>{renderOrderStatus(log)}</TableCell>
 
-                      <TableCell>{renderStatuses(log)}</TableCell>
+                        <TableCell>{renderPaymentStatus(log)}</TableCell>
 
-                      <TableCell className="text-muted-foreground">
-                        {formatDateTime(log.createdAt)}
-                      </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          <p
+                            className="truncate text-xs tabular-nums"
+                            title={formatDateTime(log.createdAt)}
+                          >
+                            {usedAt.day}
+                          </p>
+                          {usedAt.clock && (
+                            <p className="truncate text-[11px] tabular-nums">
+                              {usedAt.clock}
+                            </p>
+                          )}
+                        </TableCell>
 
-                      <TableCell className="pr-4 text-right">
-                        {renderActions(log)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        <TableCell className="text-right">
+                          {renderActions(log)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
 
             {/* Mobile cards */}
-            <div className="divide-y md:hidden">
+            <div className="divide-y xl:hidden">
               {logs.map((log) => (
                 <article key={log.id} className="space-y-3 p-3.5">
                   <div className="flex items-start justify-between gap-2">
@@ -545,7 +576,18 @@ export function CouponUsageLogList({
                         −৳{bare(log.discountAmount)}
                       </p>
                     </div>
-                    <div className="col-span-2">{renderStatuses(log)}</div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Order status
+                      </p>
+                      <div className="mt-1">{renderOrderStatus(log)}</div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Payment status
+                      </p>
+                      <div className="mt-1">{renderPaymentStatus(log)}</div>
+                    </div>
                   </div>
                 </article>
               ))}

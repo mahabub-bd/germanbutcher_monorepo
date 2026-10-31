@@ -12,13 +12,9 @@ import {
   ReportDateFilters,
   type ReportFilterParams,
 } from "@/components/admin/reports/report-date-filters";
-import {
-  PillBadge,
-  ORDER_STATUS_TONE,
-  PAYMENT_STATUS_TONE,
-  type PillTone,
-} from "@/components/common/pill-badge";
 import { PaginationComponent } from "@/components/common/pagination";
+import { PillBadge, type PillTone } from "@/components/common/pill-badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -44,13 +40,24 @@ import {
   shortenArea,
 } from "@/lib/utils";
 import { apiUrl, resolveAuthToken } from "@/utils/api-utils";
-import { formatOrderElapsedTime } from "@/utils/order-helper";
+import {
+  formatOrderElapsedTime,
+  getOrderStatusColor,
+  getPaymentMethodColor,
+  getPaymentMethodIcon,
+  getPaymentStatusColor,
+  getShippingMethodColor,
+  getShippingMethodIcon,
+  getStatusIcon,
+} from "@/utils/order-helper";
 import { PaymentStatus } from "@/utils/types";
 import {
   AlertCircle,
   CheckCircle2,
+  Clock,
   Download,
   Loader2,
+  MapPin,
   Percent,
   ReceiptText,
   RefreshCw,
@@ -136,8 +143,8 @@ const amount = (value: number) => `৳${formatCurrencyEnglish(value || 0, 0)}`;
 const humanize = (status: string) =>
   status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-const dueOf = (order: Order) =>
-  Math.max(0, (order.totalValue || 0) - (order.paidAmount || 0));
+/** Leading icon size shared by the elapsed pill in the report. */
+const BADGE_ICON = "size-3 shrink-0";
 
 /**
  * Elapsed-time badge: terminal statuses report their own duration, open
@@ -191,10 +198,18 @@ function StatusBadge({
   status: string;
   tone: "order" | "payment";
 }) {
-  const toneMap = tone === "order" ? ORDER_STATUS_TONE : PAYMENT_STATUS_TONE;
+  const colorClass =
+    tone === "order"
+      ? getOrderStatusColor(status)
+      : getPaymentStatusColor(status);
 
   return (
-    <PillBadge tone={toneMap[status] ?? "neutral"}>{humanize(status)}</PillBadge>
+    <Badge variant="secondary" className={colorClass}>
+      <span className="flex items-center gap-1.5">
+        {getStatusIcon(status)}
+        {humanize(status)}
+      </span>
+    </Badge>
   );
 }
 
@@ -261,10 +276,10 @@ export default function OrderReportList({
       orders.reduce(
         (sum, order) => ({
           value: sum.value + (order.totalValue || 0),
+          discount: sum.discount + (order.totalDiscount || 0),
           paid: sum.paid + (order.paidAmount || 0),
-          due: sum.due + dueOf(order),
         }),
-        { value: 0, paid: 0, due: 0 }
+        { value: 0, discount: 0, paid: 0 }
       ),
     [orders]
   );
@@ -368,8 +383,10 @@ export default function OrderReportList({
                     "Customer",
                     "Mobile",
                     "Area",
+                    "Shipping Method",
                     "Status",
                     "Payment",
+                    "Payment Method",
                     "Elapsed Time",
                     "Total",
                     "Discount",
@@ -382,8 +399,10 @@ export default function OrderReportList({
                     o.customer?.name || "N/A",
                     o.customer?.mobileNumber || "N/A",
                     o.shippingAddress?.area || "N/A",
+                    o.shippingMethod || "N/A",
                     o.orderStatus,
                     o.paymentStatus,
+                    o.paymentMethod || "N/A",
                     o.cancelledAt
                       ? formatOrderElapsedTime(o.orderDate, o.cancelledAt)
                       : o.deliveredAt
@@ -593,18 +612,23 @@ export default function OrderReportList({
                     <TableHead className="pl-4">Order</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Area</TableHead>
+                    <TableHead className="hidden xl:table-cell">
+                      Shipping
+                    </TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Elapsed</TableHead>
                     <TableHead>Payment</TableHead>
+                    <TableHead className="hidden xl:table-cell">
+                      Payment Method
+                    </TableHead>
                     <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Paid</TableHead>
-                    <TableHead className="pr-4 text-right">Due</TableHead>
+                    <TableHead className="text-right">Discount</TableHead>
+                    <TableHead className="pr-4 text-right">Paid</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {orders.map((order) => {
                     const elapsed = elapsedBadge(order);
-                    const due = dueOf(order);
 
                     return (
                       <TableRow key={order.orderNo}>
@@ -639,13 +663,39 @@ export default function OrderReportList({
                         </TableCell>
 
                         <TableCell>
-                          <PillBadge
-                            tone="violet"
-                            className="max-w-40 truncate font-normal"
+                          <Badge
+                            variant="secondary"
+                            className="max-w-52 truncate border-transparent bg-violet-100 font-normal text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
                             title={order.shippingAddress?.area || undefined}
                           >
-                            {shortenArea(order.shippingAddress?.area || "N/A")}
-                          </PillBadge>
+                            <span className="hidden min-w-0 items-center gap-1 2xl:flex">
+                              <MapPin className="size-3 shrink-0" />
+                              <span className="truncate">
+                                {shortenArea(order.shippingAddress?.area || "N/A", 5)}
+                              </span>
+                            </span>
+                            <span className="flex min-w-0 items-center gap-1 2xl:hidden">
+                              <MapPin className="size-3 shrink-0" />
+                              <span className="truncate">
+                                {shortenArea(order.shippingAddress?.area || "N/A")}
+                              </span>
+                            </span>
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="hidden xl:table-cell">
+                          <Badge
+                            variant="outline"
+                            title={order.shippingMethod || undefined}
+                            className={`max-w-40 truncate ${getShippingMethodColor(order.shippingMethod)}`}
+                          >
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              {getShippingMethodIcon(order.shippingMethod || "")}
+                              <span className="truncate">
+                                {order.shippingMethod || "N/A"}
+                              </span>
+                            </span>
+                          </Badge>
                         </TableCell>
 
                         <TableCell>
@@ -655,9 +705,10 @@ export default function OrderReportList({
                         <TableCell>
                           <PillBadge
                             tone={elapsed.tone}
-                            className="font-normal tabular-nums"
+                            className="gap-1 font-normal tabular-nums"
                             title={elapsed.title}
                           >
+                            <Clock className={BADGE_ICON} />
                             {elapsed.label}
                           </PillBadge>
                         </TableCell>
@@ -669,30 +720,40 @@ export default function OrderReportList({
                           />
                         </TableCell>
 
+                        <TableCell className="hidden xl:table-cell">
+                          <Badge
+                            variant="outline"
+                            title={order.paymentMethod || undefined}
+                            className={`max-w-40 truncate ${getPaymentMethodColor(order.paymentMethod)}`}
+                          >
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              {getPaymentMethodIcon(order.paymentMethod || "")}
+                              <span className="truncate">
+                                {order.paymentMethod || "N/A"}
+                              </span>
+                            </span>
+                          </Badge>
+                        </TableCell>
+
                         <TableCell className="text-right">
                           <span className="text-sm font-semibold tabular-nums">
                             {formatCurrencyEnglish(order.totalValue, 0)}
                           </span>
-                          {order.totalDiscount > 0 && (
-                            <p className="text-[11px] text-amber-600 dark:text-amber-400">
-                              −{formatCurrencyEnglish(order.totalDiscount, 0)}
-                            </p>
-                          )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className="text-sm font-semibold tabular-nums text-teal-600 dark:text-teal-400">
-                            {formatCurrencyEnglish(order.paidAmount, 0)}
-                          </span>
+                          {order.totalDiscount > 0 ? (
+                            <span className="text-sm font-semibold tabular-nums text-amber-600 dark:text-amber-400">
+                              −{formatCurrencyEnglish(order.totalDiscount, 0)}
+                            </span>
+                          ) : (
+                            <span className="text-sm tabular-nums text-muted-foreground">
+                              —
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="pr-4 text-right">
-                          <span
-                            className={`text-sm font-semibold tabular-nums ${
-                              due > 0
-                                ? "text-red-600 dark:text-red-400"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {formatCurrencyEnglish(due, 0)}
+                          <span className="text-sm font-semibold tabular-nums text-teal-600 dark:text-teal-400">
+                            {formatCurrencyEnglish(order.paidAmount, 0)}
                           </span>
                         </TableCell>
                       </TableRow>
@@ -704,26 +765,20 @@ export default function OrderReportList({
                     <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Page total
                     </TableCell>
-                    <TableCell colSpan={5} />
+                    <TableCell colSpan={7} />
                     <TableCell className="text-right">
                       <span className="text-sm font-bold tabular-nums">
                         {formatCurrencyEnglish(pageTotals.value, 0)}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className="text-sm font-bold tabular-nums text-teal-600 dark:text-teal-400">
-                        {formatCurrencyEnglish(pageTotals.paid, 0)}
+                      <span className="text-sm font-bold tabular-nums text-amber-600 dark:text-amber-400">
+                        {formatCurrencyEnglish(pageTotals.discount, 0)}
                       </span>
                     </TableCell>
                     <TableCell className="pr-4 text-right">
-                      <span
-                        className={`text-sm font-bold tabular-nums ${
-                          pageTotals.due > 0
-                            ? "text-red-600 dark:text-red-400"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {formatCurrencyEnglish(pageTotals.due, 0)}
+                      <span className="text-sm font-bold tabular-nums text-teal-600 dark:text-teal-400">
+                        {formatCurrencyEnglish(pageTotals.paid, 0)}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -735,7 +790,6 @@ export default function OrderReportList({
             <div className="divide-y md:hidden">
               {orders.map((order) => {
                 const elapsed = elapsedBadge(order);
-                const due = dueOf(order);
 
                 return (
                   <article key={order.orderNo} className="space-y-3 p-3.5">
@@ -772,17 +826,48 @@ export default function OrderReportList({
                           {order.customer.mobileNumber}
                         </a>
                       )}
-                      <PillBadge
-                        tone="violet"
-                        className="max-w-36 truncate font-normal"
+                      <Badge
+                        variant="secondary"
+                        title={order.shippingAddress?.area || undefined}
+                        className="max-w-36 truncate border-transparent bg-violet-100 font-normal text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
                       >
-                        {shortenArea(order.shippingAddress?.area || "N/A")}
-                      </PillBadge>
+                        <span className="flex min-w-0 items-center gap-1">
+                          <MapPin className="size-3 shrink-0" />
+                          <span className="truncate">
+                            {shortenArea(order.shippingAddress?.area || "N/A")}
+                          </span>
+                        </span>
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        title={`Shipping: ${order.shippingMethod || "N/A"}`}
+                        className={`max-w-36 truncate ${getShippingMethodColor(order.shippingMethod)}`}
+                      >
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          {getShippingMethodIcon(order.shippingMethod || "")}
+                          <span className="truncate">
+                            {order.shippingMethod || "N/A"}
+                          </span>
+                        </span>
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        title={`Payment: ${order.paymentMethod || "N/A"}`}
+                        className={`max-w-36 truncate ${getPaymentMethodColor(order.paymentMethod)}`}
+                      >
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          {getPaymentMethodIcon(order.paymentMethod || "")}
+                          <span className="truncate">
+                            {order.paymentMethod || "N/A"}
+                          </span>
+                        </span>
+                      </Badge>
                       <PillBadge
                         tone={elapsed.tone}
-                        className="font-normal tabular-nums"
+                        className="gap-1 font-normal tabular-nums"
                         title={elapsed.title}
                       >
+                        <Clock className={BADGE_ICON} />
                         {elapsed.label}
                       </PillBadge>
                     </div>
@@ -795,32 +880,30 @@ export default function OrderReportList({
                         <p className="text-sm font-semibold tabular-nums">
                           {amount(order.totalValue)}
                         </p>
-                        {order.totalDiscount > 0 && (
-                          <p className="text-[10px] text-amber-600 dark:text-amber-400">
-                            −{amount(order.totalDiscount)} off
-                          </p>
-                        )}
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Discount
+                        </p>
+                        <p
+                          className={cn(
+                            "text-sm font-semibold tabular-nums",
+                            order.totalDiscount > 0
+                              ? "text-amber-600 dark:text-amber-400"
+                              : "text-muted-foreground"
+                          )}
+                        >
+                          {order.totalDiscount > 0
+                            ? `−${formatCurrencyEnglish(order.totalDiscount, 0)}`
+                            : "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-order.totd">
                           Paid
                         </p>
                         <p className="text-sm font-semibold tabular-nums text-teal-600 dark:text-teal-400">
                           {amount(order.paidAmount)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                          Due
-                        </p>
-                        <p
-                          className={`text-sm font-semibold tabular-nums ${
-                            due > 0
-                              ? "text-red-600 dark:text-red-400"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {amount(due)}
                         </p>
                       </div>
                     </div>
@@ -844,7 +927,8 @@ export default function OrderReportList({
             </div>
           </div>
         </>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }

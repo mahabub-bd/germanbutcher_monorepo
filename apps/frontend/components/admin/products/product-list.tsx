@@ -749,25 +749,35 @@ export function ProductList({
                 <Table className="report-table table-fixed">
                   <TableHeader className="[&_th]:font-semibold">
                     <TableRow className="hover:bg-transparent">
-                      {/* Category is its own column from md; unit and brand
-                          join as the row gets wider (lg / xl). Product gives
-                          up a little width so both name columns stay legible.
-                          On 2xl the four measure columns also gain width and
-                          side padding so they don't read as one crowded block. */}
+                      {/* Category is its own column from md; unit joins at lg,
+                          purchase price and sold count at xl, brand last at 2xl.
+                          Product keeps a fixed width and carries the SKU and
+                          brand under its name, so the table adds figures
+                          without the name columns collapsing. Below xl the cost
+                          and sold count stay as sublines — the narrower table
+                          keeps the same column count. On 2xl the measure
+                          columns also gain width and side padding so they don't
+                          read as one crowded block. */}
                       <TableHead className="pl-4 lg:w-64 2xl:w-96">
                         Product
                       </TableHead>
                       <TableHead className="w-24 lg:w-auto">
                         Category
                       </TableHead>
-                      <TableHead className="hidden xl:table-cell">
+                      <TableHead className="hidden 2xl:table-cell">
                         Brand
                       </TableHead>
                       <TableHead className="w-24 text-right 2xl:w-28 2xl:pr-4">
                         Price
                       </TableHead>
+                      <TableHead className="hidden w-24 text-right xl:table-cell 2xl:w-28 2xl:pr-4">
+                        Purchase
+                      </TableHead>
                       <TableHead className="w-20 text-right 2xl:w-24 2xl:pr-4">
                         Stock
+                      </TableHead>
+                      <TableHead className="hidden w-20 text-right xl:table-cell 2xl:w-24 2xl:pr-4">
+                        Sold
                       </TableHead>
                       <TableHead className="hidden w-16 lg:table-cell 2xl:w-20">
                         Unit
@@ -803,7 +813,7 @@ export function ProductList({
                                 {product.name}
                               </Link>
                               <p
-                                className="mt-0.5 truncate text-[13px] text-foreground/70 lg:hidden"
+                                className="mt-0.5 truncate text-[13px] text-foreground/70"
                                 title={[product.productSku, product.brand?.name]
                                   .filter(Boolean)
                                   .join(" · ")}
@@ -812,12 +822,6 @@ export function ProductList({
                                   {product.productSku || "—"}
                                 </span>
                                 {` · ${product.brand?.name || "No brand"}`}
-                              </p>
-                              <p
-                                className="mt-0.5 hidden truncate font-mono text-[13px] text-foreground/70 lg:block"
-                                title={product.productSku || undefined}
-                              >
-                                {product.productSku || "—"}
                               </p>
                             </div>
                           </div>
@@ -832,7 +836,7 @@ export function ProductList({
                           </p>
                         </TableCell>
 
-                        <TableCell className="hidden xl:table-cell">
+                        <TableCell className="hidden 2xl:table-cell">
                           <p
                             className="truncate text-sm"
                             title={product.brand?.name || undefined}
@@ -845,8 +849,19 @@ export function ProductList({
                           <p className="truncate text-sm font-semibold tabular-nums">
                             {formatCurrencyEnglish(product?.sellingPrice)}
                           </p>
-                          <p className="mt-0.5 truncate text-[13px] tabular-nums text-foreground/70">
+                          {/* The purchase figure has its own column from xl;
+                              below that it stays as the cost subline. */}
+                          <p className="mt-0.5 truncate text-[13px] tabular-nums text-foreground/70 xl:hidden">
                             Cost {formatCurrencyEnglish(product?.purchasePrice)}
+                          </p>
+                        </TableCell>
+
+                        <TableCell className="hidden text-right xl:table-cell 2xl:pr-4">
+                          <p
+                            className="truncate text-sm font-semibold tabular-nums"
+                            title={formatCurrencyEnglish(product?.purchasePrice)}
+                          >
+                            {formatCurrencyEnglish(product?.purchasePrice)}
                           </p>
                         </TableCell>
 
@@ -865,8 +880,16 @@ export function ProductList({
                           >
                             {product.stock}
                           </p>
-                          <p className="mt-0.5 truncate text-[13px] text-foreground/70">
+                          {/* The sold count has its own column from xl; below
+                              that it stays as the stock subline. */}
+                          <p className="mt-0.5 truncate text-[13px] text-foreground/70 xl:hidden">
                             {product.saleCount} sold
+                          </p>
+                        </TableCell>
+
+                        <TableCell className="hidden text-right xl:table-cell 2xl:pr-4">
+                          <p className="truncate text-sm font-semibold tabular-nums">
+                            {product.saleCount.toLocaleString("en-US")}
                           </p>
                         </TableCell>
 
