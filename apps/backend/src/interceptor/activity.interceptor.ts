@@ -8,11 +8,35 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Observable, from } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
+import { Address } from 'src/address/entities/address.entity';
+import { Banner } from 'src/banner/entities/banner.entity';
+import { BogoCampaign } from 'src/bogo-campaigns/entities/bogo-campaign.entity';
+import { Brand } from 'src/brand/entities/brand.entity';
 import { Category } from 'src/category/entities/category.entity';
+import { Client } from 'src/client/entities/client.entity';
+import { ContactMessage } from 'src/contact-message/entities/contact-message.entity';
 import { getClientIp } from 'src/common/utils/ip-extractor.util';
 import { Coupon } from 'src/coupon/entities/coupon.entity';
+import { DeliveryMan } from 'src/delivery-man/entities/delivery-man.entity';
+import { FlashSaleCampaign } from 'src/flash-sale-campaigns/entities/flash-sale-campaign.entity';
+import { FreeDeliveryCampaign } from 'src/free-delivery-campaigns/entities/free-delivery-campaign.entity';
+import { Menu } from 'src/menu/entities/menu.entity';
 import { Order } from 'src/order/entities/order.entity';
+import { OrderPaymentMethod } from 'src/order-payment-method/entities/order-payment-method.entity';
+import { Payment } from 'src/payment/entities/payment.entity';
+import { PaymentMethod } from 'src/payment-method/entities/payment-method.entity';
 import { Product } from 'src/product/entities/product.entity';
+import { ProductReview } from 'src/product-review/entities/product-review.entity';
+import { Purchase } from 'src/purchase/entities/purchase.entity';
+import { Recipe } from 'src/recipe/entities/recipe.entity';
+import { Role } from 'src/roles/entities/role.entity';
+import { SalesPartner } from 'src/sales-partner/entities/sales-partner.entity';
+import { SalesPoint } from 'src/sales-point/entities/sales-point.entity';
+import { SalesPointShop } from 'src/sales-point-shop/entities/sales-point-shop.entity';
+import { ShippingMethod } from 'src/shipping-methods/entities/shipping-method.entity';
+import { Supplier } from 'src/supplier/entities/supplier.entity';
+import { Testimonial } from 'src/testimonial/entities/testimonial.entity';
+import { Unit } from 'src/unit/entities/unit.entity';
 import { AuditStatus, UserActivityService, UserType } from 'src/user-activity/user-activity.service';
 import { User } from 'src/user/entities/user.entity';
 import { DataSource } from 'typeorm';
@@ -97,6 +121,78 @@ export class ActivityInterceptor implements NestInterceptor {
           break;
         case 'coupons':
           entityClass = Coupon;
+          break;
+        case 'banners':
+          entityClass = Banner;
+          break;
+        case 'addresses':
+          entityClass = Address;
+          break;
+        case 'bogo-campaigns':
+          entityClass = BogoCampaign;
+          break;
+        case 'brands':
+          entityClass = Brand;
+          break;
+        case 'clients':
+          entityClass = Client;
+          break;
+        case 'contact-messages':
+          entityClass = ContactMessage;
+          break;
+        case 'delivery-man':
+          entityClass = DeliveryMan;
+          break;
+        case 'flash-sale-campaigns':
+          entityClass = FlashSaleCampaign;
+          break;
+        case 'free-delivery-campaigns':
+          entityClass = FreeDeliveryCampaign;
+          break;
+        case 'menu':
+          entityClass = Menu;
+          break;
+        case 'order-payment-methods':
+          entityClass = OrderPaymentMethod;
+          break;
+        case 'payments':
+          entityClass = Payment;
+          break;
+        case 'payment-methods':
+          entityClass = PaymentMethod;
+          break;
+        case 'reviews':
+          entityClass = ProductReview;
+          break;
+        case 'purchases':
+          entityClass = Purchase;
+          break;
+        case 'recipes':
+          entityClass = Recipe;
+          break;
+        case 'roles':
+          entityClass = Role;
+          break;
+        case 'sales-partners':
+          entityClass = SalesPartner;
+          break;
+        case 'sales-points':
+          entityClass = SalesPoint;
+          break;
+        case 'sales-point-shops':
+          entityClass = SalesPointShop;
+          break;
+        case 'shipping-methods':
+          entityClass = ShippingMethod;
+          break;
+        case 'suppliers':
+          entityClass = Supplier;
+          break;
+        case 'testimonials':
+          entityClass = Testimonial;
+          break;
+        case 'units':
+          entityClass = Unit;
           break;
         default:
           return null;
