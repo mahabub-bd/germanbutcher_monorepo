@@ -80,7 +80,7 @@ const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
             <div className="hidden lg:block sticky top-8">
               <div className=" shadow-md rounded-md  overflow-hidden">
                 {/* User Profile Header */}
-                <div className="bg-gradient-to-br from-primaryColor via-[#6d0000] to-primaryColor p-4 text-white">
+                <div className="bg-linear-to-br from-primaryColor via-[#6d0000] to-primaryColor p-4 text-white">
                   <div className="flex items-center space-x-3">
                     {user?.profilePhoto?.url ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -149,7 +149,7 @@ const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
 
       {/* Quick Actions Floating Button (Mobile) */}
       <div className="fixed bottom-6 right-6 lg:hidden">
-        <button className="bg-gradient-to-r from-primaryColor to-red-600 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+        <button className="bg-linear-to-r from-primaryColor to-red-600 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
           <Headphones className="w-5 h-5" />
         </button>
       </div>
