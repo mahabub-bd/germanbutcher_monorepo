@@ -388,17 +388,18 @@ export function UserActivityList({
 
   const renderTableView = () => (
     <div className="hidden overflow-x-auto lg:block">
-      <Table className="report-table min-w-225 lg:min-w-0 [&_td]:py-2.5 [&_th]:pb-3 [&_th]:pt-0">
+      <Table className="report-table table-fixed min-w-225 lg:min-w-0 [&_td]:py-2.5 [&_td]:break-words [&_th]:pb-3 [&_th]:pt-0">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="w-14">ID</TableHead>
-            <TableHead>Date & Time</TableHead>
-            <TableHead>Action</TableHead>
-            <TableHead>Entity</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Message</TableHead>
-            <TableHead>IP Address</TableHead>
-            <TableHead>User</TableHead>
+            {/* Fixed layout: all 8 columns share the width equally (12.5% each) */}
+            <TableHead className="w-[12.5%]">ID</TableHead>
+            <TableHead className="w-[12.5%]">Date & Time</TableHead>
+            <TableHead className="w-[12.5%]">Action</TableHead>
+            <TableHead className="w-[12.5%]">Entity</TableHead>
+            <TableHead className="w-[12.5%]">Status</TableHead>
+            <TableHead className="w-[12.5%]">Message</TableHead>
+            <TableHead className="w-[12.5%]">IP Address</TableHead>
+            <TableHead className="w-[12.5%]">User</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

@@ -59,6 +59,7 @@ export default function Home() {
           endpoint="products/discounted?page=1&limit=10&isActive=true"
           isHomePage
           href="products/special-offers"
+          hideWhenEmpty
         >
           <SectionTitle title="SPECIAL OFFERS" />
         </ProductList>
