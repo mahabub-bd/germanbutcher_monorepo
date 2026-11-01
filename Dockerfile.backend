@@ -3,8 +3,8 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
 
-
-RUN npm install -g pnpm@11
+# corepack ships with Node — no npm round-trip to install pnpm
+RUN corepack enable && corepack prepare pnpm@11 --activate
 
 # Copy workspace root manifest, lockfile and workspace config
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -14,8 +14,11 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/frontend/package.json apps/frontend/package.json
 COPY apps/backend/package.json apps/backend/package.json
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Cache-mounted pnpm store survives layer invalidation, so re-downloads only
+# happen when the lockfile itself changes. Only backend deps are installed —
+# the frontend toolchain (Next, eslint, …) is not needed to build/run the API.
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --filter germanbutcher-backend...
 
 # Stage 2: Builder
 FROM deps AS builder
