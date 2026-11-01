@@ -12,8 +12,9 @@ FROM base AS build-tools
 RUN apk add --no-cache libc6-compat python3 make g++ \
     && rm -rf /var/cache/apk/*
 
-# Install pnpm (matches lockfileVersion 9.0; build scripts approved in pnpm-workspace.yaml)
-RUN npm install -g pnpm@11
+# Install pnpm via corepack (ships with Node — no npm round-trip; build
+# scripts approved in pnpm-workspace.yaml)
+RUN corepack enable && corepack prepare pnpm@11 --activate
 
 FROM build-tools AS deps
 
@@ -25,8 +26,10 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/frontend/package.json apps/frontend/package.json
 COPY apps/backend/package.json apps/backend/package.json
 
-# Install dependencies with frozen lockfile for reproducible builds
-RUN pnpm install --frozen-lockfile
+# Cache-mounted pnpm store survives layer invalidation; only frontend deps
+# are installed — the backend toolchain is not needed to build the frontend.
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --filter germanbutcher-frontend...
 
 FROM deps AS builder
 
@@ -46,8 +49,11 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 ENV NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
 
-# Build the application
-RUN pnpm --filter germanbutcher-frontend run build
+# Build the application. The .next/cache mount keeps the webpack and
+# TypeScript incremental caches across builds — without it every deploy
+# recompiles from scratch (~3.5 min compile + 100 s type check).
+RUN --mount=type=cache,target=/app/apps/frontend/.next/cache \
+    pnpm --filter germanbutcher-frontend run build
 
 # Production stage - start from clean base (no build tools)
 FROM node:24-alpine AS production
