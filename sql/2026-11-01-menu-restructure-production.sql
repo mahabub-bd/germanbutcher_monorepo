@@ -10,7 +10,8 @@
 --
 -- Verified against gb_production on 2026-11-01:
 --   Customer List report : id 78, parent 101 (Analytics), order 3
---   Abandoned Carts      : id 100, parent 101 (Analytics), order 4
+--   Abandoned Carts      : row GONE (was id 100) — deleted since the morning
+--     inspection, its menu_permission rows cascaded away with it → INSERT.
 --   Reports children had duplicate order 9 and a missing 12.
 --
 -- Wrapped in a transaction; review then COMMIT.
@@ -21,9 +22,35 @@ BEGIN;
 UPDATE menu SET "parentId" = 35, url = '/admin/reports/customer-list', "order" = 6
 WHERE url = '/admin/analytics/customer-list';
 
--- 2) Abandoned Carts → CRM, appended after CRM Tasks.
-UPDATE menu SET "parentId" = 111, url = '/admin/crm/abandoned-carts', "order" = 5
-WHERE url = '/admin/analytics/abandoned-carts';
+-- 2) Abandoned Carts → CRM, appended after CRM Tasks. The old row was
+--    deleted from prod, so this is an INSERT (idempotent). Remove any
+--    stale analytics-location row first so we never end up with both.
+DELETE FROM menu WHERE url = '/admin/analytics/abandoned-carts';
+
+INSERT INTO menu (name, url, icon, "parentId", "order",
+                  is_main_menu, is_active, is_admin_menu,
+                  "createdAt", "updatedAt")
+SELECT 'Abandoned Carts', '/admin/crm/abandoned-carts', '', 111, 5,
+       false, true, true, NOW(), NOW()
+WHERE NOT EXISTS (
+  SELECT 1 FROM menu WHERE url = '/admin/crm/abandoned-carts'
+);
+
+-- 2b) Restore its permission rows: admin roles get canView
+--     (role 1 = superadmin, role 2 = admin — same grants as the morning state).
+INSERT INTO menu_permission ("roleId", "menuId", "canView",
+                             "canCreate", "canEdit", "canDelete",
+                             "createdAt", "updatedAt")
+SELECT r.id, m.id, true,
+       r.id = 1, r.id = 1, r.id = 1,
+       NOW(), NOW()
+FROM role r
+JOIN menu m ON m.url = '/admin/crm/abandoned-carts'
+WHERE r.id IN (1, 2)
+  AND NOT EXISTS (
+    SELECT 1 FROM menu_permission mp
+    WHERE mp."roleId" = r.id AND mp."menuId" = m.id
+  );
 
 -- 3) Reports display order: dedupe the doubled 9 and close the 12 gap.
 --    Target order mirrors gb_test:

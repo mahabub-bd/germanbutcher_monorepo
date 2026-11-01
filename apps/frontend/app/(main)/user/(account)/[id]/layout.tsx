@@ -5,11 +5,13 @@ import MobileSidebar from "@/components/common/MobileSidebar";
 
 import Sidebar from "@/components/common/Sidebar";
 import ProfileBreadcrumb from "@/components/user-account/profile-breadcrumb";
+import { fetchProtectedData } from "@/utils/api-utils";
 import {
   Bell,
   Headphones,
   Heart,
   LifeBuoy,
+  LucideIcon,
   MapPin,
   ShoppingBag,
   Star,
@@ -20,54 +22,93 @@ interface UserProfileLayoutProps {
   children: React.ReactNode;
 }
 
+interface NavItem {
+  icon: React.ReactNode;
+  label: string;
+  href: string;
+  description: string;
+}
+
+/** Per-tab icon and copy, keyed by the menu url. Tabs come from the menu
+ * table (user Dashboard's children); anything unknown falls back to defaults. */
+const TAB_META: Record<
+  string,
+  { icon: LucideIcon; description: string }
+> = {
+  "/user/profile": {
+    icon: User,
+    description: "Manage your personal information",
+  },
+  "/user/orders": {
+    icon: ShoppingBag,
+    description: "Track and manage your orders",
+  },
+  "/user/addresses": {
+    icon: MapPin,
+    description: "Manage shipping addresses",
+  },
+  "/user/wishlist": {
+    icon: Heart,
+    description: "Your saved items",
+  },
+  "/user/reviews": {
+    icon: Star,
+    description: "Reviews you've written",
+  },
+  "/user/notifications": {
+    icon: Bell,
+    description: "Your notifications",
+  },
+  "/user/support": {
+    icon: LifeBuoy,
+    description: "Your support requests",
+  },
+};
+
+interface MenuTreeItem {
+  id: number;
+  name: string;
+  url: string | null;
+  children?: MenuTreeItem[];
+}
+
+const buildNavItems = (
+  userId: number | string,
+  tabs: { name: string; url: string }[],
+): NavItem[] =>
+  tabs.map(({ name, url }) => {
+    const meta = TAB_META[url];
+    const Icon = meta?.icon ?? User;
+    return {
+      icon: <Icon className="w-5 h-5" />,
+      label: name,
+      href: `/user/${userId}${url.replace(/^\/user/, "")}`,
+      description: meta?.description ?? name,
+    };
+  });
+
 const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
   children,
 }) => {
   const user = await getUser();
-  const navItems = [
-    {
-      icon: <User className="w-5 h-5" />,
-      label: "Profile",
-      href: `/user/${user.id}/profile`,
-      description: "Manage your personal information",
-    },
-    {
-      icon: <ShoppingBag className="w-5 h-5" />,
-      label: "Orders",
-      href: `/user/${user.id}/orders`,
-      description: "Track and manage your orders",
-    },
-    {
-      icon: <MapPin className="w-5 h-5" />,
-      label: "Addresses",
-      href: `/user/${user.id}/addresses`,
-      description: "Manage shipping addresses",
-    },
-    {
-      icon: <Heart className="w-5 h-5" />,
-      label: "Wishlist",
-      href: `/user/${user.id}/wishlist`,
-      description: "Your saved items",
-    },
-    {
-      icon: <Star className="w-5 h-5" />,
-      label: "Reviews",
-      href: `/user/${user.id}/reviews`,
-      description: "Reviews you've written",
-    },
-    {
-      icon: <Bell className="w-5 h-5" />,
-      label: "Notifications",
-      href: `/user/${user.id}/notifications`,
-      description: "Your notifications",
-    },
-    {
-      icon: <LifeBuoy className="w-5 h-5" />,
-      label: "Support",
-      href: `/user/${user.id}/support`,
-      description: "Your support requests",
-    },
-  ];
+
+  // Tabs are DB-driven: active sub menus of the user Dashboard main menu
+  // (menu/tree?isAdminMenu=false).
+  let navItems: NavItem[] = [];
+  try {
+    const tree = await fetchProtectedData<MenuTreeItem[]>(
+      "menu/tree?isAdminMenu=false",
+    );
+    const tabs = (tree ?? [])
+      .flatMap((menu) => menu.children ?? [])
+      .filter((tab) => tab.url && tab.url.startsWith("/user/"));
+    navItems = buildNavItems(
+      user.id,
+      tabs.map((tab) => ({ name: tab.name, url: tab.url! })),
+    );
+  } catch (error) {
+    console.error("Error fetching account tabs from menu API:", error);
+  }
 
   return (
     <div className="min-h-screen">

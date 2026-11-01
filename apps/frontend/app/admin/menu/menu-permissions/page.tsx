@@ -222,6 +222,12 @@ export default function RoleMenuPermissions() {
     }
   }, [selectedRoleId, roles]);
 
+  // Keep the visible panel in sync with the role type — customer roles only
+  // have the customer tab enabled, so don't leave the matrix on admin modules.
+  useEffect(() => {
+    setPanel(selectedRole && isCustomerRole ? "user" : "admin");
+  }, [selectedRole, isCustomerRole]);
+
   useEffect(() => {
     if (!selectedRoleId || menuTree.length === 0) return;
 
