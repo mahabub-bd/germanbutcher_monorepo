@@ -279,7 +279,7 @@ export function UserActivityList({
   const renderFilterControls = (mode: "bar" | "sheet") => {
     const triggerClass =
       mode === "bar"
-        ? "h-9 w-full text-xs font-medium 2xl:text-sm"
+        ? "h-9 w-full text-sm font-medium"
         : "h-11 w-full px-3 text-sm font-medium";
 
     return [
@@ -409,7 +409,7 @@ export function UserActivityList({
                 <TableCell>
                   <Link
                     href={`/admin/audit-log/${activity.id}`}
-                    className="font-mono text-xs font-medium text-primary whitespace-nowrap hover:underline"
+                    className="font-mono text-sm font-medium text-primary whitespace-nowrap hover:underline"
                     title="Open event details"
                   >
                     #{activity.id}
@@ -421,7 +421,7 @@ export function UserActivityList({
                     <span className="text-sm font-medium whitespace-nowrap">
                       {formatDate(activity.createdAt)}
                     </span>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">
                       {formatTime(activity.createdAt)}
                     </span>
                   </div>
@@ -432,7 +432,7 @@ export function UserActivityList({
                     <MethodPill method={method} />
                     <Link
                       href={`/admin/audit-log/${activity.id}`}
-                      className="max-w-44 truncate text-xs text-muted-foreground font-mono hover:text-primary hover:underline"
+                      className="max-w-44 truncate text-sm text-muted-foreground font-mono hover:text-primary hover:underline"
                       title={`Open details for ${activity.action}`}
                     >
                       {path}
@@ -446,7 +446,7 @@ export function UserActivityList({
                       {activity.entityType}
                     </span>
                     {activity.entityId && (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-sm text-muted-foreground">
                         ID: {activity.entityId}
                       </span>
                     )}
@@ -474,7 +474,7 @@ export function UserActivityList({
                   </span>
                 </TableCell>
 
-                <TableCell className="font-mono text-xs text-muted-foreground">
+                <TableCell className="font-mono text-sm text-muted-foreground">
                   {activity.ipAddress || "unknown"}
                 </TableCell>
 
@@ -487,7 +487,7 @@ export function UserActivityList({
                       <span className="font-medium text-sm">
                         {activity.user?.name || "Unknown User"}
                       </span>
-                      <span className="text-xs text-muted-foreground capitalize">
+                      <span className="text-sm text-muted-foreground capitalize">
                         {activity.userType}
                       </span>
                     </div>
@@ -516,7 +516,7 @@ export function UserActivityList({
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Link
                     href={`/admin/audit-log/${activity.id}`}
-                    className="font-mono text-xs font-semibold text-primary hover:underline"
+                    className="font-mono text-sm font-semibold text-primary hover:underline"
                     title="Open event details"
                   >
                     #{activity.id}
@@ -526,17 +526,17 @@ export function UserActivityList({
                 </div>
                 <Link
                   href={`/admin/audit-log/${activity.id}`}
-                  className="mt-1.5 block truncate font-mono text-xs text-muted-foreground hover:text-primary hover:underline"
+                  className="mt-1.5 block truncate font-mono text-sm text-muted-foreground hover:text-primary hover:underline"
                   title={`Open details for ${activity.action}`}
                 >
                   {path || activity.entityType}
                 </Link>
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-xs font-medium whitespace-nowrap">
+                <p className="text-sm font-medium whitespace-nowrap">
                   {formatDate(activity.createdAt)}
                 </p>
-                <p className="text-[11px] text-muted-foreground whitespace-nowrap">
+                <p className="text-sm text-muted-foreground whitespace-nowrap">
                   {formatTime(activity.createdAt)}
                 </p>
               </div>
@@ -549,7 +549,7 @@ export function UserActivityList({
               {activity.message}
             </p>
 
-            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
               <span className="min-w-0 truncate capitalize">
                 {activity.entityType}
                 {activity.entityId ? ` · #${activity.entityId}` : ""}
@@ -563,7 +563,7 @@ export function UserActivityList({
               <span className="flex size-7 shrink-0 items-center justify-center rounded-full border bg-muted">
                 <User className="size-3.5 text-muted-foreground" />
               </span>
-              <span className="min-w-0 truncate text-xs">
+              <span className="min-w-0 truncate text-sm">
                 {activity.user?.name || "Unknown User"}
                 <span className="text-muted-foreground capitalize">
                   {" · "}
@@ -614,7 +614,7 @@ export function UserActivityList({
               }}
               aria-pressed={active}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 sm:px-4 sm:py-2 sm:text-sm",
+                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 sm:px-4 sm:py-2",
                 active
                   ? "bg-slate-800 text-white hover:bg-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-200"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900"
@@ -658,7 +658,7 @@ export function UserActivityList({
 
                 {renderFilterControls("sheet").map((control) => (
                   <div key={control.key} className="px-4 pt-4">
-                    <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <p className="mb-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground">
                       {control.label}
                     </p>
                     {control.node}
@@ -699,7 +699,7 @@ export function UserActivityList({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 shrink-0 text-xs font-medium text-muted-foreground 2xl:text-sm"
+                className="h-9 shrink-0 text-sm font-medium text-muted-foreground"
                 onClick={clearFilters}
                 title={activeFilterSummary}
               >
@@ -716,7 +716,7 @@ export function UserActivityList({
         <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
           <div>
             <h3 className="text-sm font-semibold">Activity log</h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Dhaka time · newest first · {limit} per page
             </p>
           </div>
@@ -739,7 +739,7 @@ export function UserActivityList({
         )}
 
         <div className="flex flex-col items-start gap-2 border-t px-4 py-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground 2xl:text-sm">
+          <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
             <span className="truncate">
               {totalItems > 0
                 ? `Showing ${firstRow.toLocaleString("en-US")}–${lastRow.toLocaleString(
