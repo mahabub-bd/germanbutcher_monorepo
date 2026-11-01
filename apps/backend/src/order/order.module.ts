@@ -28,6 +28,7 @@ import { SmsModule } from 'src/auth/sms.module';
 import { DeliveryManModule } from 'src/delivery-man/delivery-man.module';
 import { CouponUsageLogModule } from 'src/coupon-usage-log/coupon-usage-log.module';
 import { StockMovementModule } from 'src/stock-movement/stock-movement.module';
+import { BusinessSettingsModule } from 'src/business-settings/business-settings.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { StockMovementModule } from 'src/stock-movement/stock-movement.module';
     FreeDeliveryCampaignsModule,
     FreeDeliveryUsageLogModule,
     StockMovementModule,
+    BusinessSettingsModule,
   ],
   controllers: [OrderController],
   providers: [OrderService, OrderPaymentService],

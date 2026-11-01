@@ -127,7 +127,7 @@ export function PaymentMethodForm({
                   <Textarea
                     placeholder="Enter a description of the payment method"
                     {...field}
-                    className="w-full min-h-[100px]"
+                    className="w-full min-h-25"
                   />
                 </FormControl>
                 <FormMessage />

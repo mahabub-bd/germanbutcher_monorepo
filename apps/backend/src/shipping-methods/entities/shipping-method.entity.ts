@@ -1,5 +1,5 @@
 // src/shipping-methods/shipping-method.entity.ts
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { User } from 'src/user/entities/user.entity';
 import {
   Column,
@@ -10,6 +10,20 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+
+/** Machine-readable keys the client maps to colours/routing; `label` is the
+ *  display text. Flags are derived (not stored) from the boolean columns and
+ *  the serviceAreas selection, so they always stay in sync with the record. */
+export type ShippingMethodFlagKey =
+  | 'pickup'
+  | 'online_payment'
+  | 'no_free_delivery'
+  | 'area_limited';
+
+export interface ShippingMethodFlag {
+  key: ShippingMethodFlagKey;
+  label: string;
+}
 
 @Entity()
 export class ShippingMethod {
@@ -62,6 +76,46 @@ export class ShippingMethod {
       'When true, the customer collects the order (no shipping involved, no delivery charges)',
   })
   isPickup: boolean;
+
+  @Column({ type: 'jsonb', nullable: true })
+  @ApiPropertyOptional({
+    example: {
+      mode: 'include',
+      cities: ['Dhaka'],
+      areas: ['Gulshan', 'Banani'],
+    },
+    description:
+      'Where this method is offered. null = available everywhere. mode "include": a match on either list allows the method; mode "exclude": a match disables it (available everywhere else). Matching is case/spacing-insensitive.',
+  })
+  serviceAreas: {
+    mode?: 'include' | 'exclude';
+    cities: string[];
+    areas: string[];
+  } | null;
+
+  /**
+   * Derived checkout flags (see buildShippingMethodFlags). Transient: it has no
+   * @Column decorator so TypeORM never persists it; the service populates it on
+   * every read/write and the class serializer emits it in the response.
+   */
+  @ApiPropertyOptional({
+    description: 'Derived flags for this method (not stored)',
+    type: 'array',
+    items: {
+      properties: {
+        key: {
+          enum: [
+            'pickup',
+            'online_payment',
+            'no_free_delivery',
+            'area_limited',
+          ],
+        },
+        label: { type: 'string' },
+      },
+    },
+  })
+  flags?: ShippingMethodFlag[];
 
   @CreateDateColumn()
   @ApiProperty({

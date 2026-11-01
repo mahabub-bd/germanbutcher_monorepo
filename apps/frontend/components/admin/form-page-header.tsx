@@ -3,6 +3,7 @@ import { CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { List } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 interface FormPageHeaderProps {
   /** Optional heading shown on the left; omit for a bare back button. */
@@ -13,6 +14,8 @@ interface FormPageHeaderProps {
   backHref: string;
   /** Defaults to "Back". */
   backLabel?: string;
+  /** Optional chips (e.g. status badges) rendered beside the title. */
+  children?: ReactNode;
 }
 
 /** Shared header for admin add/edit form pages: title left, back button right. */
@@ -20,6 +23,7 @@ export function FormPageHeader({
   title,
   backHref,
   backLabel = "Back",
+  children,
 }: FormPageHeaderProps) {
   const hasTitle = Boolean(title);
 
@@ -31,8 +35,9 @@ export function FormPageHeader({
       )}
     >
       {hasTitle && (
-        <div>
-          {title && <CardTitle>{title}</CardTitle>}
+        <div className="flex min-w-0 items-center gap-2">
+          {title && <CardTitle className="truncate">{title}</CardTitle>}
+          {children}
         </div>
       )}
       <Button

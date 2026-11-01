@@ -1,11 +1,49 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
+  IsIn,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
+  ValidateNested,
 } from 'class-validator';
+
+class ServiceAreasDto {
+  @ApiProperty({
+    description:
+      '"include" = only offered on a match; "exclude" = offered everywhere except a match',
+    example: 'include',
+    enum: ['include', 'exclude'],
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(['include', 'exclude'])
+  mode?: 'include' | 'exclude';
+
+  @ApiProperty({
+    description: 'City names where the method is offered',
+    example: ['Dhaka'],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  cities?: string[];
+
+  @ApiProperty({
+    description: 'Area names where the method is offered',
+    example: ['Gulshan', 'Banani'],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  areas?: string[];
+}
 
 export class CreateShippingMethodDto {
   @ApiProperty({
@@ -92,4 +130,15 @@ export class CreateShippingMethodDto {
   @IsOptional()
   @IsBoolean()
   isPickup?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Restrict the method to these cities/areas. null or omitted = available everywhere.',
+    type: ServiceAreasDto,
+  })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ServiceAreasDto)
+  serviceAreas?: ServiceAreasDto | null;
 }

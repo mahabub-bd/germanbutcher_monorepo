@@ -32,9 +32,11 @@ import { useBogo } from "@/hooks/use-bogo";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { useFreeDelivery } from "@/hooks/use-free-delivery";
 import {
+  getAreaPricing,
   getEnabledAreas,
   getEnabledCities,
   getEnabledDivisions,
+  isShippingMethodAvailable,
 } from "@/lib/delivery-coverage";
 import { postData } from "@/utils/api-utils";
 
@@ -120,11 +122,20 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const shippingCost = Number(
-    shippingMethods.find(
-      (method) => method.id.toString() === selectedShippingMethod
-    )?.cost || 0
+  // Area-wise delivery charge overrides the shipping method's base cost.
+  const selectedMethodForCost = shippingMethods.find(
+    (method) => method.id.toString() === selectedShippingMethod
   );
+  const areaPricing = getAreaPricing(
+    settings?.deliveryCoverage ?? null,
+    formData.area,
+    formData.city
+  );
+  const shippingCost =
+    selectedMethodForCost?.isPickup
+      ? 0
+      : (areaPricing.deliveryCharge ??
+        Number(selectedMethodForCost?.cost || 0));
 
   // Shipping methods flagged "requires online payment" (e.g. Express) only
   // accept the online gateway — cash on delivery is not available.
@@ -144,6 +155,12 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
       },
     ]
     : [];
+
+  // Online-only shipping (e.g. Express) hides COD entirely instead of
+  // showing it greyed out.
+  const selectablePaymentMethods = isOnlineOnlyShipping
+    ? paymentMethods.filter((method) => method.code === ONLINE_PAYMENT_CODE)
+    : paymentMethods;
 
   // Keep the payment selection valid when Express is chosen (or pre-select
   // the online gateway right away); restore nothing when switching back.
@@ -197,6 +214,44 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
   const isShippingFree = effectiveFreeDelivery && !isExcludedMethodSelected;
   const effectiveShippingCost = isShippingFree ? 0 : shippingCost;
   const total = payableSubtotal + effectiveShippingCost;
+
+  /** Cost shown per method card — the area charge overrides every
+   *  non-pickup method's base cost, matching the backend's chargedShipping. */
+  const getAdjustedShippingCost = (method: ShippingMethod): number =>
+    method.isPickup
+      ? 0
+      : (areaPricing.deliveryCharge ?? Number(method.cost || 0));
+
+  // Methods restricted by serviceAreas drop out as soon as the address
+  // (city/area) no longer matches — e.g. Express only for Dhaka. Before an
+  // address exists there is nothing to match against, so every method shows.
+  const hasAddressLocation = Boolean(formData.city || formData.area);
+  const availableShippingMethods = hasAddressLocation
+    ? shippingMethods.filter((method) =>
+        isShippingMethodAvailable(method, formData.city, formData.area)
+      )
+    : shippingMethods;
+
+  // Keep the selection valid when the address changes.
+  useEffect(() => {
+    if (
+      selectedShippingMethod &&
+      !availableShippingMethods.some(
+        (method) => method.id.toString() === selectedShippingMethod
+      )
+    ) {
+      setSelectedShippingMethod(availableShippingMethods[0]?.id.toString() ?? "");
+    }
+  }, [availableShippingMethods, selectedShippingMethod]);
+
+  // Area minimum order amount — mirrors the backend check (payable subtotal
+  // after coupon/BOGO discounts, pickup excluded) so the customer is told
+  // before submitting, not just by an error.
+  const isBelowAreaMinimum =
+    areaPricing.minOrderAmount != null &&
+    !isPickupSelected &&
+    payableSubtotal > 0 &&
+    payableSubtotal < areaPricing.minOrderAmount;
 
   useEffect(() => {
     if (user) {
@@ -372,6 +427,15 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
       }
     }
 
+    // Area minimum order amount (mirrors the backend rule) — block the
+    // order here so the customer learns before hitting the API.
+    if (isBelowAreaMinimum) {
+      toast.error(
+        `Minimum order amount for delivery to ${formData.area} is ৳${areaPricing.minOrderAmount}`
+      );
+      return;
+    }
+
     const hasCustomerInfoErrors = Boolean(
       newErrors.name || newErrors.phone || newErrors.email
     );
@@ -545,14 +609,22 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
             />
 
             <ShippingMethodSelector
-              shippingMethods={shippingMethods}
+              shippingMethods={availableShippingMethods}
               selectedMethod={selectedShippingMethod}
               onSelectMethod={setSelectedShippingMethod}
               isFreeDelivery={effectiveFreeDelivery}
+              getAdjustedCost={getAdjustedShippingCost}
+              getDeliveryTime={(method) =>
+                // The area/city/division delivery time overrides every
+                // non-pickup method's own time at this address.
+                method.isPickup
+                  ? method.deliveryTime
+                  : (areaPricing.deliveryTime ?? method.deliveryTime)
+              }
             />
 
             <PaymentMethodSelector
-              paymentMethods={paymentMethods}
+              paymentMethods={selectablePaymentMethods}
               selectedMethod={selectedPaymentMethod}
               onSelectMethod={setSelectedPaymentMethod}
               disabledMethods={disabledPaymentMethods}
@@ -581,7 +653,7 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
                 onSubmit={handleSubmit}
                 selectedShippingMethod={selectedShippingMethod}
                 selectedPaymentMethod={selectedPaymentMethod}
-                shippingMethods={shippingMethods}
+                shippingMethods={availableShippingMethods}
                 paymentMethods={paymentMethods}
                 user={user}
                 outOfStockNames={outOfStockItems.map((item) => item.product.name)}
@@ -615,7 +687,7 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
                 onSubmit={handleSubmit}
                 selectedShippingMethod={selectedShippingMethod}
                 selectedPaymentMethod={selectedPaymentMethod}
-                shippingMethods={shippingMethods}
+                shippingMethods={availableShippingMethods}
                 paymentMethods={paymentMethods}
                 user={user}
                 outOfStockNames={outOfStockItems.map((item) => item.product.name)}

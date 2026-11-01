@@ -11,7 +11,11 @@ export default function AddShippingMethodPage() {
 
   const handleSuccess = () => {
     toast.success("Shipping method created successfully");
-    router.back();
+    router.push("/admin/settings/shipping-method");
+  };
+
+  const handleCancel = () => {
+    router.push("/admin/settings/shipping-method");
   };
 
   return (
@@ -23,7 +27,11 @@ export default function AddShippingMethodPage() {
         backLabel="Back to Shipping Methods"
       />
 
-      <ShippingMethodForm mode="create" onSuccess={handleSuccess} />
+      <ShippingMethodForm
+        mode="create"
+        onSuccess={handleSuccess}
+        onCancel={handleCancel}
+      />
     </AdminPageContainer>
   );
 }

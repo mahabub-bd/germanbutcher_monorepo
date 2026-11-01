@@ -6,6 +6,7 @@ import { User } from 'src/user/entities/user.entity';
 import { CreateShippingMethodDto } from './dto/create-shipping-method.dto';
 import { UpdateShippingMethodDto } from './dto/update-shipping-method.dto';
 import { ShippingMethod } from './entities/shipping-method.entity';
+import { buildShippingMethodFlags } from './shipping-method.flags';
 
 @Injectable()
 export class ShippingMethodsService {
@@ -25,7 +26,14 @@ export class ShippingMethodsService {
       shippingMethod.createdBy = { id: userId } as User;
       shippingMethod.updatedBy = { id: userId } as User;
     }
-    return await this.shippingMethodRepository.save(shippingMethod);
+    const saved = await this.shippingMethodRepository.save(shippingMethod);
+    return this.withFlags(saved);
+  }
+
+  /** Attach the derived, non-persisted flags used by the admin UI. */
+  private withFlags(method: ShippingMethod): ShippingMethod {
+    method.flags = buildShippingMethodFlags(method);
+    return method;
   }
 
   async findAll(isActive?: string): Promise<ShippingMethod[]> {
@@ -35,10 +43,11 @@ export class ShippingMethodsService {
       where.isActive = isActive === 'true';
     }
 
-    return await this.shippingMethodRepository.find({
+    const methods = await this.shippingMethodRepository.find({
       where,
       order: { displayOrder: 'ASC', id: 'ASC' },
     });
+    return methods.map((method) => this.withFlags(method));
   }
 
   async findOne(id: number): Promise<ShippingMethod> {
@@ -48,7 +57,7 @@ export class ShippingMethodsService {
     if (!shippingMethod) {
       throw new NotFoundException(`Shipping method with ID ${id} not found`);
     }
-    return shippingMethod;
+    return this.withFlags(shippingMethod);
   }
 
   async update(
@@ -61,7 +70,8 @@ export class ShippingMethodsService {
     if (userId) {
       shippingMethod.updatedBy = { id: userId } as User;
     }
-    return await this.shippingMethodRepository.save(shippingMethod);
+    const saved = await this.shippingMethodRepository.save(shippingMethod);
+    return this.withFlags(saved);
   }
 
   async remove(id: number): Promise<void> {

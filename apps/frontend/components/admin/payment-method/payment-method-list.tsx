@@ -332,38 +332,47 @@ export function PaymentMethodList() {
                 </div>
               ) : (
                 <>
-                  {/* Desktop table */}
+                  {/* Desktop table — fixed layout with no pinned data
+                      columns, so every column gets an equal share of the
+                      panel; only the icon-only Actions column stays at w-14.
+                      Uniform 6px inner gaps with the panel edges kept at
+                      16px on the first and last cells; all columns stay
+                      left-aligned so a value never crowds its gutter, and
+                      dense cells clamp inside their equal share. */}
                   <div className="hidden md:block">
-                    <Table className="report-table min-w-170">
-                      <TableHeader>
+                    <Table className="report-table table-fixed [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
+                      <TableHeader className="[&_th]:font-semibold">
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="pl-4">Name</TableHead>
+                          <TableHead>Name</TableHead>
                           <TableHead>Code</TableHead>
-                          <TableHead className="w-full">Description</TableHead>
+                          <TableHead>Description</TableHead>
                           <TableHead>Created</TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead className="pr-4 text-right">
-                            Actions
+                          <TableHead className="w-14 text-right">
+                            <span className="sr-only">Actions</span>
                           </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {visibleMethods.map((method) => (
                           <TableRow key={method.id}>
-                            <TableCell className="py-2.5 pl-4">
-                              <Link
-                                href={`/admin/settings/payment-method/${method.id}/edit`}
-                                className="font-medium leading-tight hover:text-primaryColor hover:underline"
-                              >
-                                {method.name}
-                              </Link>
+                            <TableCell className="py-2.5">
+                              <p className="flex min-w-0 items-center">
+                                <Link
+                                  href={`/admin/settings/payment-method/${method.id}/edit`}
+                                  className="truncate font-medium leading-tight hover:text-primaryColor hover:underline"
+                                  title={method.name}
+                                >
+                                  {method.name}
+                                </Link>
+                              </p>
                             </TableCell>
                             <TableCell>
                               <PillBadge tone="blue" className="font-mono">
                                 {method.code}
                               </PillBadge>
                             </TableCell>
-                            <TableCell className="w-full">
+                            <TableCell>
                               <p
                                 className="line-clamp-2 text-sm text-muted-foreground"
                                 title={method.description || undefined}
@@ -371,8 +380,10 @@ export function PaymentMethodList() {
                                 {method.description || "—"}
                               </p>
                             </TableCell>
-                            <TableCell className="whitespace-nowrap text-muted-foreground">
-                              {formatDateTime(method.createdAt)}
+                            <TableCell className="text-muted-foreground">
+                              <span className="line-clamp-2">
+                                {formatDateTime(method.createdAt)}
+                              </span>
                             </TableCell>
                             <TableCell>
                               <ActiveStatusToggle
@@ -382,7 +393,7 @@ export function PaymentMethodList() {
                                 label={method.name}
                               />
                             </TableCell>
-                            <TableCell className="pr-4 text-right">
+                            <TableCell className="text-right">
                               {renderActions(method)}
                             </TableCell>
                           </TableRow>

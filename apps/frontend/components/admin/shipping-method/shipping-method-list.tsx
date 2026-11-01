@@ -5,7 +5,7 @@ import type React from "react";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
-import { PillBadge } from "@/components/common/pill-badge";
+import { PillBadge, type PillTone } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +35,7 @@ import { deleteData, fetchData } from "@/utils/api-utils";
 import type { ShippingMethod } from "@/utils/types";
 import {
   CheckCircle2,
+  Eye,
   Gift,
   MoreHorizontal,
   Pencil,
@@ -57,6 +58,14 @@ const money = (value: number | string) =>
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
+
+/** Backend sends semantic flag keys; the admin UI owns the colour. */
+const SHIPPING_FLAG_TONE: Record<string, PillTone> = {
+  pickup: "violet",
+  online_payment: "sky",
+  no_free_delivery: "amber",
+  area_limited: "blue",
+};
 
 export function ShippingMethodList() {
   const MENU_URL = "/admin/settings/shipping-method";
@@ -148,20 +157,10 @@ export function ShippingMethodList() {
   );
 
   const flagsOf = (method: ShippingMethod) =>
-    [
-      method.isPickup && { label: "Pickup", tone: "violet" as const },
-      method.requiresOnlinePayment && {
-        label: "Online pay",
-        tone: "sky" as const,
-      },
-      method.isExcludedFromFreeDelivery && {
-        label: "No free delivery",
-        tone: "amber" as const,
-      },
-    ].filter(Boolean) as {
-      label: string;
-      tone: "violet" | "sky" | "amber";
-    }[];
+    (method.flags ?? []).map((flag) => ({
+      label: flag.label,
+      tone: SHIPPING_FLAG_TONE[flag.key] ?? ("neutral" as PillTone),
+    }));
 
   const renderFlags = (method: ShippingMethod) => {
     const flags = flagsOf(method);
@@ -190,6 +189,11 @@ export function ShippingMethodList() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        <DropdownMenuItem asChild>
+          <Link href={`/admin/settings/shipping-method/${method.id}`}>
+            <Eye className="mr-2 h-4 w-4" /> Details
+          </Link>
+        </DropdownMenuItem>
         {can(MENU_URL, "canEdit") && (
           <DropdownMenuItem asChild>
             <Link href={`/admin/settings/shipping-method/${method.id}/edit`}>
@@ -270,7 +274,7 @@ export function ShippingMethodList() {
                   {[
                     searchQuery && `Search: ${searchQuery}`,
                     statusFilter &&
-                      (statusFilter === "active" ? "Status: Active" : "Status: Inactive"),
+                    (statusFilter === "active" ? "Status: Active" : "Status: Inactive"),
                   ]
                     .filter(Boolean)
                     .join(" · ")}
@@ -380,54 +384,60 @@ export function ShippingMethodList() {
                 </div>
               ) : (
                 <>
-                  {/* Desktop table */}
+                  {/* Desktop table — fixed layout with no pinned data
+                      columns, so every column gets an equal share of the
+                      panel; only the icon-only Actions column stays at w-14.
+                      Uniform 6px inner gaps with the panel edges kept at
+                      16px on the first and last cells; dense cells truncate
+                      inside their equal share. */}
                   <div className="hidden md:block">
-                    <Table className="report-table min-w-230">
-                      <TableHeader>
+                    <Table className="report-table table-fixed [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
+                      <TableHeader className="[&_th]:font-semibold">
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="pl-4">Name</TableHead>
-                          <TableHead className="text-right">Cost (৳)</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Cost (৳)</TableHead>
                           <TableHead>Delivery time</TableHead>
-                          <TableHead className="w-full">Description</TableHead>
-                          <TableHead>Flags</TableHead>
+                          <TableHead className="w-72">Flags</TableHead>
                           <TableHead>Created</TableHead>
-                          <TableHead className="text-right">Order</TableHead>
+                          <TableHead>Order</TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead className="pr-4 text-right">
-                            Actions
+                          <TableHead className="w-14 text-right">
+                            <span className="sr-only">Actions</span>
                           </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {visibleMethods.map((method) => (
                           <TableRow key={method.id}>
-                            <TableCell className="py-2.5 pl-4">
-                              <Link
-                                href={`/admin/settings/shipping-method/${method.id}/edit`}
-                                className="font-medium leading-tight hover:text-primaryColor hover:underline"
-                              >
-                                {method.name}
-                              </Link>
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              {money(method.cost)}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap text-muted-foreground">
-                              {method.deliveryTime || "—"}
-                            </TableCell>
-                            <TableCell className="w-full">
-                              <p
-                                className="line-clamp-2 text-sm text-muted-foreground"
-                                title={method.description || undefined}
-                              >
-                                {method.description || "—"}
+                            <TableCell className="py-2.5">
+                              <p className="flex min-w-0 items-center">
+                                <Link
+                                  href={`/admin/settings/shipping-method/${method.id}`}
+                                  className="truncate font-medium leading-tight hover:text-primaryColor hover:underline"
+                                  title={method.name}
+                                >
+                                  {method.name}
+                                </Link>
                               </p>
                             </TableCell>
-                            <TableCell>{renderFlags(method)}</TableCell>
-                            <TableCell className="whitespace-nowrap text-muted-foreground">
-                              {formatDateTime(method.createdAt)}
+                            <TableCell className="tabular-nums">
+                              {money(method.cost)}
                             </TableCell>
-                            <TableCell className="text-right tabular-nums text-muted-foreground">
+                            <TableCell className="text-muted-foreground">
+                              <span
+                                className="line-clamp-2"
+                                title={method.deliveryTime || undefined}
+                              >
+                                {method.deliveryTime || "—"}
+                              </span>
+                            </TableCell>
+                            <TableCell>{renderFlags(method)}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              <span className="line-clamp-2">
+                                {formatDateTime(method.createdAt)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="tabular-nums text-muted-foreground">
                               {method.displayOrder}
                             </TableCell>
                             <TableCell>
@@ -438,7 +448,7 @@ export function ShippingMethodList() {
                                 label={method.name}
                               />
                             </TableCell>
-                            <TableCell className="pr-4 text-right">
+                            <TableCell className="text-right">
                               {renderActions(method)}
                             </TableCell>
                           </TableRow>
@@ -453,7 +463,7 @@ export function ShippingMethodList() {
                       <article key={method.id} className="space-y-3 p-3.5">
                         <div className="flex items-start justify-between gap-2">
                           <Link
-                            href={`/admin/settings/shipping-method/${method.id}/edit`}
+                            href={`/admin/settings/shipping-method/${method.id}`}
                             className="min-w-0 hover:text-primaryColor"
                           >
                             <p className="truncate text-sm font-semibold">
