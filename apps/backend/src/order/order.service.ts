@@ -2076,10 +2076,24 @@ export class OrderService {
     const dhakaCreatedAt =
       "(order.createdAt AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka')";
     // Optional year filter applied to all three queries
-    const withYearFilter = (qb: SelectQueryBuilder<Order>) =>
-      year
-        ? qb.andWhere(`EXTRACT(YEAR FROM ${dhakaCreatedAt}) = :year`, { year })
-        : qb;
+    const withYearFilter = (qb: SelectQueryBuilder<Order>) => {
+      if (year) {
+        return qb.andWhere(`EXTRACT(YEAR FROM ${dhakaCreatedAt}) = :year`, {
+          year,
+        });
+      }
+      // No year requested → rolling last 12 months (current Dhaka month plus
+      // the 11 before it), so the dashboard chart never grows past 12 bars.
+      const dhakaNow = new Date(Date.now() + 6 * 3600_000);
+      const startYear = dhakaNow.getUTCFullYear();
+      const startMonth = dhakaNow.getUTCMonth() - 11;
+      const startUtc = new Date(
+        Date.UTC(startYear, startMonth, 1) - 6 * 3600_000,
+      );
+      return qb.andWhere('order.createdAt >= :from', {
+        from: startUtc.toISOString(),
+      });
+    };
 
     // Query for all orders (regardless of status)
     const allOrdersResult = await withYearFilter(
