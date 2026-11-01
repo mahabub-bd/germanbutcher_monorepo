@@ -42,6 +42,26 @@ import { Address } from './entities/address.entity';
 export class AddressesController {
   constructor(private readonly addressesService: AddressesService) {}
 
+  /** JWT payload carries `userId` (not `id`) — see JwtStrategy.validate. */
+  private idOf(user: User): number {
+    return (
+      (user as unknown as { userId?: number }).userId ??
+      (user as unknown as { id?: number }).id
+    );
+  }
+
+  /** superadmin (roleId 1) or admin (roleId 2) may access any user's addresses. */
+  private isStaff(user: User): boolean {
+    // JWT payload's `role` is a plain string, unlike the User entity's Role relation.
+    const role = (user as unknown as { role?: unknown }).role;
+    return (
+      role === 'admin' ||
+      role === 'superadmin' ||
+      user.roleId === 1 ||
+      user.roleId === 2
+    );
+  }
+
   @Post()
   @ApiResponse({
     status: 201,
@@ -77,8 +97,7 @@ export class AddressesController {
     @GetUser() user: User,
     @Query('type') type?: AddressType,
   ): Promise<ApiResponseDto<Address[]>> {
-    const isAdmin = user.roleId === 1;
-    const userId = isAdmin ? undefined : user.id;
+    const userId = this.isStaff(user) ? undefined : this.idOf(user);
 
     const data = await this.addressesService.findAllByUser(userId, type);
     return {
@@ -97,8 +116,7 @@ export class AddressesController {
     @GetUser() user: User,
     @Query('type') type: AddressType,
   ): Promise<ApiResponseDto<Address>> {
-    const isAdmin = user.roleId === 1;
-    const userId = isAdmin ? undefined : user.id;
+    const userId = this.isStaff(user) ? undefined : this.idOf(user);
 
     const data = await this.addressesService.getDefaultAddress(userId, type);
     return {
@@ -117,8 +135,7 @@ export class AddressesController {
     @GetUser() user: User,
     @Param('id') id: string,
   ): Promise<ApiResponseDto<Address>> {
-    const isAdmin = user.roleId === 1;
-    const userId = isAdmin ? undefined : user.id;
+    const userId = this.isStaff(user) ? undefined : this.idOf(user);
 
     const data = await this.addressesService.findOne(+id, userId);
     return {
@@ -139,8 +156,7 @@ export class AddressesController {
     @Param('id') id: string,
     @Body() updateAddressDto: UpdateAddressDto,
   ): Promise<ApiResponseDto<Address>> {
-    const isAdmin = user.roleId === 1;
-    const userId = isAdmin ? undefined : user.id;
+    const userId = this.isStaff(user) ? undefined : this.idOf(user);
 
     const data = await this.addressesService.update(
       +id,
@@ -163,8 +179,7 @@ export class AddressesController {
     @GetUser() user: User,
     @Param('id') id: string,
   ): Promise<ApiResponseDto<null>> {
-    const isAdmin = user.roleId === 1;
-    const userId = isAdmin ? undefined : user.id;
+    const userId = this.isStaff(user) ? undefined : this.idOf(user);
 
     await this.addressesService.remove(+id, userId);
     return {
@@ -202,9 +217,8 @@ export class AddressesController {
     @Param('userId') userId: number,
     @Query('type') type?: AddressType,
   ): Promise<ApiResponseDto<Address[]>> {
-    // Users may only list their own addresses; admins (roleId 1) any user's.
-    const isAdmin = user.roleId === 1;
-    if (!isAdmin && user.id !== +userId) {
+    // Users may only list their own addresses; staff any user's.
+    if (!this.isStaff(user) && this.idOf(user) !== +userId) {
       throw new ForbiddenException(
         'You can only access your own addresses',
       );
