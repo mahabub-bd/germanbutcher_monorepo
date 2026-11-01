@@ -387,19 +387,20 @@ export function UserActivityList({
   );
 
   const renderTableView = () => (
-    <div className="hidden overflow-x-auto lg:block">
-      <Table className="report-table table-fixed min-w-225 lg:min-w-0 [&_td]:py-2.5 [&_td]:break-words [&_th]:pb-3 [&_th]:pt-0">
+    <div className="hidden overflow-x-auto lg:block lg:pl-3 lg:pr-3">
+      <Table className="report-table table-fixed min-w-225 lg:min-w-0 [&_td]:px-1.5 [&_td]:py-2.5 [&_td]:wrap-break-word [&_td]:align-middle [&_th]:px-1.5 [&_th]:py-2 [&_th]:align-middle [&_th]:text-xs">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            {/* Fixed layout: all 8 columns share the width equally (12.5% each) */}
-            <TableHead className="w-[12.5%]">ID</TableHead>
-            <TableHead className="w-[12.5%]">Date & Time</TableHead>
-            <TableHead className="w-[12.5%]">Action</TableHead>
-            <TableHead className="w-[12.5%]">Entity</TableHead>
-            <TableHead className="w-[12.5%]">Status</TableHead>
-            <TableHead className="w-[12.5%]">Message</TableHead>
-            <TableHead className="w-[12.5%]">IP Address</TableHead>
-            <TableHead className="w-[12.5%]">User</TableHead>
+            {/* Fixed layout: Message gets the most room; the other columns
+                share what's left equally (10% each, ID is narrowest). */}
+            <TableHead className="w-[5%]">ID</TableHead>
+            <TableHead className="w-[10%]">Date & Time</TableHead>
+            <TableHead className="w-[10%]">Action</TableHead>
+            <TableHead className="w-[10%]">Entity</TableHead>
+            <TableHead className="w-[10%]">Status</TableHead>
+            <TableHead className="w-[35%]">Message</TableHead>
+            <TableHead className="w-[10%]">IP Address</TableHead>
+            <TableHead className="w-[10%]">User</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

@@ -32,12 +32,14 @@ export class MenuService {
     page = 1,
     limit = 50,
     isMainMenu?: boolean,
+    parentId?: number,
   ): Promise<{ data: Menu[]; total: number }> {
     const where: any = {};
 
     if (isAdminMenu !== undefined) where.isAdminMenu = isAdminMenu;
     if (isActive !== undefined) where.isActive = isActive;
     if (isMainMenu !== undefined) where.isMainMenu = isMainMenu;
+    if (parentId !== undefined) where.parentId = parentId;
 
     const queryBuilder = this.menuRepository
       .createQueryBuilder('menu')

@@ -7,7 +7,7 @@ import { AdminPageContainer } from "@/components/admin/admin-page-container";
 export default function AddMenuPage() {
   return (
     <AdminPageContainer>
-        <FormPageHeader
+      <FormPageHeader
         title="Add New Menu Item"
         description="Create a new menu item. Fill in all the required information."
         backHref="/admin/menu/menu-list"

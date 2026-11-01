@@ -25,7 +25,6 @@ import { formPostData, patchData, postData } from "@/utils/api-utils";
 import { brandSchema } from "@/utils/form-validation";
 import type { Brand } from "@/utils/types";
 import { useRouter } from "next/navigation";
-import { Section } from "../helper";
 
 type BrandFormValues = z.infer<typeof brandSchema>;
 
@@ -117,18 +116,21 @@ export function BrandForm({ mode, brand }: BrandFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className=" space-y-6">
-          {/* Basic Information Section */}
-          <Section title="Basic Information">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3 w-full">
+        {/* Brand details */}
+        <FormSection
+          title="Brand details"
+          description="Name and description shown across the storefront."
+        >
+          <div className="space-y-3">
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Brand Name</FormLabel>
+                <FormItem className="space-y-1.5">
+                  <FormLabel>Brand name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter brand name" {...field} />
+                    <Input placeholder="e.g. Butcher's Best" {...field} className="w-full" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -139,12 +141,12 @@ export function BrandForm({ mode, brand }: BrandFormProps) {
               control={form.control}
               name="description"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="space-y-1.5">
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Enter brand description"
-                      className="min-h-25"
+                      className="w-full min-h-16 resize-y"
                       {...field}
                     />
                   </FormControl>
@@ -152,48 +154,52 @@ export function BrandForm({ mode, brand }: BrandFormProps) {
                 </FormItem>
               )}
             />
-          </Section>
+          </div>
+        </FormSection>
 
-          {/* Media & Status Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Section title="Media">
-              <FormField
-                control={form.control}
-                name="imageUrl"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Brand Logo</FormLabel>
-                    <div className="flex flex-col gap-4">
-                      <div className="flex items-center gap-4">
-                        {imagePreview ? (
-                          <div className="relative w-32 h-32 border rounded-md overflow-hidden bg-gray-50">
-                            <Image
-                              src={imagePreview}
-                              alt="Brand preview"
-                              fill
-                              className="object-contain"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center w-32 h-32 border rounded-md bg-muted/20">
-                            <Upload className="h-8 w-8 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() =>
-                              document.getElementById("brand-upload")?.click()
-                            }
-                          >
-                            <Upload className="mr-2 h-4 w-4" />
-                            Choose File
-                          </Button>
-                          <span className="text-sm text-muted-foreground">
-                            {fileName || "No file chosen"}
-                          </span>
+        {/* Logo & visibility */}
+        <FormSection
+          title="Logo & visibility"
+          description="The logo shown beside the brand and whether it is live."
+        >
+          <div className="grid gap-3 lg:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={() => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel>Brand logo</FormLabel>
+                  <FormControl>
+                    <div className="flex items-center gap-3">
+                      {imagePreview ? (
+                        <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-md border bg-muted/20">
+                          <Image
+                            src={imagePreview}
+                            alt="Brand preview"
+                            fill
+                            className="object-contain"
+                          />
                         </div>
+                      ) : (
+                        <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-md border border-dashed bg-muted/20">
+                          <Upload className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex min-w-0 flex-col gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            document.getElementById("brand-upload")?.click()
+                          }
+                        >
+                          <Upload className="mr-2 h-4 w-4" />
+                          Choose image
+                        </Button>
+                        <p className="break-all text-xs text-muted-foreground">
+                          {fileName || "PNG or JPG recommended"}
+                        </p>
                       </div>
                       <Input
                         id="brand-upload"
@@ -203,41 +209,44 @@ export function BrandForm({ mode, brand }: BrandFormProps) {
                         onChange={handleFileChange}
                       />
                     </div>
-                    <FormMessage />
-                  </FormItem>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex flex-col justify-center">
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <SwitchRow
+                    label="Active"
+                    hint="Brand is visible to customers"
+                    checked={field.value}
+                    onChange={field.onChange}
+                  />
                 )}
               />
-            </Section>
-
-            <Section title="Status">
-              <div className="grid grid-cols-1 gap-4">
-                <FormField
-                  control={form.control}
-                  name="isActive"
-                  render={({ field }) => (
-                    <SwitchCard
-                      label="Active Status"
-                      description="Brand will be visible to customers"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-              </div>
-            </Section>
+            </div>
           </div>
-        </div>
+        </FormSection>
 
-        <div className="flex justify-end">
+        <div className="sticky bottom-2 flex flex-col-reverse items-stretch gap-2 rounded-lg border bg-card/95 p-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-end">
+          <p className="mr-auto hidden text-xs text-muted-foreground lg:block">
+            The brand appears on the storefront immediately after saving.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {mode === "create" ? "Creating..." : "Updating..."}
-              </>
-            ) : (
-              <>{mode === "create" ? "Create Brand" : "Update Brand"}</>
-            )}
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {mode === "create" ? "Create brand" : "Save changes"}
           </Button>
         </div>
       </form>
@@ -245,22 +254,58 @@ export function BrandForm({ mode, brand }: BrandFormProps) {
   );
 }
 
-const SwitchCard = ({
-  label,
+/** A bordered card that groups related fields under a titled header, so the
+ *  form reads as distinct sections instead of one long grid. */
+function FormSection({
+  title,
   description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-lg border bg-card shadow-xs">
+      <div className="border-b px-3.5 py-2.5">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {description && (
+          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+        )}
+      </div>
+      <div className="space-y-3 p-3.5">{children}</div>
+    </section>
+  );
+}
+
+/** Toggle rendered as a full-width row: label + hint on the left, switch on
+ *  the right. Clicking anywhere on the row flips the switch. */
+function SwitchRow({
+  label,
+  hint,
   checked,
-  onCheckedChange,
+  onChange,
 }: {
   label: string;
-  description: string;
+  hint: string;
   checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-}) => (
-  <div className="flex items-center justify-between rounded-lg border p-4">
-    <div className="space-y-0.5">
-      <p className="text-base font-medium">{label}</p>
-      <p className="text-sm text-muted-foreground">{description}</p>
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <div
+      onClick={() => onChange(!checked)}
+      className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-background p-3 transition-colors hover:border-primary/40 hover:bg-muted/30"
+    >
+      <div className="min-w-0 space-y-0.5">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs leading-snug text-muted-foreground">{hint}</p>
+      </div>
+      <Switch
+        checked={checked}
+        onCheckedChange={onChange}
+        onClick={(event) => event.stopPropagation()}
+        className="shrink-0"
+      />
     </div>
-    <Switch checked={checked} onCheckedChange={onCheckedChange} />
-  </div>
-);
+  );
+}

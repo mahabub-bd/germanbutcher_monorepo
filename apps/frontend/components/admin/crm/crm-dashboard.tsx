@@ -225,7 +225,7 @@ export function CrmDashboard() {
       chip: "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400",
     },
     {
-      href: "/admin/analytics/abandoned-carts",
+      href: "/admin/crm/abandoned-carts",
       icon: ShoppingCart,
       label: "Abandoned carts",
       meta: `${formatMoney(stats.abandonedCarts.totalValue)} value at risk`,
@@ -264,7 +264,7 @@ export function CrmDashboard() {
           icon={UserPlus}
           bgColor="green"
         />
-        <Link href="/admin/analytics/abandoned-carts" className="block">
+        <Link href="/admin/crm/abandoned-carts" className="block">
           <StatsCard
             title="Abandoned carts"
             value={formatCount(stats.abandonedCarts.count)}

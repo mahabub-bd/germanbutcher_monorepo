@@ -2,12 +2,10 @@
 
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { RecipeForm } from "@/components/admin/recipe/recipe-form";
-import { Button } from "@/components/ui/button";
-import { CardTitle } from "@/components/ui/card";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 import { fetchData } from "@/utils/api-utils";
 import { Recipe } from "@/utils/types";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AdminPageContainer } from "@/components/admin/admin-page-container";
@@ -48,14 +46,12 @@ export default function EditRecipePage() {
 
   return (
     <AdminPageContainer>
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <CardTitle>Edit Recipe</CardTitle>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/admin/recipe/recipe-list">Back to Recipes</Link>
-          </Button>
-        </div>
+      <FormPageHeader
+        title="Edit Recipe"
+        description="Update the recipe details and publish state."
+        backHref="/admin/recipe/recipe-list"
+        backLabel="Back to Recipes"
+      />
 
       <RecipeForm mode="edit" recipe={recipe} />
     </AdminPageContainer>

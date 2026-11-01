@@ -8,6 +8,13 @@ import { PillBadge } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -34,12 +41,12 @@ import {
   Scale,
   Trash2,
 } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import DeleteConfirmationDialog from "../../delete-confirmation-dialog";
 import { LoadingIndicator } from "../../loading-indicator";
 import { PageHeader } from "../../page-header";
+import { UnitForm } from "./unit-form";
 
 /** "08 May 2025, 01:10 pm" → date and time on separate lines. */
 function splitDateTime(value?: string) {
@@ -80,7 +87,10 @@ export function UnitList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
+  const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
 
   const fetchUnits = async () => {
     setIsLoading(true);
@@ -103,6 +113,11 @@ export function UnitList() {
   const handleDeleteClick = (unit: Unit) => {
     setSelectedUnit(unit);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleEditClick = (unit: Unit) => {
+    setEditingUnit(unit);
+    setIsEditDialogOpen(true);
   };
 
   const handleDelete = async () => {
@@ -138,10 +153,8 @@ export function UnitList() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {canEdit && (
-          <DropdownMenuItem asChild>
-            <Link href={`/admin/products/units/${unit.id}/edit`}>
-              <Pencil className="size-4" /> Edit
-            </Link>
+          <DropdownMenuItem onClick={() => handleEditClick(unit)}>
+            <Pencil className="size-4" /> Edit
           </DropdownMenuItem>
         )}
         {canDelete && (
@@ -209,11 +222,9 @@ export function UnitList() {
             Refresh
           </Button>
           {can(MENU_URL, "canCreate") && (
-            <Button size="sm" asChild>
-              <Link href="/admin/products/units/add">
-                <Plus className="size-4" />
-                <span className="hidden sm:inline">Add Unit</span>
-              </Link>
+            <Button size="sm" onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="size-4" />
+              <span className="hidden sm:inline">Add Unit</span>
             </Button>
           )}
         </PageHeader>
@@ -267,10 +278,8 @@ export function UnitList() {
               </p>
             </div>
             {can(MENU_URL, "canCreate") && (
-              <Button size="sm" asChild>
-                <Link href="/admin/products/units/add">
-                  <Plus className="size-4" /> Add unit
-                </Link>
+              <Button size="sm" onClick={() => setIsAddDialogOpen(true)}>
+                <Plus className="size-4" /> Add unit
               </Button>
             )}
           </div>
@@ -443,6 +452,58 @@ export function UnitList() {
         title={selectedUnit ? `Delete “${selectedUnit.name}”?` : undefined}
         description="The unit is deactivated and is no longer offered on products. Products already using it stop showing a unit label on the storefront."
       />
+
+      {/* Add Unit Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add unit</DialogTitle>
+            <DialogDescription>
+              Create a measurement unit that products can be priced and stocked
+              by.
+            </DialogDescription>
+          </DialogHeader>
+          {isAddDialogOpen && (
+            <UnitForm
+              mode="create"
+              onSuccess={() => {
+                setIsAddDialogOpen(false);
+                fetchUnits();
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Unit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="capitalize">
+              Edit “{editingUnit?.name}”
+            </DialogTitle>
+            <DialogDescription>
+              Update the measurement unit offered on products.
+            </DialogDescription>
+          </DialogHeader>
+          {isEditDialogOpen && editingUnit && (
+            <UnitForm
+              key={editingUnit.id}
+              mode="edit"
+              unit={editingUnit}
+              onSuccess={() => {
+                setIsEditDialogOpen(false);
+                setEditingUnit(null);
+                fetchUnits();
+              }}
+              onCancel={() => {
+                setIsEditDialogOpen(false);
+                setEditingUnit(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

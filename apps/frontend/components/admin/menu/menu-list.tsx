@@ -84,6 +84,9 @@ export function MenuList({
   const [isMainMenuFilter, setIsMainMenuFilter] = useState(
     getInitialParam("isMainMenu") as string
   );
+  const [parentFilter, setParentFilter] = useState(
+    getInitialParam("parentId") as string
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(
@@ -105,6 +108,7 @@ export function MenuList({
       params.set("status", statusFilter);
     if (isMainMenuFilter && isMainMenuFilter !== "all")
       params.set("isMainMenu", isMainMenuFilter);
+    if (parentFilter) params.set("parentId", parentFilter);
 
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   }, [
@@ -115,6 +119,7 @@ export function MenuList({
     searchQuery,
     statusFilter,
     isMainMenuFilter,
+    parentFilter,
   ]);
 
   const handlePageChange = (page: number) => {
@@ -146,6 +151,7 @@ export function MenuList({
         params.append("status", statusFilter);
       if (isMainMenuFilter && isMainMenuFilter !== "all")
         params.append("isMainMenu", isMainMenuFilter);
+      if (parentFilter) params.append("parentId", parentFilter);
 
       const response = await fetchDataPagination<{
         data: MenuItem[];
@@ -163,7 +169,7 @@ export function MenuList({
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, limit, searchQuery, statusFilter, isMainMenuFilter]);
+  }, [currentPage, limit, searchQuery, statusFilter, isMainMenuFilter, parentFilter]);
 
   useEffect(() => {
     fetchParentMenuItems();
@@ -204,6 +210,7 @@ export function MenuList({
     setSearchQuery("");
     setStatusFilter("");
     setIsMainMenuFilter("");
+    setParentFilter("");
     setCurrentPage(1);
   };
 
@@ -247,7 +254,8 @@ export function MenuList({
   const hasFilters = Boolean(
     searchQuery ||
       (statusFilter && statusFilter !== "all") ||
-      (isMainMenuFilter && isMainMenuFilter !== "all")
+      (isMainMenuFilter && isMainMenuFilter !== "all") ||
+      parentFilter
   );
   const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
   const lastRow = Math.min(currentPage * limit, totalItems);
@@ -355,6 +363,28 @@ export function MenuList({
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="md:w-44 md:shrink-0">
+                <Select
+                  value={parentFilter || "all"}
+                  onValueChange={(value) => {
+                    setParentFilter(value === "all" ? "" : value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-full">
+                    <SelectValue placeholder="Main menu" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All main menus</SelectItem>
+                    {parentMenuItems.map((parent) => (
+                      <SelectItem key={parent.id} value={String(parent.id)}>
+                        {parent.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {hasFilters && (
@@ -368,6 +398,8 @@ export function MenuList({
                     isMainMenuFilter &&
                       isMainMenuFilter !== "all" &&
                       `Type: ${isMainMenuFilter === "true" ? "Main menu" : "Sub menu"}`,
+                    parentFilter &&
+                      `Main menu: ${getParentMenuName(Number(parentFilter))}`,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
@@ -473,16 +505,16 @@ export function MenuList({
 
               {/* Desktop table */}
               <div className="hidden md:block">
-                <Table className="report-table min-w-180">
+                <Table className="report-table min-w-180 table-fixed">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="pl-4">Name</TableHead>
-                      <TableHead>URL</TableHead>
-                      <TableHead>Parent</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Order</TableHead>
-                      <TableHead className="pr-4 text-right">Actions</TableHead>
+                      <TableHead className="w-[14%] pl-4">Name</TableHead>
+                      <TableHead className="w-[28%]">URL</TableHead>
+                      <TableHead className="w-[12%]">Parent</TableHead>
+                      <TableHead className="w-[12%]">Type</TableHead>
+                      <TableHead className="w-[10%]">Status</TableHead>
+                      <TableHead className="w-[8%] text-center">Order</TableHead>
+                      <TableHead className="w-[8%] pr-4 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -508,7 +540,7 @@ export function MenuList({
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <span
-                              className="block max-w-55 truncate text-muted-foreground"
+                              className="block min-w-0 truncate text-muted-foreground"
                               title={menuItem.url}
                             >
                               {menuItem.url}
@@ -545,7 +577,7 @@ export function MenuList({
                           </PillBadge>
                         </TableCell>
 
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                           <span className="text-sm font-semibold tabular-nums">
                             {menuItem.order}
                           </span>

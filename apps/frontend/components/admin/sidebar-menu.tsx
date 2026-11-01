@@ -71,16 +71,20 @@ export function SidebarMenu({
   const setCollapsed = setCollapsedProp ?? setInternalCollapsed;
   const [menuData, setMenuData] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  // Starts from the persisted count so the skeleton height matches the menu
-  const [skeletonCount, setSkeletonCount] = useState<number | null>(() => {
-    if (typeof window === "undefined") return null;
+  // Keep the first render identical on the server and client. Read the
+  // persisted count after hydration so it can still size the loading skeleton.
+  const [skeletonCount, setSkeletonCount] = useState<number | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
     const stored = Number(
       window.sessionStorage.getItem(MENU_COUNT_STORAGE_KEY)
     );
-    return Number.isFinite(stored) && stored > 0 ? stored : null;
-  });
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
+    if (Number.isFinite(stored) && stored > 0) {
+      setSkeletonCount(stored);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchMenuData = async () => {

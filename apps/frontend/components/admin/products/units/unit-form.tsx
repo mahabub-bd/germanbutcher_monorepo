@@ -29,9 +29,11 @@ interface UnitFormProps {
   unit?: Unit;
   mode: "create" | "edit";
   onSuccess: () => void;
+  /** Leave without saving. Falls back to onSuccess when omitted. */
+  onCancel?: () => void;
 }
 
-export function UnitForm({ unit, mode, onSuccess }: UnitFormProps) {
+export function UnitForm({ unit, mode, onSuccess, onCancel }: UnitFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof unitSchema>>({
@@ -67,17 +69,17 @@ export function UnitForm({ unit, mode, onSuccess }: UnitFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 gap-4">
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
-              <FormItem className="space-y-2">
-                <FormLabel>Unit Name</FormLabel>
+              <FormItem className="space-y-1.5">
+                <FormLabel>Unit name</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter unit name (e.g., Kilogram, Piece)"
+                    placeholder="e.g. Kilogram, Piece, Litre"
                     {...field}
                     className="w-full"
                   />
@@ -91,34 +93,39 @@ export function UnitForm({ unit, mode, onSuccess }: UnitFormProps) {
             control={form.control}
             name="isActive"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 space-y-0">
-                <div className="space-y-0.5">
-                  <FormLabel>Active Status</FormLabel>
+              <div
+                onClick={() => field.onChange(!field.value)}
+                className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-background p-3 transition-colors hover:border-primary/40 hover:bg-muted/30"
+              >
+                <div className="min-w-0 space-y-0.5">
+                  <p className="text-sm font-medium">Active</p>
+                  <p className="text-xs leading-snug text-muted-foreground">
+                    Offered on products and shown in the unit dropdown
+                  </p>
                 </div>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </FormItem>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  onClick={(event) => event.stopPropagation()}
+                  className="shrink-0"
+                />
+              </div>
             )}
           />
         </div>
 
-        <div className="flex justify-end space-x-4 pt-2">
+        <div className="flex justify-end gap-3 border-t pt-4">
           <Button
             type="button"
             variant="outline"
-            onClick={onSuccess}
+            onClick={onCancel ?? onSuccess}
             disabled={isSubmitting}
-            className="w-24"
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting} className="w-32">
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {mode === "create" ? "Create Unit" : "Update Unit"}
+            {mode === "create" ? "Create unit" : "Save changes"}
           </Button>
         </div>
       </form>

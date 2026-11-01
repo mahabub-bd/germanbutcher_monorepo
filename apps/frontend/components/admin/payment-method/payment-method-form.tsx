@@ -21,6 +21,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { cn } from "@/lib/utils";
+
 const paymentMethodSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   code: z.string().min(3, "Code must be at least 3 characters"),
@@ -79,97 +81,166 @@ export function PaymentMethodForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 w-full mx-auto">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem className="space-y-2">
-                <FormLabel>Method Name</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter payment method name (e.g. Credit Card)"
-                    {...field}
-                    className="w-full"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="code"
-            render={({ field }) => (
-              <FormItem className="space-y-2">
-                <FormLabel>Method Code</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter payment method code (e.g. credit_card)"
-                    {...field}
-                    className="w-full"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+        <FormSection
+          title="Payment method"
+          description="The display name and the code used internally."
+        >
+          <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem className="flex h-full flex-col gap-1.5">
+                  <FormLabel>Method name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. Credit Card"
+                      {...field}
+                      className="flex-1"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem className="flex h-full flex-col gap-1.5">
+                  <FormLabel>Method code</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. credit_card"
+                      {...field}
+                      className="flex-1"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           <FormField
             control={form.control}
             name="description"
             render={({ field }) => (
-              <FormItem className="space-y-2">
+              <FormItem className="space-y-1.5">
                 <FormLabel>Description</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="Enter a description of the payment method"
                     {...field}
-                    className="w-full min-h-25"
+                    className="min-h-20 resize-none"
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+        </FormSection>
 
+        <FormSection
+          title="Visibility"
+          description="Whether shoppers can select this method at checkout."
+        >
           <FormField
             control={form.control}
             name="isActive"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 space-y-0">
-                <div className="space-y-0.5">
-                  <FormLabel>Active Status</FormLabel>
-                </div>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </FormItem>
+              <SwitchRow
+                label="Active"
+                hint="Available as a checkout option"
+                checked={field.value}
+                onChange={field.onChange}
+              />
             )}
           />
-        </div>
+        </FormSection>
 
-        <div className="flex justify-end space-x-4 pt-2 mx-auto">
+        <div className="sticky bottom-2 flex flex-col-reverse items-stretch gap-2 rounded-lg border bg-card/95 p-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-end">
           <Button
             type="button"
             variant="outline"
             onClick={onSuccess}
             disabled={isSubmitting}
-            className="w-24"
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting} className="w-40">
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {mode === "create" ? "Create " : "Update "}
+            {mode === "create" ? "Create payment method" : "Save changes"}
           </Button>
         </div>
       </form>
     </Form>
+  );
+}
+
+/** Bordered card with a titled header — shared admin form convention. */
+function FormSection({
+  title,
+  description,
+  className,
+  children,
+}: {
+  title: string;
+  description?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className={cn(
+        "flex h-full flex-col overflow-hidden rounded-lg border bg-card shadow-xs",
+        className
+      )}
+    >
+      <div className="border-b px-3.5 py-2.5">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {description && (
+          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+        )}
+      </div>
+      <div className="flex-1 space-y-3 p-3.5">{children}</div>
+    </section>
+  );
+}
+
+/** Clickable full-width toggle row. */
+function SwitchRow({
+  label,
+  hint,
+  checked,
+  onChange,
+  className,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-background p-3 transition-colors hover:border-primary/40 hover:bg-muted/30",
+        className
+      )}
+    >
+      <div className="min-w-0 space-y-0.5">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs leading-snug text-muted-foreground">{hint}</p>
+      </div>
+      <Switch
+        checked={checked}
+        onCheckedChange={onChange}
+        onClick={(event) => event.stopPropagation()}
+        className="shrink-0"
+      />
+    </div>
   );
 }

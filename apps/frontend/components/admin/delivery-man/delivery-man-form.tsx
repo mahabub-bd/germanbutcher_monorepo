@@ -2,13 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Form,
   FormControl,
   FormField,
@@ -27,6 +20,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+
+import { cn } from "@/lib/utils";
 
 interface DeliveryManFormProps {
   deliveryMan?: DeliveryMan;
@@ -65,9 +60,9 @@ export function DeliveryManForm({
       console.error("Error submitting form:", error);
       toast.error(
         (error instanceof Error ? error.message : String(error)) ||
-          (mode === "create"
-            ? "Failed to create delivery man. Please try again."
-            : "Failed to update delivery man. Please try again.")
+        (mode === "create"
+          ? "Failed to create delivery man. Please try again."
+          : "Failed to update delivery man. Please try again.")
       );
     } finally {
       setIsSubmitting(false);
@@ -75,114 +70,160 @@ export function DeliveryManForm({
   };
 
   return (
-    <div className="w-full">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="text-xl">
-            {mode === "create" ? "Create New Delivery Man" : "Edit Delivery Man"}
-          </CardTitle>
-          <CardDescription>
-            {mode === "create"
-              ? "Add a new delivery person to the system"
-              : "Update delivery man information"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-6"
-            >
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter full name"
-                          {...field}
-                          className="w-full"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+        <FormSection
+          title="Delivery person"
+          description="Name and mobile number used to reach them."
+        >
+          <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem className="flex h-full flex-col gap-1.5">
+                  <FormLabel>Full name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter full name"
+                      {...field}
+                      className="flex-1"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={form.control}
-                  name="mobileNumber"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel>Mobile Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="+880"
-                          {...field}
-                          className="w-full"
-                          onChange={(e) => {
-                            const input = e.target.value.replace(/[^0-9+]/g, "");
-                            if (!input.startsWith("+880")) {
-                              field.onChange(
-                                `+880${input.replace(/^\+?880?/, "")}`
-                              );
-                            } else {
-                              field.onChange(input);
-                            }
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={form.control}
+              name="mobileNumber"
+              render={({ field }) => (
+                <FormItem className="flex h-full flex-col gap-1.5">
+                  <FormLabel>Mobile number</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="+880..."
+                      {...field}
+                      className="flex-1 tabular-nums"
+                      onChange={(e) => {
+                        const input = e.target.value.replace(/[^0-9+]/g, "");
+                        if (!input.startsWith("+880")) {
+                          field.onChange(
+                            `+880${input.replace(/^\+?880?/, "")}`
+                          );
+                        } else {
+                          field.onChange(input);
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </FormSection>
 
-                <FormField
-                  control={form.control}
-                  name="isActive"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 space-y-0 col-span-1 sm:col-span-2">
-                      <div className="space-y-0.5">
-                        <FormLabel>Active Status</FormLabel>
-                        <p className="text-sm text-muted-foreground">
-                          Only active delivery men can be assigned to orders
-                        </p>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
+        <FormSection
+          title="Availability"
+          description="Controls whether this delivery person can be assigned."
+        >
+          <FormField
+            control={form.control}
+            name="isActive"
+            render={({ field }) => (
+              <SwitchRow
+                label="Active"
+                hint="Only active delivery people can be assigned to orders"
+                checked={field.value}
+                onChange={field.onChange}
+              />
+            )}
+          />
+        </FormSection>
 
-              <div className="flex justify-end space-x-4 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onSuccess}
-                  disabled={isSubmitting}
-                  className="w-24"
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting} className="w-32">
-                  {isSubmitting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  {mode === "create" ? "Create" : "Update"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+        <div className="sticky bottom-2 flex flex-col-reverse items-stretch gap-2 rounded-lg border bg-card/95 p-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onSuccess}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {mode === "create" ? "Create delivery person" : "Save changes"}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}
+
+/** Bordered card with a titled header — shared admin form convention. */
+function FormSection({
+  title,
+  description,
+  className,
+  children,
+}: {
+  title: string;
+  description?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className={cn(
+        "flex h-full flex-col overflow-hidden rounded-lg border bg-card shadow-xs",
+        className
+      )}
+    >
+      <div className="border-b px-3.5 py-2.5">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {description && (
+          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+        )}
+      </div>
+      <div className="flex-1 space-y-3 p-3.5">{children}</div>
+    </section>
+  );
+}
+
+/** Clickable full-width toggle row. */
+function SwitchRow({
+  label,
+  hint,
+  checked,
+  onChange,
+  className,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-background p-3 transition-colors hover:border-primary/40 hover:bg-muted/30",
+        className
+      )}
+    >
+      <div className="min-w-0 space-y-0.5">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs leading-snug text-muted-foreground">{hint}</p>
+      </div>
+      <Switch
+        checked={checked}
+        onCheckedChange={onChange}
+        onClick={(event) => event.stopPropagation()}
+        className="shrink-0"
+      />
     </div>
   );
 }

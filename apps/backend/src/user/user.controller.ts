@@ -195,7 +195,7 @@ export class UserController {
   }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
-  @ModulePermissions('/admin/user')
+  @ModulePermissions('/admin/reports/customer-list')
   @Get('reports/customer-list')
   @ApiOperation({
     summary: 'Get customer list report',

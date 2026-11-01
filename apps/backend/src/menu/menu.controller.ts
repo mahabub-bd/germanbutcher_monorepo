@@ -83,6 +83,12 @@ export class MenuController {
     description: 'Filter by main menu status',
   })
   @ApiQuery({
+    name: 'parentId',
+    required: false,
+    type: Number,
+    description: 'Filter to the sub menus of this main-menu id',
+  })
+  @ApiQuery({
     name: 'isActive',
     required: false,
     type: Boolean,
@@ -135,6 +141,7 @@ export class MenuController {
     @Query('page') page = '1',
     @Query('limit') limit = '10',
     @Query('isMainMenu') isMainMenu: string,
+    @Query('parentId') parentId: string,
     @Res() res: Response,
   ) {
     try {
@@ -163,6 +170,7 @@ export class MenuController {
         pageNum,
         limitNum,
         isMainMenuBool,
+        parentId ? Math.max(parseInt(parentId, 10) || 0, 0) || undefined : undefined,
       );
 
       res.status(HttpStatus.OK).json({
