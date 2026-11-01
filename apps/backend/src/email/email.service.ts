@@ -20,6 +20,10 @@ import {
   generatePasswordResetOtpHTML,
   PasswordResetOtpEmailData,
 } from './templates/password-reset-otp.template';
+import {
+  AbandonedCartReminderEmailData,
+  generateAbandonedCartReminderHTML,
+} from './templates/abandoned-cart-reminder.template';
 
 interface EmailAddress {
   address: string;
@@ -289,6 +293,42 @@ export class EmailService {
         err.stack,
       );
       // Don't throw — the SMS already carries the code
+    }
+  }
+
+  // Abandoned-cart reminder, triggered manually by an admin from the
+  // Abandoned Carts report. Throws so the admin sees the failure in the UI.
+  async sendAbandonedCartReminderEmail(
+    data: AbandonedCartReminderEmailData,
+  ): Promise<void> {
+    if (!this.client) {
+      throw new Error('Email service is not configured');
+    }
+
+    try {
+      await this.client.sendMail({
+        from: { address: this.fromAddress, name: this.fromName },
+        to: [
+          {
+            email_address: {
+              address: data.customerEmail,
+              name: data.customerName,
+            },
+          },
+        ],
+        subject: 'Your German Butcher cart is waiting for you',
+        htmlbody: generateAbandonedCartReminderHTML(data),
+      });
+      this.logger.log(
+        `Abandoned cart reminder email sent to ${data.customerEmail}`,
+      );
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(
+        `Failed to send abandoned cart reminder email to ${data.customerEmail}: ${err.message}`,
+        err.stack,
+      );
+      throw error;
     }
   }
 

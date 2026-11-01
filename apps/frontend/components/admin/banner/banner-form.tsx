@@ -1,14 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Image as ImageIcon,
-  Layers,
-  Loader2,
-  Search,
-  Settings,
-  Upload,
-} from "lucide-react";
+import { Layers, Loader2, Search, Upload } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -45,6 +38,7 @@ import {
 } from "@/utils/api-utils";
 
 import { revalidatePublic } from "@/actions/revalidate";
+import { cn } from "@/lib/utils";
 import { bannerSchema } from "@/utils/form-validation";
 import {
   Banner,
@@ -267,18 +261,19 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {/* Basic Information */}
-          <section className="h-full rounded-sm border bg-card p-5 space-y-4">
-            <SectionTitle icon={ImageIcon} title="Basic Information" />
-
+          <FormSection
+            title="Basic information"
+            description="The headline and supporting text shown on the banner."
+          >
             <FormField
               control={form.control}
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Banner Title</FormLabel>
+                  <FormLabel>Banner title</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter banner title" {...field} />
                   </FormControl>
@@ -296,7 +291,7 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
                   <FormControl>
                     <Textarea
                       placeholder="Enter banner description"
-                      className="min-h-20 resize-none"
+                      className="min-h-16 resize-none"
                       {...field}
                     />
                   </FormControl>
@@ -304,20 +299,20 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
                 </FormItem>
               )}
             />
-
-          </section>
+          </FormSection>
 
           {/* Banner Settings */}
-          <section className="h-full rounded-sm border bg-card p-5 space-y-4">
-            <SectionTitle icon={Settings} title="Banner Settings" />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FormSection
+            title="Banner settings"
+            description="Where the banner appears and how it is ordered."
+          >
+            <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="type"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Banner Type</FormLabel>
+                  <FormItem className="flex h-full flex-col gap-1.5">
+                    <FormLabel>Banner type</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="w-full">
@@ -342,7 +337,7 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
                 control={form.control}
                 name="position"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex h-full flex-col gap-1.5">
                     <FormLabel>Position</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
@@ -366,24 +361,22 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
             </div>
 
             {/* Display order + active status share one row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="displayOrder"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Display Order</FormLabel>
+                  <FormItem className="flex h-full flex-col gap-1.5">
+                    <FormLabel>Display order</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         min="0"
-                        className="w-full"
+                        placeholder="0 (lower shows first)"
+                        className="w-full flex-1"
                         {...field}
                       />
                     </FormControl>
-                    <p className="text-xs text-muted-foreground">
-                      Lower numbers appear first
-                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -393,28 +386,24 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
                 control={form.control}
                 name="isActive"
                 render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border p-3 sm:mt-6">
-                    <div>
-                      <FormLabel className="text-sm font-medium">
-                        Active Status
-                      </FormLabel>
-
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
+                  <SwitchRow
+                    label="Active"
+                    hint="Shown on the storefront right away"
+                    checked={field.value ?? false}
+                    onChange={field.onChange}
+                    className="h-full"
+                  />
                 )}
               />
             </div>
-          </section>
+          </FormSection>
 
           {/* Link To — full width so the product grid has room */}
-          <section className="rounded-sm border bg-card p-5 space-y-4 lg:col-span-2">
-            <SectionTitle icon={Layers} title="Link To" />
+          <FormSection
+            title="Link to"
+            description="Optional destination opened when the banner is clicked."
+            className="lg:col-span-2"
+          >
 
             <FormField
               control={form.control}
@@ -577,11 +566,14 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
                 </FormItem>
               )}
             />
-          </section>
+          </FormSection>
 
           {/* Media */}
-          <section className="rounded-sm border bg-card p-5 space-y-4 lg:col-span-2">
-            <SectionTitle icon={Upload} title="Media" />
+          <FormSection
+            title="Media"
+            description="The image displayed for this banner."
+            className="lg:col-span-2"
+          >
 
             <FormField
               control={form.control}
@@ -612,7 +604,7 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
                         }
                       >
                         <Upload className="mr-2 h-4 w-4" />
-                        Choose File
+                        Choose image
                       </Button>
                       <span className="text-sm text-muted-foreground">
                         {fileName || "No file chosen"}
@@ -633,62 +625,96 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
                 </FormItem>
               )}
             />
-          </section>
+          </FormSection>
         </div>
 
         {/* Footer action bar */}
-        <div className="rounded-sm border bg-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
+        <div className="sticky bottom-2 flex flex-col-reverse items-stretch gap-2 rounded-lg border bg-card/95 p-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-end">
+          <p className="mr-auto hidden text-xs text-muted-foreground lg:block">
             {form.watch("isActive")
-              ? "This banner will be live immediately after saving"
-              : "This banner will be saved as inactive"}
+              ? "This banner goes live immediately after saving."
+              : "This banner will be saved as inactive."}
           </p>
-          <div className="flex gap-2 justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-primaryColor hover:bg-primaryColor/90 text-white"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {mode === "create" ? "Creating..." : "Updating..."}
-                </>
-              ) : mode === "create" ? (
-                "Create Banner"
-              ) : (
-                "Update Banner"
-              )}
-            </Button>
-          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {mode === "create" ? "Create banner" : "Save changes"}
+          </Button>
         </div>
       </form>
     </Form>
   );
 }
 
-/** Section header with a red icon tile — same style as the coupon form. */
-function SectionTitle({
-  icon: Icon,
+/** Bordered card with a titled header — shared admin form convention. */
+function FormSection({
   title,
+  description,
+  className,
+  children,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
   title: string;
+  description?: string;
+  className?: string;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
-        <Icon className="h-4 w-4" />
-      </span>
-      <h3 className="font-semibold">{title}</h3>
+    <section
+      className={cn(
+        "flex h-full flex-col overflow-hidden rounded-lg border bg-card shadow-xs",
+        className
+      )}
+    >
+      <div className="border-b px-3.5 py-2.5">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {description && (
+          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+        )}
+      </div>
+      <div className="flex-1 space-y-3 p-3.5">{children}</div>
+    </section>
+  );
+}
+
+/** Clickable full-width toggle row. */
+function SwitchRow({
+  label,
+  hint,
+  checked,
+  onChange,
+  className,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-background p-3 transition-colors hover:border-primary/40 hover:bg-muted/30",
+        className
+      )}
+    >
+      <div className="min-w-0 space-y-0.5">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs leading-snug text-muted-foreground">{hint}</p>
+      </div>
+      <Switch
+        checked={checked}
+        onCheckedChange={onChange}
+        onClick={(event) => event.stopPropagation()}
+        className="shrink-0"
+      />
     </div>
   );
 }

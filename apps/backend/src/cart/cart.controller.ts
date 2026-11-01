@@ -21,8 +21,8 @@ import {
 } from '@nestjs/swagger';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
-import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 
 import { Request } from 'express';
 import { ApiResponseDto } from 'src/common/types';
@@ -36,7 +36,7 @@ import { Cart } from './entities/cart.entity';
 @ApiBearerAuth('token')
 @Controller('cart')
 export class CartController {
-  constructor(private readonly cartService: CartService) {}
+  constructor(private readonly cartService: CartService) { }
   @UseGuards(JwtAuthGuard)
   @Get()
   @ApiOperation({ summary: 'Get user cart' })
@@ -188,7 +188,7 @@ export class CartController {
 
   @Get('reports/abandoned')
   @UseGuards(JwtAuthGuard, PermissionGuard)
-  @ModulePermissions('/admin/analytics/abandoned-carts')
+  @ModulePermissions('/admin/crm/abandoned-carts')
   @ApiOperation({
     summary: 'Abandoned carts report (paginated)',
     description:
@@ -196,16 +196,66 @@ export class CartController {
   })
   @ApiQuery({ name: 'page', required: false, example: 1, type: Number })
   @ApiQuery({ name: 'limit', required: false, example: 10, type: Number })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    example: 'Golam',
+    description: 'Filter by customer name or mobile number (partial match)',
+  })
   async getAbandonedReport(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
+    @Query('search') search?: string,
   ): Promise<ApiResponseDto<unknown>> {
     const data = await this.cartService.getAbandonedReport(
       Math.max(1, parseInt(page, 10) || 1),
       Math.min(50, Math.max(1, parseInt(limit, 10) || 10)),
+      search?.trim() || undefined,
     );
     return {
       message: 'Abandoned carts report retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @Get('reports/abandoned/:id')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/crm/abandoned-carts')
+  @ApiOperation({
+    summary: 'Abandoned cart details (single cart line items)',
+    description:
+      'Customer header and per-item breakdown for one abandoned cart',
+  })
+  async getAbandonedCartDetail(
+    @Param('id') id: string,
+  ): Promise<ApiResponseDto<unknown>> {
+    const data = await this.cartService.getAbandonedCartDetail(
+      Math.max(1, parseInt(id, 10) || 0),
+    );
+    return {
+      message: 'Abandoned cart details retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @Post('reports/abandoned/:id/remind')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/crm/abandoned-carts')
+  @ApiOperation({
+    summary: 'Send an abandoned-cart reminder email',
+    description:
+      'Emails the customer their abandoned cart items with a link back to the storefront cart',
+  })
+  async sendAbandonedCartReminder(
+    @Param('id') id: string,
+  ): Promise<ApiResponseDto<{ sentTo: string }>> {
+    const data = await this.cartService.sendAbandonedCartReminder(
+      Math.max(1, parseInt(id, 10) || 0),
+    );
+    return {
+      message: `Reminder email sent to ${data.sentTo}`,
       statusCode: HttpStatus.OK,
       data,
     };

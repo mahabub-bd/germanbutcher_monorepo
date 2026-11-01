@@ -83,6 +83,30 @@ export type AbandonedCartsSummary = {
   abandonedValue: number;
 };
 
+export type AbandonedCartDetailItem = {
+  cartItemId: number;
+  productId: number;
+  name: string;
+  slug: string | null;
+  imageUrl: string | null;
+  unitPrice: number;
+  quantity: number;
+  lineTotal: number;
+  stock: number;
+};
+
+export type AbandonedCartDetail = {
+  cartId: number;
+  userId: number;
+  userName: string | null;
+  mobileNumber: string | null;
+  email: string | null;
+  updatedAt: string;
+  itemCount: number;
+  subtotal: number;
+  items: AbandonedCartDetailItem[];
+};
+
 export type TopCouponUsage = {
   couponCode: string;
   uses: number;
@@ -980,13 +1004,13 @@ export interface ContactMessage {
   orderReference?: string | null;
   contactStatus: "pending" | "in_progress" | "resolved" | "closed";
   source?:
-    | "website"
-    | "facebook"
-    | "phone"
-    | "email"
-    | "whatsapp"
-    | "other"
-    | null;
+  | "website"
+  | "facebook"
+  | "phone"
+  | "email"
+  | "whatsapp"
+  | "other"
+  | null;
   priority?: "low" | "medium" | "high" | null;
   actionTaken?: ActionTaken | null;
   responseNotes?: string | null;
@@ -1193,12 +1217,12 @@ export interface PersistedNotification {
   /** Recipient user; null = broadcast, visible to everyone. */
   userId: number | null;
   type:
-    | 'orderConfirmation'
-    | 'orderStatusUpdate'
-    | 'paymentStatusUpdate'
-    | 'notification'
-    | 'broadcast'
-    | string;
+  | 'orderConfirmation'
+  | 'orderStatusUpdate'
+  | 'paymentStatusUpdate'
+  | 'notification'
+  | 'broadcast'
+  | string;
   title: string;
   message: string;
   data: (Record<string, unknown> & {

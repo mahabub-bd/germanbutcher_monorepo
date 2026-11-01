@@ -34,7 +34,6 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Section } from "../helper";
 
 const categorySchema = z
   .object({
@@ -48,8 +47,8 @@ const categorySchema = z
   })
   .refine((data) => !(data.isMainCategory && data.parentId), {
     path: ["parentId"],
-      error: "Main category cannot have a parent"
-});
+    error: "Main category cannot have a parent"
+  });
 
 type CategoryFormValues = z.infer<typeof categorySchema>;
 
@@ -153,14 +152,14 @@ export function CategoryForm({ mode, category }: CategoryFormProps) {
       }
     } catch (error) {
       toast.error(
-             mode === "create"
-               ? error instanceof Error
-                 ? `${error.message}`
-                 : "Failed to create category"
-               : error instanceof Error
-                 ? `${error.message}`
-                 : "Failed to update category"
-           );
+        mode === "create"
+          ? error instanceof Error
+            ? `${error.message}`
+            : "Failed to create category"
+          : error instanceof Error
+            ? `${error.message}`
+            : "Failed to update category"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -176,106 +175,118 @@ export function CategoryForm({ mode, category }: CategoryFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="p-6 space-y-6">
-          <Section title="Basic Information">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter category name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="order"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Display Order</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        min="0"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        value={field.value || 0}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3 w-full">
+        {/* Category details */}
+        <FormSection
+          title="Category details"
+          description="Name, ordering and the description shown on the storefront."
+        >
+          <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
             <FormField
               control={form.control}
-              name="description"
+              name="name"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
+                <FormItem className="flex h-full flex-col gap-1.5">
+                  <FormLabel>Category name</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Enter category description"
-                      className="min-h-25"
+                    <Input
+                      placeholder="e.g. Fresh Meat"
                       {...field}
+                      className="w-full flex-1"
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </Section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Section title="Media">
-              <FormField
-                control={form.control}
-                name="imageUrl"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Category Image</FormLabel>
-                    <div className="flex flex-col gap-4">
-                      <div className="flex items-center gap-4">
-                        {imagePreview ? (
-                          <div className="relative w-32 h-32 border rounded-md overflow-hidden bg-gray-50">
-                            <Image
-                              src={imagePreview}
-                              alt="Category preview"
-                              fill
-                              className="object-contain"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center w-32 h-32 border rounded-md bg-muted/20">
-                            <Upload className="h-8 w-8 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() =>
-                              document
-                                .getElementById("category-upload")
-                                ?.click()
-                            }
-                          >
-                            <Upload className="mr-2 h-4 w-4" />
-                            Choose File
-                          </Button>
-                          <span className="text-sm text-muted-foreground">
-                            {fileName || "No file chosen"}
-                          </span>
+            <FormField
+              control={form.control}
+              name="order"
+              render={({ field }) => (
+                <FormItem className="flex h-full flex-col gap-1.5">
+                  <FormLabel>Display order</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="0 (lower shows first)"
+                      min="0"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      value={field.value || 0}
+                      className="w-full flex-1 tabular-nums"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Enter category description"
+                    className="w-full min-h-16 resize-y"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </FormSection>
+
+        {/* Logo, hierarchy & visibility */}
+        <FormSection
+          title="Logo & visibility"
+          description="The category image, its place in the hierarchy and whether it is live."
+        >
+          <div className="grid gap-3 lg:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={() => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel>Category image</FormLabel>
+                  <FormControl>
+                    <div className="flex items-center gap-3">
+                      {imagePreview ? (
+                        <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-md border bg-muted/20">
+                          <Image
+                            src={imagePreview}
+                            alt="Category preview"
+                            fill
+                            className="object-contain"
+                          />
                         </div>
+                      ) : (
+                        <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-md border border-dashed bg-muted/20">
+                          <Upload className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex min-w-0 flex-col gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            document
+                              .getElementById("category-upload")
+                              ?.click()
+                          }
+                        >
+                          <Upload className="mr-2 h-4 w-4" />
+                          Choose image
+                        </Button>
+                        <p className="break-all text-xs text-muted-foreground">
+                          {fileName || "PNG or JPG recommended"}
+                        </p>
                       </div>
                       <Input
                         id="category-upload"
@@ -285,100 +296,100 @@ export function CategoryForm({ mode, category }: CategoryFormProps) {
                         onChange={handleFileChange}
                       />
                     </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </Section>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <Section title="Status & Hierarchy">
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="isActive"
-                  render={({ field }) => (
-                    <SwitchCard
-                      label="Active Status"
-                      description="Category will be visible to customers"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="isMainCategory"
-                  render={({ field }) => (
-                    <SwitchCard
-                      label="Main Category"
-                      description="Mark as top-level main category"
-                      checked={field.value}
-                      onCheckedChange={(checked) => {
-                        field.onChange(checked);
-                        if (checked) {
-                          form.setValue("parentId", null);
-                        }
-                      }}
-                    />
-                  )}
-                />
-
-                {!form.watch("isMainCategory") && (
-                  <FormField
-                    control={form.control}
-                    name="parentId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Parent Category</FormLabel>
-                        <Select
-                          onValueChange={(value) =>
-                            field.onChange(
-                              value === "null" ? null : Number(value)
-                            )
-                          }
-                          value={field.value?.toString() ?? "null"}
-                          disabled={form.watch("isMainCategory")}
-                        >
-                          <FormControl className="w-full">
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select parent category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="w-full">
-                            <SelectItem value="null">
-                              Top Level Category
-                            </SelectItem>
-                            {parentCategories.map((cat) => (
-                              <SelectItem
-                                key={cat.id}
-                                value={cat.id.toString()}
-                              >
-                                {cat.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+            <div className="flex flex-col gap-3">
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <SwitchRow
+                    label="Active"
+                    hint="Category is visible to customers"
+                    checked={field.value}
+                    onChange={field.onChange}
                   />
                 )}
-              </div>
-            </Section>
-          </div>
-        </div>
+              />
 
-        <div className="flex justify-end p-6 border-t">
+              <FormField
+                control={form.control}
+                name="isMainCategory"
+                render={({ field }) => (
+                  <SwitchRow
+                    label="Main category"
+                    hint="Top-level category without a parent"
+                    checked={field.value}
+                    onChange={(checked) => {
+                      field.onChange(checked);
+                      if (checked) form.setValue("parentId", null);
+                    }}
+                  />
+                )}
+              />
+
+              {!form.watch("isMainCategory") && (
+                <FormField
+                  control={form.control}
+                  name="parentId"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel>Parent category</FormLabel>
+                      <Select
+                        onValueChange={(value) =>
+                          field.onChange(
+                            value === "null" ? null : Number(value)
+                          )
+                        }
+                        value={field.value?.toString() ?? "null"}
+                      >
+                        <FormControl className="w-full">
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select parent category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="w-full">
+                          <SelectItem value="null">
+                            Top Level Category
+                          </SelectItem>
+                          {parentCategories.map((cat) => (
+                            <SelectItem
+                              key={cat.id}
+                              value={cat.id.toString()}
+                            >
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+          </div>
+        </FormSection>
+
+        <div className="sticky bottom-2 flex flex-col-reverse items-stretch gap-2 rounded-lg border bg-card/95 p-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-end">
+          <p className="mr-auto hidden text-xs text-muted-foreground lg:block">
+            The category appears on the storefront immediately after saving.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {mode === "create" ? "Creating..." : "Updating..."}
-              </>
-            ) : (
-              <>{mode === "create" ? "Create Category" : "Update Category"}</>
-            )}
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {mode === "create" ? "Create category" : "Save changes"}
           </Button>
         </div>
       </form>
@@ -386,22 +397,58 @@ export function CategoryForm({ mode, category }: CategoryFormProps) {
   );
 }
 
-const SwitchCard = ({
-  label,
+/** A bordered card that groups related fields under a titled header, so the
+ *  form reads as distinct sections instead of one long grid. */
+function FormSection({
+  title,
   description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-lg border bg-card shadow-xs">
+      <div className="border-b px-3.5 py-2.5">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {description && (
+          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+        )}
+      </div>
+      <div className="space-y-3 p-3.5">{children}</div>
+    </section>
+  );
+}
+
+/** Toggle rendered as a full-width row: label + hint on the left, switch on
+ *  the right. Clicking anywhere on the row flips the switch. */
+function SwitchRow({
+  label,
+  hint,
   checked,
-  onCheckedChange,
+  onChange,
 }: {
   label: string;
-  description: string;
+  hint: string;
   checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-}) => (
-  <div className="flex items-center justify-between rounded-lg border p-4">
-    <div className="space-y-0.5">
-      <p className="text-base font-medium">{label}</p>
-      <p className="text-sm text-muted-foreground">{description}</p>
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <div
+      onClick={() => onChange(!checked)}
+      className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-background p-3 transition-colors hover:border-primary/40 hover:bg-muted/30"
+    >
+      <div className="min-w-0 space-y-0.5">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs leading-snug text-muted-foreground">{hint}</p>
+      </div>
+      <Switch
+        checked={checked}
+        onCheckedChange={onChange}
+        onClick={(event) => event.stopPropagation()}
+        className="shrink-0"
+      />
     </div>
-    <Switch checked={checked} onCheckedChange={onCheckedChange} />
-  </div>
-);
+  );
+}

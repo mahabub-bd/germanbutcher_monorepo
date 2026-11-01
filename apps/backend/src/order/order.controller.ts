@@ -823,7 +823,7 @@ export class OrderController {
   }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
-  @ModulePermissions('/admin/analytics/customer-list')
+  @ModulePermissions('/admin/reports/customer-list')
   @Get('reports/customer-type')
   @ApiOperation({
     summary: 'New vs returning customers this month',

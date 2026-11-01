@@ -3,7 +3,7 @@
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { PaymentMethodForm } from "@/components/admin/payment-method/payment-method-form";
 import { Button } from "@/components/ui/button";
-import { CardTitle } from "@/components/ui/card";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 import { fetchData } from "@/utils/api-utils";
 import type { PaymentMethod } from "@/utils/types";
 import Link from "next/link";
@@ -42,7 +42,6 @@ export default function EditPaymentMethodPage() {
   }, [methodId, router]);
 
   const handleSuccess = () => {
-    toast.success("Payment method updated successfully");
     router.back();
   };
 
@@ -70,16 +69,12 @@ export default function EditPaymentMethodPage() {
 
   return (
     <AdminPageContainer>
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <CardTitle>Payment Method Information</CardTitle>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/admin/settings/payment-method">
-              Back to Payment Methods
-            </Link>
-          </Button>
-        </div>
+      <FormPageHeader
+        title="Payment method information"
+        description="Update the details for this payment method."
+        backHref="/admin/settings/payment-method"
+        backLabel="Back to Payment Methods"
+      />
 
       <PaymentMethodForm
         mode="edit"

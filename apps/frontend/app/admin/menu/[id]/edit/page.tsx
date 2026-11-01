@@ -2,11 +2,9 @@
 
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { MenuForm } from "@/components/admin/menu/menu-form";
-import { Button } from "@/components/ui/button";
-import { CardTitle } from "@/components/ui/card";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 import { fetchData } from "@/utils/api-utils";
 import type { MenuItem } from "@/utils/types";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AdminPageContainer } from "@/components/admin/admin-page-container";
@@ -47,14 +45,12 @@ export default function EditMenuPage() {
 
   return (
     <AdminPageContainer>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>Edit Menu Item</CardTitle>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/admin/menu/menu-list">Back to Menu</Link>
-          </Button>
-        </div>
+      <FormPageHeader
+        title="Edit menu item"
+        description="Update this menu item's label, destination and placement."
+        backHref="/admin/menu/menu-list"
+        backLabel="Back to Menu"
+      />
 
       <MenuForm mode="edit" menuItem={menuItem} />
     </AdminPageContainer>

@@ -2,7 +2,7 @@
 
 import { RoleForm } from "@/components/admin/role/role-form";
 import { Button } from "@/components/ui/button";
-import { CardTitle } from "@/components/ui/card";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 import { fetchData } from "@/utils/api-utils";
 import { Role } from "@/utils/types";
 import { Loader2 } from "lucide-react";
@@ -38,7 +38,6 @@ export default function EditRolePage() {
   }, [roleId, router]);
 
   const handleSuccess = () => {
-    toast.success("Role updated successfully");
     router.back();
   };
 
@@ -71,14 +70,12 @@ export default function EditRolePage() {
 
   return (
     <AdminPageContainer>
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <CardTitle>Role Information</CardTitle>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/admin/user/role/role-list">Back to Role List</Link>
-          </Button>
-        </div>
+      <FormPageHeader
+        title="Role information"
+        description="Update the details for this role."
+        backHref="/admin/user/role/role-list"
+        backLabel="Back to Role List"
+      />
 
       <RoleForm mode="edit" role={role} onSuccess={handleSuccess} />
     </AdminPageContainer>

@@ -1,9 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BogoCampaignsService } from 'src/bogo-campaigns/bogo-campaigns.service';
 import {
   FlashSaleCampaignsService,
 } from 'src/flash-sale-campaigns/flash-sale-campaigns.service';
+import { EmailService } from 'src/email/email.service';
 import { Product } from 'src/product/entities/product.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
@@ -22,6 +24,8 @@ export class CartService {
     @InjectRepository(Product) private productRepo: Repository<Product>,
     private readonly flashSaleCampaignsService: FlashSaleCampaignsService,
     private readonly bogoCampaignsService: BogoCampaignsService,
+    private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {}
 
   /** Attach flash-sale pricing + BOGO info to every product in the cart so
@@ -239,6 +243,7 @@ export class CartService {
   async getAbandonedReport(
     page: number = 1,
     limit: number = 10,
+    search?: string,
   ): Promise<{
     summary: { abandonedCarts: number; abandonedValue: number };
     items: Array<{
@@ -258,13 +263,26 @@ export class CartService {
           AND o."createdAt" >= c."updatedAt"
       )`;
 
+    // Escape LIKE wildcards so a user-typed % or _ matches literally. The
+    // placeholder index differs per query: the count query has no other
+    // binds, the items query binds limit/offset first.
+    const searchClause = (paramIndex: number) =>
+      search
+        ? `AND (u.name ILIKE $${paramIndex} OR u."mobileNumber" ILIKE $${paramIndex})`
+        : '';
+    const searchParam = search
+      ? [`%${search.replace(/[\\%_]/g, '\\$&')}%`]
+      : [];
+
     const [summary, countResult, items] = await Promise.all([
       this.getAbandonedSummary(),
       this.cartRepo.query(
         `SELECT COUNT(DISTINCT c.id) AS total
          FROM cart c
-         JOIN cart_item ci ON ci."cartId" = c.id
-         WHERE ${baseWhere}`,
+         JOIN "user" u ON u.id = c."userId"
+         WHERE ${baseWhere}
+           ${searchClause(1)}`,
+        [...searchParam],
       ),
       this.cartRepo.query(
         `SELECT c.id, c."updatedAt", u.name AS user_name, u."mobileNumber",
@@ -275,10 +293,11 @@ export class CartService {
          JOIN cart_item ci ON ci."cartId" = c.id
          JOIN product p ON p.id = ci."productId"
          WHERE ${baseWhere}
+           ${searchClause(3)}
          GROUP BY c.id, c."updatedAt", u.name, u."mobileNumber"
          ORDER BY c."updatedAt" DESC
          LIMIT $1 OFFSET $2`,
-        [limit, (page - 1) * limit],
+        [limit, (page - 1) * limit, ...searchParam],
       ),
     ]);
 
@@ -294,5 +313,119 @@ export class CartService {
         updatedAt: r.updatedAt,
       })),
     };
+  }
+
+  /** Single abandoned cart with its line items for the details page. Uses the
+   * same abandonment definition as getAbandonedReport; a cart that no longer
+   * qualifies (checked out / recent activity) or does not exist throws 404. */
+  async getAbandonedCartDetail(cartId: number): Promise<{
+    cartId: number;
+    userId: number;
+    userName: string | null;
+    mobileNumber: string | null;
+    email: string | null;
+    updatedAt: Date;
+    itemCount: number;
+    subtotal: number;
+    items: Array<{
+      cartItemId: number;
+      productId: number;
+      name: string;
+      slug: string | null;
+      imageUrl: string | null;
+      unitPrice: number;
+      quantity: number;
+      lineTotal: number;
+      stock: number;
+    }>;
+  }> {
+    const rows: Record<string, string>[] = await this.cartRepo.query(
+      `SELECT c.id AS "cartId", c."userId", c."updatedAt",
+              u.name AS "userName", u."mobileNumber", u.email AS "email",
+              ci.id AS "cartItemId",
+              p.id AS "productId", p.name AS "productName", p.slug AS "productSlug",
+              p."sellingPrice" AS "unitPrice", p.stock AS "stock",
+              ci.quantity AS "quantity",
+              a.url AS "imageUrl"
+       FROM cart c
+       JOIN "user" u ON u.id = c."userId"
+       JOIN cart_item ci ON ci."cartId" = c.id
+       JOIN product p ON p.id = ci."productId"
+       LEFT JOIN attachment a ON a.id = p."attachmentId"
+       WHERE c.id = $1
+         AND c."updatedAt" < NOW() - INTERVAL '24 hours'
+         AND NOT EXISTS (
+           SELECT 1 FROM "order" o
+           WHERE o."userId" = c."userId"
+             AND o."createdAt" >= c."updatedAt"
+         )
+       ORDER BY ci.id ASC`,
+      [cartId],
+    );
+
+    if (!rows.length) {
+      throw new NotFoundException('Abandoned cart not found');
+    }
+
+    const items = rows.map((r) => {
+      const unitPrice = parseFloat(r.unitPrice) || 0;
+      const quantity = parseInt(r.quantity, 10) || 0;
+      return {
+        cartItemId: parseInt(r.cartItemId, 10),
+        productId: parseInt(r.productId, 10),
+        name: r.productName,
+        slug: r.productSlug ?? null,
+        imageUrl: r.imageUrl ?? null,
+        unitPrice,
+        quantity,
+        lineTotal: unitPrice * quantity,
+        stock: parseInt(r.stock, 10) || 0,
+      };
+    });
+
+    const head = rows[0];
+    return {
+      cartId: parseInt(head.cartId, 10),
+      userId: parseInt(head.userId, 10),
+      userName: head.userName ?? null,
+      mobileNumber: head.mobileNumber ?? null,
+      email: head.email ?? null,
+      updatedAt: new Date(head.updatedAt),
+      itemCount: items.reduce((sum, i) => sum + i.quantity, 0),
+      subtotal: items.reduce((sum, i) => sum + i.lineTotal, 0),
+      items,
+    };
+  }
+
+  /** Sends the abandoned-cart reminder email to the cart's customer. Reuses
+   * the same abandonment definition as the report/detail views, so a cart
+   * that has since checked out or been cleared 404s instead of emailing a
+   * customer about a cart they already completed. Returns the recipient. */
+  async sendAbandonedCartReminder(cartId: number): Promise<{ sentTo: string }> {
+    const detail = await this.getAbandonedCartDetail(cartId);
+
+    if (!detail.email) {
+      throw new BadRequestException(
+        'This customer has no email address on file — reach out by phone instead.',
+      );
+    }
+
+    const frontendUrl =
+      this.configService.get<string>('frontendUrl') ||
+      'https://www.germanbutcherbd.com';
+    await this.emailService.sendAbandonedCartReminderEmail({
+      customerName: detail.userName || 'Customer',
+      customerEmail: detail.email,
+      items: detail.items.map((item) => ({
+        lineTotal: item.lineTotal,
+        name: item.name,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      })),
+      subtotal: detail.subtotal,
+      cartUrl: `${frontendUrl}/cart`,
+    });
+
+    return { sentTo: detail.email };
   }
 }

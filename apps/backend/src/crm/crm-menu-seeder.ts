@@ -64,9 +64,9 @@ export class CrmMenuSeeder implements OnModuleInit {
       },
     ];
 
-    // Older builds seeded a separate CRM abandoned-carts menu; the existing
-    // /admin/analytics/abandoned-carts page covers it. Remove the leftover.
-    await this.menuRepository.delete({ url: '/admin/crm/abandoned-carts' });
+    // Abandoned Carts now lives under CRM as /admin/crm/abandoned-carts;
+    // remove the stale analytics-location row from older builds.
+    await this.menuRepository.delete({ url: '/admin/analytics/abandoned-carts' });
 
     const crmMenu = await this.menuRepository.findOne({
       where: { url: '/admin/crm' },
