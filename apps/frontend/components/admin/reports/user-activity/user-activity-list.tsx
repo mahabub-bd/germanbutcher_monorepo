@@ -393,16 +393,16 @@ export function UserActivityList({
       <Table className="report-table table-fixed min-w-225 lg:min-w-0 [&_td]:px-1.5 [&_td]:py-2.5 [&_td]:wrap-break-word [&_td]:align-middle [&_th]:px-1.5 [&_th]:py-2 [&_th]:align-middle [&_th]:text-xs">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            {/* Fixed layout: Message gets the most room; the other columns
-                share what's left equally (10% each, ID is narrowest). */}
-            <TableHead className="w-[5%]">ID</TableHead>
-            <TableHead className="w-[10%]">Date & Time</TableHead>
-            <TableHead className="w-[10%]">Action</TableHead>
-            <TableHead className="w-[10%]">Entity</TableHead>
-            <TableHead className="w-[10%]">Status</TableHead>
-            <TableHead className="w-[35%]">Message</TableHead>
+            {/* Fixed layout: Entity, Status, Message and IP are compact now;
+                the freed width goes to Date & Time, Action and User. */}
+            <TableHead className="w-[4%]">ID</TableHead>
+            <TableHead className="w-[13%]">Date & Time</TableHead>
+            <TableHead className="w-[19%]">Action</TableHead>
+            <TableHead className="w-[9%]">Entity</TableHead>
+            <TableHead className="w-[7%]">Status</TableHead>
+            <TableHead className="w-[24%]">Message</TableHead>
             <TableHead className="w-[10%]">IP Address</TableHead>
-            <TableHead className="w-[10%]">User</TableHead>
+            <TableHead className="w-[14%]">User</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -446,7 +446,7 @@ export function UserActivityList({
 
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-medium text-xs capitalize">
+                    <span className="font-medium text-xs capitalize truncate" title={activity.entityType}>
                       {activity.entityType}
                     </span>
                     {activity.entityId && (

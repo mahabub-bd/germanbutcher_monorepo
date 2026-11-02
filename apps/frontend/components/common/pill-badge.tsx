@@ -1,12 +1,12 @@
-import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 
 /**
  * Pill badge: one shape for every badge in the admin UI — tinted fill, hairline
  * border in the same hue, compact 11px label.
  */
 const PILL =
-  "inline-flex items-center rounded-full border px-2.5 py-[3px] text-[11px] font-semibold leading-none whitespace-nowrap shadow-none";
+  "inline-flex max-w-full items-center rounded-full border px-2.5 py-[3px] text-[11px] font-semibold leading-none whitespace-nowrap shadow-none";
 
 export const PILL_TONE = {
   neutral:
