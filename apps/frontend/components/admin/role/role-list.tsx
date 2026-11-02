@@ -30,17 +30,13 @@ import { formatDateTime } from "@/lib/utils";
 import { deleteData, fetchProtectedData } from "@/utils/api-utils";
 import type { Role } from "@/utils/types";
 import {
-  Briefcase,
   CheckCircle2,
   Eye,
   MoreHorizontal,
   Pencil,
   Plus,
   Shield,
-  ShieldCheck,
-  Store,
   Trash2,
-  User,
   Users,
   XCircle,
 } from "lucide-react";
@@ -51,22 +47,6 @@ import { toast } from "sonner";
 import DeleteConfirmationDialog from "../delete-confirmation-dialog";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
-
-// Role icon mapping — same keys as the user list's role badges.
-const roleIcons: Record<string, React.ReactNode> = {
-  admin: <ShieldCheck className="size-5 text-muted-foreground" />,
-  superadmin: <Shield className="size-5 text-muted-foreground" />,
-  modaretor: <Shield className="size-5 text-muted-foreground" />,
-  manager: <Briefcase className="size-5 text-muted-foreground" />,
-  storemanager: <Store className="size-5 text-muted-foreground" />,
-  staff: <Users className="size-5 text-muted-foreground" />,
-  customer: <User className="size-5 text-muted-foreground" />,
-};
-
-const getRoleIcon = (roleName: string | undefined) =>
-  (roleName && roleIcons[roleName.trim().toLowerCase()]) || (
-    <Shield className="size-5 text-muted-foreground" />
-  );
 
 export function RoleList() {
   const MENU_URL = "/admin/user/role/role-list";
@@ -339,21 +319,19 @@ export function RoleList() {
                 </div>
               ) : (
                 <>
-                  {/* Desktop table — fixed layout. The identity Role column is
-                      pinned so its icon + name aren't squeezed into a pill-
-                      sized share; Description / Status / Created then split
-                      the remaining width equally. Actions stays icon-only
-                      at w-14 and panel edges are kept at 16px. */}
+                  {/* Desktop table — fixed layout with equal-width content
+                      columns and one uniform text size across every cell.
+                      Actions stays a narrow icon-only column at the right. */}
                   <div className="hidden md:block">
-                    <Table className="report-table table-fixed [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
+                    <Table className="report-table table-fixed [&_td]:px-1.5 [&_td]:text-sm [&_td]:align-middle [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th]:text-sm [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
                       <TableHeader className="[&_th]:font-semibold">
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="w-40 lg:w-56 2xl:w-64">Role</TableHead>
-                          <TableHead className="w-24 text-center">Users</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead className="pr-8!">Status</TableHead>
-                          <TableHead>Created</TableHead>
-                          <TableHead className="w-14 text-right">
+                          <TableHead className="w-[18%]">Role</TableHead>
+                          <TableHead className="w-[18%] text-center">Users</TableHead>
+                          <TableHead className="w-[18%]">Description</TableHead>
+                          <TableHead className="w-[18%]">Status</TableHead>
+                          <TableHead className="w-[18%]">Created</TableHead>
+                          <TableHead className="w-[10%] text-right">
                             <span className="sr-only">Actions</span>
                           </TableHead>
                         </TableRow>
@@ -364,39 +342,32 @@ export function RoleList() {
                             <TableCell className="py-2.5">
                               <Link
                                 href={`/admin/user/role/${role.id}/view`}
-                                className="flex min-w-0 items-center gap-2.5"
+                                className="block truncate font-medium capitalize hover:text-primaryColor hover:underline"
+                                title={role.rolename}
                               >
-                                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted">
-                                  {getRoleIcon(role.rolename)}
-                                </span>
-                                <span
-                                  className="truncate font-medium capitalize leading-tight hover:text-primaryColor hover:underline"
-                                  title={role.rolename}
-                                >
-                                  {role.rolename}
-                                </span>
+                                {role.rolename}
                               </Link>
                             </TableCell>
-                            <TableCell className="text-center">
+                            <TableCell className="text-center tabular-nums">
                               <Link
                                 href={`/admin/user/role/${role.id}/view`}
-                                className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-foreground hover:bg-muted/70 hover:text-primaryColor"
+                                className="inline-flex items-center justify-center gap-1.5 hover:text-primaryColor"
                                 title={`${role.userCount ?? 0} user${(role.userCount ?? 0) === 1 ? "" : "s"
                                   } with this role`}
                               >
-                                <Users className="size-3" />
+                                <Users className="size-4 text-muted-foreground" />
                                 {(role.userCount ?? 0).toLocaleString("en-US")}
                               </Link>
                             </TableCell>
                             <TableCell>
                               <p
-                                className="line-clamp-2 text-sm text-muted-foreground"
+                                className="line-clamp-2 text-muted-foreground"
                                 title={role.description || undefined}
                               >
                                 {role.description || "—"}
                               </p>
                             </TableCell>
-                            <TableCell className="pr-8!">
+                            <TableCell>
                               <PillBadge
                                 tone={role.isActive ? "emerald" : "neutral"}
                               >
@@ -424,11 +395,8 @@ export function RoleList() {
                         <div className="flex items-start justify-between gap-2">
                           <Link
                             href={`/admin/user/role/${role.id}/view`}
-                            className="flex min-w-0 items-center gap-2.5"
+                            className="min-w-0"
                           >
-                            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted">
-                              {getRoleIcon(role.rolename)}
-                            </span>
                             <p className="truncate text-sm font-semibold capitalize">
                               {role.rolename}
                             </p>
