@@ -87,8 +87,14 @@ export class DeliveryCoverageService {
     }
 
     const [cities, areas] = await Promise.all([
-      this.cityRepository.find({ relations: ['division'] }),
-      this.areaRepository.find({ relations: ['city'] }),
+      this.cityRepository.find({
+        relations: ['division'],
+        order: { name: 'ASC' },
+      }),
+      this.areaRepository.find({
+        relations: ['city'],
+        order: { name: 'ASC' },
+      }),
     ]);
 
     const tree: DeliveryCoverageTree = {
