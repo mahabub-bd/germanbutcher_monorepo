@@ -1,8 +1,8 @@
 "use client";
 
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PaginationComponent } from "@/components/common/pagination";
 import { TableSearch } from "@/components/common/table-search";
-import StatsCard from "@/components/admin/dashboard/stats-card";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -491,7 +491,7 @@ function TypeFilterChips({
 }) {
   return (
     <Tabs value={value} onValueChange={(next) => onChange(next as TypeFilter)}>
-      <TabsList className="h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit">
+      <TabsList className="scrollbar-none h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit">
         <SegmentTab
           value="all"
           label={allLabel}
@@ -731,7 +731,7 @@ export default function StockMovementHistory({
   return (
     <div className="space-y-4">
       {showProduct && (
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 grid-cols-3">
           <StatsCard
             icon={Activity}
             title="Movements"

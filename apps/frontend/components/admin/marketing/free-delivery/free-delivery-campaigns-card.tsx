@@ -30,6 +30,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import {
   Table,
@@ -57,6 +66,7 @@ import {
   Pencil,
   Plus,
   Search,
+  SlidersHorizontal,
   Tags,
   Truck,
   XCircle,
@@ -132,6 +142,7 @@ export function FreeDeliveryCampaignsCard() {
   const [productSearch, setProductSearch] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<CampaignStatus | "">("");
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   const loadCampaigns = useCallback(async () => {
     setIsLoading(true);
@@ -385,6 +396,33 @@ export function FreeDeliveryCampaignsCard() {
 
   const hasFilters = Boolean(searchQuery.trim() || statusFilter);
 
+  // Select filters only — search lives outside the mobile filter sheet.
+  const activeFilterCount = [statusFilter].filter(
+    (value) => value !== ""
+  ).length;
+
+  // Shared filter select — rendered in the md toolbar and in the mobile
+  // filter sheet so both stay in sync with one definition.
+  const statusSelect = (
+    <Select
+      value={statusFilter || "all"}
+      onValueChange={(value) =>
+        setStatusFilter(value === "all" ? "" : (value as CampaignStatus))
+      }
+    >
+      <SelectTrigger className="h-9 w-full">
+        <SelectValue placeholder="Status" />
+      </SelectTrigger>
+      <SelectContent>
+        {CAMPAIGN_STATUS_OPTIONS.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
   const clearFilters = () => {
     setSearchQuery("");
     setStatusFilter("");
@@ -413,36 +451,63 @@ export function FreeDeliveryCampaignsCard() {
       {/* Toolbar */}
       <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
         <div className="flex flex-col gap-2.5 md:flex-row md:flex-nowrap md:items-center md:gap-3">
-          <TableSearch
-            wrapperClassName="w-full md:max-w-xs"
-            className="h-9"
-            placeholder="Search by campaign name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <div className="flex items-center gap-2">
+            <TableSearch
+              wrapperClassName="w-full md:max-w-xs"
+              className="h-9"
+              placeholder="Search by campaign name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
 
-          <div className="grid grid-cols-2 gap-2.5 md:flex md:items-center md:gap-3">
-            <div className="md:w-40 md:shrink-0">
-              <Select
-                value={statusFilter || "all"}
-                onValueChange={(value) =>
-                  setStatusFilter(
-                    value === "all" ? "" : (value as CampaignStatus)
-                  )
-                }
+            {/* Mobile filter trigger — opens the bottom-sheet filter */}
+            <Sheet
+              open={isFilterSheetOpen}
+              onOpenChange={setIsFilterSheetOpen}
+            >
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 shrink-0 gap-1.5 md:hidden"
+                >
+                  <SlidersHorizontal className="size-4" />
+                  Filter
+                  {activeFilterCount > 0 && (
+                    <span className="ml-0.5 flex size-5 items-center justify-center rounded-full bg-primaryColor text-[10px] font-semibold text-white">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="bottom"
+                className="max-h-[85vh] overflow-y-auto rounded-t-2xl px-4"
               >
-                <SelectTrigger className="h-9 w-full">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CAMPAIGN_STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                <SheetHeader>
+                  <SheetTitle>Filters</SheetTitle>
+                </SheetHeader>
+                <div className="grid gap-3 pb-2">
+                  {statusSelect}
+                </div>
+                <SheetFooter className="flex-row gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={clearFilters}
+                  >
+                    Clear all
+                  </Button>
+                  <SheetClose asChild>
+                    <Button className="flex-1">Done</Button>
+                  </SheetClose>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          <div className="hidden md:flex md:items-center md:gap-3">
+            <div className="md:w-40 md:shrink-0">{statusSelect}</div>
           </div>
 
           {hasFilters && (

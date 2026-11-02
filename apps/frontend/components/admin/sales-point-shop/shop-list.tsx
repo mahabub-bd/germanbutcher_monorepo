@@ -23,6 +23,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   Table,
   TableBody,
   TableCell,
@@ -41,6 +50,7 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  SlidersHorizontal,
   Store,
   Trash2,
   XCircle,
@@ -91,6 +101,7 @@ export function ShopList({
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -233,6 +244,75 @@ export function ShopList({
     setCurrentPage(1);
   };
 
+  // Select filters only — search lives outside the mobile filter sheet.
+  const activeFilterCount = [statusFilter, salesPointFilter, divisionFilter]
+    .filter((value) => value && value !== "all").length;
+
+  // Shared filter selects — rendered in the md toolbar and in the mobile
+  // filter sheet so both stay in sync with one definition.
+  const statusSelect = (
+    <Select
+      value={statusFilter || "all"}
+      onValueChange={(value) => {
+        setStatusFilter(value === "all" ? "" : value);
+        setCurrentPage(1);
+      }}
+    >
+      <SelectTrigger className="h-9 w-full">
+        <SelectValue placeholder="Status" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All status</SelectItem>
+        <SelectItem value="active">Active</SelectItem>
+        <SelectItem value="inactive">Inactive</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+
+  const salesPointSelect = (
+    <Select
+      value={salesPointFilter || "all"}
+      onValueChange={(value) => {
+        setSalesPointFilter(value === "all" ? "" : value);
+        setCurrentPage(1);
+      }}
+    >
+      <SelectTrigger className="h-9 w-full">
+        <SelectValue placeholder="Sales point" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All sales points</SelectItem>
+        {salesPoints.map((salesPoint) => (
+          <SelectItem key={salesPoint.id} value={salesPoint.id.toString()}>
+            {salesPoint.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
+  const divisionSelect = (
+    <Select
+      value={divisionFilter || "all"}
+      onValueChange={(value) => {
+        setDivisionFilter(value === "all" ? "" : value);
+        setCurrentPage(1);
+      }}
+    >
+      <SelectTrigger className="h-9 w-full">
+        <SelectValue placeholder="Division" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All divisions</SelectItem>
+        {divisions.map((division) => (
+          <SelectItem key={division} value={division}>
+            {division}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);
@@ -302,80 +382,67 @@ export function ShopList({
         {/* Toolbar */}
         <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
           <div className="flex flex-col gap-2.5 md:flex-row md:flex-nowrap md:items-center md:gap-3">
-            <TableSearch
-              wrapperClassName="w-full md:max-w-xs"
-              className="h-9"
-              placeholder="Search shops..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
+            <div className="flex items-center gap-2">
+              <TableSearch
+                wrapperClassName="w-full md:max-w-xs"
+                className="h-9"
+                placeholder="Search shops..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
 
-            <div className="grid grid-cols-2 gap-2.5 md:flex md:items-center md:gap-3">
-              <div className="md:w-35 md:shrink-0">
-                <Select
-                  value={statusFilter || "all"}
-                  onValueChange={(value) => {
-                    setStatusFilter(value === "all" ? "" : value);
-                    setCurrentPage(1);
-                  }}
+              {/* Mobile filter trigger — opens the bottom-sheet filter */}
+              <Sheet
+                open={isFilterSheetOpen}
+                onOpenChange={setIsFilterSheetOpen}
+              >
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 shrink-0 gap-1.5 md:hidden"
+                  >
+                    <SlidersHorizontal className="size-4" />
+                    Filter
+                    {activeFilterCount > 0 && (
+                      <span className="ml-0.5 flex size-5 items-center justify-center rounded-full bg-primaryColor text-[10px] font-semibold text-white">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side="bottom"
+                  className="max-h-[85vh] overflow-y-auto rounded-t-2xl px-4"
                 >
-                  <SelectTrigger className="h-9 w-full">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <SheetHeader>
+                    <SheetTitle>Filters</SheetTitle>
+                  </SheetHeader>
+                  <div className="grid gap-3 pb-2">
+                    {statusSelect}
+                    {salesPointSelect}
+                    {divisionSelect}
+                  </div>
+                  <SheetFooter className="flex-row gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={clearFilters}
+                    >
+                      Clear all
+                    </Button>
+                    <SheetClose asChild>
+                      <Button className="flex-1">Done</Button>
+                    </SheetClose>
+                  </SheetFooter>
+                </SheetContent>
+              </Sheet>
+            </div>
 
-              <div className="md:w-52 md:shrink-0">
-                <Select
-                  value={salesPointFilter || "all"}
-                  onValueChange={(value) => {
-                    setSalesPointFilter(value === "all" ? "" : value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-9 w-full">
-                    <SelectValue placeholder="Sales point" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All sales points</SelectItem>
-                    {salesPoints.map((salesPoint) => (
-                      <SelectItem
-                        key={salesPoint.id}
-                        value={salesPoint.id.toString()}
-                      >
-                        {salesPoint.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="md:w-40 md:shrink-0">
-                <Select
-                  value={divisionFilter || "all"}
-                  onValueChange={(value) => {
-                    setDivisionFilter(value === "all" ? "" : value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-9 w-full">
-                    <SelectValue placeholder="Division" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All divisions</SelectItem>
-                    {divisions.map((division) => (
-                      <SelectItem key={division} value={division}>
-                        {division}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="hidden md:flex md:items-center md:gap-3">
+              <div className="md:w-35 md:shrink-0">{statusSelect}</div>
+              <div className="md:w-52 md:shrink-0">{salesPointSelect}</div>
+              <div className="md:w-40 md:shrink-0">{divisionSelect}</div>
             </div>
 
             {hasFilters && (
