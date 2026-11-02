@@ -1,351 +1,298 @@
-import { HeadingPrimary } from "@/components/common/heading-primary";
+import { DeliveryPolicyTable } from "@/components/common/delivery-policy-table";
+import {
+  PolicyCallout,
+  PolicyCardGrid,
+  PolicyInfoCard,
+  PolicyList,
+  PolicySection,
+  type PolicyIcon,
+} from "@/components/common/policy-doc";
+import { PolicyPageShell } from "@/components/common/policy-page-shell";
+import { cn } from "@/lib/utils";
 import { getBusinessSettings } from "@/utils/business-settings-server";
 import {
   AlertTriangle,
-  CheckCircle,
-  Clock,
+  ArrowRight,
+  Banknote,
   CreditCard,
-  MapPin,
+  Headphones,
   MessageSquare,
   Phone,
-  Shield,
+  ShieldCheck,
   ShoppingCart,
-  Star,
+  Smartphone,
+  Store,
   Truck,
 } from "lucide-react";
 import Link from "next/link";
-import React from "react";
 
-// Types
-interface OrderStep {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  badge?: string;
-}
+const sections = [
+  { id: "ordering-process", title: "Simple Ordering Process" },
+  { id: "delivery-options", title: "Delivery Options" },
+  { id: "payment-options", title: "Payment Options" },
+  { id: "order-support", title: "Order Support" },
+];
 
-interface DeliveryOption {
-  title: string;
-  details: string[];
-  icon: React.ReactNode;
-  recommended?: boolean;
-}
-
-interface PaymentMethod {
-  name: string;
-  icon: React.ReactNode;
-  description: string;
-}
-
-interface ContactMethod {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  action: string;
-  href: string;
-  available: string;
-}
-
-// Data
-const orderSteps: OrderStep[] = [
+const orderSteps = [
   {
-    icon: <ShoppingCart className="w-8 h-8 text-red-600" />,
+    icon: ShoppingCart,
+    eyebrow: "Step 1",
+    badge: "Start Here",
     title: "Browse Our Selection",
     description:
       "Explore our premium meats and specialty products in our online store.",
-    badge: "Start Here",
   },
   {
-    icon: <CreditCard className="w-8 h-8 text-red-600" />,
+    icon: CreditCard,
+    eyebrow: "Step 2",
     title: "Place Your Order",
     description:
       "Add items to your cart and proceed through our secure checkout.",
   },
   {
-    icon: <Truck className="w-8 h-8 text-red-600" />,
+    icon: Truck,
+    eyebrow: "Step 3",
     title: "Delivery or Pickup",
     description: "Choose between home delivery or store pickup at checkout.",
   },
   {
-    icon: <Shield className="w-8 h-8 text-red-600" />,
+    icon: ShieldCheck,
+    eyebrow: "Step 4",
+    badge: "Quality Assured",
     title: "Enjoy Quality Meats",
     description:
       "Receive your order and enjoy German Butcher's premium quality.",
-    badge: "Quality Assured",
   },
 ];
 
-const deliveryOptions: DeliveryOption[] = [
+const paymentMethods = [
   {
-    title: "Home Delivery",
-    icon: <Truck className="w-6 h-6 text-red-600" />,
-    details: [
-      "Dhaka Metro: Next-day delivery",
-      "Outside Dhaka: 2-3 business days",
-      "Delivery fee based on location",
-      "Temperature-controlled transport",
-    ],
-    recommended: true,
-  },
-  {
-    title: "Store Pickup",
-    icon: <MapPin className="w-6 h-6 text-red-600" />,
-    details: [
-      "Available at all German Butcher locations",
-      "Ready in 2 hours after ordering",
-      "No pickup fees",
-      "Fresh preparation on-site",
-    ],
-  },
-];
-
-const paymentMethods: PaymentMethod[] = [
-  {
-    name: "Credit/Debit Cards",
-    icon: <CreditCard className="w-8 h-8 text-blue-600" />,
+    icon: CreditCard,
+    title: "Credit/Debit Cards",
     description: "Visa, Mastercard, American Express",
   },
   {
-    name: "Mobile Banking",
-    icon: <Phone className="w-8 h-8 text-green-600" />,
+    icon: Smartphone,
+    title: "Mobile Banking",
     description: "bKash, Nagad, Rocket",
   },
   {
-    name: "Cash on Delivery",
-    icon: <Truck className="w-8 h-8 text-orange-600" />,
+    icon: Banknote,
+    title: "Cash on Delivery",
     description: "Pay when you receive your order",
   },
 ];
 
-// Components
-const OrderStepCard: React.FC<{ step: OrderStep }> = ({ step }) => (
-  <div className="relative bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 group">
-    <div className="flex justify-center mb-4 group-hover:scale-110 transition-transform duration-300 ">
-      {step.icon}
-    </div>
+const deliveryNotes = [
+  "Perishable items require immediate refrigeration upon delivery",
+  "Delivery times may vary during holidays and peak seasons",
+  "Someone must be present to receive the order",
+];
 
-    <h3 className="text-xl font-semibold mb-3 text-gray-900">{step.title}</h3>
-    <p className="text-gray-600 leading-relaxed">{step.description}</p>
-  </div>
-);
-
-const DeliveryOptionCard: React.FC<{ option: DeliveryOption }> = ({
-  option,
-}) => (
-  <div
-    className={`relative border-2 rounded-xl p-6 transition-all duration-300 hover:shadow-lg ${
-      option.recommended
-        ? "border-red-200 bg-red-50 hover:border-red-300"
-        : "border-gray-200 bg-white hover:border-gray-300"
-    }`}
-  >
-    {option.recommended && (
-      <div className="absolute -top-3 right-4">
-        <span className="bg-red-600 text-white text-xs px-3 py-1 rounded-full font-medium flex items-center">
-          <Star className="w-3 h-3 mr-1" />
-          Recommended
-        </span>
-      </div>
-    )}
-
-    <div className="flex items-center mb-4">
-      {option.icon}
-      <h3 className="text-xl font-semibold ml-3 text-gray-900">
-        {option.title}
-      </h3>
-    </div>
-
-    <ul className="space-y-3">
-      {option.details.map((detail, i) => (
-        <li key={i} className="flex items-start">
-          <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-          <span className="text-gray-700">{detail}</span>
-        </li>
-      ))}
-    </ul>
-  </div>
-);
-
-const PaymentMethodCard: React.FC<{ method: PaymentMethod }> = ({ method }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 text-center group">
-    <div className="flex justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-      {method.icon}
-    </div>
-    <h3 className="font-semibold text-gray-900 mb-2">{method.name}</h3>
-    <p className="text-sm text-gray-600">{method.description}</p>
-  </div>
-);
-
-const ContactMethodCard: React.FC<{ method: ContactMethod }> = ({ method }) => (
-  <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 hover:bg-white hover:shadow-md transition-all duration-300">
-    <div className="flex justify-center mb-4">{method.icon}</div>
-    <h3 className="text-xl font-semibold mb-2 text-gray-900">{method.title}</h3>
-    <p className="text-gray-600 mb-3">{method.description}</p>
-    <div className="flex items-center justify-center mb-3">
-      <Clock className="w-4 h-4 text-gray-400 mr-2" />
-      <span className="text-sm text-gray-500">{method.available}</span>
-    </div>
-    <a
-      href={method.href}
-      className="inline-block text-red-600 font-medium hover:text-red-800 transition-colors duration-200 hover:underline"
-    >
-      {method.action}
-    </a>
-  </div>
-);
+type SupportChannel = {
+  icon: PolicyIcon;
+  title: string;
+  description: string;
+  action: string;
+  href: string;
+  external?: boolean;
+};
 
 const HowToOrderPage = async () => {
   const settings = await getBusinessSettings();
 
-  // Only channels configured in Business Settings are offered.
-  const contactMethods: ContactMethod[] = [
-    settings?.phone && {
-      icon: <Phone className="w-8 h-8 text-red-600" />,
+  // Only the channels configured in Business Settings are offered.
+  const supportChannels: SupportChannel[] = [];
+
+  if (settings?.phone) {
+    supportChannels.push({
+      icon: Phone,
       title: "Call Us",
-      description: "Speak directly with our support team",
+      description: "Speak directly with our support team, 9 AM – 6 PM daily.",
       action: settings.phone,
       href: `tel:${settings.phone}`,
-      available: "9 AM - 6 PM, Daily",
-    },
-    (settings?.whatsappNumber || settings?.messengerUrl) && {
-      icon: <MessageSquare className="w-8 h-8 text-red-600" />,
+    });
+  }
+
+  const chatHref = settings?.whatsappNumber
+    ? `https://wa.me/${settings.whatsappNumber.replace("+", "")}`
+    : settings?.messengerUrl;
+
+  if (chatHref) {
+    supportChannels.push({
+      icon: MessageSquare,
       title: "Live Chat",
-      description: "Get instant help through our online chat",
+      description: "Get instant help through our online chat, 24/7 available.",
       action: "Start Chat Now",
-      href: settings?.whatsappNumber
-        ? `https://wa.me/${settings.whatsappNumber.replace("+", "")}`
-        : settings.messengerUrl || "#",
-      available: "24/7 Available",
-    },
-  ].filter(Boolean) as ContactMethod[];
+      href: chatHref,
+      external: true,
+    });
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Ordering Steps */}
-      <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <HeadingPrimary
-            title="Simple Ordering Process"
-            subtitle=" Follow these easy steps to get German Butcher's premium
-            products delivered to your door"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {orderSteps.map((step, index) => (
-            <OrderStepCard key={index} step={step} />
+    <PolicyPageShell
+      icon={ShoppingCart}
+      eyebrow="Ordering guide"
+      title="How to Order"
+      subtitle="Follow these easy steps to get German Butcher's premium products delivered to your door."
+      chips={[
+        { icon: Truck, label: "Home delivery & store pickup" },
+        { icon: CreditCard, label: "Card, mobile banking & COD" },
+      ]}
+      sections={sections}
+      related={[
+        {
+          href: "/faqs",
+          label: "FAQs",
+          description: "Quick answers about ordering",
+        },
+        {
+          href: "/return-refund-policy",
+          label: "Return & Refund",
+          description: "Windows, eligibility and timelines",
+        },
+        {
+          href: "/contact-us",
+          label: "Contact Us",
+          description: "Reach our team directly",
+        },
+      ]}
+      contact={{
+        title: "Need Help Ordering?",
+        description:
+          "Our friendly customer service team is ready to assist you with any questions about your order.",
+        footnote: "Customer service hours: 9 AM – 6 PM, daily.",
+      }}
+      settings={settings}
+    >
+      <PolicySection
+        id="ordering-process"
+        index={1}
+        icon={ShoppingCart}
+        title="Simple Ordering Process"
+        description="From our selection to your door."
+      >
+        <PolicyCardGrid columns={4}>
+          {orderSteps.map((step) => (
+            <PolicyInfoCard
+              key={step.title}
+              icon={step.icon}
+              eyebrow={step.eyebrow}
+              badge={step.badge}
+              title={step.title}
+              description={step.description}
+              tone="brand"
+            />
           ))}
-        </div>
-      </div>
+        </PolicyCardGrid>
+      </PolicySection>
 
-      {/* Delivery Options */}
-      <div className="bg-white py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-              Delivery Options
-            </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Choose the delivery method that works best for you
-            </p>
-          </div>
+      <PolicySection
+        id="delivery-options"
+        index={2}
+        icon={Truck}
+        title="Delivery Options"
+        description="Choose the delivery method that works best for you."
+      >
+        {/* Live shipping-method charges — same data as checkout & policy pages */}
+        <DeliveryPolicyTable />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-            {deliveryOptions.map((option, index) => (
-              <DeliveryOptionCard key={index} option={option} />
-            ))}
-          </div>
+        <PolicyCallout
+          tone="warning"
+          icon={AlertTriangle}
+          title="Important Delivery Notes"
+        >
+          <PolicyList variant="warning" tone="warning" items={deliveryNotes} />
+        </PolicyCallout>
+      </PolicySection>
 
-          <div className="bg-yellow-50 p-8 rounded-xl border-l-4 border-yellow-400">
-            <h3 className="text-lg font-semibold mb-4 text-yellow-800 flex items-center">
-              <AlertTriangle className="w-5 h-5 text-yellow-600 mr-3" />
-              Important Delivery Notes
-            </h3>
-            <ul className="space-y-3 text-yellow-700">
-              <li className="flex items-start">
-                <span className="text-yellow-600 mr-2">•</span>
-                Perishable items require immediate refrigeration upon delivery
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-600 mr-2">•</span>
-                Delivery times may vary during holidays and peak seasons
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-600 mr-2">•</span>
-                Someone must be present to receive the order
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      <PolicySection
+        id="payment-options"
+        index={3}
+        icon={CreditCard}
+        title="Payment Options"
+        description="We accept multiple secure payment methods for your convenience."
+      >
+        <PolicyCardGrid columns={3}>
+          {paymentMethods.map((method) => (
+            <PolicyInfoCard
+              key={method.title}
+              icon={method.icon}
+              title={method.title}
+              description={method.description}
+              tone="brand"
+            />
+          ))}
+        </PolicyCardGrid>
 
-      {/* Payment Methods */}
-      <div className="bg-gray-50 py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-              Payment Options
-            </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              We accept multiple secure payment methods for your convenience
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            {paymentMethods.map((method, index) => (
-              <PaymentMethodCard key={index} method={method} />
-            ))}
-          </div>
-
-          <div className="bg-green-50 p-8 rounded-xl border-l-4 border-green-400 max-w-4xl mx-auto">
-            <h3 className="text-lg font-semibold mb-4 text-green-800 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-green-600 mr-3" />
-              100% Secure Payments
-            </h3>
-            <p className="text-center text-green-700 leading-relaxed">
-              All transactions are encrypted and secure. We never store your
-              payment information. Your financial data is protected by
-              industry-standard security measures.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Support Section */}
-      <div className="bg-white py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-            Need Help Ordering?
-          </h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-12 leading-relaxed">
-            Our friendly customer service team is ready to assist you with any
-            questions about your order
+        <PolicyCallout
+          tone="success"
+          icon={ShieldCheck}
+          title="100% Secure Payments"
+        >
+          <p>
+            All transactions are encrypted and secure. We never store your
+            payment information. Your financial data is protected by
+            industry-standard security measures.
           </p>
+        </PolicyCallout>
+      </PolicySection>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {contactMethods.map((method, index) => (
-              <ContactMethodCard key={index} method={method} />
+      <PolicySection
+        id="order-support"
+        index={4}
+        icon={Headphones}
+        title="Order Support"
+      >
+        {supportChannels.length > 0 && (
+          <div
+            className={cn(
+              "grid gap-3 sm:gap-4",
+              supportChannels.length > 1 && "sm:grid-cols-2"
+            )}
+          >
+            {supportChannels.map((channel) => (
+              <PolicyCallout
+                key={channel.title}
+                tone="brand"
+                icon={channel.icon}
+                title={channel.title}
+              >
+                <p>{channel.description}</p>
+                <a
+                  href={channel.href}
+                  {...(channel.external
+                    ? { target: "_blank", rel: "noopener noreferrer" }
+                    : {})}
+                  className="inline-flex items-center gap-2 rounded-full border border-primaryColor/20 bg-white px-3.5 py-1.5 text-sm font-medium text-primaryColor transition-colors hover:border-primaryColor/40 hover:bg-primaryColor/[0.06]"
+                >
+                  {channel.action}
+                  <ArrowRight className="size-3.5" />
+                </a>
+              </PolicyCallout>
             ))}
           </div>
+        )}
 
-          <div className="mt-12 p-6 bg-primaryColor/10 rounded-xl border border-red-200">
-            <h3 className="text-lg font-semibold text-red-800 mb-2">
-              Questions About Specific Products?
-            </h3>
-            <p className=" mb-4">
-              Our meat experts can help you choose the perfect cuts for your
-              needs
-            </p>
-            <Link
-              href="/contact-us"
-              className="bg-primaryColor text-white px-6 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors duration-200"
-            >
-              Contact Our Experts
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
+        <PolicyCallout
+          tone="info"
+          icon={Store}
+          title="Questions About Specific Products?"
+        >
+          <p>
+            Our meat experts can help you choose the perfect cuts for your
+            needs.
+          </p>
+          <Link
+            href="/contact-us"
+            className="inline-flex items-center gap-2 rounded-lg bg-primaryColor px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-secondaryColor"
+          >
+            Contact Our Experts
+            <ArrowRight className="size-4" />
+          </Link>
+        </PolicyCallout>
+      </PolicySection>
+    </PolicyPageShell>
   );
 };
 

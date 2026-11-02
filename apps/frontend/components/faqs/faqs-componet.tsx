@@ -1,6 +1,8 @@
 "use client";
 
 import { faqData } from "@/constants";
+import { fetchData } from "@/utils/api-utils";
+import type { ShippingMethod } from "@/utils/types";
 import {
   ChevronDown,
   ChevronUp,
@@ -11,7 +13,7 @@ import {
   Truck,
   Users,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { HeadingPrimary } from "../common/heading-primary";
 
 const categories = [
@@ -27,6 +29,17 @@ const FAQPageComponent: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [openItems, setOpenItems] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  // The delivery-charges answer is built from the live shipping methods —
+  // the same data checkout shows — instead of hardcoded amounts.
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
+
+  useEffect(() => {
+    fetchData<ShippingMethod[]>("shipping-methods?isActive=true")
+      .then((methods) => setShippingMethods(methods ?? []))
+      .catch(() => {
+        // Static fallback answer stays for this FAQ when the API is down.
+      });
+  }, []);
 
   const filteredFAQs = faqData.filter((faq) => {
     const matchesCategory =
@@ -41,6 +54,40 @@ const FAQPageComponent: React.FC = () => {
     setOpenItems((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
+  };
+
+  /** The delivery-charges FAQ shows the live shipping methods instead of a
+   *  hardcoded sentence; every other FAQ keeps its static answer. Falls back
+   *  to the static text when the API fails or returns nothing. */
+  const renderAnswer = (faq: (typeof faqData)[number]) => {
+    if (faq.question === "What are the delivery charges?") {
+      if (shippingMethods.length === 0) return faq.answer;
+      return (
+        <div className="space-y-2">
+          <ul className="space-y-1">
+            {[...shippingMethods]
+              .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
+              .map((method) => (
+                <li key={method.id}>
+                  <span className="font-semibold">{method.name}:</span>{" "}
+                  {method.isPickup
+                    ? "Free (collect from store)"
+                    : `৳${Number(method.cost).toLocaleString("en-US", {
+                        maximumFractionDigits: 2,
+                      })}`}
+                  {method.deliveryTime ? ` — ${method.deliveryTime}` : ""}
+                </li>
+              ))}
+          </ul>
+          <p>
+            Free-delivery campaigns may waive the charge for eligible orders.
+            The exact charge for your area is always shown at checkout before
+            you place the order.
+          </p>
+        </div>
+      );
+    }
+    return faq.answer;
   };
 
   return (
@@ -135,7 +182,7 @@ const FAQPageComponent: React.FC = () => {
                   </button>
                   {openItems.includes(faq.id) && (
                     <div className="mt-3 text-gray-700 text-sm">
-                      {faq.answer}
+                      {renderAnswer(faq)}
                     </div>
                   )}
                 </div>
