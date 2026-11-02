@@ -468,6 +468,9 @@ export interface Role {
 
   createdByUser: User;
   updatedBy: User;
+
+  /** Accounts currently carrying this role (role list / detail endpoints). */
+  userCount?: number;
 }
 
 export interface Supplier {

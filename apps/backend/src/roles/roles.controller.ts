@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -27,13 +28,13 @@ import { User } from 'src/user/entities/user.entity';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { Role } from './entities/role.entity';
-import { RolesService } from './roles.service';
+import { RolesService, type RoleWithUserCount } from './roles.service';
 
 @ApiTags('Roles')
 @ApiBearerAuth('token')
 @Controller('roles')
 export class RolesController {
-  constructor(private readonly rolesService: RolesService) {}
+  constructor(private readonly rolesService: RolesService) { }
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Post()
   @ApiOperation({ summary: 'Create a new role' })
@@ -62,13 +63,38 @@ export class RolesController {
     status: HttpStatus.OK,
     description: 'Roles retrieved successfully',
   })
-  async findAll(): Promise<ApiResponseDto<Role[]>> {
+  async findAll(): Promise<ApiResponseDto<RoleWithUserCount[]>> {
     const data = await this.rolesService.findAll();
     return {
       message: 'Roles retrieved successfully',
       statusCode: HttpStatus.OK,
       data,
     };
+  }
+
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @Get(':id/users')
+  @ApiOperation({
+    summary: 'Get the user accounts that carry a role',
+    description: 'Paginated members for the role detail page.',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Role ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Role members retrieved successfully',
+  })
+  async findUsers(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('search') search?: string,
+  ) {
+    return this.rolesService.findUsers(
+      id,
+      Number(page),
+      Number(limit),
+      search,
+    );
   }
 
   @UseGuards(JwtAuthGuard, AdminGuard)
@@ -82,7 +108,7 @@ export class RolesController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Role not found' })
   async findOne(
     @Param('id', ParseIntPipe) id: number,
-  ): Promise<ApiResponseDto<Role>> {
+  ): Promise<ApiResponseDto<RoleWithUserCount>> {
     const data = await this.rolesService.findOne(id);
     return {
       message: 'Role retrieved successfully',

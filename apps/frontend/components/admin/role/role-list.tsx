@@ -32,6 +32,7 @@ import type { Role } from "@/utils/types";
 import {
   Briefcase,
   CheckCircle2,
+  Eye,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -137,6 +138,7 @@ export function RoleList() {
   );
 
   const activeCount = roles.filter((role) => role.isActive).length;
+  const totalUsers = roles.reduce((sum, role) => sum + (role.userCount ?? 0), 0);
   const hasFilters = Boolean(searchQuery || statusFilter);
 
   const renderActions = (role: Role) => (
@@ -148,6 +150,11 @@ export function RoleList() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        <DropdownMenuItem asChild>
+          <Link href={`/admin/user/role/${role.id}/view`}>
+            <Eye className="mr-2 h-4 w-4" /> View
+          </Link>
+        </DropdownMenuItem>
         {can(MENU_URL, "canEdit") && (
           <DropdownMenuItem asChild>
             <Link href={`/admin/user/role/${role.id}/edit`}>
@@ -268,7 +275,7 @@ export function RoleList() {
         ) : (
           <>
             {/* Range totals */}
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <StatsCard
                 icon={Shield}
                 title="Total roles"
@@ -289,6 +296,13 @@ export function RoleList() {
                 value={(roles.length - activeCount).toLocaleString("en-US")}
                 description="Not currently usable"
                 bgColor="red"
+              />
+              <StatsCard
+                icon={Users}
+                title="Total users"
+                value={totalUsers.toLocaleString("en-US")}
+                description="Accounts across all roles"
+                bgColor="purple"
               />
             </div>
 
@@ -334,7 +348,8 @@ export function RoleList() {
                     <Table className="report-table table-fixed [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
                       <TableHeader className="[&_th]:font-semibold">
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="w-48 lg:w-64 2xl:w-72">Role</TableHead>
+                          <TableHead className="w-40 lg:w-56 2xl:w-64">Role</TableHead>
+                          <TableHead className="w-24 text-center">Users</TableHead>
                           <TableHead>Description</TableHead>
                           <TableHead className="pr-8!">Status</TableHead>
                           <TableHead>Created</TableHead>
@@ -348,7 +363,7 @@ export function RoleList() {
                           <TableRow key={role.id}>
                             <TableCell className="py-2.5">
                               <Link
-                                href={`/admin/user/role/${role.id}/edit`}
+                                href={`/admin/user/role/${role.id}/view`}
                                 className="flex min-w-0 items-center gap-2.5"
                               >
                                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted">
@@ -360,6 +375,17 @@ export function RoleList() {
                                 >
                                   {role.rolename}
                                 </span>
+                              </Link>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Link
+                                href={`/admin/user/role/${role.id}/view`}
+                                className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-foreground hover:bg-muted/70 hover:text-primaryColor"
+                                title={`${role.userCount ?? 0} user${(role.userCount ?? 0) === 1 ? "" : "s"
+                                  } with this role`}
+                              >
+                                <Users className="size-3" />
+                                {(role.userCount ?? 0).toLocaleString("en-US")}
                               </Link>
                             </TableCell>
                             <TableCell>
@@ -397,7 +423,7 @@ export function RoleList() {
                       <article key={role.id} className="space-y-3 p-3.5">
                         <div className="flex items-start justify-between gap-2">
                           <Link
-                            href={`/admin/user/role/${role.id}/edit`}
+                            href={`/admin/user/role/${role.id}/view`}
                             className="flex min-w-0 items-center gap-2.5"
                           >
                             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted">
@@ -425,15 +451,27 @@ export function RoleList() {
                           </p>
                         </div>
 
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                            Status
-                          </span>
-                          <PillBadge
-                            tone={role.isActive ? "emerald" : "neutral"}
-                          >
-                            {role.isActive ? "Active" : "Inactive"}
-                          </PillBadge>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-lg bg-muted/40 p-2.5">
+                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                              Users
+                            </p>
+                            <p className="flex items-center gap-1 text-sm font-semibold tabular-nums">
+                              <Users className="size-3.5 text-muted-foreground" />
+                              {(role.userCount ?? 0).toLocaleString("en-US")}
+                            </p>
+                          </div>
+                          <div className="flex flex-col justify-between gap-1 rounded-lg bg-muted/40 p-2.5">
+                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                              Status
+                            </p>
+                            <PillBadge
+                              tone={role.isActive ? "emerald" : "neutral"}
+                              className="self-start"
+                            >
+                              {role.isActive ? "Active" : "Inactive"}
+                            </PillBadge>
+                          </div>
                         </div>
                       </article>
                     ))}
