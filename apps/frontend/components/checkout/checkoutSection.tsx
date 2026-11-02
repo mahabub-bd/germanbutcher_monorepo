@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -32,7 +32,6 @@ import { useBogo } from "@/hooks/use-bogo";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { useFreeDelivery } from "@/hooks/use-free-delivery";
 import {
-  getAreaPricing,
   getEnabledAreas,
   getEnabledCities,
   getEnabledDivisions,
@@ -122,20 +121,14 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Area-wise delivery charge overrides the shipping method's base cost.
+  // Delivery charge comes from the selected shipping method only (pickup
+  // methods never charge).
   const selectedMethodForCost = shippingMethods.find(
     (method) => method.id.toString() === selectedShippingMethod
   );
-  const areaPricing = getAreaPricing(
-    settings?.deliveryCoverage ?? null,
-    formData.area,
-    formData.city
-  );
-  const shippingCost =
-    selectedMethodForCost?.isPickup
-      ? 0
-      : (areaPricing.deliveryCharge ??
-        Number(selectedMethodForCost?.cost || 0));
+  const shippingCost = selectedMethodForCost?.isPickup
+    ? 0
+    : Number(selectedMethodForCost?.cost || 0);
 
   // Shipping methods flagged "requires online payment" (e.g. Express) only
   // accept the online gateway — cash on delivery is not available.
@@ -215,12 +208,9 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
   const effectiveShippingCost = isShippingFree ? 0 : shippingCost;
   const total = payableSubtotal + effectiveShippingCost;
 
-  /** Cost shown per method card — the area charge overrides every
-   *  non-pickup method's base cost, matching the backend's chargedShipping. */
+  /** Cost shown per method card — pickup methods never charge. */
   const getAdjustedShippingCost = (method: ShippingMethod): number =>
-    method.isPickup
-      ? 0
-      : (areaPricing.deliveryCharge ?? Number(method.cost || 0));
+    method.isPickup ? 0 : Number(method.cost || 0);
 
   // Methods restricted by serviceAreas drop out as soon as the address
   // (city/area) no longer matches — e.g. Express only for Dhaka. Before an
@@ -244,14 +234,18 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
     }
   }, [availableShippingMethods, selectedShippingMethod]);
 
-  // Area minimum order amount — mirrors the backend check (payable subtotal
-  // after coupon/BOGO discounts, pickup excluded) so the customer is told
-  // before submitting, not just by an error.
+  // Shipping-method minimum order amount — mirrors the backend check
+  // (payable subtotal after coupon/BOGO discounts, pickup excluded) so the
+  // customer is told before submitting, not just by an error.
+  const methodMinOrderAmount =
+    selectedMethodForCost?.minOrderAmount != null
+      ? Number(selectedMethodForCost.minOrderAmount)
+      : null;
   const isBelowAreaMinimum =
-    areaPricing.minOrderAmount != null &&
+    methodMinOrderAmount != null &&
     !isPickupSelected &&
     payableSubtotal > 0 &&
-    payableSubtotal < areaPricing.minOrderAmount;
+    payableSubtotal < methodMinOrderAmount;
 
   useEffect(() => {
     if (user) {
@@ -427,11 +421,11 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
       }
     }
 
-    // Area minimum order amount (mirrors the backend rule) — block the
-    // order here so the customer learns before hitting the API.
+    // Shipping-method minimum order amount (mirrors the backend rule) —
+    // block the order here so the customer learns before hitting the API.
     if (isBelowAreaMinimum) {
       toast.error(
-        `Minimum order amount for delivery to ${formData.area} is ৳${areaPricing.minOrderAmount}`
+        `Minimum order amount for ${selectedMethodForCost?.name} is ৳${methodMinOrderAmount}`
       );
       return;
     }
@@ -615,13 +609,35 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
               isFreeDelivery={effectiveFreeDelivery}
               getAdjustedCost={getAdjustedShippingCost}
               getDeliveryTime={(method) =>
-                // The area/city/division delivery time overrides every
-                // non-pickup method's own time at this address.
-                method.isPickup
-                  ? method.deliveryTime
-                  : (areaPricing.deliveryTime ?? method.deliveryTime)
+                // Delivery time is a shipping-method setting; every method
+                // shows its own.
+                method.deliveryTime
               }
             />
+
+            {/* Method minimum not met — tell the customer before they try to
+                submit, not just as a submit-time error. */}
+            {isBelowAreaMinimum && (
+              <div className="flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+                <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
+                <p>
+                  <span className="font-semibold">
+                    {selectedMethodForCost?.name}
+                  </span>{" "}
+                  requires a minimum order of{" "}
+                  <span className="font-semibold tabular-nums">
+                    {methodMinOrderAmount?.toLocaleString("en-US", {
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>{" "}
+                  — add{" "}
+                  {(
+                    (methodMinOrderAmount ?? 0) - payableSubtotal
+                  ).toLocaleString("en-US", { maximumFractionDigits: 2 })}{" "}
+                  more.
+                </p>
+              </div>
+            )}
 
             <PaymentMethodSelector
               paymentMethods={selectablePaymentMethods}

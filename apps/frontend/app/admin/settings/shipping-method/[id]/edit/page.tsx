@@ -21,6 +21,13 @@ const SHIPPING_FLAG_TONE: Record<string, PillTone> = {
   area_limited: "blue",
 };
 
+/** Amounts keep their decimals when present (60.5 is not 60). */
+const money = (value: number | string) =>
+  Number(value || 0).toLocaleString("en-BD", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+
 export default function EditShippingMethodPage() {
   const router = useRouter();
   const params = useParams();
@@ -95,6 +102,11 @@ export default function EditShippingMethodPage() {
     tone: SHIPPING_FLAG_TONE[flag.key] ?? ("neutral" as PillTone),
   }));
   const isFree = Number(shippingMethod.cost) === 0;
+  const minimumOrder =
+    shippingMethod.minOrderAmount != null &&
+      Number(shippingMethod.minOrderAmount) > 0
+      ? Number(shippingMethod.minOrderAmount)
+      : null;
 
   return (
     <AdminPageContainer>
@@ -108,7 +120,12 @@ export default function EditShippingMethodPage() {
             {shippingMethod.isActive ? "Active" : "Inactive"}
           </PillBadge>
           <PillBadge tone={isFree ? "emerald" : "neutral"}>
-            {isFree ? "Free" : `৳${shippingMethod.cost}`}
+            {isFree ? "Free" : `৳${money(shippingMethod.cost)}`}
+          </PillBadge>
+          <PillBadge tone={minimumOrder === null ? "neutral" : "amber"}>
+            {minimumOrder === null
+              ? "No minimum"
+              : `Min ৳${money(minimumOrder)}`}
           </PillBadge>
           {shippingMethod.deliveryTime && (
             <PillBadge tone="neutral">{shippingMethod.deliveryTime}</PillBadge>

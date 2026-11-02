@@ -32,6 +32,7 @@ export async function DeliveryPolicyTable() {
             <tr className="border-b border-gray-100 text-left text-[11px] font-semibold tracking-wider text-gray-500 uppercase">
               <th className="px-4 py-2.5 font-semibold">Method</th>
               <th className="px-4 py-2.5 font-semibold">Charge</th>
+              <th className="px-4 py-2.5 font-semibold">Minimum Order Amount</th>
               <th className="px-4 py-2.5 font-semibold">Delivery Time</th>
             </tr>
           </thead>
@@ -64,6 +65,16 @@ export async function DeliveryPolicyTable() {
                       })}
                     </span>
                   )}
+                </td>
+                <td className="px-4 py-2.5 whitespace-nowrap tabular-nums">
+                  {method.isPickup
+                    ? "—"
+                    : method.minOrderAmount != null
+                      ? `৳${Number(method.minOrderAmount).toLocaleString(
+                          "en-US",
+                          { maximumFractionDigits: 2 }
+                        )}`
+                      : "—"}
                 </td>
                 <td className="px-4 py-2.5">{method.deliveryTime}</td>
               </tr>

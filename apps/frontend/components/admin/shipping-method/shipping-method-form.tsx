@@ -22,6 +22,7 @@ import { patchData, postData } from "@/utils/api-utils";
 import type { ShippingMethod } from "@/utils/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  Banknote,
   CheckCircle2,
   Loader2,
   MapPin,
@@ -36,9 +37,17 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+/** Amounts keep their decimals when present (60.5 is not 60). */
+const money = (value: number | string) =>
+  Number(value || 0).toLocaleString("en-BD", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+
 const shippingMethodSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   cost: z.string().min(1, "Cost is required"),
+  minOrderAmount: z.string(),
   isActive: z.boolean(),
   requiresOnlinePayment: z.boolean(),
   isExcludedFromFreeDelivery: z.boolean(),
@@ -233,7 +242,7 @@ function SelectionChip({
   return (
     <span
       className={cn(
-        "inline-flex max-w-56 items-center gap-1 rounded-full border py-[3px] pr-1 pl-2.5 text-[11px] font-semibold leading-none shadow-none",
+        "inline-flex max-w-56 items-center gap-1 rounded-full border py-0.75 pr-1 pl-2.5 text-[11px] font-semibold leading-none shadow-none",
         tone === "served" &&
         "border-primaryColor/30 bg-primaryColor/10 text-foreground",
         tone === "partial" &&
@@ -270,6 +279,10 @@ export function ShippingMethodForm({
     defaultValues: {
       name: shippingMethod?.name || "",
       cost: shippingMethod?.cost || "",
+      minOrderAmount:
+        shippingMethod?.minOrderAmount != null
+          ? String(shippingMethod.minOrderAmount)
+          : "",
       isActive: shippingMethod?.isActive ?? true,
       requiresOnlinePayment: shippingMethod?.requiresOnlinePayment ?? false,
       isExcludedFromFreeDelivery:
@@ -475,6 +488,32 @@ export function ShippingMethodForm({
   const visibleChips = coverageSelection.chips.slice(0, 18);
   const hiddenChipCount = coverageSelection.chips.length - visibleChips.length;
 
+  /** Live recap for the pricing section — phrased like the checkout rules,
+   *  including the pickup case where no charge or minimum applies. */
+  const costValue = form.watch("cost");
+  const minOrderValue = form.watch("minOrderAmount");
+  const deliveryTimeValue = form.watch("deliveryTime");
+  const isPickupValue = form.watch("isPickup");
+  const minOrderNumber =
+    minOrderValue.trim() === "" ? null : Number(minOrderValue);
+  const hasMinOrder = minOrderNumber != null && minOrderNumber > 0;
+  const isFreeCost = Number(costValue || 0) === 0;
+  const pricingSummary = (() => {
+    if (isPickupValue) {
+      return "Store pickup — the customer collects the order, so no delivery charge is added and the minimum order is ignored.";
+    }
+    const charge = isFreeCost
+      ? "No delivery charge"
+      : `Delivery costs ৳${money(costValue)}`;
+    const minimum = hasMinOrder
+      ? `orders must total ৳${money(minOrderNumber ?? 0)} or more`
+      : "any order total can use it";
+    const time = deliveryTimeValue.trim()
+      ? ` · shown as “${deliveryTimeValue.trim()}”`
+      : "";
+    return `${charge} · ${minimum}${time}.`;
+  })();
+
   const onSubmit = async (values: z.infer<typeof shippingMethodSchema>) => {
     setIsSubmitting(true);
     try {
@@ -509,6 +548,10 @@ export function ShippingMethodForm({
       const payload = {
         name: values.name,
         cost: values.cost,
+        minOrderAmount:
+          values.minOrderAmount.trim() === ""
+            ? null
+            : Number(values.minOrderAmount),
         isActive: values.isActive,
         requiresOnlinePayment: values.requiresOnlinePayment,
         isExcludedFromFreeDelivery: values.isExcludedFromFreeDelivery,
@@ -540,10 +583,10 @@ export function ShippingMethodForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Basics */}
+        {/* Basics — identity and ordering only; money lives in its own section */}
         <FormSection
           title="Method details"
-          description="Name, pricing and the note customers see at checkout."
+          description="The label customers see, plus where it sits in the checkout list."
           icon={<Truck className="size-4.5" />}
         >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -588,57 +631,9 @@ export function ShippingMethodForm({
 
             <FormField
               control={form.control}
-              name="cost"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <FormLabel>Cost</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
-                        ৳
-                      </span>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        {...field}
-                        className="w-full pl-7 tabular-nums"
-                      />
-                    </div>
-                  </FormControl>
-                  <FormDescription>Enter 0 to offer it free.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="deliveryTime"
-              render={({ field }) => (
-                <FormItem className="space-y-2 sm:col-span-2">
-                  <FormLabel>Delivery time</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g. 3-5 business days"
-                      {...field}
-                      className="w-full"
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Shown beside the method at checkout.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="description"
               render={({ field }) => (
-                <FormItem className="space-y-2 sm:col-span-2">
+                <FormItem className="space-y-2 sm:col-span-2 lg:col-span-3">
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea
@@ -654,10 +649,123 @@ export function ShippingMethodForm({
           </div>
         </FormSection>
 
+        {/* Pricing — what the method costs and the subtotal it requires */}
+        <FormSection
+          title="Pricing & minimum order"
+          description="The delivery charge, the order subtotal needed to use this method, and the time shown beside it."
+          icon={<Banknote className="size-4.5" />}
+          action={
+            <PillBadge tone={hasMinOrder ? "amber" : "neutral"}>
+              {hasMinOrder
+                ? `Min ৳${money(minOrderNumber ?? 0)}`
+                : "No minimum"}
+            </PillBadge>
+          }
+        >
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <FormField
+                control={form.control}
+                name="cost"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel>Cost</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+                          ৳
+                        </span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          {...field}
+                          className="w-full pl-7 tabular-nums"
+                        />
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      Enter 0 to offer it free.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="minOrderAmount"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel>Minimum order amount</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+                          ৳
+                        </span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="No minimum"
+                          {...field}
+                          className="w-full pl-7 tabular-nums"
+                        />
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      Subtotal the cart must reach. Empty = no minimum.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="deliveryTime"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel>Delivery time</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. 3-5 business days"
+                        {...field}
+                        className="w-full"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Shown beside the method at checkout.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Live recap — the checkout sentence this configuration produces */}
+            <div className="rounded-lg border bg-muted/25 px-3 py-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                At checkout
+              </p>
+              <p className="mt-1 text-sm leading-snug">
+                {pricingSummary}
+              </p>
+              {isPickupValue && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  The values above stay saved — they apply again as soon as
+                  store pickup is switched off.
+                </p>
+              )}
+            </div>
+          </div>
+        </FormSection>
+
         {/* Checkout behaviour */}
         <FormSection
           title="Checkout behaviour"
-          description="Toggles change how this method is offered, priced and paid for."
+          description="Toggles change whether this method is offered, how it is paid for and how it is collected."
           icon={<ToggleRight className="size-4.5" />}
         >
           <div className="grid gap-3 md:grid-cols-2">
@@ -815,7 +923,6 @@ export function ShippingMethodForm({
               tree={coverageTree}
               cities={selectedCities}
               areas={selectedAreas}
-              coverage={coverage}
               mode={modeIsInclude ? "include" : "exclude"}
               onToggleCity={setCityFull}
               onToggleArea={setAreaSelected}

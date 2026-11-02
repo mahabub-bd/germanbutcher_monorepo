@@ -3,12 +3,6 @@
 import { PillBadge } from "@/components/common/pill-badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import {
-  getAreaPricing,
-  getCityPricing,
-  type AreaPricing,
-  type DeliveryCoverage,
-} from "@/lib/delivery-coverage";
 import { cn } from "@/lib/utils";
 import {
   Building2,
@@ -27,34 +21,6 @@ import { useState, type ReactNode } from "react";
 export interface CoverageTreeDivision {
   name: string;
   cities: { name: string; areas: string[] }[];
-}
-
-/** Compact "৳60 · min ৳500 · 24-48 hours" chip — only rendered when the
- *  city/area has at least one configured value. */
-function PricingChip({
-  pricing,
-  className,
-}: {
-  pricing: AreaPricing;
-  className?: string;
-}) {
-  const parts: string[] = [];
-  if (pricing.deliveryCharge != null) parts.push(`৳${pricing.deliveryCharge}`);
-  if (pricing.minOrderAmount != null)
-    parts.push(`min ৳${pricing.minOrderAmount}`);
-  if (pricing.deliveryTime) parts.push(pricing.deliveryTime);
-  if (parts.length === 0) return null;
-  return (
-    <span
-      className={cn(
-        "shrink-0 whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-px text-[10px] font-medium tabular-nums text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300",
-        className
-      )}
-      title="Fee / minimum order / delivery time from Delivery Coverage"
-    >
-      {parts.join(" · ")}
-    </span>
-  );
 }
 
 /** Small ghost button used in the toolbar and on tree rows. */
@@ -94,7 +60,6 @@ export function CoverageTree({
   tree,
   cities,
   areas,
-  coverage,
   mode = "include",
   onToggleCity,
   onToggleArea,
@@ -106,9 +71,6 @@ export function CoverageTree({
   tree: CoverageTreeDivision[];
   cities: string[];
   areas: string[];
-  /** Delivery-coverage data — when given, city/area rows show the resolved
-   *  fee / minimum order / delivery time chips. */
-  coverage?: DeliveryCoverage | null;
   /** Availability mode of the shipping method being edited. */
   mode?: "include" | "exclude";
   onToggleCity: (cityName: string, cityAreas: string[], full: boolean) => void;
@@ -319,7 +281,7 @@ export function CoverageTree({
           )}
         </div>
       ) : (
-        <div className="max-h-[26rem] space-y-2.5 overflow-y-auto pr-0.5 lg:max-h-[30rem]">
+        <div className="max-h-104 space-y-2.5 overflow-y-auto pr-0.5 lg:max-h-120">
           {visibleDivisions.map((division) => {
             const fullyCount = division.cities.filter((city) =>
               citySet.has(city.name)
@@ -367,7 +329,7 @@ export function CoverageTree({
                         ? `Untick every city in ${division.name}`
                         : `Tick every city in ${division.name} as ${isInclude ? "fully served" : "excluded"}`
                     }
-                    className="size-4 shrink-0 rounded-[4px]"
+                    className="size-4 shrink-0 rounded-lg"
                   />
                   <span
                     className={cn(
@@ -522,12 +484,6 @@ export function CoverageTree({
                                   {citySelectedAreas}/{city.areas.length} areas
                                 </PillBadge>
                               )}
-                              {coverage && (
-                                <PricingChip
-                                  pricing={getCityPricing(coverage, city.name)}
-                                  className="hidden md:inline-flex"
-                                />
-                              )}
                             </button>
                             {onSelectAllAreas && city.areas.length > 0 && (
                               <TreeButton
@@ -577,16 +533,6 @@ export function CoverageTree({
                                     <span className="truncate" title={area}>
                                       {area}
                                     </span>
-                                    {coverage && (
-                                      <PricingChip
-                                        pricing={getAreaPricing(
-                                          coverage,
-                                          area,
-                                          city.name
-                                        )}
-                                        className="hidden md:inline-flex"
-                                      />
-                                    )}
                                   </label>
                                 );
                               })}

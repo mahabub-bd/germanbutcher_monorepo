@@ -13,23 +13,16 @@ export interface DeliveryCoverageTree {
   divisions: {
     name: string;
     enabled: boolean;
-    deliveryTime?: string | null;
   }[];
   cities: {
     division: string;
     name: string;
     enabled: boolean;
-    deliveryCharge?: number | null;
-    minOrderAmount?: number | null;
-    deliveryTime?: string | null;
   }[];
   areas: {
     city: string;
     name: string;
     enabled: boolean;
-    deliveryCharge?: number | null;
-    minOrderAmount?: number | null;
-    deliveryTime?: string | null;
   }[];
 }
 
@@ -101,23 +94,16 @@ export class DeliveryCoverageService {
       divisions: divisions.map((division) => ({
         name: division.name,
         enabled: division.enabled,
-        deliveryTime: division.deliveryTime,
       })),
       cities: cities.map((city) => ({
         division: city.division?.name ?? '',
         name: city.name,
         enabled: city.enabled,
-        deliveryCharge: city.deliveryCharge,
-        minOrderAmount: city.minOrderAmount,
-        deliveryTime: city.deliveryTime,
       })),
       areas: areas.map((area) => ({
         city: area.city?.name ?? '',
         name: area.name,
         enabled: area.enabled,
-        deliveryCharge: area.deliveryCharge,
-        minOrderAmount: area.minOrderAmount,
-        deliveryTime: area.deliveryTime,
       })),
     };
 
@@ -154,7 +140,6 @@ export class DeliveryCoverageService {
         .map((division) => ({
           name: division.name,
           enabled: division.enabled !== false,
-          deliveryTime: this.toTextOrNull(division.deliveryTime),
         }));
       const divisionIdByName = new Map<string, number>();
       if (divisions.length > 0) {
@@ -178,9 +163,6 @@ export class DeliveryCoverageService {
         divisionId: divisionIdByName.get(city.division),
         name: city.name,
         enabled: city.enabled !== false,
-        deliveryCharge: this.toNumberOrNull(city.deliveryCharge),
-        minOrderAmount: this.toNumberOrNull(city.minOrderAmount),
-        deliveryTime: this.toTextOrNull(city.deliveryTime),
       }));
       const cityIdByName = new Map<string, number>();
       if (cityValues.length > 0) {
@@ -208,9 +190,6 @@ export class DeliveryCoverageService {
         cityId: number;
         name: string;
         enabled: boolean;
-        deliveryCharge: number | null;
-        minOrderAmount: number | null;
-        deliveryTime: string | null;
       }[] = [];
       for (const area of tree.areas ?? []) {
         if (!area?.name) continue;
@@ -231,9 +210,6 @@ export class DeliveryCoverageService {
           cityId,
           name: area.name,
           enabled: area.enabled !== false,
-          deliveryCharge: this.toNumberOrNull(area.deliveryCharge),
-          minOrderAmount: this.toNumberOrNull(area.minOrderAmount),
-          deliveryTime: this.toTextOrNull(area.deliveryTime),
         });
       }
       if (areaValues.length > 0) {
@@ -261,19 +237,5 @@ export class DeliveryCoverageService {
         `Failed to seed delivery coverage tables: ${error}`,
       );
     }
-  }
-
-  private toNumberOrNull(value: unknown): number | null {
-    if (value == null) return null;
-    const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
-  }
-
-  /** Delivery time is free text ("24 hours", "2-3 days") — trimmed, and
-   *  empty strings collapse to null so inheritance kicks in. */
-  private toTextOrNull(value: unknown): string | null {
-    if (value == null) return null;
-    const text = String(value).trim();
-    return text.length > 0 ? text : null;
   }
 }

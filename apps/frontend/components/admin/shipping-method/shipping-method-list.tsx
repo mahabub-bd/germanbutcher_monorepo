@@ -30,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { deleteData, fetchData } from "@/utils/api-utils";
 import type { ShippingMethod } from "@/utils/types";
 import {
@@ -57,6 +57,12 @@ const money = (value: number | string) =>
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
+
+/** Minimum order subtotal required to use the method; null = none set. */
+const minimumOf = (method: ShippingMethod) =>
+  method.minOrderAmount != null && Number(method.minOrderAmount) > 0
+    ? Number(method.minOrderAmount)
+    : null;
 
 /** Backend sends semantic flag keys; the admin UI owns the colour. */
 const SHIPPING_FLAG_TONE: Record<string, PillTone> = {
@@ -385,12 +391,15 @@ export function ShippingMethodList() {
                       <TableHeader className="[&_th]:font-semibold">
                         <TableRow className="hover:bg-transparent">
                           <TableHead>Name</TableHead>
-                          <TableHead>Cost (৳)</TableHead>
-                          <TableHead>Delivery time</TableHead>
-                          <TableHead className="w-72">Flags</TableHead>
-                          <TableHead>Created</TableHead>
-                          <TableHead>Order</TableHead>
-                          <TableHead>Status</TableHead>
+                          <TableHead className="w-24">Cost</TableHead>
+                          <TableHead className="w-24" title="Minimum order amount">
+                            Min
+                          </TableHead>
+                          <TableHead className="w-40">Delivery time</TableHead>
+                          <TableHead className="w-80">Flags</TableHead>
+                          <TableHead className="w-44">Created</TableHead>
+                          <TableHead className="w-16 text-center">Order</TableHead>
+                          <TableHead className="w-20">Status</TableHead>
                           <TableHead className="w-14 text-right">
                             <span className="sr-only">Actions</span>
                           </TableHead>
@@ -413,6 +422,22 @@ export function ShippingMethodList() {
                             <TableCell className="tabular-nums">
                               {money(method.cost)}
                             </TableCell>
+                            <TableCell
+                              className={cn(
+                                "tabular-nums",
+                                minimumOf(method) === null &&
+                                "text-muted-foreground"
+                              )}
+                              title={
+                                minimumOf(method) === null
+                                  ? "No minimum order amount"
+                                  : undefined
+                              }
+                            >
+                              {minimumOf(method) === null
+                                ? "—"
+                                : money(minimumOf(method) as number)}
+                            </TableCell>
                             <TableCell className="text-muted-foreground">
                               <span
                                 className="line-clamp-2"
@@ -427,7 +452,7 @@ export function ShippingMethodList() {
                                 {formatDateTime(method.createdAt)}
                               </span>
                             </TableCell>
-                            <TableCell className="tabular-nums text-muted-foreground">
+                            <TableCell className="text-center tabular-nums text-muted-foreground">
                               {method.displayOrder}
                             </TableCell>
                             <TableCell>
@@ -466,7 +491,7 @@ export function ShippingMethodList() {
                           {renderActions(method)}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-2.5">
+                        <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/40 p-2.5">
                           <div>
                             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                               Cost
@@ -477,13 +502,29 @@ export function ShippingMethodList() {
                           </div>
                           <div>
                             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                              Min order
+                            </p>
+                            <p
+                              className={cn(
+                                "text-sm font-semibold tabular-nums",
+                                minimumOf(method) === null &&
+                                "text-muted-foreground"
+                              )}
+                            >
+                              {minimumOf(method) === null
+                                ? "—"
+                                : `৳${money(minimumOf(method) as number)}`}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                               Order
                             </p>
                             <p className="text-sm font-semibold tabular-nums">
                               {method.displayOrder}
                             </p>
                           </div>
-                          <div className="col-span-2">
+                          <div className="col-span-3">
                             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                               Created
                             </p>

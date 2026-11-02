@@ -6,12 +6,15 @@ import { PageHeader } from "@/components/admin/page-header";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PillBadge, type PillTone } from "@/components/common/pill-badge";
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
-  getAreaPricing,
-  getCityPricing,
   normalizeLocationName,
-  type AreaPricing,
   type DeliveryCoverage,
 } from "@/lib/delivery-coverage";
 import { cn, formatDateTime } from "@/lib/utils";
@@ -26,17 +29,16 @@ import {
   CreditCard,
   ExternalLink,
   Landmark,
-  ListOrdered,
   Loader2,
   MapPin,
   MapPinOff,
   MessageSquareText,
-  MinusCircle,
   PackageCheck,
   Pencil,
   Tag,
   Truck,
   User,
+  Wallet,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -61,23 +63,6 @@ const money = (value: number | string) =>
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
-
-/** Fee / minimum / delivery-time tags for one city or area. */
-function PricingTags({ pricing }: { pricing: AreaPricing | null }) {
-  if (!pricing) return null;
-  const parts: string[] = [];
-  if (pricing.deliveryCharge != null)
-    parts.push(`Fee ৳${pricing.deliveryCharge}`);
-  if (pricing.minOrderAmount != null)
-    parts.push(`Min ৳${pricing.minOrderAmount}`);
-  if (pricing.deliveryTime) parts.push(pricing.deliveryTime);
-  if (parts.length === 0) return null;
-  return (
-    <span className="text-[11px] tabular-nums text-muted-foreground">
-      {parts.join(" · ")}
-    </span>
-  );
-}
 
 /** A bordered card with a consistent header used across the detail page. */
 function SectionCard({
@@ -163,7 +148,7 @@ function BehaviourRow({
     <div
       className={cn(
         "flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors",
-        on ? "border-primaryColor/25 bg-primaryColor/[0.04]" : "bg-background"
+        on ? "border-primaryColor/25 bg-primaryColor/4" : "bg-background"
       )}
     >
       <div className="flex min-w-0 items-start gap-2.5">
@@ -186,89 +171,6 @@ function BehaviourRow({
         {on ? <CheckCircle2 className="mr-1 size-3" /> : <XCircle className="mr-1 size-3" />}
         {on ? onLabel : offLabel}
       </PillBadge>
-    </div>
-  );
-}
-
-/** One city row of the service-area list, with the areas it is limited to. */
-function CityCoverageCard({
-  city,
-  isInclude,
-  pricing,
-  areaPricingOf,
-}: {
-  city: { name: string; full: boolean; areas: string[] };
-  isInclude: boolean;
-  pricing: AreaPricing | null;
-  areaPricingOf: (area: string) => AreaPricing | null;
-}) {
-  const selected = city.full || city.areas.length > 0;
-  return (
-    <div
-      className={cn(
-        "overflow-hidden rounded-xl border bg-background transition-colors",
-        selected ? "border-primaryColor/25" : "border-transparent"
-      )}
-    >
-      <div className="flex flex-wrap items-center gap-2 p-2.5">
-        <span
-          className={cn(
-            "flex size-8 shrink-0 items-center justify-center rounded-lg",
-            selected
-              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-              : "bg-muted text-muted-foreground"
-          )}
-        >
-          <Building2 className="size-4" />
-        </span>
-        <div className="min-w-0 flex-1 space-y-0.5">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <p className="truncate text-sm font-semibold">{city.name}</p>
-            {city.full ? (
-              <PillBadge tone={isInclude ? "emerald" : "amber"}>
-                {isInclude ? (
-                  <CheckCircle2 className="mr-1 size-3" />
-                ) : (
-                  <MinusCircle className="mr-1 size-3" />
-                )}
-                {isInclude ? "Fully served" : "Excluded"}
-              </PillBadge>
-            ) : (
-              <PillBadge tone={isInclude ? "blue" : "amber"}>
-                <MapPin className="mr-1 size-3" />
-                {isInclude
-                  ? `Only ${city.areas.length} ${city.areas.length === 1 ? "area" : "areas"}`
-                  : `${city.areas.length} ${city.areas.length === 1 ? "area" : "areas"} hidden`}
-              </PillBadge>
-            )}
-          </div>
-          <PricingTags pricing={pricing} />
-        </div>
-      </div>
-
-      {!city.full && city.areas.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 border-t bg-muted/20 px-2.5 py-2">
-          {city.areas.map((area) => (
-            <span
-              key={area}
-              className={cn(
-                "inline-flex max-w-60 flex-col items-start gap-0.5 rounded-lg border px-2.5 py-1.5 shadow-xs",
-                isInclude
-                  ? "border-primaryColor/30 bg-primaryColor/[0.06]"
-                  : "border-amber-600/25 bg-amber-50 dark:bg-amber-500/10"
-              )}
-            >
-              <span className="flex items-center gap-1.5 text-xs font-medium">
-                <MapPin className="size-3 shrink-0 text-muted-foreground" />
-                <span className="truncate" title={area}>
-                  {area}
-                </span>
-              </span>
-              <PricingTags pricing={areaPricingOf(area)} />
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -357,18 +259,6 @@ export default function ShippingMethodDetailsPage() {
   const settings = useBusinessSettings();
   const coverage = settings?.deliveryCoverage ?? null;
 
-  /** Resolved fee/min/delivery-time for a service-area name. Area names
-   *  repeat across cities, so the area's own coverage entry supplies the
-   *  city context. */
-  const areaPricingFor = (areaName: string): AreaPricing | null => {
-    if (!coverage) return null;
-    const areaKey = normalizeLocationName(areaName);
-    const entry = coverage.areas.find(
-      (a) => a.enabled && normalizeLocationName(a.name) === areaKey
-    );
-    return getAreaPricing(coverage, areaName, entry?.city);
-  };
-
   useEffect(() => {
     const load = async () => {
       try {
@@ -425,6 +315,11 @@ export default function ShippingMethodDetailsPage() {
   }));
 
   const isFree = Number(method.cost) === 0;
+  /** Minimum order subtotal required to use this method; null = none set. */
+  const minimumOrder =
+    method.minOrderAmount != null && Number(method.minOrderAmount) > 0
+      ? Number(method.minOrderAmount)
+      : null;
   const serviceCities = method.serviceAreas?.cities ?? [];
   const serviceAreas = method.serviceAreas?.areas ?? [];
   const mode = method.serviceAreas?.mode ?? "include";
@@ -517,11 +412,15 @@ export default function ShippingMethodDetailsPage() {
           bgColor="violet"
         />
         <StatsCard
-          icon={ListOrdered}
-          title="Display order"
-          value={method.displayOrder}
-          description="Lower numbers show first"
-          bgColor="teal"
+          icon={Wallet}
+          title="Minimum order"
+          value={minimumOrder === null ? "None" : `৳${money(minimumOrder)}`}
+          description={
+            minimumOrder === null
+              ? "Any cart total can use it"
+              : "Cart subtotal required"
+          }
+          bgColor={minimumOrder === null ? "teal" : "amber"}
         />
         <StatsCard
           icon={MapPin}
@@ -623,42 +522,80 @@ export default function ShippingMethodDetailsPage() {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {groups.map((group) => (
-                    <div key={group.division} className="space-y-2">
-                      <div className="flex items-center justify-between gap-2 px-0.5">
-                        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          <Landmark className="size-3.5" />
-                          {group.division}
-                        </p>
-                        <p className="text-[11px] tabular-nums text-muted-foreground">
-                          {group.cities.length}{" "}
-                          {group.cities.length === 1 ? "city" : "cities"}
-                        </p>
-                      </div>
-                      <div
-                        className={cn(
-                          "grid gap-2",
-                          group.cities.length > 1 && "md:grid-cols-2"
-                        )}
-                      >
-                        {group.cities.map((city) => (
-                          <CityCoverageCard
-                            key={`${group.division}-${city.name}`}
-                            city={city}
-                            isInclude={isInclude}
-                            pricing={
-                              coverage
-                                ? getCityPricing(coverage, city.name)
-                                : null
-                            }
-                            areaPricingOf={areaPricingFor}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                (() => {
+                  const allCities = groups.flatMap((group) =>
+                    group.cities.map((city) => ({
+                      key: `${group.division}-${city.name}`,
+                      city,
+                    }))
+                  );
+                  return (
+                    <Accordion
+                      type="multiple"
+                      defaultValue={allCities.slice(0, 1).map((c) => c.key)}
+                    >
+                      {allCities.map(({ key, city }) => (
+                        <AccordionItem key={key} value={key}>
+                          <AccordionTrigger className="px-0.5 py-3 hover:no-underline">
+                            <span className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                              <Building2 className="size-4 text-muted-foreground" />
+                              {city.name}
+                            </span>
+                            {city.full ? (
+                              <PillBadge tone={isInclude ? "emerald" : "amber"}>
+                                {isInclude
+                                  ? "Fully served"
+                                  : "Excluded"}
+                              </PillBadge>
+                            ) : (
+                              <PillBadge tone={isInclude ? "blue" : "amber"}>
+                                {isInclude
+                                  ? `Only ${city.areas.length} ${
+                                      city.areas.length === 1
+                                        ? "area"
+                                        : "areas"
+                                    }`
+                                  : `${city.areas.length} ${
+                                      city.areas.length === 1
+                                        ? "area"
+                                        : "areas"
+                                    } hidden`}
+                              </PillBadge>
+                            )}
+                          </AccordionTrigger>
+                          <AccordionContent className="pt-1">
+                            {city.full || city.areas.length === 0 ? (
+                              <p className="px-0.5 text-xs text-muted-foreground">
+                                {city.full
+                                  ? "Every area in this city is served."
+                                  : "No specific areas stored."}
+                              </p>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5">
+                                {city.areas.map((area) => (
+                                  <span
+                                    key={area}
+                                    className={cn(
+                                      "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium shadow-xs",
+                                      isInclude
+                                        ? "border-primaryColor/30 bg-primaryColor/6"
+                                        : "border-amber-600/25 bg-amber-50 dark:bg-amber-500/10"
+                                    )}
+                                  >
+                                    <MapPin className="size-3 shrink-0 text-muted-foreground" />
+                                    <span className="truncate" title={area}>
+                                      {area}
+                                    </span>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  );
+                })()
               )}
             </div>
           </SectionCard>
@@ -741,6 +678,9 @@ export default function ShippingMethodDetailsPage() {
                 <PillBadge tone={method.isActive ? "emerald" : "red"}>
                   {method.isActive ? "Active" : "Inactive"}
                 </PillBadge>
+              </FactRow>
+              <FactRow label="Display order">
+                <span className="tabular-nums">{method.displayOrder}</span>
               </FactRow>
               <FactRow label="Flags">
                 {flags.length > 0 ? (

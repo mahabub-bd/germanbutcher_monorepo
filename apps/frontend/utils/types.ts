@@ -381,32 +381,16 @@ export interface BusinessSettings {
     divisions: {
       name: string;
       enabled: boolean;
-      /** Division-wide delivery time inherited by cities/areas; null = none. */
-      deliveryTime?: string | null;
     }[];
     cities: {
       division: string;
       name: string;
       enabled: boolean;
-      /** City-wide delivery charge (৳) inherited by its areas; null = shipping method cost. */
-      deliveryCharge?: number | null;
-      /** City-wide minimum order amount (৳) inherited by its areas; null = no minimum. */
-      minOrderAmount?: number | null;
-      /** City-wide delivery time (e.g. "24-48 hours") inherited by its areas;
-       *  null = show the shipping method's own time. */
-      deliveryTime?: string | null;
     }[];
     areas: {
       city: string;
       name: string;
       enabled: boolean;
-      /** Area-specific delivery charge (৳); null = use the shipping method's cost. */
-      deliveryCharge?: number | null;
-      /** Minimum order subtotal (৳) for this area; null = no area minimum. */
-      minOrderAmount?: number | null;
-      /** Area-specific delivery time; null = inherit the city's time, then
-       *  the shipping method's. */
-      deliveryTime?: string | null;
     }[];
   } | null;
   /** CRM segment rules — null means "use the code default". */
@@ -763,6 +747,8 @@ export interface ShippingMethod {
   } | null;
   displayOrder: number;
   deliveryTime: string;
+  /** Minimum order subtotal (৳) required to use this method; null = no minimum. */
+  minOrderAmount?: number | null;
   description: string;
   /** Derived by the backend from the boolean columns + serviceAreas. */
   flags?: { key: string; label: string }[];

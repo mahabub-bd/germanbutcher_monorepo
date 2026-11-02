@@ -18,14 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -33,7 +25,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   normalizeCoverage,
   type CoverageArea,
@@ -160,15 +151,6 @@ export function DeliveryCoverageCard() {
   const [editValue, setEditValue] = useState("");
   // Delete confirmation.
   const [pendingDelete, setPendingDelete] = useState<DeleteTarget | null>(null);
-  // City delivery-pricing modal — a city's charge/minimum is inherited by its areas.
-  const [cityPricingTarget, setCityPricingTarget] = useState<{
-    division: string;
-    name: string;
-  } | null>(null);
-  // Division delivery-time modal — inherited by its cities and areas.
-  const [divisionTimeTarget, setDivisionTimeTarget] = useState<string | null>(
-    null,
-  );
 
   useEffect(() => {
     let active = true;
@@ -684,62 +666,6 @@ export function DeliveryCoverageCard() {
     }));
   };
 
-  /** Area-wise delivery charge / minimum order amount / delivery time (null
-   *  clears the value — the area then falls back to the city's value, then
-   *  the shipping method's cost / time).
-   *  Local-only until "Save Changes", like every other edit on the card. */
-  const updateAreaPricing = (
-    cityName: string,
-    areaName: string,
-    patch: {
-      deliveryCharge?: number | null;
-      minOrderAmount?: number | null;
-      deliveryTime?: string | null;
-    },
-  ) => {
-    mutate((prev) => ({
-      ...prev,
-      areas: prev.areas.map((area) =>
-        area.city === cityName && area.name === areaName
-          ? { ...area, ...patch }
-          : area,
-      ),
-    }));
-  };
-
-  /** City-wide delivery charge / minimum order amount / delivery time —
-   *  inherited by the city's areas unless an area sets its own value.
-   *  Local-only until "Save Changes". */
-  const updateCityPricing = (
-    divisionName: string,
-    cityName: string,
-    patch: {
-      deliveryCharge?: number | null;
-      minOrderAmount?: number | null;
-      deliveryTime?: string | null;
-    },
-  ) => {
-    mutate((prev) => ({
-      ...prev,
-      cities: prev.cities.map((city) =>
-        city.division === divisionName && city.name === cityName
-          ? { ...city, ...patch }
-          : city,
-      ),
-    }));
-  };
-
-  /** Division-wide delivery time — inherited by the division's cities and
-   *  areas unless they set their own value. Local-only until "Save Changes". */
-  const updateDivisionTime = (divisionName: string, deliveryTime: string | null) => {
-    mutate((prev) => ({
-      ...prev,
-      divisions: prev.divisions.map((division) =>
-        division.name === divisionName ? { ...division, deliveryTime } : division,
-      ),
-    }));
-  };
-
   // --- Save / discard -----------------------------------------------------
 
   const handleSave = async () => {
@@ -1165,14 +1091,6 @@ export function DeliveryCoverageCard() {
                                     Off
                                   </Badge>
                                 )}
-                                {division.deliveryTime && (
-                                  <span
-                                    className="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-px text-[10px] font-medium text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                    title="Division delivery time (inherited by its cities and areas)"
-                                  >
-                                    {division.deliveryTime}
-                                  </span>
-                                )}
                               </span>
                               <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted-foreground sm:text-xs">
                                 <span>
@@ -1201,14 +1119,6 @@ export function DeliveryCoverageCard() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-52">
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  setDivisionTimeTarget(division.name)
-                                }
-                              >
-                                <Pencil className="size-4" />
-                                Delivery time…
-                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() =>
                                   startEditing({
@@ -1303,7 +1213,7 @@ export function DeliveryCoverageCard() {
 
                           {/* City cards stay two-up on desktop — a third column
                               squeezes the pricing pill and the actions menu. */}
-                          <div className="grid items-start gap-2 md:grid-cols-2">
+                          <div className="grid items-start gap-2 md:grid-cols-2 lg:grid-cols-3">
                             {cityNodes.length === 0 && (
                               <p className="col-span-full rounded-xl border border-dashed px-3 py-3 text-xs text-muted-foreground">
                                 No cities in this division yet.
@@ -1392,25 +1302,12 @@ export function DeliveryCoverageCard() {
                                               {enabledCityAreas}/
                                               {allCityAreas.length} areas
                                             </span>
-                                            {(city.deliveryCharge != null ||
-                                              city.minOrderAmount != null ||
-                                              city.deliveryTime) && (
+                                            {city.deliveryCharge != null && (
                                                 <span
                                                   className="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-px font-medium tabular-nums text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                                  title="City delivery charge / minimum order / delivery time (inherited by areas without their own value)"
+                                                  title="City delivery charge (inherited by areas without their own value)"
                                                 >
-                                                  {city.deliveryCharge != null &&
-                                                    `৳${city.deliveryCharge}`}
-                                                  {city.deliveryCharge != null &&
-                                                    city.minOrderAmount != null &&
-                                                    " · "}
-                                                  {city.minOrderAmount != null &&
-                                                    `min ৳${city.minOrderAmount}`}
-                                                  {(city.deliveryCharge != null ||
-                                                    city.minOrderAmount != null) &&
-                                                    city.deliveryTime &&
-                                                    " · "}
-                                                  {city.deliveryTime}
+                                                  ৳{city.deliveryCharge}
                                                 </span>
                                               )}
                                           </span>
@@ -1435,18 +1332,6 @@ export function DeliveryCoverageCard() {
                                           align="end"
                                           className="w-48"
                                         >
-                                          <DropdownMenuItem
-                                            onClick={() =>
-                                              setCityPricingTarget({
-                                                division: division.name,
-                                                name: city.name,
-                                              })
-                                            }
-                                          >
-                                            <Pencil className="size-4" />
-                                            Charge / min / time…
-                                          </DropdownMenuItem>
-                                          <DropdownMenuSeparator />
                                           <DropdownMenuItem
                                             onClick={() =>
                                               startEditing({
@@ -1565,21 +1450,6 @@ export function DeliveryCoverageCard() {
                                                   city: area.city,
                                                 })
                                               }
-                                              onUpdatePricing={(patch) =>
-                                                updateAreaPricing(
-                                                  area.city,
-                                                  area.name,
-                                                  patch,
-                                                )
-                                              }
-                                              cityPricing={{
-                                                deliveryCharge:
-                                                  city.deliveryCharge ?? null,
-                                                minOrderAmount:
-                                                  city.minOrderAmount ?? null,
-                                                deliveryTime:
-                                                  city.deliveryTime ?? null,
-                                              }}
                                             />
                                           ))}
                                         </div>
@@ -1751,109 +1621,27 @@ export function DeliveryCoverageCard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {cityPricingTarget && (
-        <PricingModal
-          open
-          onOpenChange={(open) => !open && setCityPricingTarget(null)}
-          title={cityPricingTarget.name}
-          subtitle={`${cityPricingTarget.division} · applies to every area in this city unless an area sets its own value`}
-          charge={
-            coverage.cities.find(
-              (city) =>
-                city.division === cityPricingTarget.division &&
-                city.name === cityPricingTarget.name,
-            )?.deliveryCharge ?? null
-          }
-          min={
-            coverage.cities.find(
-              (city) =>
-                city.division === cityPricingTarget.division &&
-                city.name === cityPricingTarget.name,
-            )?.minOrderAmount ?? null
-          }
-          deliveryTime={
-            coverage.cities.find(
-              (city) =>
-                city.division === cityPricingTarget.division &&
-                city.name === cityPricingTarget.name,
-            )?.deliveryTime ?? null
-          }
-          inherit={{
-            deliveryCharge: null,
-            minOrderAmount: null,
-            deliveryTime:
-              coverage.divisions.find(
-                (division) =>
-                  division.name === cityPricingTarget.division,
-              )?.deliveryTime ?? null,
-          }}
-          onSave={(patch) =>
-            updateCityPricing(
-              cityPricingTarget.division,
-              cityPricingTarget.name,
-              patch,
-            )
-          }
-        />
-      )}
-
-      {divisionTimeTarget && (
-        <PricingModal
-          open
-          timeOnly
-          onOpenChange={(open) => !open && setDivisionTimeTarget(null)}
-          title={divisionTimeTarget}
-          subtitle="Applies to every city and area in this division unless they set their own value"
-          deliveryTime={
-            coverage.divisions.find(
-              (division) => division.name === divisionTimeTarget,
-            )?.deliveryTime ?? null
-          }
-          onSave={(patch) => updateDivisionTime(divisionTimeTarget, patch.deliveryTime ?? null)}
-        />
-      )}
     </div>
   );
 }
 
 // --- Small presentational pieces -----------------------------------------
 
-/** One area rendered as a selectable grid card. The pencil opens a modal to
- *  set the area's delivery charge and minimum order amount — empty fields
- *  inherit the city's values. */
+/** One area rendered as a selectable grid card. Pricing (charge, minimum,
+ *  delivery time) lives on the shipping method, not here. */
 function AreaTile({
   id,
   area,
   canEdit,
   onToggle,
   onDelete,
-  onUpdatePricing,
-  cityPricing,
 }: {
   id: string;
   area: CoverageArea;
   canEdit: boolean;
   onToggle: () => void;
   onDelete: () => void;
-  onUpdatePricing: (patch: {
-    deliveryCharge?: number | null;
-    minOrderAmount?: number | null;
-    deliveryTime?: string | null;
-  }) => void;
-  cityPricing: {
-    deliveryCharge?: number | null;
-    minOrderAmount?: number | null;
-    deliveryTime?: string | null;
-  };
 }) {
-  const [isPricingOpen, setIsPricingOpen] = useState(false);
-
-  const hasPricing =
-    area.deliveryCharge != null ||
-    area.minOrderAmount != null ||
-    area.deliveryTime;
-
   return (
     <div
       className={cn(
@@ -1883,36 +1671,6 @@ function AreaTile({
       >
         {area.name}
       </label>
-      {hasPricing && (
-        <span
-          className="shrink-0 text-[10px] font-medium tabular-nums text-emerald-700 dark:text-emerald-300"
-          title="Area delivery charge / minimum order / delivery time"
-        >
-          {area.deliveryCharge != null && `৳${area.deliveryCharge}`}
-          {area.deliveryCharge != null &&
-            area.minOrderAmount != null &&
-            " · "}
-          {area.minOrderAmount != null && `min ৳${area.minOrderAmount}`}
-          {(area.deliveryCharge != null || area.minOrderAmount != null) &&
-            area.deliveryTime &&
-            " · "}
-          {area.deliveryTime}
-        </span>
-      )}
-      {canEdit && (
-        <button
-          type="button"
-          aria-label={`Edit delivery charge for ${area.name}`}
-          title="Charge / minimum order / delivery time"
-          onClick={() => setIsPricingOpen(true)}
-          className={cn(
-            "shrink-0 rounded border bg-background p-0.5 text-muted-foreground transition-colors hover:border-primaryColor/40 hover:bg-primaryColor/5 hover:text-foreground",
-            hasPricing && "border-primaryColor/30 text-primaryColor",
-          )}
-        >
-          <Pencil className="size-3" />
-        </button>
-      )}
       {canEdit && (
         <button
           type="button"
@@ -1924,181 +1682,7 @@ function AreaTile({
           <X className="size-3" />
         </button>
       )}
-
-      <PricingModal
-        open={isPricingOpen}
-        onOpenChange={setIsPricingOpen}
-        title={area.name}
-        subtitle={`${area.city} · an area value overrides the city default`}
-        charge={area.deliveryCharge ?? null}
-        min={area.minOrderAmount ?? null}
-        deliveryTime={area.deliveryTime ?? null}
-        inherit={{
-          deliveryCharge: cityPricing.deliveryCharge ?? null,
-          minOrderAmount: cityPricing.minOrderAmount ?? null,
-          deliveryTime: cityPricing.deliveryTime ?? null,
-        }}
-        onSave={onUpdatePricing}
-      />
     </div>
-  );
-}
-
-/** Shared delivery-charge / minimum-order / delivery-time modal used for
- *  divisions (time only), cities and areas. `inherit` feeds the placeholders
- *  so empty fields visibly fall back to the parent default (or the shipping
- *  method's values when no parent has one either). */
-function PricingModal({
-  open,
-  onOpenChange,
-  title,
-  subtitle,
-  charge,
-  min,
-  deliveryTime,
-  onSave,
-  inherit,
-  timeOnly = false,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  title: string;
-  subtitle?: string;
-  charge?: number | null;
-  min?: number | null;
-  deliveryTime?: string | null;
-  onSave: (patch: {
-    deliveryCharge?: number | null;
-    minOrderAmount?: number | null;
-    deliveryTime?: string | null;
-  }) => void;
-  inherit?: {
-    deliveryCharge?: number | null;
-    minOrderAmount?: number | null;
-    deliveryTime?: string | null;
-  };
-  /** Division mode — only the delivery-time field is shown. */
-  timeOnly?: boolean;
-}) {
-  const [chargeDraft, setChargeDraft] = useState("");
-  const [minDraft, setMinDraft] = useState("");
-  const [timeDraft, setTimeDraft] = useState("");
-
-  // Reseed the drafts from the current values each time the modal opens.
-  useEffect(() => {
-    if (open) {
-      setChargeDraft(charge != null ? String(charge) : "");
-      setMinDraft(min != null ? String(min) : "");
-      setTimeDraft(deliveryTime ?? "");
-    }
-  }, [open, charge, min, deliveryTime]);
-
-  const savePricing = () => {
-    // Empty or invalid input clears the override (falls back to defaults).
-    const parse = (value: string) => {
-      const trimmed = value.trim();
-      if (trimmed === "") return null;
-      const parsed = Number(trimmed);
-      return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
-    };
-    const time = timeDraft.trim();
-    if (timeOnly) {
-      onSave({ deliveryTime: time || null });
-    } else {
-      onSave({
-        deliveryCharge: parse(chargeDraft),
-        minOrderAmount: parse(minDraft),
-        deliveryTime: time || null,
-      });
-    }
-    onOpenChange(false);
-  };
-
-  const chargePlaceholder =
-    inherit?.deliveryCharge != null
-      ? `City default: ৳${inherit.deliveryCharge}`
-      : "e.g. 60";
-  const minPlaceholder =
-    inherit?.minOrderAmount != null
-      ? `City default: ৳${inherit.minOrderAmount}`
-      : "e.g. 500";
-  const timePlaceholder = inherit?.deliveryTime
-    ? `Inherited: ${inherit.deliveryTime}`
-    : 'e.g. "24-48 hours"';
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="truncate">{title}</DialogTitle>
-          {subtitle && <DialogDescription>{subtitle}</DialogDescription>}
-        </DialogHeader>
-
-        <form
-          id="area-pricing-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            savePricing();
-          }}
-          className="space-y-4"
-        >
-          {!timeOnly && (
-            <>
-              <div className="space-y-1.5">
-                <Label htmlFor="pricing-charge">Delivery charge (৳)</Label>
-                <Input
-                  id="pricing-charge"
-                  value={chargeDraft}
-                  onChange={(event) => setChargeDraft(event.target.value)}
-                  placeholder={chargePlaceholder}
-                  inputMode="decimal"
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="pricing-min">Minimum order amount (৳)</Label>
-                <Input
-                  id="pricing-min"
-                  value={minDraft}
-                  onChange={(event) => setMinDraft(event.target.value)}
-                  placeholder={minPlaceholder}
-                  inputMode="decimal"
-                />
-              </div>
-            </>
-          )}
-          <div className="space-y-1.5">
-            <Label htmlFor="pricing-time">Delivery time</Label>
-            <Input
-              id="pricing-time"
-              value={timeDraft}
-              onChange={(event) => setTimeDraft(event.target.value)}
-              placeholder={timePlaceholder}
-              autoFocus={timeOnly}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {timeOnly
-              ? "Leave empty to clear — cities and areas then use their own values, or the shipping method's delivery time."
-              : "Leave a field empty to inherit the city default (charge/minimum), or the shipping method cost when the city has no value either."}
-          </p>
-        </form>
-
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" form="area-pricing-form">
-            <Check className="size-4" />
-            Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 

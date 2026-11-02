@@ -1,10 +1,11 @@
 "use client";
 
-import { ShippingMethodForm } from "@/components/admin/shipping-method/shipping-method-form";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { FormPageHeader } from "@/components/admin/form-page-header";
+import { ShippingMethodForm } from "@/components/admin/shipping-method/shipping-method-form";
+import { PillBadge } from "@/components/common/pill-badge";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default function AddShippingMethodPage() {
   const router = useRouter();
@@ -20,12 +21,16 @@ export default function AddShippingMethodPage() {
 
   return (
     <AdminPageContainer>
-        <FormPageHeader
-        title="Shipping Method Information"
+      <FormPageHeader
+        title="New shipping method"
         description="Enter the details for the new shipping method."
         backHref="/admin/settings/shipping-method"
         backLabel="Back to Shipping Methods"
-      />
+      >
+        {/* The defaults the form below starts from */}
+        <PillBadge tone="emerald">Active by default</PillBadge>
+        <PillBadge tone="blue">Offered everywhere</PillBadge>
+      </FormPageHeader>
 
       <ShippingMethodForm
         mode="create"

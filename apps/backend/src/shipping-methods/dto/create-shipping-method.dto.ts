@@ -66,6 +66,16 @@ export class CreateShippingMethodDto {
   cost: number;
 
   @ApiProperty({
+    description: 'Minimum order subtotal (৳) required to use this method',
+    example: 500,
+    type: 'number',
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  minOrderAmount?: number | null;
+
+  @ApiProperty({
     description: 'Estimated delivery time range',
     example: '3-5 business days',
     required: true,
