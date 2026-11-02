@@ -1,8 +1,7 @@
 "use client";
 
-import { AccountPageHeader } from "@/components/user-account/account-page-header";
-import { Button } from "@/components/ui/button";
 import { PaginationComponent } from "@/components/common/pagination";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -11,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { AccountPageHeader } from "@/components/user-account/account-page-header";
 import { formatDateTime } from "@/lib/utils";
 import {
   PaginatedEnvelope,
@@ -111,7 +111,7 @@ const MyNotifications = ({
       ) : (
         <div className="space-y-3">
           <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-            <Table className="min-w-200 [&_td]:py-3 [&_th]:pb-3 [&_th]:pt-3">
+            <Table className="min-w-200 bg-white [&_td]:py-3 [&_th]:pb-3 [&_th]:pt-3">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-16">Type</TableHead>
@@ -132,19 +132,14 @@ const MyNotifications = ({
                         markingId !== notification.id &&
                         handleMarkRead(notification.id)
                       }
-                      className={
-                        isUnread
-                          ? "cursor-pointer bg-red-50/50 hover:bg-red-50"
-                          : "cursor-pointer hover:bg-gray-50"
-                      }
+                      className="bg-white cursor-pointer hover:bg-gray-50"
                     >
                       <TableCell>
                         <span
-                          className={`flex h-9 w-9 items-center justify-center rounded-full ${
-                            isUnread
+                          className={`flex h-9 w-9 items-center justify-center rounded-full ${isUnread
                               ? "bg-red-50 text-primaryColor"
                               : "bg-gray-100 text-gray-500"
-                          }`}
+                            }`}
                         >
                           <Icon className="h-4.5 w-4.5" />
                         </span>
@@ -165,11 +160,10 @@ const MyNotifications = ({
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                            isUnread
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${isUnread
                               ? "bg-red-50 text-primaryColor"
                               : "bg-gray-100 text-gray-500"
-                          }`}
+                            }`}
                         >
                           {isUnread ? "Unread" : "Read"}
                         </span>
