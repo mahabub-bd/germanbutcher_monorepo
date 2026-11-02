@@ -414,7 +414,7 @@ export function PurchaseList({
                 </SheetTrigger>
                 <SheetContent
                   side="bottom"
-                  className="max-h-[85vh] overflow-y-auto rounded-t-2xl"
+                  className="max-h-[85vh] overflow-y-auto rounded-t-2xl px-4"
                 >
                   <SheetHeader>
                     <SheetTitle>Filters</SheetTitle>
