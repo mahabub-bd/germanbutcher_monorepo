@@ -833,18 +833,6 @@ export default function ProductActivityHistory({
                   </SelectContent>
                 </Select>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={fetchHistory}
-                  disabled={isLoading}
-                  className="shrink-0 gap-1.5"
-                >
-                  <RefreshCw
-                    className={cn("size-3.5", isLoading && "animate-spin")}
-                  />
-                  <span className="hidden sm:inline">Refresh</span>
-                </Button>
               </div>
             </div>
 
@@ -867,18 +855,6 @@ export default function ProductActivityHistory({
                       totalItems === 1 ? "" : "s"
                     }`}
               </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={fetchHistory}
-                disabled={isLoading}
-                className="h-7 gap-1.5 px-2 text-xs"
-              >
-                <RefreshCw
-                  className={cn("size-3.5", isLoading && "animate-spin")}
-                />
-                Refresh
-              </Button>
             </div>
 
             <ActionTabs

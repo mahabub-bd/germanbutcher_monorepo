@@ -77,7 +77,6 @@ import {
   MapPin,
   MoreHorizontal,
   Pencil,
-  RefreshCw,
   ShoppingCart,
   SlidersHorizontal,
   XCircle,
@@ -1023,15 +1022,6 @@ export function OrderList({
         description={headerCopy.description}
         className="mb-2"
       >
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isLoading}
-          onClick={fetchOrders}
-        >
-          <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-          Refresh
-        </Button>
       </PageHeader>
 
       {/* Toolbar — product-list shell: search, filters and Clear on one row

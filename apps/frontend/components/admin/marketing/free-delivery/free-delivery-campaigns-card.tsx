@@ -56,7 +56,6 @@ import {
   Package,
   Pencil,
   Plus,
-  RefreshCw,
   Search,
   Tags,
   Truck,
@@ -402,15 +401,6 @@ export function FreeDeliveryCampaignsCard() {
             <Eye className="size-3.5" />
             <span className="hidden sm:inline">Usage Logs</span>
           </Link>
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isLoading}
-          onClick={loadCampaigns}
-        >
-          <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-          Refresh
         </Button>
         {can(MENU_URL, "canCreate") && (
           <Button size="sm" onClick={openCreate}>

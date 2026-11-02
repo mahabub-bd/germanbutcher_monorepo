@@ -28,7 +28,7 @@ import {
   getCouponUsageLogsByCode,
   getCouponUsageStats,
 } from "@/lib/coupon-usage-log-service";
-import { cn, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import type { CouponUsageLog } from "@/utils/types";
 import { format } from "date-fns";
 import {
@@ -39,7 +39,6 @@ import {
   MoreHorizontal,
   Package,
   Percent,
-  RefreshCw,
   ShoppingBag,
   TicketPercent,
   User,
@@ -262,15 +261,6 @@ export function CouponUsageLogList({
             <span className="hidden sm:inline">Back to Coupons</span>
           </Link>
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isLoading}
-          onClick={fetchLogs}
-        >
-          <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-          Refresh
-        </Button>
       </PageHeader>
 
       {/* Toolbar */}
@@ -343,13 +333,15 @@ export function CouponUsageLogList({
                   : "No coupon redemptions have been recorded yet."}
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={hasDateRange ? clearDateRange : fetchLogs}
-          >
-            {hasDateRange ? "Clear date range" : "Refresh"}
-          </Button>
+          {hasDateRange && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearDateRange}
+            >
+              Clear date range
+            </Button>
+          )}
         </div>
       ) : (
         <>

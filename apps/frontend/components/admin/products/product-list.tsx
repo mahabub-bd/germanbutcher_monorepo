@@ -57,7 +57,6 @@ import {
   Package,
   Pencil,
   Plus,
-  RefreshCw,
   SlidersHorizontal,
   Trash2,
 } from "lucide-react";
@@ -540,15 +539,6 @@ export function ProductList({
               <History className="size-3.5" />
               <span className="hidden sm:inline">History</span>
             </Link>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchProducts}
-          >
-            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-            Refresh
           </Button>
           {can(MENU_URL, "canCreate") && (
             <Button size="sm" asChild>

@@ -345,15 +345,6 @@ export default function MonthlyOrderReportList({
               Updating
             </span>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isPending}
-            onClick={() => startTransition(() => router.refresh())}
-          >
-            <RefreshCw className={cn("size-3.5", isPending && "animate-spin")} />
-            Refresh
-          </Button>
         </div>
       </div>
 

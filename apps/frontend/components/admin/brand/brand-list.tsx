@@ -39,7 +39,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  RefreshCw,
   Tag,
   Trash2,
 } from "lucide-react";
@@ -280,17 +279,6 @@ export function BrandList({
           title="Brands"
           description="Manufacturers and labels, grouped for the storefront filters."
         >
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchBrands}
-          >
-            <RefreshCw
-              className={isLoading ? "size-3.5 animate-spin" : "size-3.5"}
-            />
-            Refresh
-          </Button>
           {can(MENU_URL, "canCreate") && (
             <Button size="sm" asChild>
               <Link href="/admin/brand/add">

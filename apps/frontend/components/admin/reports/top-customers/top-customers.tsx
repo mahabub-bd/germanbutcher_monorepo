@@ -25,7 +25,6 @@ import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { cn, formatCurrencyEnglish, shortenArea } from "@/lib/utils";
 import {
   Crown,
-  RefreshCw,
   ShoppingCart,
   TrendingUp,
   Users,
@@ -91,7 +90,7 @@ export default function TopCustomersReport({
   const router = useRouter();
   const settings = useBusinessSettings();
   const [mounted, setMounted] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
     setMounted(true);
@@ -104,8 +103,6 @@ export default function TopCustomersReport({
     params.set("timeFilter", key === "timeFilter" ? value : timeFilter);
     startTransition(() => router.push(`?${params.toString()}`));
   };
-
-  const handleRefresh = () => startTransition(() => router.refresh());
 
   // Totals across the ranked customers, for the summary cards and PDF.
   const totalOrders = customers.reduce(
@@ -175,15 +172,6 @@ export default function TopCustomersReport({
             />
           </>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isPending}
-          onClick={handleRefresh}
-        >
-          <RefreshCw className={cn("size-3.5", isPending && "animate-spin")} />
-          Refresh
-        </Button>
       </PageHeader>
 
       {/* Filters — same card panel as ReportDateFilters, with the report's

@@ -36,7 +36,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  RefreshCw,
   Tag,
   TicketPercent,
   Trash2,
@@ -232,15 +231,6 @@ export function CouponList() {
               <Eye className="size-3.5" />
               <span className="hidden sm:inline">Usage Logs</span>
             </Link>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchCoupons}
-          >
-            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-            Refresh
           </Button>
         </PageHeader>
 

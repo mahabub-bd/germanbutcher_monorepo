@@ -59,7 +59,6 @@ import {
   Package,
   PackageMinus,
   PackagePlus,
-  RefreshCw,
   SlidersHorizontal,
   XCircle,
 } from "lucide-react";
@@ -693,17 +692,6 @@ export function StockReport({
           title="Inventory"
           description="Stock on hand and what it is worth, product by product."
         >
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchProducts}
-          >
-            <RefreshCw
-              className={isLoading ? "size-3.5 animate-spin" : "size-3.5"}
-            />
-            Refresh
-          </Button>
         </PageHeader>
 
         {/* Toolbar */}

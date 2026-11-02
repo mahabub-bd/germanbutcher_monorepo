@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
 import type { ApiResponseusers, User } from "@/utils/types";
 import {
@@ -32,7 +32,6 @@ import {
   MapPin,
   MoreHorizontal,
   Pencil,
-  RefreshCw,
   UserCircle,
   User as UserIcon,
   Users,
@@ -197,15 +196,6 @@ export function CustomerList({
         title="Customers"
         description="Registered customer accounts with their contact details and activity."
       >
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isLoading}
-          onClick={fetchCustomers}
-        >
-          <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-          Refresh
-        </Button>
       </PageHeader>
 
       {/* Toolbar */}
@@ -253,13 +243,15 @@ export function CustomerList({
                 : "No customers have been registered yet."}
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={searchQuery ? clearSearch : fetchCustomers}
-          >
-            {searchQuery ? "Clear search" : "Refresh"}
-          </Button>
+          {searchQuery && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearSearch}
+            >
+              Clear search
+            </Button>
+          )}
         </div>
       ) : (
         <>

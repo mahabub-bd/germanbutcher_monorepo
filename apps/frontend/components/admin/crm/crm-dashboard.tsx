@@ -24,7 +24,6 @@ import {
   Crown,
   ListTodo,
   MapPin,
-  RefreshCw,
   ShoppingCart,
   UserPlus,
   Users,
@@ -109,10 +108,8 @@ const dateOnly = (value: string | null) =>
 export function CrmDashboard() {
   const [stats, setStats] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const load = useCallback(async (background = false) => {
-    if (background) setIsRefreshing(true);
+  const load = useCallback(async () => {
     try {
       const res = await fetchProtectedData<DashboardData>("crm/dashboard");
       setStats(res);
@@ -120,7 +117,6 @@ export function CrmDashboard() {
       toast.error("Failed to load the CRM dashboard.");
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
   }, []);
 
@@ -137,15 +133,6 @@ export function CrmDashboard() {
       actionHref="/admin/crm/customers"
       actionIcon={<ArrowRight className="mr-2 size-4" />}
     >
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={isRefreshing}
-        onClick={() => load(true)}
-      >
-        <RefreshCw className={cn("size-3.5", isRefreshing && "animate-spin")} />
-        <span className="hidden sm:inline">Refresh</span>
-      </Button>
     </PageHeader>
   );
 
@@ -170,10 +157,8 @@ export function CrmDashboard() {
           <Button
             variant="outline"
             size="sm"
-            disabled={isRefreshing}
-            onClick={() => load(true)}
+            onClick={() => load()}
           >
-            <RefreshCw className={cn("size-3.5", isRefreshing && "animate-spin")} />
             Retry
           </Button>
         </div>

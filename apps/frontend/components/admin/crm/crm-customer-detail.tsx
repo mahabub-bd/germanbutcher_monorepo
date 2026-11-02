@@ -431,7 +431,7 @@ export function CrmCustomerDetail() {
       </div>
 
       <Tabs defaultValue="orders">
-        <TabsList className="scrollbar-hide h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit">
+        <TabsList className="scrollbar-none h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit">
           {(
             [
               {

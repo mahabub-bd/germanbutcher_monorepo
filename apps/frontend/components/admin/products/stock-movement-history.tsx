@@ -794,18 +794,6 @@ export default function StockMovementHistory({
                   </SelectContent>
                 </Select>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={fetchMovements}
-                  disabled={isLoading}
-                  className="shrink-0 gap-1.5"
-                >
-                  <RefreshCw
-                    className={cn("size-3.5", isLoading && "animate-spin")}
-                  />
-                  <span className="hidden sm:inline">Refresh</span>
-                </Button>
               </div>
             </div>
 
@@ -828,18 +816,6 @@ export default function StockMovementHistory({
                       totalItems === 1 ? "" : "s"
                     }`}
               </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={fetchMovements}
-                disabled={isLoading}
-                className="h-7 gap-1.5 px-2 text-xs"
-              >
-                <RefreshCw
-                  className={cn("size-3.5", isLoading && "animate-spin")}
-                />
-                Refresh
-              </Button>
             </div>
 
             <TypeFilterChips

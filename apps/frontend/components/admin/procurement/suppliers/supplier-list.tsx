@@ -42,7 +42,6 @@ import {
   Pencil,
   Phone,
   Plus,
-  RefreshCw,
   Trash2,
   Truck,
 } from "lucide-react";
@@ -278,15 +277,6 @@ export function SupplierList({
           title="Suppliers"
           description="Who you buy stock from, how to reach them and whether they are active."
         >
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchSuppliers}
-          >
-            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-            Refresh
-          </Button>
           {can(MENU_URL, "canCreate") && (
             <Button size="sm" asChild>
               <Link href="/admin/procurement/suppliers/add">
