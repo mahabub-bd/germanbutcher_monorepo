@@ -34,10 +34,13 @@ import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import type { UserActivity } from "@/utils/types";
 import {
   Activity,
+  Layers,
   RefreshCw,
+  ShieldCheck,
   SlidersHorizontal,
   User,
-  XCircle,
+  Users,
+  XCircle
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -599,14 +602,40 @@ export function UserActivityList({
         </Button>
       </PageHeader>
 
-      {/* Quick log switch: All / Admin / Customer — same userType filter as the Actor dropdown */}
+      {/* Quick log switch: All / Admin / Customer — same userType filter as the Actor dropdown.
+          Pill-tab convention: each tab has its own hue + icon (tinted when inactive, solid when active). */}
       <div className="mb-4 flex items-center gap-1.5 overflow-x-auto pb-1 sm:gap-2">
         {[
-          { value: "", label: "All Log" },
-          { value: "admin", label: "Admin Log" },
-          { value: "customer", label: "Customer Log" },
+          {
+            value: "",
+            label: "All Log",
+            icon: Layers,
+            colors:
+              "bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/70",
+            activeColors:
+              "bg-blue-600 text-white hover:bg-blue-600 dark:bg-blue-400 dark:text-blue-950",
+          },
+          {
+            value: "admin",
+            label: "Admin Log",
+            icon: ShieldCheck,
+            colors:
+              "bg-violet-50 text-violet-800 hover:bg-violet-100 dark:bg-violet-950/40 dark:text-violet-300 dark:hover:bg-violet-950/70",
+            activeColors:
+              "bg-violet-600 text-white hover:bg-violet-600 dark:bg-violet-400 dark:text-violet-950",
+          },
+          {
+            value: "customer",
+            label: "Customer Log",
+            icon: Users,
+            colors:
+              "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/70",
+            activeColors:
+              "bg-emerald-600 text-white hover:bg-emerald-600 dark:bg-emerald-400 dark:text-emerald-950",
+          },
         ].map((tab) => {
           const active = userTypeFilter === tab.value;
+          const TabIcon = tab.icon;
           return (
             <button
               key={tab.label}
@@ -616,12 +645,11 @@ export function UserActivityList({
               }}
               aria-pressed={active}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 sm:px-4 sm:py-2",
-                active
-                  ? "bg-slate-800 text-white hover:bg-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-200"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900"
+                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 sm:px-4 sm:py-2",
+                active ? tab.activeColors : tab.colors
               )}
             >
+              <TabIcon className="size-4" />
               {tab.label}
             </button>
           );

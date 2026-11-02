@@ -379,6 +379,17 @@
     scrollbar-width: thin !important;
     scrollbar-color: rgba(0, 0, 0, 0.1) transparent !important;
   }
+
+  /* Fully hidden scrollbar (keeps the area scrollable) */
+  .scrollbar-none {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+  }
 }
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
