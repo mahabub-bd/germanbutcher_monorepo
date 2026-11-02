@@ -71,7 +71,7 @@ export function StatusPill({ status }: { status: string }) {
     return (
         <PillBadge
             tone={STATUS_TONE[normalized] ?? "neutral"}
-            className="gap-1 capitalize"
+            className="gap-1 capitalize px-2"
         >
             {normalized === "success" ? (
                 <CheckCircle2 className="size-3" />
