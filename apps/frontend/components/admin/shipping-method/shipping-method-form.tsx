@@ -21,7 +21,16 @@ import { cn } from "@/lib/utils";
 import { patchData, postData } from "@/utils/api-utils";
 import type { ShippingMethod } from "@/utils/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import {
+  CheckCircle2,
+  Loader2,
+  MapPin,
+  MinusCircle,
+  RotateCcw,
+  ToggleRight,
+  Truck,
+  X
+} from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -53,23 +62,40 @@ interface ShippingMethodFormProps {
 }
 
 /** A bordered card that groups related fields under a titled header, so the
- *  form reads as distinct sections instead of one long grid. */
+ *  form reads as distinct sections instead of one long grid. An optional icon
+ *  renders as a tinted tile beside the title. */
 function FormSection({
   title,
   description,
+  icon,
+  action,
   children,
 }: {
   title: string;
   description?: string;
+  icon?: ReactNode;
+  action?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
-        <h3 className="text-sm font-semibold">{title}</h3>
-        {description && (
-          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-        )}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+        <div className="flex min-w-0 items-start gap-3">
+          {icon && (
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primaryColor/10 text-primaryColor">
+              {icon}
+            </span>
+          )}
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold">{title}</h3>
+            {description && (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {description}
+              </p>
+            )}
+          </div>
+        </div>
+        {action}
       </div>
       <div className="p-4">{children}</div>
     </section>
@@ -108,13 +134,20 @@ function SwitchRow({
   );
 }
 
-/** Two-way segmented control — clearer than a dropdown for a binary choice. */
+/** Two-way segmented control — clearer than a dropdown for a binary choice.
+ *  Each option carries its own icon line so the effect of the mode is readable
+ *  without hunting for the hint text. */
 function SegmentedControl({
   options,
   value,
   onChange,
 }: {
-  options: { value: string; label: string }[];
+  options: {
+    value: string;
+    label: string;
+    hint: string;
+    icon: ReactNode;
+  }[];
   value: string;
   onChange: (value: string) => void;
 }) {
@@ -128,17 +161,99 @@ function SegmentedControl({
             type="button"
             onClick={() => onChange(option.value)}
             className={cn(
-              "rounded-md px-3 py-2 text-left text-sm transition-colors",
+              "flex items-start gap-2.5 rounded-md p-3 text-left transition-colors",
               active
-                ? "bg-card font-semibold shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-card shadow-xs ring-1 ring-primaryColor/25"
+                : "text-muted-foreground hover:bg-card/60 hover:text-foreground"
             )}
           >
-            {option.label}
+            <span
+              className={cn(
+                "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
+                active
+                  ? "bg-primaryColor/10 text-primaryColor"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              {option.icon}
+            </span>
+            <span className="min-w-0 space-y-0.5">
+              <span
+                className={cn(
+                  "block text-sm",
+                  active ? "font-semibold text-foreground" : "font-medium"
+                )}
+              >
+                {option.label}
+              </span>
+              <span className="block text-xs leading-snug text-muted-foreground">
+                {option.hint}
+              </span>
+            </span>
           </button>
         );
       })}
     </div>
+  );
+}
+
+/** Counter tile in the delivery-area recap strip. */
+function CoverageStat({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="min-w-0 px-3 py-2.5">
+      <p className="text-base font-semibold tabular-nums leading-none">
+        {value}
+      </p>
+      <p
+        title={label}
+        className="mt-1 truncate text-[11px] text-muted-foreground"
+      >
+        {label}
+      </p>
+    </div>
+  );
+}
+
+/** Removable chip in the delivery-area selection list. */
+function SelectionChip({
+  label,
+  tone,
+  onRemove,
+}: {
+  label: string;
+  tone: "served" | "partial" | "excluded";
+  onRemove: () => void;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex max-w-56 items-center gap-1 rounded-full border py-[3px] pr-1 pl-2.5 text-[11px] font-semibold leading-none shadow-none",
+        tone === "served" &&
+        "border-primaryColor/30 bg-primaryColor/10 text-foreground",
+        tone === "partial" &&
+        "border-blue-600/20 bg-blue-50 text-blue-700 dark:border-blue-400/25 dark:bg-blue-500/10 dark:text-blue-400",
+        tone === "excluded" &&
+        "border-amber-600/20 bg-amber-50 text-amber-700 dark:border-amber-400/25 dark:bg-amber-500/10 dark:text-amber-400"
+      )}
+    >
+      <span className="truncate" title={label}>
+        {label}
+      </span>
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove ${label}`}
+        className="shrink-0 rounded-full p-0.5 opacity-60 transition-opacity hover:opacity-100"
+      >
+        <X className="size-3" />
+      </button>
+    </span>
   );
 }
 
@@ -275,13 +390,90 @@ export function ShippingMethodForm({
     );
   };
 
-  /** One-line recap of the ticked coverage, shown beside the section header
-   *  controls so the selection is readable without scrolling divisions. */
-  const coverageSummary =
-    selectedCities.length === 0 && selectedAreas.length === 0
-      ? "Nothing ticked yet — this method will be offered everywhere."
-      : `${selectedCities.length} cit${selectedCities.length === 1 ? "y" : "ies"} fully served · ${selectedAreas.length} area${selectedAreas.length === 1 ? "" : "s"} ticked`;
+  /** Recap for the stats strip and the removable-chip list: a city is
+   *  "area-only" when individual areas are ticked under it instead of the
+   *  city itself. */
+  const coverageSelection = useMemo(() => {
+    const cityByArea = new Map(
+      (coverage?.areas ?? []).map((area) => [area.name, area.city])
+    );
+    const fullyServed = new Set(selectedCities);
+    const areaOnlyCities = new Set<string>();
+    for (const area of selectedAreas) {
+      const city = cityByArea.get(area);
+      if (city && !fullyServed.has(city)) areaOnlyCities.add(city);
+    }
+    const chips: {
+      key: string;
+      name: string;
+      kind: "city" | "area";
+      label: string;
+      tone: "served" | "partial" | "excluded";
+    }[] = [
+        ...selectedCities.map((name) => ({
+          key: `city:${name}`,
+          name,
+          kind: "city" as const,
+          label: name,
+          tone: "served" as const,
+        })),
+        ...selectedAreas.map((name) => ({
+          key: `area:${name}`,
+          name,
+          kind: "area" as const,
+          label: cityByArea.get(name) ? `${name} · ${cityByArea.get(name)}` : name,
+          tone: "partial" as const,
+        })),
+      ];
+    return {
+      fully: fullyServed.size,
+      areaOnly: areaOnlyCities.size,
+      areas: selectedAreas.length,
+      chips,
+    };
+  }, [coverage, selectedCities, selectedAreas]);
+
+  /** Remove one ticked city/area from the selection. */
+  const removeFromSelection = (kind: "city" | "area", name: string) => {
+    if (kind === "city") {
+      form.setValue(
+        "serviceCities",
+        form.getValues("serviceCities").filter((city) => city !== name)
+      );
+      return;
+    }
+    form.setValue(
+      "serviceAreasList",
+      form.getValues("serviceAreasList").filter((area) => area !== name)
+    );
+  };
+
+  const clearSelection = () => {
+    form.setValue("serviceCities", []);
+    form.setValue("serviceAreasList", []);
+  };
+
+  /** One-line recap, phrased from the active mode's point of view so the
+   *  sentence matches what customers will actually see. */
   const modeIsInclude = form.watch("serviceAreasMode") === "include";
+  const coverageSummary = (() => {
+    if (selectedCities.length === 0 && selectedAreas.length === 0) {
+      return modeIsInclude
+        ? "Nothing ticked yet — in whitelist mode this method stays available everywhere."
+        : "Nothing ticked — nothing is excluded, so this method is available everywhere.";
+    }
+    const scope = `${coverageSelection.fully} fully served ${coverageSelection.fully === 1 ? "city" : "cities"
+      } and ${coverageSelection.areaOnly} area${coverageSelection.areaOnly === 1 ? "-limited city" : "-limited cities"
+      }`;
+    return modeIsInclude
+      ? `Available in ${scope}.`
+      : `Hidden in ${scope}, available everywhere else.`;
+  })();
+
+  /** The chip list is capped so a wide selection cannot push the tree down;
+   *  the stats strip above always shows the true totals. */
+  const visibleChips = coverageSelection.chips.slice(0, 18);
+  const hiddenChipCount = coverageSelection.chips.length - visibleChips.length;
 
   const onSubmit = async (values: z.infer<typeof shippingMethodSchema>) => {
     setIsSubmitting(true);
@@ -352,6 +544,7 @@ export function ShippingMethodForm({
         <FormSection
           title="Method details"
           description="Name, pricing and the note customers see at checkout."
+          icon={<Truck className="size-4.5" />}
         >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <FormField
@@ -387,7 +580,7 @@ export function ShippingMethodForm({
                       className="w-full tabular-nums"
                     />
                   </FormControl>
-                  <FormDescription>Lower numbers show first.</FormDescription>
+
                   <FormMessage />
                 </FormItem>
               )}
@@ -465,6 +658,7 @@ export function ShippingMethodForm({
         <FormSection
           title="Checkout behaviour"
           description="Toggles change how this method is offered, priced and paid for."
+          icon={<ToggleRight className="size-4.5" />}
         >
           <div className="grid gap-3 md:grid-cols-2">
             <FormField
@@ -524,7 +718,13 @@ export function ShippingMethodForm({
         {/* Delivery area */}
         <FormSection
           title="Delivery area"
-          description="Data comes from Delivery Coverage. A ticked city is served fully; ticking areas limits that city to those areas."
+          description="Cities and areas come from Delivery Coverage. A ticked city is served fully; ticking areas limits that city to those areas only."
+          icon={<MapPin className="size-4.5" />}
+          action={
+            <PillBadge tone={modeIsInclude ? "blue" : "amber"}>
+              {modeIsInclude ? "Whitelist mode" : "Blacklist mode"}
+            </PillBadge>
+          }
         >
           <div className="space-y-4">
             <FormField
@@ -539,11 +739,15 @@ export function ShippingMethodForm({
                     options={[
                       {
                         value: "include",
-                        label: "Only where I tick below",
+                        label: "Only where I tick",
+                        hint: "Offered at checkout only in the cities and areas ticked below.",
+                        icon: <CheckCircle2 className="size-4" />,
                       },
                       {
                         value: "exclude",
-                        label: "Everywhere except where I tick",
+                        label: "Everywhere except ticked",
+                        hint: "Hidden in the cities and areas ticked below, offered everywhere else.",
+                        icon: <MinusCircle className="size-4" />,
                       },
                     ]}
                   />
@@ -552,20 +756,67 @@ export function ShippingMethodForm({
               )}
             />
 
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed bg-muted/30 px-3.5 py-2.5">
-              <p className="text-xs text-muted-foreground">
+            {/* Selection recap — readable without scrolling the tree */}
+            <div className="overflow-hidden rounded-lg border bg-muted/25">
+              <div className="grid grid-cols-3 divide-x">
+                <CoverageStat
+                  label={modeIsInclude ? "Cities fully served" : "Cities excluded"}
+                  value={coverageSelection.fully}
+                />
+                <CoverageStat
+                  label={modeIsInclude ? "Cities by area only" : "Cities area-excluded"}
+                  value={coverageSelection.areaOnly}
+                />
+                <CoverageStat
+                  label={modeIsInclude ? "Areas ticked" : "Areas excluded"}
+                  value={coverageSelection.areas}
+                />
+              </div>
+              <p className="border-t bg-background px-3 py-2 text-xs text-muted-foreground">
                 {coverageSummary}
               </p>
-              <PillBadge tone={modeIsInclude ? "blue" : "amber"}>
-                {modeIsInclude ? "Whitelist" : "Blacklist"}
-              </PillBadge>
             </div>
+
+            {/* Removable chips — undo a tick without hunting for it in the tree */}
+            {visibleChips.length > 0 && (
+              <div className="rounded-lg border bg-background p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {modeIsInclude ? "Selected" : "Excluded"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <RotateCcw className="size-3" />
+                    Clear all
+                  </button>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {visibleChips.map((chip) => (
+                    <SelectionChip
+                      key={chip.key}
+                      label={chip.label}
+                      tone={modeIsInclude ? chip.tone : "excluded"}
+                      onRemove={() => removeFromSelection(chip.kind, chip.name)}
+                    />
+                  ))}
+                  {hiddenChipCount > 0 && (
+                    <span className="inline-flex items-center text-[11px] text-muted-foreground">
+                      +{hiddenChipCount} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
             <CoverageTree
               tree={coverageTree}
               cities={selectedCities}
               areas={selectedAreas}
               coverage={coverage}
+              mode={modeIsInclude ? "include" : "exclude"}
               onToggleCity={setCityFull}
               onToggleArea={setAreaSelected}
               onToggleDivision={setDivisionServed}

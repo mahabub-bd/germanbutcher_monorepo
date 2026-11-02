@@ -1,9 +1,10 @@
 "use client";
 
-import { ShippingMethodForm } from "@/components/admin/shipping-method/shipping-method-form";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { FormPageHeader } from "@/components/admin/form-page-header";
+import { ShippingMethodForm } from "@/components/admin/shipping-method/shipping-method-form";
+import { PillBadge, type PillTone } from "@/components/common/pill-badge";
 import { Button } from "@/components/ui/button";
-import { PillBadge } from "@/components/common/pill-badge";
 import { fetchData } from "@/utils/api-utils";
 import type { ShippingMethod } from "@/utils/types";
 import { Loader2 } from "lucide-react";
@@ -11,7 +12,14 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { AdminPageContainer } from "@/components/admin/admin-page-container";
+
+/** Backend sends semantic flag keys; the admin UI owns the colour. */
+const SHIPPING_FLAG_TONE: Record<string, PillTone> = {
+  pickup: "violet",
+  online_payment: "sky",
+  no_free_delivery: "amber",
+  area_limited: "blue",
+};
 
 export default function EditShippingMethodPage() {
   const router = useRouter();
@@ -44,8 +52,7 @@ export default function EditShippingMethodPage() {
 
   const handleSuccess = () => {
     toast.success("Shipping method updated successfully");
-    // Land on the detail page so the saved values are visible at a glance.
-    router.push(`/admin/settings/shipping-method/${methodId}`);
+    router.push("/admin/settings/shipping-method");
   };
 
   const handleCancel = () => {
@@ -83,6 +90,12 @@ export default function EditShippingMethodPage() {
     );
   }
 
+  const flags = (shippingMethod.flags ?? []).map((flag) => ({
+    label: flag.label,
+    tone: SHIPPING_FLAG_TONE[flag.key] ?? ("neutral" as PillTone),
+  }));
+  const isFree = Number(shippingMethod.cost) === 0;
+
   return (
     <AdminPageContainer>
       <FormPageHeader
@@ -90,9 +103,22 @@ export default function EditShippingMethodPage() {
         backHref="/admin/settings/shipping-method"
         backLabel="Back to Shipping Methods"
       >
-        <PillBadge tone={shippingMethod.isActive ? "emerald" : "red"}>
-          {shippingMethod.isActive ? "Active" : "Inactive"}
-        </PillBadge>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <PillBadge tone={shippingMethod.isActive ? "emerald" : "red"}>
+            {shippingMethod.isActive ? "Active" : "Inactive"}
+          </PillBadge>
+          <PillBadge tone={isFree ? "emerald" : "neutral"}>
+            {isFree ? "Free" : `৳${shippingMethod.cost}`}
+          </PillBadge>
+          {shippingMethod.deliveryTime && (
+            <PillBadge tone="neutral">{shippingMethod.deliveryTime}</PillBadge>
+          )}
+          {flags.map((flag) => (
+            <PillBadge key={flag.label} tone={flag.tone}>
+              {flag.label}
+            </PillBadge>
+          ))}
+        </div>
       </FormPageHeader>
 
       <ShippingMethodForm

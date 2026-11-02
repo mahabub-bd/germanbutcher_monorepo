@@ -18,6 +18,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -26,14 +34,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   normalizeCoverage,
   type CoverageArea,
@@ -411,14 +411,14 @@ export function DeliveryCoverageCard() {
     const names =
       adding.level === "area"
         ? Array.from(
-            new Map(
-              raw
-                .split(",")
-                .map((value) => value.trim())
-                .filter(Boolean)
-                .map((value) => [value.toLowerCase(), value] as const),
-            ).values(),
-          )
+          new Map(
+            raw
+              .split(",")
+              .map((value) => value.trim())
+              .filter(Boolean)
+              .map((value) => [value.toLowerCase(), value] as const),
+          ).values(),
+        )
         : [raw];
     if (names.length === 0) return;
 
@@ -474,8 +474,7 @@ export function DeliveryCoverageCard() {
       }));
       if (fresh.length !== names.length) {
         toast.info(
-          `Added ${fresh.length} ${
-            fresh.length === 1 ? "area" : "areas"
+          `Added ${fresh.length} ${fresh.length === 1 ? "area" : "areas"
           } — duplicates were skipped`,
         );
       }
@@ -794,27 +793,23 @@ export function DeliveryCoverageCard() {
       );
       return {
         title: `Delete "${pendingDelete.name}"?`,
-        description: `This removes the division, ${cities.length} ${
-          cities.length === 1 ? "city" : "cities"
-        } and ${areaCount} ${
-          areaCount === 1 ? "area" : "areas"
-        } from your coverage list. This cannot be undone.`,
+        description: `This removes the division, ${cities.length} ${cities.length === 1 ? "city" : "cities"
+          } and ${areaCount} ${areaCount === 1 ? "area" : "areas"
+          } from your coverage list. This cannot be undone.`,
       };
     }
     if (pendingDelete.level === "city") {
       const areaCount = areasByCity.get(pendingDelete.name)?.length ?? 0;
       return {
         title: `Delete "${pendingDelete.name}"?`,
-        description: `This removes the city and its ${areaCount} ${
-          areaCount === 1 ? "area" : "areas"
-        } from your coverage list. This cannot be undone.`,
+        description: `This removes the city and its ${areaCount} ${areaCount === 1 ? "area" : "areas"
+          } from your coverage list. This cannot be undone.`,
       };
     }
     return {
       title: `Delete "${pendingDelete.name}"?`,
-      description: `This area will be removed from ${
-        pendingDelete.city ?? "this city"
-      }. This cannot be undone.`,
+      description: `This area will be removed from ${pendingDelete.city ?? "this city"
+        }. This cannot be undone.`,
     };
   }, [pendingDelete, coverage.cities, areasByCity]);
 
@@ -1157,7 +1152,7 @@ export function DeliveryCoverageCard() {
                                   className={cn(
                                     "truncate text-sm font-semibold sm:text-[15px]",
                                     !division.enabled &&
-                                      "text-muted-foreground",
+                                    "text-muted-foreground",
                                   )}
                                 >
                                   {division.name}
@@ -1246,9 +1241,8 @@ export function DeliveryCoverageCard() {
                           type="button"
                           onClick={() => toggleNode(key, "division")}
                           aria-expanded={expanded}
-                          aria-label={`${
-                            expanded ? "Collapse" : "Expand"
-                          } ${division.name}`}
+                          aria-label={`${expanded ? "Collapse" : "Expand"
+                            } ${division.name}`}
                           className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         >
                           <ChevronDown
@@ -1307,7 +1301,9 @@ export function DeliveryCoverageCard() {
                             )}
                           </div>
 
-                          <div className="grid items-start gap-2 md:grid-cols-2 2xl:grid-cols-3">
+                          {/* City cards stay two-up on desktop — a third column
+                              squeezes the pricing pill and the actions menu. */}
+                          <div className="grid items-start gap-2 md:grid-cols-2">
                             {cityNodes.length === 0 && (
                               <p className="col-span-full rounded-xl border border-dashed px-3 py-3 text-xs text-muted-foreground">
                                 No cities in this division yet.
@@ -1386,7 +1382,7 @@ export function DeliveryCoverageCard() {
                                             className={cn(
                                               "block truncate text-sm font-medium",
                                               !city.enabled &&
-                                                "text-muted-foreground",
+                                              "text-muted-foreground",
                                             )}
                                           >
                                             {city.name}
@@ -1399,24 +1395,24 @@ export function DeliveryCoverageCard() {
                                             {(city.deliveryCharge != null ||
                                               city.minOrderAmount != null ||
                                               city.deliveryTime) && (
-                                              <span
-                                                className="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-px font-medium tabular-nums text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                                title="City delivery charge / minimum order / delivery time (inherited by areas without their own value)"
-                                              >
-                                                {city.deliveryCharge != null &&
-                                                  `৳${city.deliveryCharge}`}
-                                                {city.deliveryCharge != null &&
-                                                  city.minOrderAmount != null &&
-                                                  " · "}
-                                                {city.minOrderAmount != null &&
-                                                  `min ৳${city.minOrderAmount}`}
-                                                {(city.deliveryCharge != null ||
-                                                  city.minOrderAmount != null) &&
-                                                  city.deliveryTime &&
-                                                  " · "}
-                                                {city.deliveryTime}
-                                              </span>
-                                            )}
+                                                <span
+                                                  className="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-px font-medium tabular-nums text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                                  title="City delivery charge / minimum order / delivery time (inherited by areas without their own value)"
+                                                >
+                                                  {city.deliveryCharge != null &&
+                                                    `৳${city.deliveryCharge}`}
+                                                  {city.deliveryCharge != null &&
+                                                    city.minOrderAmount != null &&
+                                                    " · "}
+                                                  {city.minOrderAmount != null &&
+                                                    `min ৳${city.minOrderAmount}`}
+                                                  {(city.deliveryCharge != null ||
+                                                    city.minOrderAmount != null) &&
+                                                    city.deliveryTime &&
+                                                    " · "}
+                                                  {city.deliveryTime}
+                                                </span>
+                                              )}
                                           </span>
                                         </button>
                                       )}
@@ -1485,9 +1481,8 @@ export function DeliveryCoverageCard() {
                                       type="button"
                                       onClick={() => toggleNode(key, "city")}
                                       aria-expanded={cityExpanded}
-                                      aria-label={`${
-                                        cityExpanded ? "Collapse" : "Expand"
-                                      } ${city.name}`}
+                                      aria-label={`${cityExpanded ? "Collapse" : "Expand"
+                                        } ${city.name}`}
                                       className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                                     >
                                       <ChevronDown
@@ -1510,7 +1505,7 @@ export function DeliveryCoverageCard() {
                                             className={cn(
                                               "flex cursor-pointer select-none items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-[11px] shadow-xs transition-colors hover:bg-muted/60",
                                               !canEdit &&
-                                                "cursor-not-allowed opacity-60",
+                                              "cursor-not-allowed opacity-60",
                                             )}
                                             title={`Mark or unmark every area in ${city.name}`}
                                           >
@@ -1593,7 +1588,7 @@ export function DeliveryCoverageCard() {
                                       {!isSearching && canEdit && (
                                         <div className="pt-0.5">
                                           {adding?.level === "area" &&
-                                          adding.city === city.name ? (
+                                            adding.city === city.name ? (
                                             <AddRow
                                               value={addValue}
                                               onChange={setAddValue}
@@ -1628,7 +1623,7 @@ export function DeliveryCoverageCard() {
                             {!isSearching && canEdit && (
                               <div className="min-h-16">
                                 {adding?.level === "city" &&
-                                adding.division === division.name ? (
+                                  adding.division === division.name ? (
                                   <AddRow
                                     value={addValue}
                                     onChange={setAddValue}
