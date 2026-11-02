@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { ApiResponseusers, User } from "@/utils/types";
 import {
@@ -40,7 +40,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  RefreshCw,
   Shield,
   ShieldCheck,
   Store,
@@ -260,15 +259,6 @@ export function UserList({
               </Link>
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchUsers}
-          >
-            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-            Refresh
-          </Button>
         </PageHeader>
 
         {/* Toolbar */}

@@ -240,7 +240,7 @@ export default function AreaWiseOrdersList({
   const router = useRouter();
   const settings = useBusinessSettings();
   const [mounted, setMounted] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("orders");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -402,15 +402,6 @@ export default function AreaWiseOrdersList({
             />
           </>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isPending}
-          onClick={() => startTransition(() => router.refresh())}
-        >
-          <RefreshCw className={cn("size-3.5", isPending && "animate-spin")} />
-          Refresh
-        </Button>
       </PageHeader>
 
       {/* Filters — shared single-row filter bar (identical on all report pages) */}

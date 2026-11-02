@@ -19,7 +19,6 @@ import {
   CalendarDays,
   Filter,
   ListOrdered,
-  RefreshCw,
   ShoppingBag,
   User,
   type LucideIcon,
@@ -28,7 +27,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { cn, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
@@ -207,17 +206,7 @@ export function MarketingUsageLogList({
 
   return (
     <div className="w-full">
-      <PageHeader title={title} description={description}>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isLoading}
-          onClick={fetchLogs}
-        >
-          <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-          Refresh
-        </Button>
-      </PageHeader>
+      <PageHeader title={title} description={description} />
 
       {/* Toolbar */}
       <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
@@ -287,13 +276,15 @@ export function MarketingUsageLogList({
                 : emptyHint}
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={hasDateRange ? clearDateRange : fetchLogs}
-          >
-            {hasDateRange ? "Clear date range" : "Refresh"}
-          </Button>
+          {hasDateRange && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearDateRange}
+            >
+              Clear date range
+            </Button>
+          )}
         </div>
       ) : (
         <>

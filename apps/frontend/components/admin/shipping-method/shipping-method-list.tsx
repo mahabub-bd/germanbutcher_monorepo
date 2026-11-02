@@ -30,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
-import { cn, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { deleteData, fetchData } from "@/utils/api-utils";
 import type { ShippingMethod } from "@/utils/types";
 import {
@@ -40,7 +40,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  RefreshCw,
   Trash2,
   Truck,
   XCircle,
@@ -228,15 +227,6 @@ export function ShippingMethodList() {
               </Link>
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchShippingMethods}
-          >
-            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-            Refresh
-          </Button>
         </PageHeader>
 
         {/* Toolbar */}

@@ -3,7 +3,6 @@
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PaginationComponent } from "@/components/common/pagination";
 import { PillBadge } from "@/components/common/pill-badge";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -13,11 +12,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import { fetchProtectedData } from "@/utils/api-utils";
 import type { AbandonedCartsSummary } from "@/utils/types";
 import {
-  RefreshCw,
   Search,
   ShoppingCart,
   Tag,
@@ -171,17 +168,6 @@ export function AbandonedCartsList() {
                 {report.total.toLocaleString("en-US")} total
               </PillBadge>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={isLoading}
-              onClick={fetchReport}
-            >
-              <RefreshCw
-                className={cn("size-3.5", isLoading && "animate-spin")}
-              />
-              <span className="ml-1.5 hidden sm:inline">Refresh</span>
-            </Button>
           </div>
         </div>
 

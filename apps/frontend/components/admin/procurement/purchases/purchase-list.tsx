@@ -22,6 +22,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   Table,
   TableBody,
   TableCell,
@@ -41,8 +50,8 @@ import {
   Package,
   Pencil,
   Plus,
-  RefreshCw,
   ShoppingCart,
+  SlidersHorizontal,
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
@@ -127,6 +136,7 @@ export function PurchaseList({
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(
     null
   );
@@ -251,6 +261,55 @@ export function PurchaseList({
         (paymentStatusFilter && paymentStatusFilter !== "all")
     );
 
+  // Select filters only — search lives outside the mobile filter sheet.
+  const activeFilterCount = [
+    statusFilter,
+    paymentStatusFilter,
+  ].filter((value) => value && value !== "all").length;
+
+  // Shared filter selects — rendered in the md toolbar and in the mobile
+  // filter sheet so both stay in sync with one definition.
+  const statusSelect = (
+    <Select
+      value={statusFilter || "all"}
+      onValueChange={(value) => {
+        setStatusFilter(value === "all" ? "" : value);
+        setCurrentPage(1);
+      }}
+    >
+      <SelectTrigger className="h-9 w-full">
+        <SelectValue placeholder="Status" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All statuses</SelectItem>
+        <SelectItem value="pending">Pending</SelectItem>
+        <SelectItem value="shipped">Shipped</SelectItem>
+        <SelectItem value="delivered">Delivered</SelectItem>
+        <SelectItem value="cancelled">Cancelled</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+
+  const paymentStatusSelect = (
+    <Select
+      value={paymentStatusFilter || "all"}
+      onValueChange={(value) => {
+        setPaymentStatusFilter(value === "all" ? "" : value);
+        setCurrentPage(1);
+      }}
+    >
+      <SelectTrigger className="h-9 w-full">
+        <SelectValue placeholder="Payment" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All payments</SelectItem>
+        <SelectItem value="paid">Paid</SelectItem>
+        <SelectItem value="partial">Partial</SelectItem>
+        <SelectItem value="due">Due</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+
   const paidCount = purchases.filter((p) => p.paymentStatus === "paid").length;
   const partialCount = purchases.filter(
     (p) => p.paymentStatus === "partial"
@@ -311,15 +370,6 @@ export function PurchaseList({
           title="Purchases"
           description="Every stock purchase order, the supplier behind it and what is still owed."
         >
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchPurchases}
-          >
-            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-            Refresh
-          </Button>
           {can(MENU_URL, "canCreate") && (
             <Button size="sm" asChild>
               <Link href="/admin/procurement/purchases/add">
@@ -333,55 +383,65 @@ export function PurchaseList({
         {/* Toolbar */}
         <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
           <div className="flex flex-col gap-2.5 md:flex-row md:flex-nowrap md:items-center md:gap-3">
-            <TableSearch
-              wrapperClassName="w-full md:max-w-xs"
-              className="h-9"
-              placeholder="Search by purchase number or supplier..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
+            <div className="flex items-center gap-2">
+              <TableSearch
+                wrapperClassName="w-full md:max-w-xs"
+                className="h-9"
+                placeholder="Search by purchase number or supplier..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
 
-            <div className="grid grid-cols-2 gap-2.5 md:flex md:items-center md:gap-3">
-              <div className="md:w-40 md:shrink-0">
-                <Select
-                  value={statusFilter || "all"}
-                  onValueChange={(value) => {
-                    setStatusFilter(value === "all" ? "" : value);
-                    setCurrentPage(1);
-                  }}
+              {/* Mobile filter trigger — opens the bottom-sheet filter */}
+              <Sheet
+                open={isFilterSheetOpen}
+                onOpenChange={setIsFilterSheetOpen}
+              >
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 shrink-0 gap-1.5 md:hidden"
+                  >
+                    <SlidersHorizontal className="size-4" />
+                    Filter
+                    {activeFilterCount > 0 && (
+                      <span className="ml-0.5 flex size-5 items-center justify-center rounded-full bg-primaryColor text-[10px] font-semibold text-white">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side="bottom"
+                  className="max-h-[85vh] overflow-y-auto rounded-t-2xl"
                 >
-                  <SelectTrigger className="h-9 w-full">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All statuses</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="shipped">Shipped</SelectItem>
-                    <SelectItem value="delivered">Delivered</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <SheetHeader>
+                    <SheetTitle>Filters</SheetTitle>
+                  </SheetHeader>
+                  <div className="grid gap-3 pb-2">
+                    {statusSelect}
+                    {paymentStatusSelect}
+                  </div>
+                  <SheetFooter className="flex-row gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={clearFilters}
+                    >
+                      Clear all
+                    </Button>
+                    <SheetClose asChild>
+                      <Button className="flex-1">Done</Button>
+                    </SheetClose>
+                  </SheetFooter>
+                </SheetContent>
+              </Sheet>
+            </div>
 
-              <div className="md:w-40 md:shrink-0">
-                <Select
-                  value={paymentStatusFilter || "all"}
-                  onValueChange={(value) => {
-                    setPaymentStatusFilter(value === "all" ? "" : value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-9 w-full">
-                    <SelectValue placeholder="Payment" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All payments</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="partial">Partial</SelectItem>
-                    <SelectItem value="due">Due</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="hidden md:flex md:items-center md:gap-3">
+              <div className="md:w-40 md:shrink-0">{statusSelect}</div>
+              <div className="md:w-40 md:shrink-0">{paymentStatusSelect}</div>
             </div>
 
             {hasActiveFilters() && (

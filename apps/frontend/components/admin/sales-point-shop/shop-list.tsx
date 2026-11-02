@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/table";
 import { divisions } from "@/constants";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
-import { cn } from "@/lib/utils";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { SalesPoint, Shop } from "@/utils/types";
 import {
@@ -42,7 +41,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  RefreshCw,
   Store,
   Trash2,
   XCircle,
@@ -299,15 +297,6 @@ export function ShopList({
               </Link>
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchShops}
-          >
-            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-            Refresh
-          </Button>
         </PageHeader>
 
         {/* Toolbar */}

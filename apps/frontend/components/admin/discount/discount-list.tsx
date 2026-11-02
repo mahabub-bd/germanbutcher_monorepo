@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { fetchDataPagination, patchData } from "@/utils/api-utils";
 import {
   DiscountType,
@@ -38,6 +38,7 @@ import {
   type Category,
   type Product,
 } from "@/utils/types";
+import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   BadgePercent,
   CalendarRange,
@@ -45,7 +46,7 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  RefreshCw,
+  SlidersHorizontal,
   Tag,
   Trash2,
   XCircle,
@@ -122,6 +123,7 @@ export function DiscountList({
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -135,6 +137,14 @@ export function DiscountList({
     statusFilter ||
     discountTypeFilter
   );
+
+  // Select filters only — search lives outside the mobile filter sheet.
+  const activeFilterCount = [
+    statusFilter,
+    discountTypeFilter,
+    categoryFilter,
+    brandFilter,
+  ].filter((value) => value && value !== "all").length;
 
   const updateUrl = useCallback(() => {
     const params = new URLSearchParams();
@@ -327,6 +337,91 @@ export function DiscountList({
   const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
   const lastRow = Math.min(currentPage * limit, totalItems);
 
+  // Shared filter selects — rendered in the xl toolbar and in the mobile
+  // filter sheet so both stay in sync with one definition.
+  const statusSelect = (
+    <Select
+      value={statusFilter || "all"}
+      onValueChange={(value) => {
+        setStatusFilter(value === "all" ? "" : value);
+        setCurrentPage(1);
+      }}
+    >
+      <SelectTrigger className="h-9 w-full">
+        <SelectValue placeholder="Status" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All status</SelectItem>
+        <SelectItem value="active">Active</SelectItem>
+        <SelectItem value="upcoming">Upcoming</SelectItem>
+        <SelectItem value="expired">Expired</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+
+  const typeSelect = (
+    <Select
+      value={discountTypeFilter || "all"}
+      onValueChange={(value) => {
+        setDiscountTypeFilter(value === "all" ? "" : value);
+        setCurrentPage(1);
+      }}
+    >
+      <SelectTrigger className="h-9 w-full">
+        <SelectValue placeholder="Type" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All types</SelectItem>
+        <SelectItem value="percentage">Percentage</SelectItem>
+        <SelectItem value="fixed">Fixed amount</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+
+  const categorySelect = (
+    <Select
+      value={categoryFilter || "all"}
+      onValueChange={(value) => {
+        setCategoryFilter(value === "all" ? "" : value);
+        setCurrentPage(1);
+      }}
+    >
+      <SelectTrigger className="h-9 w-full">
+        <SelectValue placeholder="Category" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All categories</SelectItem>
+        {categories.map((category) => (
+          <SelectItem key={category.id} value={category.id.toString()}>
+            {category.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
+  const brandSelect = (
+    <Select
+      value={brandFilter || "all"}
+      onValueChange={(value) => {
+        setBrandFilter(value === "all" ? "" : value);
+        setCurrentPage(1);
+      }}
+    >
+      <SelectTrigger className="h-9 w-full">
+        <SelectValue placeholder="Brand" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All brands</SelectItem>
+        {brands.map((brand) => (
+          <SelectItem key={brand.id} value={brand.id.toString()}>
+            {brand.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
   const renderActions = (product: Product) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -362,15 +457,6 @@ export function DiscountList({
           title="Product Discounts"
           description="Every product currently carrying a discount, with its price, period and status."
         >
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchDiscountedProducts}
-          >
-            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-            Refresh
-          </Button>
           {can(MENU_URL, "canCreate") && (
             <Button size="sm" asChild>
               <Link href="/admin/marketing/discounts/add">
@@ -383,100 +469,69 @@ export function DiscountList({
         {/* Toolbar */}
         <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
           <div className="flex flex-col gap-2.5 xl:flex-row xl:flex-nowrap xl:items-center xl:gap-3">
-            <TableSearch
-              wrapperClassName="w-full xl:max-w-xs"
-              className="h-9"
-              placeholder="Search discounted products..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
+            <div className="flex items-center gap-2">
+              <TableSearch
+                wrapperClassName="w-full xl:max-w-xs"
+                className="h-9"
+                placeholder="Search discounted products..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
 
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 xl:flex xl:items-center xl:gap-3">
-              <div className="xl:w-32 xl:shrink-0">
-                <Select
-                  value={statusFilter || "all"}
-                  onValueChange={(value) => {
-                    setStatusFilter(value === "all" ? "" : value);
-                    setCurrentPage(1);
-                  }}
+              {/* Mobile filter trigger — opens the bottom-sheet filter */}
+              <Sheet
+                open={isFilterSheetOpen}
+                onOpenChange={setIsFilterSheetOpen}
+              >
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 shrink-0 gap-1.5 xl:hidden"
+                  >
+                    <SlidersHorizontal className="size-4" />
+                    Filter
+                    {activeFilterCount > 0 && (
+                      <span className="ml-0.5 flex size-5 items-center justify-center rounded-full bg-primaryColor text-[10px] font-semibold text-white">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side="bottom"
+                  className="max-h-[85vh] overflow-y-auto rounded-t-2xl"
                 >
-                  <SelectTrigger className="h-9 w-full">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="upcoming">Upcoming</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <SheetHeader>
+                    <SheetTitle>Filters</SheetTitle>
+                  </SheetHeader>
+                  <div className="grid gap-3 pb-2">
+                    {statusSelect}
+                    {typeSelect}
+                    {categorySelect}
+                    {brandSelect}
+                  </div>
+                  <SheetFooter className="flex-row gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={clearFilters}
+                    >
+                      Clear all
+                    </Button>
+                    <SheetClose asChild>
+                      <Button className="flex-1">Done</Button>
+                    </SheetClose>
+                  </SheetFooter>
+                </SheetContent>
+              </Sheet>
+            </div>
 
-              <div className="xl:w-32 xl:shrink-0">
-                <Select
-                  value={discountTypeFilter || "all"}
-                  onValueChange={(value) => {
-                    setDiscountTypeFilter(value === "all" ? "" : value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-9 w-full">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All types</SelectItem>
-                    <SelectItem value="percentage">Percentage</SelectItem>
-                    <SelectItem value="fixed">Fixed amount</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="xl:w-40 xl:shrink-0">
-                <Select
-                  value={categoryFilter || "all"}
-                  onValueChange={(value) => {
-                    setCategoryFilter(value === "all" ? "" : value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-9 w-full">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All categories</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem
-                        key={category.id}
-                        value={category.id.toString()}
-                      >
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="xl:w-36 xl:shrink-0">
-                <Select
-                  value={brandFilter || "all"}
-                  onValueChange={(value) => {
-                    setBrandFilter(value === "all" ? "" : value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-9 w-full">
-                    <SelectValue placeholder="Brand" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All brands</SelectItem>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand.id} value={brand.id.toString()}>
-                        {brand.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="hidden xl:flex xl:items-center xl:gap-3">
+              <div className="xl:w-32 xl:shrink-0">{statusSelect}</div>
+              <div className="xl:w-32 xl:shrink-0">{typeSelect}</div>
+              <div className="xl:w-40 xl:shrink-0">{categorySelect}</div>
+              <div className="xl:w-36 xl:shrink-0">{brandSelect}</div>
             </div>
 
             {hasFilters && (

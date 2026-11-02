@@ -37,7 +37,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  RefreshCw,
   Scale,
   Trash2,
 } from "lucide-react";
@@ -210,17 +209,6 @@ export function UnitList() {
           title="Units"
           description="Measurement units offered when a product is priced and stocked."
         >
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchUnits}
-          >
-            <RefreshCw
-              className={isLoading ? "size-3.5 animate-spin" : "size-3.5"}
-            />
-            Refresh
-          </Button>
           {can(MENU_URL, "canCreate") && (
             <Button size="sm" onClick={() => setIsAddDialogOpen(true)}>
               <Plus className="size-4" />

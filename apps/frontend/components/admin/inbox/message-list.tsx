@@ -33,7 +33,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
 import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import type { ContactMessage } from "@/utils/types";
 import {
@@ -44,7 +43,6 @@ import {
   MailOpen,
   MessageSquare,
   Plus,
-  RefreshCw,
   SlidersHorizontal,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -402,15 +400,6 @@ export function ContactMessageList({
           title="Support Tickets"
           description="Customer inquiries from all channels — assign, prioritize and resolve"
         >
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchMessages}
-          >
-            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-            Refresh
-          </Button>
           {can(MENU_URL, "canCreate") && (
             <Button size="sm" onClick={() => setIsAddTicketOpen(true)}>
               <Plus className="size-4" />

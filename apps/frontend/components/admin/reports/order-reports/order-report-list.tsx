@@ -60,7 +60,6 @@ import {
   MapPin,
   Percent,
   ReceiptText,
-  RefreshCw,
   ShoppingCart,
   Wallet,
 } from "lucide-react";
@@ -231,7 +230,7 @@ export default function OrderReportList({
   const router = useRouter();
   const settings = useBusinessSettings();
   const [mounted, setMounted] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const [selectedOrderStatus, setSelectedOrderStatus] = useState<string>(
     orderStatus || "all"
@@ -465,15 +464,6 @@ export default function OrderReportList({
             )}
           </>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isPending}
-          onClick={() => startTransition(() => router.refresh())}
-        >
-          <RefreshCw className={cn("size-3.5", isPending && "animate-spin")} />
-          Refresh
-        </Button>
       </PageHeader>
 
       {/* Filters — shared date bar plus the report's own status selects */}

@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { deleteData, fetchProtectedData } from "@/utils/api-utils";
 import type { Role } from "@/utils/types";
 import {
@@ -35,7 +35,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  RefreshCw,
   Shield,
   ShieldCheck,
   Store,
@@ -184,15 +183,6 @@ export function RoleList() {
               </Link>
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchRoles}
-          >
-            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-            Refresh
-          </Button>
         </PageHeader>
 
         {/* Toolbar */}

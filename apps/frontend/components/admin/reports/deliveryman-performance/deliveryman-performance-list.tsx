@@ -24,11 +24,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { cn, formatCurrencyEnglish } from "@/lib/utils";
+import { formatCurrencyEnglish } from "@/lib/utils";
 import {
   ClipboardList,
   PackageCheck,
-  RefreshCw,
   Truck,
   Users,
 } from "lucide-react";
@@ -82,7 +81,7 @@ export default function DeliverymanPerformanceList({
   const router = useRouter();
   const settings = useBusinessSettings();
   const [mounted, setMounted] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
     setMounted(true);
@@ -185,15 +184,6 @@ export default function DeliverymanPerformanceList({
             />
           </>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isPending}
-          onClick={() => startTransition(() => router.refresh())}
-        >
-          <RefreshCw className={cn("size-3.5", isPending && "animate-spin")} />
-          Refresh
-        </Button>
       </PageHeader>
 
       <ReportDateFilters

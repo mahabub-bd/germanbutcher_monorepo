@@ -21,13 +21,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
 import { format } from "date-fns";
 import {
   Download,
   Loader2,
-  RefreshCw,
   Ticket,
   TrendingUp,
   Truck,
@@ -125,7 +124,6 @@ export function FreeDeliveryUsageReport({
   const [rows, setRows] = useState<FreeDeliveryUsageRow[]>([]);
   const [stats, setStats] = useState<ReportStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -197,15 +195,6 @@ export function FreeDeliveryUsageReport({
   useEffect(() => {
     fetchReport();
   }, [fetchReport]);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await fetchReport(true);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
   const handleFilterApply = (params: ReportFilterParams) => {
     setFilters(params);
@@ -346,15 +335,6 @@ export function FreeDeliveryUsageReport({
             )}
           </>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isRefreshing}
-          onClick={handleRefresh}
-        >
-          <RefreshCw className={cn("size-3.5", isRefreshing && "animate-spin")} />
-          Refresh
-        </Button>
       </PageHeader>
 
       <ReportDateFilters

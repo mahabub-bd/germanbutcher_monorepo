@@ -40,7 +40,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  RefreshCw,
   Tags,
   Trash2,
 } from "lucide-react";
@@ -286,15 +285,6 @@ export function CategoryList({
           title="Categories"
           description="Departments and sub-categories that organise the catalogue."
         >
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchCategories}
-          >
-            <RefreshCw className={isLoading ? "size-3.5 animate-spin" : "size-3.5"} />
-            Refresh
-          </Button>
           {can(MENU_URL, "canCreate") && (
             <Button size="sm" asChild>
               <Link href="/admin/categories/add">

@@ -24,10 +24,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { cn, formatCurrencyEnglish } from "@/lib/utils";
+import { formatCurrencyEnglish } from "@/lib/utils";
 import {
   Package,
-  RefreshCw,
   ShoppingCart,
   Wallet,
 } from "lucide-react";
@@ -87,7 +86,7 @@ export default function ProductSalesList({
   const router = useRouter();
   const settings = useBusinessSettings();
   const [mounted, setMounted] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
     setMounted(true);
@@ -161,15 +160,6 @@ export default function ProductSalesList({
             />
           </>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isPending}
-          onClick={() => startTransition(() => router.refresh())}
-        >
-          <RefreshCw className={cn("size-3.5", isPending && "animate-spin")} />
-          Refresh
-        </Button>
       </PageHeader>
 
       <ReportDateFilters

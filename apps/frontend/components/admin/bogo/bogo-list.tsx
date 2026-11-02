@@ -41,7 +41,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  RefreshCw,
   Trash2,
   XCircle,
 } from "lucide-react";
@@ -200,15 +199,6 @@ export function BogoList() {
               <Eye className="size-3.5" />
               <span className="hidden sm:inline">Usage Logs</span>
             </Link>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchCampaigns}
-          >
-            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-            Refresh
           </Button>
           {can(MENU_URL, "canCreate") && (
             <Button size="sm" asChild>

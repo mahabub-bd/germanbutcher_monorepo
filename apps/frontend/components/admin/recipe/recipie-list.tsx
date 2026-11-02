@@ -42,7 +42,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
-import { cn, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { deleteData, fetchData, fetchDataPagination } from "@/utils/api-utils";
 import type { Category, Recipe } from "@/utils/types";
 import {
@@ -51,7 +51,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  RefreshCw,
   SlidersHorizontal,
   Trash2,
   Utensils
@@ -432,15 +431,6 @@ export function RecipeList({
           title="Recipes"
           description="Titles, categories and publish state for every recipe in the kitchen."
         >
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchRecipes}
-          >
-            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-            Refresh
-          </Button>
           {can(MENU_URL, "canCreate") && (
             <Button size="sm" asChild>
               <Link href="/admin/recipe/add">

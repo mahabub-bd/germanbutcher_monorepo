@@ -31,7 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
-import { cn, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import type {
   DeliveryMan,
@@ -44,7 +44,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  RefreshCw,
   Truck,
   User,
   UserCircle,
@@ -265,15 +264,6 @@ export function DeliveryManList({
             </Link>
           </Button>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isLoading}
-          onClick={fetchDeliveryMen}
-        >
-          <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-          Refresh
-        </Button>
       </PageHeader>
 
       {/* Toolbar */}

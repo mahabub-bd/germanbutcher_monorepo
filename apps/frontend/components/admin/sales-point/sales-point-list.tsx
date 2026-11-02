@@ -31,7 +31,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
-import { cn } from "@/lib/utils";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { SalesPoint } from "@/utils/types";
 import {
@@ -42,7 +41,6 @@ import {
   Pencil,
   Phone,
   Plus,
-  RefreshCw,
   Store,
   StoreIcon,
   Trash2,
@@ -245,15 +243,6 @@ export function SalesPointList({
               </Link>
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoading}
-            onClick={fetchSalesPoints}
-          >
-            <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-            Refresh
-          </Button>
         </PageHeader>
 
         {/* Toolbar */}

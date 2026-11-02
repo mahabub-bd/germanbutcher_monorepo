@@ -35,7 +35,6 @@ import type { UserActivity } from "@/utils/types";
 import {
   Activity,
   Layers,
-  RefreshCw,
   ShieldCheck,
   SlidersHorizontal,
   User,
@@ -591,15 +590,6 @@ export function UserActivityList({
         title="Audit Log"
         description="Every write, auth and system event with its actor, entity, status and IP."
       >
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isLoading}
-          onClick={fetchActivities}
-        >
-          <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-          Refresh
-        </Button>
       </PageHeader>
 
       {/* Quick log switch: All / Admin / Customer — same userType filter as the Actor dropdown.
