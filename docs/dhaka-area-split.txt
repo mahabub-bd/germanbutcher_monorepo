@@ -101,6 +101,7 @@ Dhaka North | Lalkuthi
 Dhaka North | M.E.S
 Dhaka North | MES Colony
 Dhaka North | MES colony
+Dhaka North | Mahanogor
 Dhaka North | Manik Mia Avenue
 Dhaka North | Manikdi
 Dhaka North | Mastertek
@@ -165,6 +166,8 @@ Dhaka North | Purobi
 Dhaka North | Purobi Cinema Hall
 Dhaka North | Rail Station
 Dhaka North | Railway Colony
+Dhaka North | Rajia Sultana Road
+Dhaka North | Razabazar
 Dhaka North | Ring Road
 Dhaka North | Rosulbagh(Mohakhali)
 Dhaka North | Rupnagar Residential area
@@ -255,10 +258,12 @@ Dhaka South | Bashtola
 Dhaka South | Bijoy Shoroni
 Dhaka South | Bijoynagar (Paltan)
 Dhaka South | Bongo Bazar
+Dhaka South | Bongo Bondhu Avenue
 Dhaka South | Bongshal
 Dhaka South | Boro Dewra
 Dhaka South | Boro Dewra Dakkhin Para
 Dhaka South | Boxnagar (Demra)
+Dhaka South | Buddho Mondir
 Dhaka South | Central Road
 Dhaka South | Chankarpul
 Dhaka South | Chawkbazar (Dhaka)
@@ -401,6 +406,7 @@ Dhaka South | Shegunbagicha
 Dhaka South | Shiddheswari
 Dhaka South | Shonir Akhra
 Dhaka South | Shukrabad
+Dhaka South | Shwamibag
 Dhaka South | Shyampur
 Dhaka South | Siddique Bazar
 Dhaka South | Siddweswari
@@ -437,11 +443,9 @@ Dhaka Sub Area | Birulia
 Dhaka Sub Area | Board Bazar
 Dhaka Sub Area | Boardbazar
 Dhaka Sub Area | Boddhovumi
-Dhaka Sub Area | Bongo Bondhu Avenue
 Dhaka Sub Area | Bonomala
 Dhaka Sub Area | Boro Bari
 Dhaka Sub Area | Borobari
-Dhaka Sub Area | Buddho Mondir
 Dhaka Sub Area | Chairman Goli
 Dhaka Sub Area | Chalabon
 Dhaka Sub Area | Chamur Khan
@@ -488,7 +492,6 @@ Dhaka Sub Area | Kosaibari
 Dhaka Sub Area | Kunia
 Dhaka Sub Area | Kuratuli
 Dhaka Sub Area | Madina nagar
-Dhaka Sub Area | Mahanogor
 Dhaka Sub Area | Mahut Tuli
 Dhaka Sub Area | Majhira
 Dhaka Sub Area | Majukhan
@@ -512,16 +515,13 @@ Dhaka Sub Area | Pargendaria
 Dhaka Sub Area | Pastola Bazar
 Dhaka Sub Area | Prembagan
 Dhaka Sub Area | Rainkhola
-Dhaka Sub Area | Rajia Sultana Road
 Dhaka Sub Area | Ranavola
-Dhaka Sub Area | Razabazar
 Dhaka Sub Area | SDA
 Dhaka Sub Area | Sadek Khan Road
 Dhaka Sub Area | Sat rowja
 Dhaka Sub Area | Sataish
 Dhaka Sub Area | Shagufta
 Dhaka Sub Area | Shahidnagar
-Dhaka Sub Area | Shwamibag
 Dhaka Sub Area | Signboard (Gazipur)
 Dhaka Sub Area | Society
 Dhaka Sub Area | Surtaranga

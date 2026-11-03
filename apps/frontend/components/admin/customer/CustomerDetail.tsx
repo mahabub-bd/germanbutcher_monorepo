@@ -210,7 +210,7 @@ export function CustomerDetail() {
     }
     setIsSavingAddress(true);
     try {
-      await patchData(`address/${editingAddress.id}`, {
+      await patchData(`addresses/${editingAddress.id}`, {
         address: addressForm.address.trim(),
         division: addressForm.division || undefined,
         city: addressForm.city || undefined,

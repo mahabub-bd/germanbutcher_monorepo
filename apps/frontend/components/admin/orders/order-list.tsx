@@ -42,13 +42,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
-  DISTRICT_AREAS,
-  DIVISION_DISTRICTS,
-  getDistrictsByDivision,
-} from "@/data/districts-areas";
+  getEnabledAreas,
+  getEnabledCities,
+  getEnabledDivisions,
+} from "@/lib/delivery-coverage";
 import {
-  cn,
   formatCurrencyEnglish,
   formatDateTime,
   shortenArea,
@@ -85,8 +85,6 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-
-const DIVISIONS = Object.keys(DIVISION_DISTRICTS);
 
 const STATUS_FILTERS = [
   { value: "all", label: "All statuses" },
@@ -193,14 +191,6 @@ function ElapsedTime({
   );
 }
 
-// Same district → areas lookup the checkout page uses, sorted alphabetically
-const areasByDistrict = new Map(
-  DISTRICT_AREAS.map(({ district, areas }) => [
-    district,
-    [...new Set(areas)].sort((a, b) => a.localeCompare(b)),
-  ]),
-);
-
 interface OrderListProps {
   initialPage: number;
   initialLimit: number;
@@ -213,6 +203,11 @@ export function OrderList({
   initialSearchParams = {},
 }: OrderListProps) {
   const router = useRouter();
+  // Location filters read the live delivery coverage (Business Settings) —
+  // same source checkout uses — so Dhaka North/South/Sub Area show up here
+  // instead of the old static city list.
+  const settings = useBusinessSettings();
+  const coverage = settings?.deliveryCoverage ?? null;
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const MENU_URL = "/admin/orders";
@@ -963,7 +958,7 @@ export function OrderList({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All divisions</SelectItem>
-              {DIVISIONS.map((division) => (
+              {getEnabledDivisions(coverage).map((division) => (
                 <SelectItem key={division} value={division}>
                   {division}
                 </SelectItem>
@@ -985,7 +980,11 @@ export function OrderList({
               setCityFilter(value);
               setCurrentPage(1);
             }}
-            options={getDistrictsByDivision(divisionFilter)}
+            options={
+              divisionFilter
+                ? getEnabledCities(coverage, divisionFilter)
+                : []
+            }
             placeholder="City"
             searchPlaceholder="Search city..."
             disabled={!divisionFilter}
@@ -1003,7 +1002,7 @@ export function OrderList({
               setAreaFilter(value);
               setCurrentPage(1);
             }}
-            options={areasByDistrict.get(cityFilter) ?? []}
+            options={cityFilter ? getEnabledAreas(coverage, cityFilter) : []}
             placeholder="Area"
             searchPlaceholder="Search area..."
             emptyMessage="No area found."
