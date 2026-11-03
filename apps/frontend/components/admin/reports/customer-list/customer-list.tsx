@@ -289,7 +289,7 @@ export default function CustomerListReport({
                   {customers.map((customer, index) => (
                     <TableRow key={`${customer.email}-${index}`}>
                       <TableCell className="py-2.5 pl-4">
-                        <span className="text-xs tabular-nums text-muted-foreground">
+                        <span className="text-sm tabular-nums text-muted-foreground">
                           {index + 1}
                         </span>
                       </TableCell>
@@ -315,12 +315,12 @@ export default function CustomerListReport({
                             {customer.email ? (
                               <a
                                 href={`mailto:${customer.email}`}
-                                className="block truncate text-[11px] text-muted-foreground hover:text-blue-600 hover:underline dark:hover:text-blue-400"
+                                className="block truncate text-sm text-muted-foreground hover:text-blue-600 hover:underline dark:hover:text-blue-400"
                               >
                                 {customer.email}
                               </a>
                             ) : (
-                              <span className="text-[11px] text-muted-foreground">
+                              <span className="text-sm text-muted-foreground">
                                 No email
                               </span>
                             )}
@@ -332,12 +332,12 @@ export default function CustomerListReport({
                         {customer.mobileNumber ? (
                           <a
                             href={`tel:${customer.mobileNumber}`}
-                            className="text-[11px] text-blue-600 hover:underline dark:text-blue-400"
+                            className="text-sm text-blue-600 hover:underline dark:text-blue-400"
                           >
                             {customer.mobileNumber}
                           </a>
                         ) : (
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-sm text-muted-foreground">
                             No mobile
                           </span>
                         )}
@@ -345,10 +345,10 @@ export default function CustomerListReport({
 
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="text-xs font-medium whitespace-nowrap">
+                          <span className="text-sm font-medium whitespace-nowrap">
                             {formatDate(customer.registrationDate)}
                           </span>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          <span className="text-sm text-muted-foreground whitespace-nowrap">
                             {formatTime(customer.registrationDate)}
                           </span>
                         </div>
