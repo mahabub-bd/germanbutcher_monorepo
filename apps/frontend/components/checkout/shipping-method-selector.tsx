@@ -54,78 +54,78 @@ export function ShippingMethodSelector({
           choose a different area or contact support.
         </p>
       ) : (
-      <RadioGroup
-        value={selectedMethod}
-        onValueChange={onSelectMethod}
-        className="grid grid-cols-1 md:grid-cols-2 gap-3"
-      >
-        {shippingMethods.map((method) => {
-          const value = method.id.toString();
-          const isSelected = selectedMethod === value;
-          const isFree = isFreeDelivery && !method.isExcludedFromFreeDelivery;
-          const baseCost = Number(method.cost || 0);
-          const adjustedCost = getAdjustedCost
-            ? getAdjustedCost(method)
-            : baseCost;
+        <RadioGroup
+          value={selectedMethod}
+          onValueChange={onSelectMethod}
+          className="grid grid-cols-1 md:grid-cols-2 gap-3"
+        >
+          {shippingMethods.map((method) => {
+            const value = method.id.toString();
+            const isSelected = selectedMethod === value;
+            const isFree = isFreeDelivery && !method.isExcludedFromFreeDelivery;
+            const baseCost = Number(method.cost || 0);
+            const adjustedCost = getAdjustedCost
+              ? getAdjustedCost(method)
+              : baseCost;
 
-          return (
-            <div
-              key={method.id}
-              role="radio"
-              aria-checked={isSelected}
-              className={cn(
-                "relative flex items-center justify-between gap-3 rounded-lg border p-3 transition-all",
-                "cursor-pointer hover:border-gray-300 hover:bg-gray-50",
-                isSelected &&
+            return (
+              <div
+                key={method.id}
+                role="radio"
+                aria-checked={isSelected}
+                className={cn(
+                  "relative flex items-center justify-between gap-3 rounded-lg border p-3 transition-all",
+                  "cursor-pointer hover:border-gray-300 hover:bg-gray-50",
+                  isSelected &&
                   "border-primary ring-1 ring-primary bg-primary/5 hover:border-primary hover:bg-primary/5"
-              )}
-              onClick={() => onSelectMethod(value)}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <RadioGroupItem value={value} id={`shipping-${method.id}`} />
-                <Label
-                  htmlFor={`shipping-${method.id}`}
-                  className="cursor-pointer space-y-0.5 min-w-0"
-                >
-                  <span className="block truncate font-medium text-sm">
-                    {method.name}
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    {getDeliveryTime ? getDeliveryTime(method) : method.deliveryTime}
-                  </span>
-                </Label>
-              </div>
-
-              {isFree ? (
-                <span className="flex flex-col items-end shrink-0">
-                  <span className="text-xs text-muted-foreground line-through">
-                    {formatCurrencyEnglish(baseCost)}
-                  </span>
-                  <span className="font-semibold text-sm text-green-600 dark:text-green-400">
-                    FREE
-                  </span>
-                </span>
-              ) : (
-                <span className="flex flex-col items-end gap-0.5 shrink-0">
-                  <span
-                    className={cn(
-                      "font-semibold text-sm",
-                      isSelected && "text-primary"
-                    )}
+                )}
+                onClick={() => onSelectMethod(value)}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <RadioGroupItem value={value} id={`shipping-${method.id}`} />
+                  <Label
+                    htmlFor={`shipping-${method.id}`}
+                    className="cursor-pointer space-y-0.5 min-w-0 overflow-hidden"
                   >
-                    {formatCurrencyEnglish(adjustedCost)}
-                  </span>
-                  {isFreeDelivery && (
-                    <span className="text-[10px] leading-tight text-amber-600 dark:text-amber-400 text-right">
-                      Free delivery not applicable
+                    <span className="block truncate font-medium text-sm">
+                      {method.name}
                     </span>
-                  )}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </RadioGroup>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {getDeliveryTime ? getDeliveryTime(method) : method.deliveryTime}
+                    </span>
+                  </Label>
+                </div>
+
+                {isFree ? (
+                  <span className="flex flex-col items-end shrink-0">
+                    <span className="text-xs text-muted-foreground line-through">
+                      {formatCurrencyEnglish(baseCost)}
+                    </span>
+                    <span className="font-semibold text-sm text-green-600 dark:text-green-400">
+                      FREE
+                    </span>
+                  </span>
+                ) : (
+                  <span className="flex flex-col items-end gap-0.5 shrink-0">
+                    <span
+                      className={cn(
+                        "font-semibold text-sm",
+                        isSelected && "text-primary"
+                      )}
+                    >
+                      {formatCurrencyEnglish(adjustedCost)}
+                    </span>
+                    {isFreeDelivery && (
+                      <span className="text-[10px] leading-tight text-amber-600 dark:text-amber-400 text-right">
+                        Free delivery not applicable
+                      </span>
+                    )}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </RadioGroup>
       )}
     </section>
   );

@@ -122,16 +122,16 @@ export function AddressSelector({
                 <span>Loading addresses...</span>
               </div>
             ) : selectedAddress ? (
-              <div className="flex flex-col items-start text-left">
-                <div className="flex items-center">
-                  <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+              <div className="flex min-w-0 flex-col items-start text-left">
+                <div className="flex min-w-0 items-center">
+                  <MapPin className="h-4 w-4 mr-1 shrink-0 text-muted-foreground" />
                   <span className="font-medium">
                     {selectedAddress.type === "shipping"
                       ? "Shipping"
                       : "Billing"}
                   </span>
                 </div>
-                <span className="text-sm text-muted-foreground truncate max-w-full">
+                <span className="w-full truncate text-sm text-muted-foreground">
                   {selectedAddress.address}, {selectedAddress.area},{" "}
                   {selectedAddress.city}
                 </span>
@@ -148,7 +148,11 @@ export function AddressSelector({
             <ChevronDown className="h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[350px] p-0">
+        <PopoverContent
+          // Match the trigger width (capped) instead of a fixed 350px, which
+          // overflowed the viewport on small mobile screens.
+          className="w-[--radix-popover-trigger-width] max-w-[min(100%,420px)] p-0"
+        >
           <Command>
             <CommandInput placeholder="Search address..." />
             <CommandList>
@@ -161,7 +165,7 @@ export function AddressSelector({
                     onSelect={() => handleAddressSelect(address)}
                     className="cursor-pointer"
                   >
-                    <div className="flex flex-col w-full">
+                    <div className="flex min-w-0 flex-col w-full">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">
                           {address.type === "shipping"

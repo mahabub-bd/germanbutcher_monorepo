@@ -63,8 +63,7 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
           await removeItem(item.id || item.product.id);
         }
         toast.warning(
-          `${pending.map((item) => item.product.name).join(", ")} ${
-            pending.length === 1 ? "is" : "are"
+          `${pending.map((item) => item.product.name).join(", ")} ${pending.length === 1 ? "is" : "are"
           } out of stock and removed from your cart.`
         );
       } catch {
@@ -218,8 +217,8 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
   const hasAddressLocation = Boolean(formData.city || formData.area);
   const availableShippingMethods = hasAddressLocation
     ? shippingMethods.filter((method) =>
-        isShippingMethodAvailable(method, formData.city, formData.area)
-      )
+      isShippingMethodAvailable(method, formData.city, formData.area)
+    )
     : shippingMethods;
 
   // Keep the selection valid when the address changes.
@@ -552,7 +551,9 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
   }
 
   return (
-    <div className="container mx-auto px-2 py-4 md:px-0 md:py-4">
+    // overflow-x-hidden guards the narrowest phones: legacy fixed-width
+    // popovers/cards that exceed 100% would otherwise scroll the whole page.
+    <div className="container mx-auto overflow-x-hidden px-2 py-4 md:px-0 md:py-4">
       {/* Header */}
       <div className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
