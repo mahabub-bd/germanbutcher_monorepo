@@ -606,7 +606,10 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
               shippingMethods={availableShippingMethods}
               selectedMethod={selectedShippingMethod}
               onSelectMethod={setSelectedShippingMethod}
-              isFreeDelivery={effectiveFreeDelivery}
+              // isShippingFree (not the raw campaign flag) so the "Free
+              // delivery unlocked" badge hides when the selected method is
+              // excluded from free delivery (e.g. Outside Dhaka).
+              isFreeDelivery={isShippingFree}
               getAdjustedCost={getAdjustedShippingCost}
               getDeliveryTime={(method) =>
                 // Delivery time is a shipping-method setting; every method
