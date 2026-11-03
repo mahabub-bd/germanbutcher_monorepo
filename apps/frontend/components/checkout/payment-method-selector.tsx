@@ -66,8 +66,8 @@ export function PaymentMethodSelector({
                   ? "cursor-not-allowed bg-gray-50 opacity-60"
                   : "cursor-pointer hover:border-gray-300 hover:bg-gray-50",
                 isSelected &&
-                  !isDisabled &&
-                  "border-primary ring-1 ring-primary bg-primary/5 hover:border-primary hover:bg-primary/5"
+                !isDisabled &&
+                "border-primary ring-1 ring-primary bg-primary/5 hover:border-primary hover:bg-primary/5"
               )}
               onClick={() => {
                 if (!isDisabled) onSelectMethod(method.code);
@@ -83,11 +83,11 @@ export function PaymentMethodSelector({
                 <Label
                   htmlFor={`payment-${method.id}`}
                   className={cn(
-                    "space-y-0.5 min-w-0",
+                    "space-y-0.5 min-w-0 overflow-hidden",
                     isDisabled ? "cursor-not-allowed" : "cursor-pointer"
                   )}
                 >
-                  <span className="block font-medium text-sm">
+                  <span className="block truncate font-medium text-sm">
                     {method.name}
                   </span>
                   {method.description && (
@@ -96,7 +96,7 @@ export function PaymentMethodSelector({
                     </span>
                   )}
                   {disabledReason && (
-                    <span className="block text-[11px] leading-tight text-amber-600 dark:text-amber-400">
+                    <span className="block truncate text-[11px] leading-tight text-amber-600 dark:text-amber-400">
                       {disabledReason}
                     </span>
                   )}
