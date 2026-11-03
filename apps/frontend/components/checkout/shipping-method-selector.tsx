@@ -67,6 +67,9 @@ export function ShippingMethodSelector({
             const adjustedCost = getAdjustedCost
               ? getAdjustedCost(method)
               : baseCost;
+            const deliveryTime = getDeliveryTime
+              ? getDeliveryTime(method)
+              : method.deliveryTime;
 
             return (
               <div
@@ -74,27 +77,24 @@ export function ShippingMethodSelector({
                 role="radio"
                 aria-checked={isSelected}
                 className={cn(
-                  "relative flex items-center justify-between gap-3 rounded-lg border p-3 transition-all",
+                  // Wrapping layout: name + price share the first row and the
+                  // delivery time gets a full-width second row. Squeezing it
+                  // between the radio and the price clipped it on phones.
+                  "relative flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border p-3 transition-all",
                   "cursor-pointer hover:border-gray-300 hover:bg-gray-50",
                   isSelected &&
                   "border-primary ring-1 ring-primary bg-primary/5 hover:border-primary hover:bg-primary/5"
                 )}
                 onClick={() => onSelectMethod(value)}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <RadioGroupItem value={value} id={`shipping-${method.id}`} />
-                  <Label
-                    htmlFor={`shipping-${method.id}`}
-                    className="cursor-pointer space-y-0.5 min-w-0 overflow-hidden"
-                  >
-                    <span className="block truncate font-medium text-sm">
-                      {method.name}
-                    </span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {getDeliveryTime ? getDeliveryTime(method) : method.deliveryTime}
-                    </span>
-                  </Label>
-                </div>
+                <RadioGroupItem value={value} id={`shipping-${method.id}`} />
+
+                <Label
+                  htmlFor={`shipping-${method.id}`}
+                  className="min-w-0 flex-1 cursor-pointer truncate text-sm font-medium"
+                >
+                  {method.name}
+                </Label>
 
                 {isFree ? (
                   <span className="flex flex-col items-end shrink-0">
@@ -121,6 +121,14 @@ export function ShippingMethodSelector({
                       </span>
                     )}
                   </span>
+                )}
+
+                {/* Delivery time — own line, left-aligned under the method
+                    name (radio width + gap), never truncated. */}
+                {deliveryTime && (
+                  <p className="w-full pl-7 text-xs leading-snug text-muted-foreground">
+                    {deliveryTime}
+                  </p>
                 )}
               </div>
             );
