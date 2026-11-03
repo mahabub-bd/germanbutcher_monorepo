@@ -122,7 +122,10 @@ export function AddressSelector({
                 <span>Loading addresses...</span>
               </div>
             ) : selectedAddress ? (
-              <div className="flex min-w-0 flex-col items-start text-left">
+              // flex-1 + min-w-0 is what actually lets the truncate below
+              // work: the Button is whitespace-nowrap, so without a bounded
+              // width the long address just widens the whole field.
+              <div className="flex min-w-0 flex-1 flex-col items-start text-left">
                 <div className="flex min-w-0 items-center">
                   <MapPin className="h-4 w-4 mr-1 shrink-0 text-muted-foreground" />
                   <span className="font-medium">
@@ -131,13 +134,17 @@ export function AddressSelector({
                       : "Billing"}
                   </span>
                 </div>
-                <span className="w-full truncate text-sm text-muted-foreground">
+                <span
+                  className="w-full truncate text-sm text-muted-foreground"
+                  // Full text on hover/touch for long addresses
+                  title={`${selectedAddress.address}, ${selectedAddress.area}, ${selectedAddress.city}`}
+                >
                   {selectedAddress.address}, {selectedAddress.area},{" "}
                   {selectedAddress.city}
                 </span>
               </div>
             ) : (
-              <span>
+              <span className="min-w-0 flex-1 truncate">
                 {userId
                   ? addresses.length > 0
                     ? "Select an address"
@@ -149,9 +156,9 @@ export function AddressSelector({
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          // Match the trigger width (capped) instead of a fixed 350px, which
-          // overflowed the viewport on small mobile screens.
-          className="w-[--radix-popover-trigger-width] max-w-[min(100%,420px)] p-0"
+          // Follow the trigger width instead of a fixed 350px (which overflowed
+          // small screens), and never exceed the viewport minus margins.
+          className="w-[--radix-popover-trigger-width] max-w-[calc(100vw-2rem)] p-0"
         >
           <Command>
             <CommandInput placeholder="Search address..." />
@@ -163,28 +170,30 @@ export function AddressSelector({
                     key={address.id}
                     value={address.id.toString()}
                     onSelect={() => handleAddressSelect(address)}
-                    className="cursor-pointer"
+                    className="cursor-pointer items-start"
                   >
-                    <div className="flex min-w-0 flex-col w-full">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">
+                    <div className="flex min-w-0 flex-col w-full gap-0.5">
+                      <div className="flex min-w-0 items-center justify-between gap-2">
+                        <span className="min-w-0 truncate font-medium">
                           {address.type === "shipping"
                             ? "Shipping Address"
                             : "Billing Address"}
                         </span>
                         {address.isDefault && (
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                          <span className="shrink-0 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                             Default
                           </span>
                         )}
                       </div>
-                      <span className="text-sm text-muted-foreground">
+                      {/* cmdk forces nowrap on items — allow the full address
+                          to wrap inside the dropdown instead of clipping it. */}
+                      <span className="whitespace-normal wrap-break-word text-sm leading-snug text-muted-foreground">
                         {address.address}, {address.area}, {address.city}
                       </span>
                     </div>
                     <Check
                       className={cn(
-                        "ml-auto h-4 w-4",
+                        "ml-auto mt-0.5 h-4 w-4 shrink-0",
                         selectedAddress?.id === address.id
                           ? "opacity-100"
                           : "opacity-0"
