@@ -470,7 +470,7 @@ export default function CancellationReport({
                       <TableRow
                         key={r.id}
                         className="cursor-pointer"
-                        onClick={() => router.push(`/admin/order/${r.id}`)}
+                        onClick={() => router.push(`/admin/order/${r.id}/view`)}
                       >
                         <TableCell className="py-2 pl-4">
                           <span className="text-sm font-medium">{r.orderNo}</span>
@@ -546,7 +546,7 @@ export default function CancellationReport({
                 {recent.map((r) => (
                   <Link
                     key={r.id}
-                    href={`/admin/order/${r.id}`}
+                    href={`/admin/order/${r.id}/view`}
                     className="block space-y-2 p-3.5 hover:bg-muted/40"
                   >
                     <div className="flex items-center justify-between gap-2">
