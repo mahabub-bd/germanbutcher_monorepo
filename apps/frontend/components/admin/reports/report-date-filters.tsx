@@ -4,6 +4,12 @@ import { DateRangePreset } from "@/common/enums";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -198,19 +204,92 @@ export function ReportDateFilters({
 
   const hasSelection = Boolean(startDate || endDate || quickRange);
 
+  // The shared filter controls — rendered in the desktop inline row and
+  // reused inside the mobile modal. The action grid uses md:contents so it
+  // dissolves into the desktop flex row, and stacks as a 2-col grid in the
+  // modal.
+  const controls = (
+    <>
+      <div className="md:shrink-0">
+        <Select value={quickRange} onValueChange={handleQuickRange}>
+          <SelectTrigger className="w-full md:w-44">
+            <SelectValue placeholder="Quick Range" />
+          </SelectTrigger>
+          <SelectContent>
+            {PRESET_ITEMS.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+            {quickRange && (
+              <SelectItem value="__none__" className="text-muted-foreground">
+                Clear selection
+              </SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {extra}
+
+      <div className="md:flex-1 md:max-w-48 md:min-w-0">
+        <DatePicker
+          key={`from-${resetKey}`}
+          value={startDate}
+          onChange={handleStartDate}
+          placeholder="From Date"
+          maxDate={endDate}
+          showIcon={false}
+        />
+      </div>
+      <div className="md:flex-1 md:max-w-48 md:min-w-0">
+        <DatePicker
+          key={`to-${resetKey}`}
+          value={endDate}
+          onChange={handleEndDate}
+          placeholder="To Date"
+          minDate={startDate}
+          showIcon={false}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5 md:contents">
+        <Button
+          onClick={handleApply}
+          className="h-9 shrink-0 gap-1.5 px-4 font-medium"
+        >
+          <Filter className="size-4" />
+          Filter
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleClear}
+          disabled={!hasSelection && !onClear}
+          className={cn(
+            "h-9 shrink-0 gap-1.5 px-4",
+            !hasSelection && "text-muted-foreground"
+          )}
+        >
+          <X className="size-4" />
+          Clear
+        </Button>
+      </div>
+    </>
+  );
+
   // Card-style filter panel.
-  //  - Mobile (< md): a collapsible "Filters" section — collapsed by default
-  //    showing a summary of the active range; expanded it stacks every control
-  //    full width so placeholders are never truncated.
+  //  - Mobile (< md): a "Filters" button showing the active range summary —
+  //    tapping opens a modal with every control stacked full width. Applying
+  //    a preset or pressing Filter/Clear closes the modal.
   //  - md+: always-open single nowrap row of equally styled controls.
   return (
     <div className={cn("mb-6 rounded-xl border bg-card p-3 shadow-xs", className)}>
-      {/* Mobile toggle header (hidden on md+) */}
+      {/* Mobile trigger (hidden on md+) */}
       <button
         type="button"
-        onClick={() => setMobileOpen((o) => !o)}
-        aria-expanded={mobileOpen}
-        className="flex w-full items-center justify-between gap-2 md:hidden"
+        onClick={() => setMobileOpen(true)}
+        aria-haspopup="dialog"
+        className="flex w-full items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2.5 md:hidden"
       >
         <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
           <SlidersHorizontal className="size-4 shrink-0 text-muted-foreground" />
@@ -219,88 +298,23 @@ export function ReportDateFilters({
             {activeSummary}
           </span>
         </span>
-        <ChevronDown
-          className={cn(
-            "size-4 shrink-0 text-muted-foreground transition-transform",
-            mobileOpen && "rotate-180"
-          )}
-        />
+        <ChevronDown className="size-4 shrink-0 -rotate-90 text-muted-foreground" />
       </button>
 
-      {/* Controls — collapsible on mobile, always visible on md+ */}
-      <div
-        className={cn(
-          "grid grid-cols-1 items-center gap-2.5 md:flex md:flex-nowrap md:items-center md:gap-3",
-          !mobileOpen && "hidden md:flex"
-        )}
-      >
-        <div className="md:shrink-0">
-          <Select value={quickRange} onValueChange={handleQuickRange}>
-            <SelectTrigger className="w-full md:w-44">
-              <SelectValue placeholder="Quick Range" />
-            </SelectTrigger>
-            <SelectContent>
-              {PRESET_ITEMS.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-              {quickRange && (
-                <SelectItem value="__none__" className="text-muted-foreground">
-                  Clear selection
-                </SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {extra}
-
-        <div className="md:flex-1 md:max-w-48 md:min-w-0">
-          <DatePicker
-            key={`from-${resetKey}`}
-            value={startDate}
-            onChange={handleStartDate}
-            placeholder="From Date"
-            maxDate={endDate}
-            showIcon={false}
-          />
-        </div>
-        <div className="md:flex-1 md:max-w-48 md:min-w-0">
-          <DatePicker
-            key={`to-${resetKey}`}
-            value={endDate}
-            onChange={handleEndDate}
-            placeholder="To Date"
-            minDate={startDate}
-            showIcon={false}
-          />
-        </div>
-
-        {/* Actions: share a row on mobile (split in half), join the md+ row
-            via display:contents. */}
-        <div className="grid grid-cols-2 gap-2.5 md:contents">
-          <Button
-            onClick={handleApply}
-            className="h-9 shrink-0 gap-1.5 px-4 font-medium"
-          >
-            <Filter className="size-4" />
-            Filter
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleClear}
-            disabled={!hasSelection && !onClear}
-            className={cn(
-              "h-9 shrink-0 gap-1.5 px-4",
-              !hasSelection && "text-muted-foreground"
-            )}
-          >
-            <X className="size-4" />
-            Clear
-          </Button>
-        </div>
+      {/* Desktop inline row (hidden below md) */}
+      <div className="hidden items-center gap-3 md:flex md:flex-nowrap">
+        {controls}
       </div>
+
+      {/* Mobile filter modal */}
+      <Dialog open={mobileOpen} onOpenChange={setMobileOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Filters</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 items-center gap-2.5">{controls}</div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

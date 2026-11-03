@@ -1780,8 +1780,10 @@ export class OrderService {
     }
 
     const { whereClause, params } = this.buildCreatedAtRange(from, to);
+    // buildCreatedAtRange emits unqualified "createdAt"; the user/address
+    // joins below also have that column, so it must be table-qualified.
     const filterClause = whereClause
-      ? `${whereClause} AND o."orderStatus" = 'cancelled'`
+      ? `${whereClause.replace(/"createdAt"/g, 'o."createdAt"')} AND o."orderStatus" = 'cancelled'`
       : 'WHERE o."orderStatus" = \'cancelled\'';
 
     const rows: Record<string, string>[] = await this.orderRepository.query(
@@ -1789,6 +1791,9 @@ export class OrderService {
               -- createdAt is stored in UTC; +6h shows the Dhaka calendar day
               TO_CHAR(o."createdAt" + INTERVAL '6 hours', 'YYYY-MM-DD') AS date,
               o."totalValue", o."paidAmount", o."paymentStatus",
+              pm.name AS payment_method,
+              u.name AS customer_name, u."mobileNumber",
+              COALESCE(NULLIF(a.area, ''), 'Unknown') AS area,
               t.note AS reason
        FROM "order" o
        LEFT JOIN (
@@ -1797,6 +1802,9 @@ export class OrderService {
          FROM order_status_track
          WHERE status = 'cancelled'
        ) t ON t."orderId" = o.id AND t.rn = 1
+       LEFT JOIN "user" u ON o."userId" = u.id
+       LEFT JOIN address a ON o."addressId" = a.id
+       LEFT JOIN order_payment_method pm ON o."paymentMethodId" = pm.id
        ${filterClause}
        ORDER BY o."createdAt" DESC`,
       params,
@@ -1809,6 +1817,10 @@ export class OrderService {
       totalValue: parseFloat(row.totalValue) || 0,
       paidAmount: parseFloat(row.paidAmount) || 0,
       paymentStatus: row.paymentStatus,
+      paymentMethod: row.payment_method ?? 'Unknown',
+      customerName: row.customer_name ?? 'Unknown',
+      mobileNumber: row.mobileNumber ?? null,
+      area: row.area,
       reason: row.reason || null,
       refundedAmount: 0,
     }));
@@ -1966,19 +1978,32 @@ export class OrderService {
       conditions.push(`o."deliveryManId" = $${params.length}`);
     }
 
-    const dhakaDeliveredAt =
-      "(o.\"deliveredAt\" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka')";
-
     const rows: Record<string, any>[] = await this.orderRepository.query(
-      `SELECT ${dhakaDeliveredAt}::date AS delivery_date,
+      `WITH delivered AS (
+         SELECT o.id, o."deliveryManId", o."totalValue", o."deliveredAt",
+                EXTRACT(EPOCH FROM (o."deliveredAt" - o."createdAt")) / 3600.0 AS hours,
+                CASE
+                  WHEN sm.name ILIKE '%express%' THEN 6
+                  WHEN sm.name ILIKE '%outside%' THEN 120
+                  WHEN sm.name ILIKE '%inside%' THEN 48
+                  ELSE $${params.length + 1}
+                END AS threshold
+         FROM "order" o
+         LEFT JOIN shipping_method sm ON sm.id = o."shippingMethodId"
+         WHERE ${conditions.join(' AND ')}
+       )
+       SELECT (d."deliveredAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka')::date AS delivery_date,
               dm.id AS delivery_man_id,
               COALESCE(dm.name, 'Unassigned') AS delivery_man_name,
-              COUNT(o.id) AS deliveries,
-              COALESCE(SUM(o."totalValue"), 0) AS delivered_value,
+              COUNT(d.id) AS deliveries,
+              COALESCE(ROUND(AVG(d.hours)::numeric, 1), 0) AS avg_hours,
+              COUNT(d.id) FILTER (WHERE d.hours > d.threshold) AS late_orders,
+              COALESCE(SUM(d.hours), 0) AS hours_sum,
+              COALESCE(SUM(d."totalValue"), 0) AS delivered_value,
               COALESCE(SUM(pay.cash), 0) AS cash_collected,
               COALESCE(SUM(pay.online), 0) AS online_amount
-       FROM "order" o
-       LEFT JOIN delivery_man dm ON o."deliveryManId" = dm.id
+       FROM delivered d
+       LEFT JOIN delivery_man dm ON d."deliveryManId" = dm.id
        LEFT JOIN (
          -- Net payments per order, split cash vs online by the payment
          -- method code. Only 'payment' transactions count — refunds are
@@ -1990,11 +2015,10 @@ export class OrderService {
          JOIN order_payment_method pm ON op."paymentMethodId" = pm.id
          WHERE op."paymentType" = 'payment'
          GROUP BY op."orderId"
-       ) pay ON pay."orderId" = o.id
-       WHERE ${conditions.join(' AND ')}
+       ) pay ON pay."orderId" = d.id
        GROUP BY 1, dm.id, dm.name
        ORDER BY 1 DESC, delivered_value DESC`,
-      params,
+      [...params, 24],
     );
 
     // Group the flat (date × delivery man) rows into one block per day.
@@ -2004,10 +2028,14 @@ export class OrderService {
       totalValue: number;
       totalCash: number;
       totalOnline: number;
+      totalLate: number;
+      totalHours: number;
       deliveryMen: {
         id: number | null;
         name: string;
         deliveries: number;
+        avgHours: number;
+        lateOrders: number;
         deliveredValue: number;
         cashCollected: number;
         onlineAmount: number;
@@ -2030,6 +2058,8 @@ export class OrderService {
           totalValue: 0,
           totalCash: 0,
           totalOnline: 0,
+          totalLate: 0,
+          totalHours: 0,
           deliveryMen: [],
         };
         dayMap.set(date, day);
@@ -2038,6 +2068,8 @@ export class OrderService {
         id: row.delivery_man_id == null ? null : parseInt(row.delivery_man_id, 10),
         name: row.delivery_man_name,
         deliveries: parseInt(row.deliveries, 10) || 0,
+        avgHours: parseFloat(row.avg_hours) || 0,
+        lateOrders: parseInt(row.late_orders, 10) || 0,
         deliveredValue: parseFloat(row.delivered_value) || 0,
         cashCollected: parseFloat(row.cash_collected) || 0,
         onlineAmount: parseFloat(row.online_amount) || 0,
@@ -2047,11 +2079,15 @@ export class OrderService {
       day.totalValue += entry.deliveredValue;
       day.totalCash += entry.cashCollected;
       day.totalOnline += entry.onlineAmount;
+      day.totalLate += entry.lateOrders;
+      day.totalHours += parseFloat(row.hours_sum) || 0;
     }
     const days = [...dayMap.values()];
+    const totalDeliveriesAll = days.reduce((s, d) => s + d.totalDeliveries, 0);
+    const totalHoursAll = days.reduce((s, d) => s + d.totalHours, 0);
 
     const summary = {
-      totalDeliveries: days.reduce((sum, d) => sum + d.totalDeliveries, 0),
+      totalDeliveries: totalDeliveriesAll,
       totalDeliveredValue: days.reduce((sum, d) => sum + d.totalValue, 0),
       totalCashCollected: days.reduce((sum, d) => sum + d.totalCash, 0),
       totalOnlineAmount: days.reduce((sum, d) => sum + d.totalOnline, 0),
@@ -2060,10 +2096,15 @@ export class OrderService {
         rows.map((row) => row.delivery_man_name),
       ).size,
       avgPerDay: days.length
-        ? Math.round(
-            days.reduce((sum, d) => sum + d.totalDeliveries, 0) / days.length,
-          )
+        ? Math.round(totalDeliveriesAll / days.length)
         : 0,
+      /** Overall avg placement→delivery hours and late count, using the
+       *  per-shipping-method timelines (same rules as the late-delivery
+       *  report). */
+      avgHours: totalDeliveriesAll
+        ? Math.round((totalHoursAll / totalDeliveriesAll) * 10) / 10
+        : 0,
+      totalLate: days.reduce((sum, d) => sum + d.totalLate, 0),
     };
 
     return { summary, days };
@@ -2112,6 +2153,9 @@ export class OrderService {
       `SELECT COALESCE(pm.name, 'Unknown') AS method_name,
               COALESCE(pm.code, '') AS method_code,
               COUNT(o.id) AS orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'pending') AS pending_orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'processing') AS processing_orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'on_hold') AS on_hold_orders,
               COUNT(o.id) FILTER (WHERE o."orderStatus" = 'delivered') AS delivered_orders,
               COUNT(o.id) FILTER (WHERE o."orderStatus" = 'cancelled') AS cancelled_orders,
               COALESCE(SUM(o."totalValue"), 0) AS total_value,
@@ -2139,8 +2183,11 @@ export class OrderService {
 
     const methods = rows.map((row) => ({
       name: row.method_name,
-      code: row.method_code,
+      code: row.method_code ?? '',
       orders: parseInt(row.orders, 10) || 0,
+      pendingOrders: parseInt(row.pending_orders, 10) || 0,
+      processingOrders: parseInt(row.processing_orders, 10) || 0,
+      onHoldOrders: parseInt(row.on_hold_orders, 10) || 0,
       deliveredOrders: parseInt(row.delivered_orders, 10) || 0,
       cancelledOrders: parseInt(row.cancelled_orders, 10) || 0,
       totalValue: parseFloat(row.total_value) || 0,
@@ -2165,6 +2212,291 @@ export class OrderService {
     };
 
     return { summary, methods };
+  }
+
+  /**
+   * Shipping-method report: order counts per status (pending/processing/
+   * on-hold/delivered/cancelled), order value and delivery performance
+   * grouped by shipping method. Delivery performance uses the per-method
+   * timelines from the late-delivery report (Inside 48h / Outside 120h /
+   * Express 6h / other → fallback threshold) — only delivered orders with a
+   * known placement→delivery span count. Orders without a method fall under
+   * "Unknown".
+   */
+  async getShippingMethodReport(
+    fromDate?: string,
+    toDate?: string,
+    dateRangePreset?: string,
+  ) {
+    let from = this.parseReportDate(fromDate);
+    let to = this.parseReportDate(toDate, true);
+
+    if (dateRangePreset) {
+      const presetRange = this.getDateRangeFromPreset(dateRangePreset);
+      if (!presetRange) {
+        throw new Error(
+          `Invalid date range preset: "${dateRangePreset}". Valid values are: today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year.`,
+        );
+      }
+      from = presetRange.from;
+      to = presetRange.to;
+    }
+
+    const params: unknown[] = [];
+    const conditions: string[] = [];
+    if (from) {
+      params.push(from);
+      conditions.push(`o."createdAt" >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`o."createdAt" <= $${params.length}`);
+    }
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
+
+    const fallbackThresholdIndex = params.length + 1;
+
+    const rows: Record<string, any>[] = await this.orderRepository.query(
+      `SELECT COALESCE(sm.name, 'Unknown') AS method_name,
+              COUNT(o.id) AS orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'pending') AS pending_orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'processing') AS processing_orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'on_hold') AS on_hold_orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'shipped') AS shipped_orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'delivered') AS delivered_orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'cancelled') AS cancelled_orders,
+              COALESCE(SUM(o."totalValue"), 0) AS total_value,
+              COALESCE(ROUND(AVG(d.hours)::numeric, 1), 0) AS avg_hours,
+              COUNT(d.id) FILTER (WHERE d.hours > d.threshold) AS late_deliveries
+       FROM "order" o
+       LEFT JOIN shipping_method sm ON o."shippingMethodId" = sm.id
+       LEFT JOIN (
+         -- Placement→delivery hours + per-method timeline threshold; only
+         -- delivered orders with both timestamps produce a row (mirrors the
+         -- late-delivery report).
+         SELECT o2.id, o2."shippingMethodId",
+                EXTRACT(EPOCH FROM (o2."deliveredAt" - o2."createdAt")) / 3600.0 AS hours,
+                CASE
+                  WHEN sm2.name ILIKE '%express%' THEN 6
+                  WHEN sm2.name ILIKE '%outside%' THEN 120
+                  WHEN sm2.name ILIKE '%inside%' THEN 48
+                  ELSE $${fallbackThresholdIndex}
+                END AS threshold
+         FROM "order" o2
+         LEFT JOIN shipping_method sm2 ON sm2.id = o2."shippingMethodId"
+         WHERE o2."orderStatus" = 'delivered' AND o2."deliveredAt" IS NOT NULL
+       ) d ON d.id = o.id
+       ${whereClause}
+       GROUP BY 1
+       ORDER BY COUNT(o.id) DESC, 1 ASC`,
+      [...params, 24],
+    );
+
+    const methods = rows.map((row) => ({
+      name: row.method_name,
+      code: row.method_code ?? '',
+      orders: parseInt(row.orders, 10) || 0,
+      pendingOrders: parseInt(row.pending_orders, 10) || 0,
+      processingOrders: parseInt(row.processing_orders, 10) || 0,
+      onHoldOrders: parseInt(row.on_hold_orders, 10) || 0,
+      shippedOrders: parseInt(row.shipped_orders, 10) || 0,
+      deliveredOrders: parseInt(row.delivered_orders, 10) || 0,
+      cancelledOrders: parseInt(row.cancelled_orders, 10) || 0,
+      totalValue: parseFloat(row.total_value) || 0,
+      avgHours: parseFloat(row.avg_hours) || 0,
+      lateDeliveries: parseInt(row.late_deliveries, 10) || 0,
+    }));
+
+    const totalOrders = methods.reduce((sum, m) => sum + m.orders, 0);
+    const totalDelivered = methods.reduce((sum, m) => sum + m.deliveredOrders, 0);
+    const totalLate = methods.reduce((sum, m) => sum + m.lateDeliveries, 0);
+    const summary = {
+      totalOrders,
+      totalDelivered,
+      totalLate,
+      lateRate: totalDelivered
+        ? Math.round((totalLate / totalDelivered) * 100)
+        : 0,
+      totalValue: methods.reduce((sum, m) => sum + m.totalValue, 0),
+      avgOrderValue: totalOrders
+        ? Math.round(
+            methods.reduce((sum, m) => sum + m.totalValue, 0) / totalOrders,
+          )
+        : 0,
+      methodCount: methods.filter((m) => m.name !== 'Unknown').length,
+    };
+
+    return { summary, methods };
+  }
+
+  /**
+   * Cancellation analysis: order volume, cancelled count, cancellation rate
+   * and lost value for a date range, broken down by shipping method and by
+   * delivery area, plus the most recent cancelled orders. Rates and lost
+   * value are judged against every order placed in the range. Orders without
+   * a method/area fall under "Unknown" so nothing drops out of the totals.
+   */
+  async getCancellationReport(
+    fromDate?: string,
+    toDate?: string,
+    dateRangePreset?: string,
+  ) {
+    let from = this.parseReportDate(fromDate);
+    let to = this.parseReportDate(toDate, true);
+
+    if (dateRangePreset) {
+      const presetRange = this.getDateRangeFromPreset(dateRangePreset);
+      if (!presetRange) {
+        throw new Error(
+          `Invalid date range preset: "${dateRangePreset}". Valid values are: today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year.`,
+        );
+      }
+      from = presetRange.from;
+      to = presetRange.to;
+    }
+
+    const params: unknown[] = [];
+    const conditions: string[] = [];
+    if (from) {
+      params.push(from);
+      conditions.push(`o."createdAt" >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`o."createdAt" <= $${params.length}`);
+    }
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
+
+    const [summaryRow]: Record<string, string>[] =
+      await this.orderRepository.query(
+        `SELECT COUNT(*) AS total_orders,
+                COUNT(*) FILTER (WHERE o."orderStatus" = 'cancelled') AS cancelled_orders,
+                COALESCE(SUM(o."totalValue") FILTER (WHERE o."orderStatus" = 'cancelled'), 0) AS lost_value,
+                COALESCE(SUM(o."paidAmount") FILTER (WHERE o."orderStatus" = 'cancelled'), 0) AS paid_on_cancelled,
+                COALESCE(ROUND(AVG(
+                  EXTRACT(EPOCH FROM (o."cancelledAt" - o."createdAt")) / 3600.0
+                ) FILTER (WHERE o."orderStatus" = 'cancelled' AND o."cancelledAt" IS NOT NULL), 1), 0) AS avg_cancel_hours,
+                COUNT(*) FILTER (WHERE o."orderStatus" = 'cancelled'
+                  AND o."cancelledAt" - o."createdAt" < INTERVAL '24 hours') AS same_day_cancellations
+         FROM "order" o
+         ${whereClause}`,
+        params,
+      );
+
+    // Cancellations grouped by shipping method and by delivery area share the
+    // same shape: orders placed, how many died, lost value — worst first.
+    // Groups with no cancellations are excluded so the tables only list
+    // where orders actually died.
+    const breakdown = (
+      groupExpr: string,
+      joinClause: string,
+      label: 'method_name' | 'area',
+    ) =>
+      this.orderRepository.query(
+        `SELECT ${groupExpr} AS ${label},
+                COUNT(o.id) AS total_orders,
+                COUNT(o.id) FILTER (WHERE o."orderStatus" = 'cancelled') AS cancelled_orders,
+                COALESCE(SUM(o."totalValue") FILTER (WHERE o."orderStatus" = 'cancelled'), 0) AS lost_value
+         FROM "order" o
+         ${joinClause}
+         ${whereClause}
+         GROUP BY 1
+         HAVING COUNT(*) FILTER (WHERE o."orderStatus" = 'cancelled') > 0
+         ORDER BY COUNT(o.id) FILTER (WHERE o."orderStatus" = 'cancelled') DESC,
+                  COUNT(o.id) DESC, 1 ASC`,
+        params,
+      );
+
+    const methodRows: Record<string, any>[] = await breakdown(
+      `COALESCE(sm.name, 'Unknown')`,
+      `LEFT JOIN shipping_method sm ON o."shippingMethodId" = sm.id`,
+      'method_name',
+    );
+    const areaRows: Record<string, any>[] = await breakdown(
+      `COALESCE(NULLIF(a.area, ''), 'Unknown')`,
+      `LEFT JOIN address a ON o."addressId" = a.id`,
+      'area',
+    );
+
+    // Recent cancellations, newest first, for follow-up calls — joined the
+    // same way as the breakdowns plus customer contact.
+    const recentConditions = [...conditions, `o."orderStatus" = 'cancelled'`];
+    const recentWhere = `WHERE ${recentConditions.join(' AND ')}`;
+    const recentRows: Record<string, any>[] = await this.orderRepository.query(
+      `SELECT o.id, o."orderNo", o."totalValue", o."paidAmount", o."paymentStatus",
+              o."createdAt", o."cancelledAt",
+              EXTRACT(EPOCH FROM (o."cancelledAt" - o."createdAt")) / 3600.0 AS cancel_hours,
+              u.name AS customer_name, u."mobileNumber",
+              COALESCE(NULLIF(a.area, ''), 'Unknown') AS area,
+              COALESCE(sm.name, 'Unknown') AS method_name
+       FROM "order" o
+       LEFT JOIN "user" u ON o."userId" = u.id
+       LEFT JOIN address a ON o."addressId" = a.id
+       LEFT JOIN shipping_method sm ON o."shippingMethodId" = sm.id
+       ${recentWhere}
+       ORDER BY o."cancelledAt" DESC NULLS LAST
+       LIMIT 50`,
+      params,
+    );
+
+    const mapBreakdown = (
+      rows: Record<string, any>[],
+      label: 'method_name' | 'area',
+    ) =>
+      rows.map((row) => {
+        const totalOrders = parseInt(row.total_orders, 10) || 0;
+        const cancelledOrders = parseInt(row.cancelled_orders, 10) || 0;
+        return {
+          name: row[label],
+          totalOrders,
+          cancelledOrders,
+          cancelRate: totalOrders
+            ? Math.round((cancelledOrders / totalOrders) * 100)
+            : 0,
+          lostValue: parseFloat(row.lost_value) || 0,
+        };
+      });
+
+    const totalOrders = parseInt(summaryRow.total_orders, 10) || 0;
+    const cancelledOrders = parseInt(summaryRow.cancelled_orders, 10) || 0;
+    const summary = {
+      totalOrders,
+      cancelledOrders,
+      cancelRate: totalOrders
+        ? Math.round((cancelledOrders / totalOrders) * 100)
+        : 0,
+      lostValue: parseFloat(summaryRow.lost_value) || 0,
+      /** Paid amounts on cancelled orders — refund exposure. */
+      paidOnCancelled: parseFloat(summaryRow.paid_on_cancelled) || 0,
+      avgCancelHours: parseFloat(summaryRow.avg_cancel_hours) || 0,
+      sameDayCancellations:
+        parseInt(summaryRow.same_day_cancellations, 10) || 0,
+    };
+
+    return {
+      summary,
+      byMethod: mapBreakdown(methodRows, 'method_name'),
+      byArea: mapBreakdown(areaRows, 'area'),
+      recent: recentRows.map((row) => ({
+        id: parseInt(row.id, 10),
+        orderNo: row.orderNo,
+        customerName: row.customer_name ?? 'Unknown',
+        mobileNumber: row.mobileNumber ?? null,
+        area: row.area,
+        method: row.method_name,
+        totalValue: parseFloat(row.total_value) || 0,
+        paidAmount: parseFloat(row.paid_amount) || 0,
+        paymentStatus: row.paymentStatus,
+        placedAt: row.createdAt,
+        cancelledAt: row.cancelledAt,
+        cancelHours:
+          row.cancel_hours == null ? null : parseFloat(row.cancel_hours),
+      })),
+    };
   }
 
   /**
@@ -2455,19 +2787,32 @@ export class OrderService {
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
     // Placement→delivery hours; computed once per order in a CTE both the
-    // per-man aggregate and the slowest-orders list reuse.
+    // per-man aggregate and the slowest-orders list reuse. The lateness
+    // threshold is per shipping method, matching its promised timeline:
+    //   Inside Dhaka  → 2 days  (48h)
+    //   Outside Dhaka → 5 working days (approximated as 120h)
+    //   Express       → 6 hours
+    // Any other method falls back to the configured thresholdHours.
+    const methodThresholdExpr = `CASE
+           WHEN sm.name ILIKE '%express%' THEN 6
+           WHEN sm.name ILIKE '%outside%' THEN 120
+           WHEN sm.name ILIKE '%inside%' THEN 48
+           ELSE $${params.length + 1}
+         END`;
     const hoursExpr = `EXTRACT(EPOCH FROM (o."deliveredAt" - o."createdAt")) / 3600.0`;
 
     const manRows: Record<string, any>[] = await this.orderRepository.query(
       `WITH delivered AS (
-         SELECT o.id, o."deliveryManId", ${hoursExpr} AS hours
+         SELECT o.id, o."deliveryManId", ${hoursExpr} AS hours,
+                ${methodThresholdExpr} AS threshold
          FROM "order" o
+         LEFT JOIN shipping_method sm ON sm.id = o."shippingMethodId"
          ${whereClause}
        )
        SELECT dm.id AS delivery_man_id,
               COALESCE(dm.name, 'Unassigned') AS delivery_man_name,
               COUNT(d.id) AS delivered,
-              COUNT(d.id) FILTER (WHERE d.hours > $${params.length + 1}) AS late,
+              COUNT(d.id) FILTER (WHERE d.hours > d.threshold) AS late,
               COALESCE(ROUND(AVG(d.hours)::numeric, 1), 0) AS avg_hours,
               COALESCE(ROUND(MAX(d.hours)::numeric, 1), 0) AS worst_hours
        FROM delivered d
@@ -2480,19 +2825,23 @@ export class OrderService {
     const slowLimitIndex = params.length + 2;
     const slowRows: Record<string, any>[] = await this.orderRepository.query(
       `WITH delivered AS (
-         SELECT o.id, o."deliveryManId", ${hoursExpr} AS hours
+         SELECT o.id, o."deliveryManId", ${hoursExpr} AS hours,
+                ${methodThresholdExpr} AS threshold
          FROM "order" o
+         LEFT JOIN shipping_method sm ON sm.id = o."shippingMethodId"
          ${whereClause}
        )
-       SELECT d.id AS order_id, d.hours,
+       SELECT d.id AS order_id, d.hours, d.threshold,
               o."orderNo", o."totalValue", o."createdAt" AS order_date, o."deliveredAt",
               c.name AS customer_name, c."mobileNumber",
+              sm.name AS shipping_method_name,
               COALESCE(dm.name, 'Unassigned') AS delivery_man_name
        FROM delivered d
        JOIN "order" o ON o.id = d.id
+       LEFT JOIN shipping_method sm ON sm.id = o."shippingMethodId"
        LEFT JOIN "user" c ON o."userId" = c.id
        LEFT JOIN delivery_man dm ON d."deliveryManId" = dm.id
-       WHERE d.hours > $${params.length + 1}
+       WHERE d.hours > d.threshold
        ORDER BY d.hours DESC
        LIMIT $${slowLimitIndex}`,
       [...params, thresholdHours, 50],
@@ -2513,6 +2862,7 @@ export class OrderService {
       customerName: row.customer_name ?? 'Unknown',
       mobileNumber: row.mobileNumber ?? null,
       deliveryMan: row.delivery_man_name,
+      shippingMethod: row.shipping_method_name ?? null,
       totalValue: parseFloat(row.totalValue) || 0,
       orderDate: row.order_date,
       deliveredAt: row.deliveredAt,
@@ -2531,6 +2881,9 @@ export class OrderService {
         ? Math.round(((totalDelivered - totalLate) / totalDelivered) * 100)
         : 0,
       thresholdHours,
+      /** Human-readable per-method timelines used by the report UI instead of
+       *  the single fallback threshold. */
+      thresholdNote: 'Inside Dhaka 48h · Outside Dhaka 5 days · Express 6h',
       lateMenCount: deliveryMen.filter((d) => d.late > 0).length,
     };
 

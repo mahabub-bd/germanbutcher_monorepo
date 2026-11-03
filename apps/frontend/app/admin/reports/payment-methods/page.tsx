@@ -46,6 +46,9 @@ export default async function PaymentMethodReportPage({
       name: string;
       code: string;
       orders: number;
+      pendingOrders: number;
+      processingOrders: number;
+      onHoldOrders: number;
       deliveredOrders: number;
       cancelledOrders: number;
       totalValue: number;

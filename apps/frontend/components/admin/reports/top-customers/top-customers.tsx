@@ -325,11 +325,11 @@ export default function TopCustomersReport({
                     >
                       <TableCell className="py-2.5 pl-4">
                         {index === 0 ? (
-                          <PillBadge tone="amber" className="gap-1">
-                            <Crown className="size-3" />1
+                          <PillBadge tone="amber" className="gap-1 text-sm">
+                            <Crown className="size-3.5" />1
                           </PillBadge>
                         ) : (
-                          <span className="text-xs tabular-nums text-muted-foreground">
+                          <span className="text-sm tabular-nums text-muted-foreground">
                             {index + 1}
                           </span>
                         )}
@@ -355,7 +355,7 @@ export default function TopCustomersReport({
                           )}
                         </div>
                         {customer.email && (
-                          <p className="truncate text-[11px] text-muted-foreground">
+                          <p className="truncate text-sm text-muted-foreground">
                             {customer.email}
                           </p>
                         )}
@@ -366,12 +366,12 @@ export default function TopCustomersReport({
                           <a
                             href={`tel:${customer.mobileNumber}`}
                             onClick={(event) => event.stopPropagation()}
-                            className="text-[11px] text-blue-600 hover:underline dark:text-blue-400"
+                            className="text-sm text-blue-600 hover:underline dark:text-blue-400"
                           >
                             {customer.mobileNumber}
                           </a>
                         ) : (
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-sm text-muted-foreground">
                             No mobile
                           </span>
                         )}
@@ -381,13 +381,13 @@ export default function TopCustomersReport({
                         {customer.area ? (
                           <PillBadge
                             tone="violet"
-                            className="max-w-40 truncate font-normal"
+                            className="max-w-40 truncate font-normal text-sm"
                             title={customer.area}
                           >
                             {shortenArea(customer.area)}
                           </PillBadge>
                         ) : (
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-sm text-muted-foreground">
                             —
                           </span>
                         )}
@@ -398,7 +398,7 @@ export default function TopCustomersReport({
                           {customer.statistics.totalOrders}
                         </span>
                         {customer.statistics.pendingOrders > 0 && (
-                          <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                          <p className="text-xs text-amber-600 dark:text-amber-400">
                             {customer.statistics.pendingOrders} pending
                           </p>
                         )}

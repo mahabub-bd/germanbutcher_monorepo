@@ -16,6 +16,7 @@ import {
   PAYMENT_STATUS_TONE,
   PillBadge,
 } from "@/components/common/pill-badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -28,6 +29,10 @@ import {
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
+import {
+  getPaymentMethodColor,
+  getPaymentMethodIcon,
+} from "@/utils/order-helper";
 import {
   AlertTriangle,
   Ban,
@@ -50,6 +55,10 @@ interface RefundOrder {
   totalValue: number;
   paidAmount: number;
   paymentStatus: string;
+  paymentMethod: string;
+  customerName: string;
+  mobileNumber: string | null;
+  area: string;
   reason: string | null;
   refundedAmount: number;
 }
@@ -113,11 +122,15 @@ export default function RefundsList({
   const pdfRows = orders.map((o) => [
     o.date,
     o.orderNo,
+    o.customerName,
+    o.mobileNumber ?? "-",
+    o.area,
+    o.paymentMethod,
+    humanize(o.paymentStatus),
+    o.reason ?? "—",
     formatMoney(o.totalValue),
     formatMoney(o.paidAmount),
     formatMoney(o.refundedAmount),
-    o.paymentStatus,
-    o.reason ?? "—",
   ]);
 
   const pdfSummary = [
@@ -145,11 +158,15 @@ export default function RefundsList({
               headers={[
                 "Date",
                 "Order No",
+                "Customer",
+                "Mobile",
+                "Area",
+                "Method",
+                "Payment Status",
+                "Reason",
                 "Value",
                 "Paid",
                 "Refunded",
-                "Payment Status",
-                "Reason",
               ]}
               rows={pdfRows}
               summary={pdfSummary}
@@ -162,14 +179,18 @@ export default function RefundsList({
                   headers={[
                     "Date",
                     "Order No",
+                    "Customer",
+                    "Mobile",
+                    "Area",
+                    "Method",
+                    "Payment Status",
+                    "Reason",
                     "Value",
                     "Paid",
                     "Refunded",
-                    "Payment Status",
-                    "Reason",
                   ]}
-                  flexes={[1.1, 1.3, 0.9, 0.9, 0.9, 1.2, 1.8]}
-                  alignRight={[2, 3, 4]}
+                  flexes={[1, 1.2, 1.2, 1.1, 1, 1, 1.1, 1.8, 0.9, 0.9, 0.9]}
+                  alignRight={[8, 9, 10]}
                   rows={pdfRows}
                   summary={pdfSummary}
                   settings={settings}
@@ -262,6 +283,9 @@ export default function RefundsList({
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="pl-4">Order</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Area</TableHead>
+                    <TableHead>Method</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead className="w-full min-w-64">Reason</TableHead>
                     <TableHead className="text-right">Value</TableHead>
@@ -282,6 +306,37 @@ export default function RefundsList({
                         <p className="text-[11px] text-muted-foreground">
                           {o.date}
                         </p>
+                      </TableCell>
+
+                      <TableCell>
+                        <p className="truncate text-sm">{o.customerName}</p>
+                        {o.mobileNumber && (
+                          <a
+                            href={`tel:${o.mobileNumber}`}
+                            className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                          >
+                            {o.mobileNumber}
+                          </a>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        <span className="truncate text-sm capitalize">
+                          {o.area}
+                        </span>
+                      </TableCell>
+
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          title={o.paymentMethod}
+                          className={`capitalize max-w-32 lg:max-w-none truncate ${getPaymentMethodColor(o.paymentMethod)}`}
+                        >
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            {getPaymentMethodIcon(o.paymentMethod || "")}
+                            <span className="truncate">{o.paymentMethod}</span>
+                          </span>
+                        </Badge>
                       </TableCell>
 
                       <TableCell>
@@ -333,7 +388,7 @@ export default function RefundsList({
                     <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Total
                     </TableCell>
-                    <TableCell colSpan={2} />
+                    <TableCell colSpan={5} />
                     <TableCell className="text-right">
                       <span className="text-sm font-bold tabular-nums">
                         {bare(totalValue)}
@@ -374,6 +429,26 @@ export default function RefundsList({
                     >
                       {humanize(o.paymentStatus)}
                     </PillBadge>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {o.customerName}
+                    </span>
+                    {o.mobileNumber ? ` · ${o.mobileNumber}` : ""} ·{" "}
+                    <span className="capitalize">{o.area}</span>
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge
+                      variant="outline"
+                      className={`capitalize ${getPaymentMethodColor(o.paymentMethod)}`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {getPaymentMethodIcon(o.paymentMethod || "")}
+                        {o.paymentMethod}
+                      </span>
+                    </Badge>
                   </div>
 
                   {o.reason && (

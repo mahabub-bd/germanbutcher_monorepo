@@ -31,7 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { formatCurrencyEnglish } from "@/lib/utils";
+import { cn, formatCurrencyEnglish } from "@/lib/utils";
 import {
   Banknote,
   CalendarDays,
@@ -46,6 +46,8 @@ interface DeliveryManEntry {
   id: number | null;
   name: string;
   deliveries: number;
+  avgHours: number;
+  lateOrders: number;
   deliveredValue: number;
   cashCollected: number;
   onlineAmount: number;
@@ -57,6 +59,9 @@ interface DayRow {
   totalValue: number;
   totalCash: number;
   totalOnline: number;
+  totalLate: number;
+  /** Sum of placement→delivery hours; avg = totalHours / totalDeliveries. */
+  totalHours: number;
   deliveryMen: DeliveryManEntry[];
 }
 
@@ -68,6 +73,8 @@ interface Summary {
   deliveryDays: number;
   activeDeliveryMen: number;
   avgPerDay: number;
+  avgHours: number;
+  totalLate: number;
 }
 
 interface DateWiseDeliveryListProps {
@@ -148,11 +155,17 @@ export default function DateWiseDeliveryList({
   // Flat export rows: one row per date × delivery man, plus a per-day total row.
   const exportRows: (string | number)[][] = [];
   for (const day of days) {
+    const dayAvg =
+      day.totalDeliveries > 0
+        ? (day.totalHours / day.totalDeliveries).toFixed(1)
+        : "0.0";
     for (const d of day.deliveryMen) {
       exportRows.push([
         prettyDate(day.date),
         d.name,
         d.deliveries,
+        Number(d.avgHours || 0).toFixed(1),
+        d.lateOrders,
         formatMoney(d.deliveredValue),
         formatMoney(d.cashCollected),
         formatMoney(d.onlineAmount),
@@ -162,6 +175,8 @@ export default function DateWiseDeliveryList({
       prettyDate(day.date),
       "Total",
       day.totalDeliveries,
+      dayAvg,
+      day.totalLate,
       formatMoney(day.totalValue),
       formatMoney(day.totalCash),
       formatMoney(day.totalOnline),
@@ -203,6 +218,8 @@ export default function DateWiseDeliveryList({
                 "Date",
                 "Delivery Man",
                 "Deliveries",
+                "Avg Hours",
+                "Late",
                 "Delivered Value",
                 "Cash Collected",
                 "Online Payment",
@@ -219,12 +236,14 @@ export default function DateWiseDeliveryList({
                     "Date",
                     "Delivery Man",
                     "Deliveries",
+                    "Avg Hours",
+                    "Late",
                     "Delivered Value",
                     "Cash",
                     "Online",
                   ]}
-                  flexes={[1.3, 1.5, 0.8, 1.1, 1, 1]}
-                  alignRight={[2, 3, 4, 5]}
+                  flexes={[1.3, 1.5, 0.8, 0.7, 0.6, 1.1, 1, 1]}
+                  alignRight={[2, 3, 4, 5, 6, 7]}
                   rows={exportRows}
                   summary={pdfSummary}
                   settings={settings}
@@ -356,6 +375,8 @@ export default function DateWiseDeliveryList({
                     <TableHead className="pl-4">Date</TableHead>
                     <TableHead>Delivery Man</TableHead>
                     <TableHead className="text-right">Deliveries</TableHead>
+                    <TableHead className="text-right">Avg Hours</TableHead>
+                    <TableHead className="text-right">Late</TableHead>
                     <TableHead className="text-right">Delivered Value</TableHead>
                     <TableHead className="text-right">Cash</TableHead>
                     <TableHead className="pr-4 text-right">Online</TableHead>
@@ -376,6 +397,24 @@ export default function DateWiseDeliveryList({
                         <TableCell className="text-right">
                           <span className="text-sm font-bold tabular-nums">
                             {day.totalDeliveries}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-sm font-bold tabular-nums">
+                            {day.totalDeliveries > 0
+                              ? (day.totalHours / day.totalDeliveries).toFixed(1)
+                              : "0.0"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span
+                            className={cn(
+                              "text-sm font-bold tabular-nums",
+                              day.totalLate > 0 &&
+                                "text-red-600 dark:text-red-400",
+                            )}
+                          >
+                            {day.totalLate}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
@@ -403,6 +442,22 @@ export default function DateWiseDeliveryList({
                           <TableCell className="text-right">
                             <span className="text-sm font-semibold tabular-nums">
                               {d.deliveries}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className="text-sm font-semibold tabular-nums text-muted-foreground">
+                              {Number(d.avgHours || 0).toFixed(1)}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span
+                              className={cn(
+                                "text-sm font-semibold tabular-nums",
+                                d.lateOrders > 0 &&
+                                  "text-red-600 dark:text-red-400",
+                              )}
+                            >
+                              {d.lateOrders}
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
@@ -436,6 +491,16 @@ export default function DateWiseDeliveryList({
                     <TableCell className="text-right">
                       <span className="text-sm font-bold tabular-nums">
                         {(summary?.totalDeliveries ?? 0).toLocaleString("en-US")}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-sm font-bold tabular-nums">
+                        {summary?.avgHours ?? 0}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-sm font-bold tabular-nums text-red-600 dark:text-red-400">
+                        {summary?.totalLate ?? 0}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
@@ -487,6 +552,12 @@ export default function DateWiseDeliveryList({
                           <span className="text-violet-600 dark:text-violet-400">
                             {bare(d.onlineAmount)}
                           </span>
+                          {d.lateOrders > 0 && (
+                            <span className="text-red-600 dark:text-red-400">
+                              {" "}
+                              · {d.lateOrders} late
+                            </span>
+                          )}
                         </span>
                       </div>
                     ))}
