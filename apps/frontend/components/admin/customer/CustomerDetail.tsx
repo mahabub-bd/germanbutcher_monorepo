@@ -32,6 +32,14 @@ import {
 } from "@/components/ui/select";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import {
+  getEnabledAreas,
+  getEnabledCities,
+  getEnabledDivisions,
+} from "@/lib/delivery-coverage";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
   deleteData,
   fetchProtectedData,
   patchData,
@@ -146,6 +154,82 @@ export function CustomerDetail() {
     dueDate: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Address editing on the shipping tab — admins fix customer addresses
+  // through the same address API the customer app uses (staff tokens skip
+  // the ownership scope on the backend).
+  const settings = useBusinessSettings();
+  const coverage = settings?.deliveryCoverage ?? null;
+  const CUSTOMER_MENU_URL = "/admin/customer/customer-list";
+  const [editingAddress, setEditingAddress] = useState<{
+    id: number;
+    address: string;
+    division: string;
+    city: string;
+    area: string;
+    type: string;
+    isDefault: boolean;
+  } | null>(null);
+  const [addressForm, setAddressForm] = useState({
+    address: "",
+    division: "",
+    city: "",
+    area: "",
+    type: "shipping",
+    isDefault: false,
+  });
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+
+  const openAddressEdit = (
+    addr: NonNullable<CustomerData["addresses"]>[number]
+  ) => {
+    setEditingAddress({
+      id: addr.id,
+      address: addr.address || "",
+      division: addr.division || "",
+      city: addr.city || "",
+      area: addr.area || "",
+      type: addr.type || "shipping",
+      isDefault: Boolean(addr.isDefault),
+    });
+    setAddressForm({
+      address: addr.address || "",
+      division: addr.division || "",
+      city: addr.city || "",
+      area: addr.area || "",
+      type: addr.type || "shipping",
+      isDefault: Boolean(addr.isDefault),
+    });
+  };
+
+  const handleSaveAddress = async () => {
+    if (!editingAddress) return;
+    if (!addressForm.address.trim()) {
+      toast.error("Street address is required.");
+      return;
+    }
+    setIsSavingAddress(true);
+    try {
+      await patchData(`addresses/${editingAddress.id}`, {
+        address: addressForm.address.trim(),
+        division: addressForm.division || undefined,
+        city: addressForm.city || undefined,
+        area: addressForm.area || undefined,
+        type: addressForm.type,
+        isDefault: addressForm.isDefault,
+      });
+      toast.success("Address updated.");
+      setEditingAddress(null);
+      fetchData();
+    } catch (error) {
+      console.error("Error updating address:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update address."
+      );
+    } finally {
+      setIsSavingAddress(false);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -716,6 +800,17 @@ export function CustomerDetail() {
                           Default
                         </Badge>
                       )}
+                      {can(CUSTOMER_MENU_URL, "canEdit") && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 text-muted-foreground"
+                          aria-label={`Edit address ${address.id}`}
+                          onClick={() => openAddressEdit(address)}
+                        >
+                          <Pencil className="size-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <div className="mt-2 space-y-0.5 text-sm">
@@ -730,6 +825,144 @@ export function CustomerDetail() {
               ))}
             </div>
           )}
+
+          {/* Address edit dialog — cascading division/city/area selects fed
+              by the coverage tree; street address is free text. */}
+          <Dialog
+            open={Boolean(editingAddress)}
+            onOpenChange={(open) => !open && setEditingAddress(null)}
+          >
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Edit address</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="address-street">Street address *</Label>
+                  <Input
+                    id="address-street"
+                    value={addressForm.address}
+                    onChange={(e) =>
+                      setAddressForm((p) => ({
+                        ...p,
+                        address: e.target.value,
+                      }))
+                    }
+                    placeholder="House / road details"
+                  />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {(
+                    [
+                      {
+                        key: "division",
+                        label: "Division",
+                        options: getEnabledDivisions(coverage),
+                      },
+                      {
+                        key: "city",
+                        label: "City",
+                        options: getEnabledCities(
+                          coverage,
+                          addressForm.division
+                        ),
+                      },
+                      {
+                        key: "area",
+                        label: "Area",
+                        options: getEnabledAreas(coverage, addressForm.city),
+                      },
+                    ] as const
+                  ).map(({ key, label, options }) => (
+                    <div key={key} className="space-y-1.5">
+                      <Label htmlFor={`address-${key}`}>{label}</Label>
+                      <Select
+                        value={addressForm[key] || undefined}
+                        onValueChange={(value) => {
+                          setAddressForm((p) => ({
+                            ...p,
+                            [key]: value,
+                            // Clear the children when a parent changes.
+                            ...(key === "division"
+                              ? { city: "", area: "" }
+                              : key === "city"
+                                ? { area: "" }
+                                : {}),
+                          }));
+                        }}
+                      >
+                        <SelectTrigger
+                          id={`address-${key}`}
+                          className="w-full"
+                        >
+                          <SelectValue
+                            placeholder={
+                              key === "division" ? "Select" : "Select…"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {options.map((name) => (
+                            <SelectItem key={name} value={name}>
+                              {name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="address-type">Type</Label>
+                    <Select
+                      value={addressForm.type}
+                      onValueChange={(value) =>
+                        setAddressForm((p) => ({ ...p, type: value }))
+                      }
+                    >
+                      <SelectTrigger id="address-type" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="shipping">Shipping</SelectItem>
+                        <SelectItem value="billing">Billing</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <label className="flex cursor-pointer items-center gap-2 self-end pb-2 text-sm">
+                    <Checkbox
+                      checked={addressForm.isDefault}
+                      onCheckedChange={(checked) =>
+                        setAddressForm((p) => ({
+                          ...p,
+                          isDefault: checked === true,
+                        }))
+                      }
+                    />
+                    Set as default
+                  </label>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingAddress(null)}
+                  disabled={isSavingAddress}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveAddress}
+                  disabled={isSavingAddress || !addressForm.address.trim()}
+                >
+                  Save changes
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="reviews" className="mt-4">

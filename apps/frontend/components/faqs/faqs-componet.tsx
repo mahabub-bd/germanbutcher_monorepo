@@ -75,6 +75,10 @@ const FAQPageComponent: React.FC = () => {
                     : `৳${Number(method.cost).toLocaleString("en-US", {
                         maximumFractionDigits: 2,
                       })}`}
+                  {method.minOrderAmount != null &&
+                    ` (min order ৳${Number(
+                      method.minOrderAmount
+                    ).toLocaleString("en-US", { maximumFractionDigits: 2 })})`}
                   {method.deliveryTime ? ` — ${method.deliveryTime}` : ""}
                 </li>
               ))}

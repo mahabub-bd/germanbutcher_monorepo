@@ -21,8 +21,6 @@ import { FreeDeliveryUsageLogService } from 'src/free-delivery-usage-log/free-de
 import { SmsService } from 'src/auth/sms.service';
 import { StockMovementType } from 'src/stock-movement/entities/stock-movement.entity';
 import { StockMovementService } from 'src/stock-movement/stock-movement.service';
-import { BusinessSettingsService } from 'src/business-settings/business-settings.service';
-
 import { generateOrderConfirmationSMS } from 'src/auth/templates/order-confirmation-sms.template';
 import { DiscountType } from 'src/common/enums';
 import { CouponUsageLogService } from 'src/coupon-usage-log/coupon-usage-log.service';
@@ -94,7 +92,6 @@ export class OrderService {
     private readonly couponUsageLogService: CouponUsageLogService,
     private readonly freeDeliveryCampaignsService: FreeDeliveryCampaignsService,
     private readonly freeDeliveryUsageLogService: FreeDeliveryUsageLogService,
-    private readonly businessSettingsService: BusinessSettingsService,
     private readonly flashSaleCampaignsService: FlashSaleCampaignsService,
     private readonly flashSaleUsageLogService: FlashSaleUsageLogService,
     private readonly bogoCampaignsService: BogoCampaignsService,
@@ -204,78 +201,6 @@ export class OrderService {
               : `${shippingMethod.name} is only available in selected cities and areas.`,
           );
         }
-      }
-    }
-
-    // Area-wise delivery charge / minimum order from Business Settings
-    // coverage. Resolution: the area's own value → its city's value → null
-    // (no override — shipping method cost / no minimum). Failures must never
-    // block ordering. Address fields are free text, so matching is
-    // case/spacing-insensitive with legacy spellings mapped to canonical
-    // names (mirrors frontend lib/delivery-coverage.ts).
-    let areaDeliveryCharge: number | null = null;
-    let areaMinOrderAmount: number | null = null;
-    if (address?.area) {
-      const locationAliases: Record<string, string> = { barishal: 'barisal' };
-      const normalizeLocation = (value: string): string => {
-        const trimmed = value.trim().toLowerCase().replace(/\s+/g, ' ');
-        return locationAliases[trimmed] ?? trimmed;
-      };
-      try {
-        const settings = await this.businessSettingsService.getSettings();
-        const coverage = settings?.deliveryCoverage;
-        const areaKey = normalizeLocation(address.area);
-        const cityKey = address.city
-          ? normalizeLocation(address.city)
-          : undefined;
-        const areaEntry = (coverage?.areas ?? []).find(
-          (entry) =>
-            entry.enabled &&
-            normalizeLocation(entry.name) === areaKey &&
-            (!cityKey ||
-              !entry.city ||
-              normalizeLocation(entry.city) === cityKey),
-        );
-        const cityEntry = cityKey
-          ? (coverage?.cities ?? []).find(
-              (entry) =>
-                entry.enabled &&
-                normalizeLocation(entry.name) === cityKey &&
-                (!address.division ||
-                  !entry.division ||
-                  entry.division === address.division),
-            )
-          : undefined;
-
-        // Area value wins; otherwise inherit from the city.
-        const resolve = (
-          own: number | null | undefined,
-          inherited: number | null | undefined,
-          valid: (value: number) => boolean,
-        ): number | null => {
-          const ownValue = own != null ? Number(own) : NaN;
-          if (Number.isFinite(ownValue) && valid(ownValue)) return ownValue;
-          const inheritedValue = inherited != null ? Number(inherited) : NaN;
-          if (Number.isFinite(inheritedValue) && valid(inheritedValue)) {
-            return inheritedValue;
-          }
-          return null;
-        };
-
-        areaDeliveryCharge = resolve(
-          areaEntry?.deliveryCharge,
-          cityEntry?.deliveryCharge,
-          (value) => value >= 0,
-        );
-        areaMinOrderAmount = resolve(
-          areaEntry?.minOrderAmount,
-          cityEntry?.minOrderAmount,
-          (value) => value > 0,
-        );
-      } catch (error) {
-        this.logger.warn(
-          `Could not load area delivery pricing for order ${orderNo}: ${error}`,
-        );
       }
     }
 
@@ -493,22 +418,28 @@ export class OrderService {
     const freeDeliveryApplied =
       freeDeliveryEligible && !shippingMethod.isExcludedFromFreeDelivery;
 
-    // Area minimum order amount — checked against the payable subtotal
-    // (after product and coupon discounts), matching the checkout display.
-    if (areaMinOrderAmount != null && payableSubtotal < areaMinOrderAmount) {
+    // Shipping-method minimum order amount — checked against the payable
+    // subtotal (after product and coupon discounts), matching the checkout
+    // display. Coverage no longer carries minimums.
+    const methodMinOrderAmount =
+      shippingMethod.minOrderAmount != null
+        ? Number(shippingMethod.minOrderAmount)
+        : null;
+    if (
+      methodMinOrderAmount != null &&
+      !shippingMethod.isPickup &&
+      payableSubtotal < methodMinOrderAmount
+    ) {
       throw new BadRequestException(
-        `Minimum order amount for delivery to ${address.area} is ৳${areaMinOrderAmount}.`,
+        `Minimum order amount for ${shippingMethod.name} is ৳${methodMinOrderAmount}.`,
       );
     }
 
-    // The area's own delivery charge replaces the shipping method's base
-    // cost (pickup methods never carry an area charge). Free-delivery
-    // campaigns still waive whatever would have been charged.
+    // Free-delivery campaigns waive the shipping method's base cost
+    // (pickup methods never carry a charge).
     const chargedShipping = freeDeliveryApplied
       ? 0
-      : areaDeliveryCharge != null && !shippingMethod.isPickup
-        ? areaDeliveryCharge
-        : Number(shippingMethod.cost);
+      : Number(shippingMethod.cost);
 
     if (matchedCampaignId && freeDeliveryApplied) {
       try {

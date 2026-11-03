@@ -36,6 +36,12 @@ export class ShippingMethod {
   @Column('decimal', { precision: 10 })
   cost: number;
 
+  /** Minimum order subtotal (৳) required to use this method; null = no
+   *  minimum. Managed here instead of per coverage city/area. */
+  @ApiProperty({ example: 500, nullable: true })
+  @Column('decimal', { precision: 10, nullable: true })
+  minOrderAmount: number | null;
+
   @Column()
   deliveryTime: string;
 
