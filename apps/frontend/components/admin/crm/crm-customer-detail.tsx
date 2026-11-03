@@ -1,6 +1,7 @@
 "use client";
 
 import { SegmentBadge } from "@/components/admin/crm/segment-badge";
+import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -23,25 +31,18 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { formatDateTime } from "@/lib/utils";
-import {
-  getOrderStatusColor,
-  getPaymentStatusColor,
-  getStatusIcon,
-} from "@/utils/order-helper";
 import {
   deleteData,
   fetchProtectedData,
   patchData,
   postData,
 } from "@/utils/api-utils";
+import {
+  getOrderStatusColor,
+  getPaymentStatusColor,
+  getStatusIcon,
+} from "@/utils/order-helper";
 import {
   Activity,
   ArrowLeft,
@@ -64,7 +65,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import StatsCard from "@/components/admin/dashboard/stats-card";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
@@ -431,7 +431,7 @@ export function CrmCustomerDetail() {
       </div>
 
       <Tabs defaultValue="orders">
-        <TabsList className="scrollbar-none h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit">
+        <TabsList className="scrollbar-none h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit [&::-webkit-scrollbar]:hidden">
           {(
             [
               {

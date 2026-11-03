@@ -120,6 +120,9 @@ export class UserService {
     limit: number = 10,
     search?: string,
     sort: 'ASC' | 'DESC' = 'ASC',
+    division?: string,
+    city?: string,
+    area?: string,
   ): Promise<any> {
     const skip = (page - 1) * limit;
 
@@ -164,8 +167,44 @@ export class UserService {
 
     if (search) {
       query = query.andWhere(
-        '(user.name LIKE :search OR user.email LIKE :search OR user.mobileNumber LIKE :search)',
+        `(user.name LIKE :search OR user.email LIKE :search OR user.mobileNumber LIKE :search
+          OR EXISTS (
+            SELECT 1 FROM address a
+            WHERE a.user_id = "user".id
+              AND (a.area LIKE :search OR a.city LIKE :search OR a.division LIKE :search)
+          ))`,
         { search: `%${search}%` },
+      );
+    }
+
+    // Address-location filters — a customer matches when any saved address
+    // has the given division/city/area (case-insensitive partial match).
+    // EXISTS keeps multi-address customers from duplicating rows.
+    if (division) {
+      query = query.andWhere(
+        `EXISTS (
+          SELECT 1 FROM address a
+          WHERE a.user_id = "user".id AND a.division ILIKE :division
+        )`,
+        { division: `%${division}%` },
+      );
+    }
+    if (city) {
+      query = query.andWhere(
+        `EXISTS (
+          SELECT 1 FROM address a
+          WHERE a.user_id = "user".id AND a.city ILIKE :city
+        )`,
+        { city: `%${city}%` },
+      );
+    }
+    if (area) {
+      query = query.andWhere(
+        `EXISTS (
+          SELECT 1 FROM address a
+          WHERE a.user_id = "user".id AND a.area ILIKE :area
+        )`,
+        { area: `%${area}%` },
       );
     }
 
@@ -183,6 +222,36 @@ export class UserService {
           totalPages: Math.ceil(total / limit),
         },
       },
+    };
+  }
+
+  /** Customer count per saved-address area — powers the "Customers by area"
+   *  panel on the admin customer list. One row per distinct area, deduplicated
+   *  per user (a customer with two addresses in the same area counts once). */
+  async getCustomerAreaStats(): Promise<{
+    message: string;
+    statusCode: number;
+    data: { area: string; customers: number }[];
+  }> {
+    const rows: Record<string, any>[] = await this.userRepository.query(
+      `SELECT a.area,
+              COUNT(DISTINCT a.user_id) AS customers
+       FROM address a
+       JOIN "user" u ON u.id = a.user_id
+       JOIN role r ON r.id = u."roleId"
+       WHERE r.id = 3
+         AND COALESCE(a.area, '') <> ''
+       GROUP BY a.area
+       ORDER BY customers DESC, a.area ASC`,
+    );
+
+    return {
+      message: 'Customer area stats retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data: rows.map((row) => ({
+        area: row.area,
+        customers: parseInt(row.customers, 10) || 0,
+      })),
     };
   }
 

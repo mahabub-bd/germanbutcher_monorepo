@@ -91,8 +91,11 @@ export default function InventoryList({
   const pdfRows = products.map((p) => [
     p.name,
     p.stock,
+    STOCK_LABEL[p.stockStatus],
     formatMoney(p.purchasePrice),
     formatMoney(p.sellingPrice),
+    formatMoney(p.stock * p.purchasePrice),
+    formatMoney(p.stock * p.sellingPrice),
   ]);
 
   const pdfSummary = [
@@ -115,7 +118,15 @@ export default function InventoryList({
           <>
             <ReportExcelButton
               title="Inventory Report"
-              headers={["Product", "Stock", "Purchase Price", "Selling Price"]}
+              headers={[
+                "Product",
+                "Stock",
+                "Status",
+                "Purchase Price",
+                "Selling Price",
+                "Value (Cost)",
+                "Value (Retail)",
+              ]}
               rows={pdfRows}
               summary={pdfSummary}
               fileName="inventory-report"
@@ -127,11 +138,14 @@ export default function InventoryList({
                   headers={[
                     "Product",
                     "Stock",
+                    "Status",
                     "Purchase Price",
                     "Selling Price",
+                    "Value (Cost)",
+                    "Value (Retail)",
                   ]}
-                  flexes={[2, 0.8, 1.2, 1.2]}
-                  alignRight={[1, 2, 3]}
+                  flexes={[2, 0.7, 1, 1.1, 1.1, 1.2, 1.2]}
+                  alignRight={[1, 3, 4, 5, 6]}
                   rows={pdfRows}
                   summary={pdfSummary}
                   settings={settings}
@@ -229,9 +243,12 @@ export default function InventoryList({
                     <TableHead className="pl-4">#</TableHead>
                     <TableHead>Product</TableHead>
                     <TableHead>Stock</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Purchase Price</TableHead>
+                    <TableHead className="text-right">Selling Price</TableHead>
+                    <TableHead className="text-right">Value (Cost)</TableHead>
                     <TableHead className="pr-4 text-right">
-                      Selling Price
+                      Value (Retail)
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -258,14 +275,29 @@ export default function InventoryList({
                           {p.stock}
                         </PillBadge>
                       </TableCell>
+                      <TableCell>
+                        <PillBadge tone={STOCK_TONE[p.stockStatus]}>
+                          {STOCK_LABEL[p.stockStatus]}
+                        </PillBadge>
+                      </TableCell>
                       <TableCell className="text-right">
                         <span className="text-sm font-semibold tabular-nums">
                           {bare(p.purchasePrice)}
                         </span>
                       </TableCell>
-                      <TableCell className="pr-4 text-right">
+                      <TableCell className="text-right">
                         <span className="text-sm font-semibold tabular-nums">
                           {bare(p.sellingPrice)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="text-sm tabular-nums text-muted-foreground">
+                          {bare(p.stock * p.purchasePrice)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="pr-4 text-right">
+                        <span className="text-sm tabular-nums text-muted-foreground">
+                          {bare(p.stock * p.sellingPrice)}
                         </span>
                       </TableCell>
                     </TableRow>
@@ -282,6 +314,9 @@ export default function InventoryList({
                         {(summary?.totalUnits ?? 0).toLocaleString("en-US")}
                       </span>
                     </TableCell>
+                    <TableCell />
+                    <TableCell />
+                    <TableCell />
                     <TableCell className="text-right">
                       <span className="text-sm font-bold tabular-nums">
                         {bare(summary?.stockValueCost ?? 0)}
@@ -341,6 +376,22 @@ export default function InventoryList({
                       </p>
                       <p className="text-sm font-semibold tabular-nums">
                         {amount(p.sellingPrice)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Value (Cost)
+                      </p>
+                      <p className="text-sm font-semibold tabular-nums">
+                        {amount(p.stock * p.purchasePrice)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Value (Retail)
+                      </p>
+                      <p className="text-sm font-semibold tabular-nums">
+                        {amount(p.stock * p.sellingPrice)}
                       </p>
                     </div>
                   </div>

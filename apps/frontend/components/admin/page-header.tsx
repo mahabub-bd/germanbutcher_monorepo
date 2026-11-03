@@ -33,7 +33,7 @@ export function PageHeader({
       )}
     >
       <div className="min-w-0">
-        <h2 className="flex items-center gap-2 text-[1.375rem] font-bold sm:text-2xl">
+        <h2 className="flex items-center gap-2 text-lg font-bold sm:text-xl">
           {titleIcon}
           <span className="truncate">{title}</span>
         </h2>

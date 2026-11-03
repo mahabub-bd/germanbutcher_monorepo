@@ -51,6 +51,7 @@ interface LateOrderRow {
   customerName: string;
   mobileNumber: string;
   deliveryMan: string;
+  shippingMethod?: string | null;
   totalValue: number;
   orderDate: string;
   deliveredAt: string;
@@ -63,6 +64,8 @@ interface Summary {
   lateRate: number;
   onTimeRate: number;
   thresholdHours: number;
+  /** Per-method timelines ("Inside Dhaka 48h · Outside Dhaka 5 days · Express 6h"). */
+  thresholdNote?: string;
   lateMenCount: number;
 }
 
@@ -119,7 +122,9 @@ export default function LateDeliveryList({
   };
 
   const rangeLabel = dateRangeSubtitle(preset, fromDate, toDate);
-  const threshold = summary?.thresholdHours ?? 24;
+  const thresholdNote =
+    summary?.thresholdNote ??
+    "Inside Dhaka 48h · Outside Dhaka 5 days · Express 6h";
   const hasData = deliveryMen.length > 0 || lateOrders.length > 0;
 
   // Column sums for the delivery-men footer.
@@ -143,14 +148,14 @@ export default function LateDeliveryList({
     { label: "Total Delivered", value: String(summary?.totalDelivered ?? 0) },
     { label: "Total Late", value: String(summary?.totalLate ?? 0) },
     { label: "Late Rate", value: `${summary?.lateRate ?? 0}%` },
-    { label: "Threshold", value: `${threshold} hrs` },
+    { label: "Threshold", value: thresholdNote },
   ];
 
   return (
     <div className="w-full">
       <PageHeader
         title="Late Delivery Report"
-        description={`Delivered more than ${threshold} hours after ordering in ${rangeLabel
+        description={`Delivered after the method's delivery timeline (${thresholdNote}) in ${rangeLabel
           .replace(/^Period: /, "")
           .toLowerCase()}.`}
       >
@@ -239,7 +244,7 @@ export default function LateDeliveryList({
               icon={AlarmClockOff}
               title="Late"
               value={(summary?.totalLate ?? 0).toLocaleString("en-US")}
-              description={`Delivered over ${threshold} hrs after ordering`}
+              description="Delivered after the method's delivery timeline"
               bgColor="red"
             />
             <StatsCard
@@ -271,7 +276,7 @@ export default function LateDeliveryList({
               <div>
                 <h3 className="text-sm font-semibold">Delivery men</h3>
                 <p className="text-xs text-muted-foreground">
-                  Hours after ordering · threshold {threshold} hrs
+                  Hours after ordering · thresholds: by shipping method
                 </p>
               </div>
               <PillBadge className="font-medium tabular-nums">
@@ -419,7 +424,7 @@ export default function LateDeliveryList({
                 <div>
                   <h3 className="text-sm font-semibold">Slowest deliveries</h3>
                   <p className="text-xs text-muted-foreground">
-                    Delivered more than {threshold} hours after ordering
+                    Delivered after the method's delivery timeline
                   </p>
                 </div>
                 <PillBadge tone="red" className="font-medium tabular-nums">
@@ -434,6 +439,7 @@ export default function LateDeliveryList({
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="pl-4">Order</TableHead>
                       <TableHead>Delivery Man</TableHead>
+                      <TableHead>Method</TableHead>
                       <TableHead>Placed</TableHead>
                       <TableHead>Delivered</TableHead>
                       <TableHead className="text-right">Hours</TableHead>
@@ -457,6 +463,11 @@ export default function LateDeliveryList({
                         <TableCell>
                           <span className="text-sm">
                             {order.deliveryMan || "Unassigned"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {order.shippingMethod || "—"}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -507,6 +518,7 @@ export default function LateDeliveryList({
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {order.deliveryMan || "Unassigned"} ·{" "}
+                      {order.shippingMethod || "—"} ·{" "}
                       {bare(order.totalValue)}
                     </p>
                   </article>

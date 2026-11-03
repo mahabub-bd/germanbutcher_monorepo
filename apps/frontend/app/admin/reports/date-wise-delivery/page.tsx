@@ -50,6 +50,8 @@ export default async function DateWiseDeliveryReportPage({
       deliveryDays: number;
       activeDeliveryMen: number;
       avgPerDay: number;
+      avgHours: number;
+      totalLate: number;
     };
     days: {
       date: string;
@@ -57,6 +59,9 @@ export default async function DateWiseDeliveryReportPage({
       totalValue: number;
       totalCash: number;
       totalOnline: number;
+      totalLate: number;
+      /** Sum of placement→delivery hours; avg = totalHours / totalDeliveries. */
+      totalHours: number;
       deliveryMen: {
         id: number | null;
         name: string;
@@ -64,6 +69,8 @@ export default async function DateWiseDeliveryReportPage({
         deliveredValue: number;
         cashCollected: number;
         onlineAmount: number;
+        avgHours: number;
+        lateOrders: number;
       }[];
     }[];
   } | null = null;

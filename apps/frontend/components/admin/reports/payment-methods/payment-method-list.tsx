@@ -23,7 +23,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
+import { Badge } from "@/components/ui/badge";
 import { formatCurrencyEnglish } from "@/lib/utils";
+import {
+  getPaymentMethodColor,
+  getPaymentMethodIcon,
+} from "@/utils/order-helper";
 import {
   Banknote,
   CheckCircle2,
@@ -38,6 +43,9 @@ interface MethodRow {
   name: string;
   code: string;
   orders: number;
+  pendingOrders: number;
+  processingOrders: number;
+  onHoldOrders: number;
   deliveredOrders: number;
   cancelledOrders: number;
   totalValue: number;
@@ -114,6 +122,9 @@ export default function PaymentMethodList({
   const totals = methods.reduce(
     (acc, m) => ({
       orders: acc.orders + m.orders,
+      pending: acc.pending + m.pendingOrders,
+      processing: acc.processing + m.processingOrders,
+      onHold: acc.onHold + m.onHoldOrders,
       delivered: acc.delivered + m.deliveredOrders,
       cancelled: acc.cancelled + m.cancelledOrders,
       value: acc.value + m.totalValue,
@@ -123,6 +134,9 @@ export default function PaymentMethodList({
     }),
     {
       orders: 0,
+      pending: 0,
+      processing: 0,
+      onHold: 0,
       delivered: 0,
       cancelled: 0,
       value: 0,
@@ -135,6 +149,9 @@ export default function PaymentMethodList({
   const exportRows: (string | number)[][] = methods.map((m) => [
     m.name,
     m.orders,
+    m.pendingOrders,
+    m.processingOrders,
+    m.onHoldOrders,
     m.deliveredOrders,
     m.cancelledOrders,
     formatMoney(m.totalValue),
@@ -167,6 +184,9 @@ export default function PaymentMethodList({
               headers={[
                 "Payment Method",
                 "Orders",
+                "Pending",
+                "Processing",
+                "On Hold",
                 "Delivered",
                 "Cancelled",
                 "Order Value",
@@ -295,6 +315,9 @@ export default function PaymentMethodList({
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="pl-4">Payment Method</TableHead>
                     <TableHead className="text-right">Orders</TableHead>
+                    <TableHead className="text-right">Pending</TableHead>
+                    <TableHead className="text-right">Processing</TableHead>
+                    <TableHead className="text-right">On Hold</TableHead>
                     <TableHead className="text-right">Delivered</TableHead>
                     <TableHead className="text-right">Cancelled</TableHead>
                     <TableHead className="text-right">Order Value</TableHead>
@@ -307,16 +330,35 @@ export default function PaymentMethodList({
                   {methods.map((m) => (
                     <TableRow key={m.code || m.name}>
                       <TableCell className="py-2 pl-4">
-                        <span className="text-sm font-medium">{m.name}</span>
-                        {m.code && (
-                          <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">
-                            {m.code}
+                        <Badge
+                          variant="outline"
+                          title={m.name}
+                          className={`capitalize max-w-32 lg:max-w-none truncate ${getPaymentMethodColor(m.name)}`}
+                        >
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            {getPaymentMethodIcon(m.name || "")}
+                            <span className="truncate">{m.name}</span>
                           </span>
-                        )}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="text-sm font-semibold tabular-nums">
                           {m.orders.toLocaleString("en-US")}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="text-sm font-semibold tabular-nums">
+                          {m.pendingOrders.toLocaleString("en-US")}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="text-sm font-semibold tabular-nums">
+                          {m.processingOrders.toLocaleString("en-US")}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="text-sm font-semibold tabular-nums">
+                          {m.onHoldOrders.toLocaleString("en-US")}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
@@ -360,6 +402,21 @@ export default function PaymentMethodList({
                     <TableCell className="text-right">
                       <span className="text-sm font-bold tabular-nums">
                         {totals.orders.toLocaleString("en-US")}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-sm font-bold tabular-nums">
+                        {totals.pending.toLocaleString("en-US")}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-sm font-bold tabular-nums">
+                        {totals.processing.toLocaleString("en-US")}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-sm font-bold tabular-nums">
+                        {totals.onHold.toLocaleString("en-US")}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">

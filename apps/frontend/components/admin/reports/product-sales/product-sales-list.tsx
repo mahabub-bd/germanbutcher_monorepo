@@ -63,6 +63,8 @@ const EXPORT_HEADERS = [
   "Qty Sold",
   "Orders",
   "Revenue",
+  "Share %",
+  "Avg Price",
   "Current Stock",
 ];
 
@@ -115,6 +117,8 @@ export default function ProductSalesList({
     p.quantity,
     p.orderCount,
     formatCurrencyEnglish(p.revenue),
+    totalRevenue > 0 ? `${Math.round((p.revenue / totalRevenue) * 100)}%` : "",
+    p.quantity > 0 ? formatCurrencyEnglish(p.revenue / p.quantity, 2) : "",
     p.stock,
   ]);
 
@@ -206,9 +210,8 @@ export default function ProductSalesList({
             <StatsCard
               title="Units sold"
               value={totalQuantity.toLocaleString("en-US")}
-              description={`Across ${productCount} product${
-                productCount === 1 ? "" : "s"
-              }`}
+              description={`Across ${productCount} product${productCount === 1 ? "" : "s"
+                }`}
               icon={ShoppingCart}
               bgColor="blue"
             />
@@ -245,6 +248,8 @@ export default function ProductSalesList({
                     <TableHead className="text-right">Qty Sold</TableHead>
                     <TableHead className="text-right">Orders</TableHead>
                     <TableHead className="text-right">Revenue</TableHead>
+                    <TableHead className="text-right">Share</TableHead>
+                    <TableHead className="text-right">Avg Price</TableHead>
                     <TableHead className="pr-4 text-right">Stock</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -256,11 +261,7 @@ export default function ProductSalesList({
                       </TableCell>
                       <TableCell>
                         <p className="text-sm font-medium">{p.name}</p>
-                        {p.slug && (
-                          <p className="truncate text-[11px] text-muted-foreground">
-                            {p.slug}
-                          </p>
-                        )}
+
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="text-sm font-semibold tabular-nums">
@@ -276,6 +277,18 @@ export default function ProductSalesList({
                         <span className="text-sm font-semibold tabular-nums">
                           {formatCurrencyEnglish(p.revenue, 0)}
                         </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="text-sm tabular-nums text-muted-foreground">
+                          {totalRevenue > 0
+                            ? `${Math.round((p.revenue / totalRevenue) * 100)}%`
+                            : "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {p.quantity > 0
+                          ? formatCurrencyEnglish(p.revenue / p.quantity, 2)
+                          : "—"}
                       </TableCell>
                       <TableCell className="pr-4 text-right">
                         <PillBadge

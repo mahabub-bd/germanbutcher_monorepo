@@ -767,17 +767,30 @@ export function OrderList({
 
       {/* Pagination Section */}
       {!isLoading && orders.length > 0 && (
-        <div className="flex flex-col items-start gap-2 border-t p-2 md:flex-row md:items-center md:justify-between">
-          {/* The applied-filter summary lives with the results line, not in
-              the toolbar, so the filter row never has to make room for it. */}
-          <div className="flex min-w-0 items-center gap-2 text-[0.7rem] text-muted-foreground md:text-xs 2xl:text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t px-2 py-2">
+          {/* One compact row on mobile too: the range collapses to "51–60 of
+              2,573" and the filter summary truncates instead of stacking a
+              second line (order-reports footer convention). */}
+          <div className="flex min-w-0 grow items-center gap-2 text-[0.7rem] text-muted-foreground md:text-xs 2xl:text-sm">
             <span className="whitespace-nowrap">
-              Showing {Math.min((currentPage - 1) * limit + 1, totalItems)} to{" "}
-              {Math.min(currentPage * limit, totalItems)} of {totalItems} orders
+              <span className="md:hidden">
+                {Math.min((currentPage - 1) * limit + 1, totalItems).toLocaleString(
+                  "en-US"
+                )}
+                –
+                {Math.min(currentPage * limit, totalItems).toLocaleString(
+                  "en-US"
+                )}{" "}
+                of {totalItems.toLocaleString("en-US")} orders
+              </span>
+              <span className="hidden md:inline">
+                Showing {Math.min((currentPage - 1) * limit + 1, totalItems)} to{" "}
+                {Math.min(currentPage * limit, totalItems)} of {totalItems} orders
+              </span>
             </span>
             {activeFilterSummary && (
               <span
-                className="min-w-0 truncate opacity-80"
+                className="min-w-0 max-w-[45vw] truncate opacity-80 md:max-w-none"
                 title={activeFilterSummary}
               >
                 · {activeFilterSummary}
@@ -795,11 +808,12 @@ export function OrderList({
 
       {/* Loading Pagination Skeleton */}
       {isLoading && (
-        <div className="flex flex-row justify-between items-center p-2 border-t">
-          <div className="h-5 w-48 bg-gray-200 rounded animate-pulse" />
-          <div className="flex gap-2">
-            <div className="h-9 w-20 bg-gray-200 rounded animate-pulse" />
-            <div className="h-9 w-20 bg-gray-200 rounded animate-pulse" />
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t px-2 py-2">
+          <div className="h-4 w-36 bg-gray-200 rounded animate-pulse md:w-48" />
+          <div className="flex gap-1">
+            <div className="h-8 w-8 md:h-9 md:w-9 bg-gray-200 rounded animate-pulse" />
+            <div className="h-8 w-8 md:h-9 md:w-9 bg-gray-200 rounded animate-pulse" />
+            <div className="h-8 w-8 md:h-9 md:w-9 bg-gray-200 rounded animate-pulse" />
           </div>
         </div>
       )}

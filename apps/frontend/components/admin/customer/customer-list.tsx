@@ -22,13 +22,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
+import {
+  getEnabledAreas,
+  getEnabledCities,
+  getEnabledDivisions,
+} from "@/lib/delivery-coverage";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { formatDateTime } from "@/lib/utils";
-import { fetchDataPagination } from "@/utils/api-utils";
+import { cn } from "@/lib/utils";
+import {
+  fetchDataPagination,
+  fetchProtectedData,
+} from "@/utils/api-utils";
 import type { ApiResponseusers, User } from "@/utils/types";
 import {
   BadgeCheck,
   BadgeX,
   CheckCircle2,
+  ChevronDown,
   MapPin,
   MoreHorizontal,
   Pencil,
@@ -76,6 +88,15 @@ export function CustomerList({
   const [searchQuery, setSearchQuery] = useState(
     getInitialParam("search") as string
   );
+  // Address-location filters — options from the live coverage tree.
+  const settings = useBusinessSettings();
+  const coverage = settings?.deliveryCoverage ?? null;
+  const [filters, setFilters] = useState({
+    divisionFilter: (getInitialParam("division") as string) || "",
+    cityFilter: (getInitialParam("city") as string) || "",
+    areaFilter: (getInitialParam("area") as string) || "",
+  });
+  const { divisionFilter, cityFilter, areaFilter } = filters;
   const [isLoading, setIsLoading] = useState(true);
 
   const [totalItems, setTotalItems] = useState(0);
@@ -90,9 +111,21 @@ export function CustomerList({
     params.set("limit", limit.toString());
 
     if (searchQuery) params.set("search", searchQuery);
+    if (divisionFilter) params.set("division", divisionFilter);
+    if (cityFilter) params.set("city", cityFilter);
+    if (areaFilter) params.set("area", areaFilter);
 
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname, currentPage, limit, searchQuery]);
+  }, [
+    router,
+    pathname,
+    currentPage,
+    limit,
+    searchQuery,
+    divisionFilter,
+    cityFilter,
+    areaFilter,
+  ]);
 
   const fetchCustomers = useCallback(async () => {
     setIsLoading(true);
@@ -102,6 +135,9 @@ export function CustomerList({
       params.append("limit", limit.toString());
 
       if (searchQuery) params.append("search", searchQuery);
+      if (divisionFilter) params.append("division", divisionFilter);
+      if (cityFilter) params.append("city", cityFilter);
+      if (areaFilter) params.append("area", areaFilter);
 
       const response = await fetchDataPagination<ApiResponseusers>(
         `users/customers?${params.toString()}`
@@ -117,7 +153,24 @@ export function CustomerList({
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, limit, searchQuery]);
+  }, [currentPage, limit, searchQuery, divisionFilter, cityFilter, areaFilter]);
+
+  // Area-wise customer counts ("Gulshan — 25 customers"), shown in a
+  // collapsible panel; tapping a chip filters the list to that area.
+  const [areaStats, setAreaStats] = useState<
+    { area: string; customers: number }[]
+  >([]);
+  const [areaPanelOpen, setAreaPanelOpen] = useState(false);
+
+  useEffect(() => {
+    fetchProtectedData<{ area: string; customers: number }[]>(
+      "users/customers/area-stats"
+    )
+      .then(setAreaStats)
+      .catch((error: unknown) =>
+        console.error("Error loading area stats:", error)
+      );
+  }, []);
 
   // Initial load with URL params
   useEffect(() => {
@@ -151,8 +204,9 @@ export function CustomerList({
     setCurrentPage(1); // Reset to first page when searching
   };
 
-  const clearSearch = () => {
+  const clearAllFilters = () => {
     setSearchQuery("");
+    setFilters({ divisionFilter: "", cityFilter: "", areaFilter: "" });
     setCurrentPage(1);
   };
 
@@ -204,26 +258,117 @@ export function CustomerList({
           <TableSearch
             wrapperClassName="w-full md:max-w-xs"
             className="h-9"
-            placeholder="Search by name, email, or phone..."
+            placeholder="Search name, email, phone, area, city..."
             value={searchQuery}
             onChange={handleSearchChange}
           />
-          {searchQuery && (
-            <div className="flex items-center gap-2 md:ml-auto">
-              <PillBadge className="font-medium">
-                Search: {searchQuery}
-              </PillBadge>
+
+          {/* Location filters — options from the live coverage tree */}
+          <div className="grid grid-cols-3 gap-2.5 md:flex md:items-center md:gap-3">
+            {(
+              [
+                { key: "divisionFilter", label: "Division" },
+                { key: "cityFilter", label: "City" },
+                { key: "areaFilter", label: "Area" },
+              ] as const
+            ).map(({ key, label }) => {
+              const options =
+                key === "divisionFilter"
+                  ? getEnabledDivisions(coverage)
+                  : key === "cityFilter"
+                    ? getEnabledCities(coverage, divisionFilter)
+                    : getEnabledAreas(coverage, cityFilter);
+              return (
+                <SearchableSelect
+                  key={key}
+                  value={filters[key]}
+                  onValueChange={(value) => {
+                    if (value !== filters[key]) {
+                      // Clear children when a parent changes.
+                      if (key === "divisionFilter")
+                        setFilters({ divisionFilter: value, cityFilter: "", areaFilter: "" });
+                      else if (key === "cityFilter")
+                        setFilters({ ...filters, cityFilter: value, areaFilter: "" });
+                      else setFilters({ ...filters, areaFilter: value });
+                    }
+                    setCurrentPage(1);
+                  }}
+                  options={options}
+                  placeholder={label}
+                  searchPlaceholder={`Search ${label.toLowerCase()}...`}
+                  disabled={key !== "divisionFilter" && (key === "cityFilter" ? !divisionFilter : !cityFilter)}
+                  className="h-9 w-full"
+                />
+              );
+            })}
+          </div>
+          {(searchQuery || divisionFilter || cityFilter || areaFilter) && (
+            <div className="flex flex-wrap items-center gap-2 md:ml-auto">
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-9 text-muted-foreground"
-                onClick={clearSearch}
+                onClick={clearAllFilters}
               >
                 Clear
               </Button>
             </div>
           )}
         </div>
+      </div>
+
+      {/* Customers by area — collapsible chips; tap to filter the list */}
+      <div className="mb-6 rounded-xl border bg-card shadow-xs">
+        <button
+          type="button"
+          onClick={() => setAreaPanelOpen((o) => !o)}
+          aria-expanded={areaPanelOpen}
+          className="flex w-full items-center justify-between gap-2 px-3 py-2.5"
+        >
+          <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
+            <MapPin className="size-4 shrink-0 text-muted-foreground" />
+            Customers by area
+            <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
+              {areaStats.length} areas
+            </span>
+          </span>
+          <ChevronDown
+            className={cn(
+              "size-4 shrink-0 text-muted-foreground transition-transform",
+              areaPanelOpen && "rotate-180"
+            )}
+          />
+        </button>
+        {areaPanelOpen && (
+          <div className="border-t p-3">
+            <div className="flex max-h-52 flex-wrap gap-2 overflow-y-auto">
+              {areaStats.map((s) => (
+                <button
+                  key={s.area}
+                  type="button"
+                  onClick={() => {
+                    setFilters({
+                      divisionFilter: "",
+                      cityFilter: "",
+                      areaFilter: s.area,
+                    });
+                    setSearchQuery("");
+                    setCurrentPage(1);
+                  }}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-medium tabular-nums transition-colors",
+                    areaFilter === s.area
+                      ? "border-primaryColor bg-primaryColor text-white"
+                      : "bg-muted/50 hover:bg-muted"
+                  )}
+                >
+                  {s.area}{" "}
+                  <span className="text-muted-foreground">· {s.customers}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {isLoading ? (
@@ -238,18 +383,18 @@ export function CustomerList({
           <div className="space-y-1">
             <p className="text-sm font-semibold">No customers found</p>
             <p className="text-xs text-muted-foreground">
-              {searchQuery
-                ? "No customers match your search. Try a different name, email or phone."
+              {searchQuery || divisionFilter || cityFilter || areaFilter
+                ? "No customers match your search or filters."
                 : "No customers have been registered yet."}
             </p>
           </div>
-          {searchQuery && (
+          {(searchQuery || divisionFilter || cityFilter || areaFilter) && (
             <Button
               variant="outline"
               size="sm"
-              onClick={clearSearch}
+              onClick={clearAllFilters}
             >
-              Clear search
+              Clear filters
             </Button>
           )}
         </div>

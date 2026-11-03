@@ -634,6 +634,92 @@ export class OrderController {
   }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/shipping-methods')
+  @Get('reports/shipping-methods')
+  @ApiOperation({
+    summary: 'Order counts and delivery performance grouped by shipping method',
+    description:
+      'Returns each shipping method with order counts per status (pending/processing/on-hold/shipped/delivered/cancelled), order value, average delivery hours and late deliveries judged against each method’s own timeline. Orders without a method fall under "Unknown".',
+  })
+  @ApiQuery({
+    name: 'fromDate',
+    required: false,
+    example: '2025-11-01',
+    description: 'Start date (inclusive) - use with toDate for custom range',
+  })
+  @ApiQuery({
+    name: 'toDate',
+    required: false,
+    example: '2025-11-10',
+    description: 'End date (inclusive) - use with fromDate for custom range',
+  })
+  @ApiQuery({
+    name: 'preset',
+    required: false,
+    enum: DateRangePreset,
+    description: 'Date range preset - use instead of fromDate/toDate',
+  })
+  async getShippingMethodReport(
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+    @Query('preset') preset?: DateRangePreset,
+  ): Promise<ApiResponseDto<any>> {
+    const data = await this.orderService.getShippingMethodReport(
+      fromDate,
+      toDate,
+      preset,
+    );
+    return {
+      message: 'Shipping method report retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/cancellations')
+  @Get('reports/cancellations')
+  @ApiOperation({
+    summary: 'Cancellation analysis grouped by shipping method and area',
+    description:
+      'Order volume, cancelled count, cancellation rate and lost value for a date range, broken down by shipping method and delivery area, plus the 50 most recent cancelled orders with customer contact for follow-up. Rates are judged against every order placed in the range.',
+  })
+  @ApiQuery({
+    name: 'fromDate',
+    required: false,
+    example: '2025-11-01',
+    description: 'Start date (inclusive) - use with toDate for custom range',
+  })
+  @ApiQuery({
+    name: 'toDate',
+    required: false,
+    example: '2025-11-10',
+    description: 'End date (inclusive) - use with fromDate for custom range',
+  })
+  @ApiQuery({
+    name: 'preset',
+    required: false,
+    enum: DateRangePreset,
+    description: 'Date range preset - use instead of fromDate/toDate',
+  })
+  async getCancellationReport(
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+    @Query('preset') preset?: DateRangePreset,
+  ): Promise<ApiResponseDto<any>> {
+    const data = await this.orderService.getCancellationReport(
+      fromDate,
+      toDate,
+      preset,
+    );
+    return {
+      message: 'Cancellation report retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, PermissionGuard)
   @ModulePermissions('/admin/reports/repeat-buyers')
   @Get('reports/repeat-buyers')
   @ApiOperation({

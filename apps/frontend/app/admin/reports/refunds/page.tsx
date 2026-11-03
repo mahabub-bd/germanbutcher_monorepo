@@ -43,6 +43,10 @@ export default async function RefundsReportPage({ searchParams }: Props) {
       totalValue: number;
       paidAmount: number;
       paymentStatus: string;
+      paymentMethod: string;
+      customerName: string;
+      mobileNumber: string | null;
+      area: string;
       reason: string | null;
       refundedAmount: number;
     }[];

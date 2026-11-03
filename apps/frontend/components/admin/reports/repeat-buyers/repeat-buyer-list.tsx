@@ -270,15 +270,15 @@ export default function RepeatBuyerList({
 
             {/* Desktop table: one row per customer */}
             <div className="hidden md:block">
-              <Table className="report-table">
+              <Table className="report-table table-fixed [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="pl-4">Customer</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Orders</TableHead>
-                    <TableHead className="text-right">Spend</TableHead>
-                    <TableHead>First Order</TableHead>
-                    <TableHead className="pr-4">Last Order</TableHead>
+                    <TableHead className="w-[30%] pl-4">Customer</TableHead>
+                    <TableHead className="w-[12%]">Type</TableHead>
+                    <TableHead className="w-[10%] text-center">Orders</TableHead>
+                    <TableHead className="w-[14%] text-center">Spend</TableHead>
+                    <TableHead className="w-[16%]">First Order</TableHead>
+                    <TableHead className="w-[18%] pr-4">Last Order</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -302,12 +302,12 @@ export default function RepeatBuyerList({
                             {returning ? "Returning" : "New"}
                           </PillBadge>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                           <span className="text-sm font-semibold tabular-nums">
                             {c.orders.toLocaleString("en-US")}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                           <span className="text-sm font-semibold tabular-nums">
                             {bare(c.spend)}
                           </span>
@@ -332,12 +332,12 @@ export default function RepeatBuyerList({
                       Total
                     </TableCell>
                     <TableCell />
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       <span className="text-sm font-bold tabular-nums">
                         {totals.orders.toLocaleString("en-US")}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       <span className="text-sm font-bold tabular-nums">
                         {bare(totals.spend)}
                       </span>
