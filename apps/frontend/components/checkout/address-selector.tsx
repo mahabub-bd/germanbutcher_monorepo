@@ -135,7 +135,8 @@ export function AddressSelector({
                   </span>
                 </div>
                 <span
-                  className="w-full truncate text-sm text-muted-foreground"
+
+                  className="w-full whitespace-normal wrap-break-word text-sm leading-snug text-muted-foreground sm:truncate"
                   // Full text on hover/touch for long addresses
                   title={`${selectedAddress.address}, ${selectedAddress.area}, ${selectedAddress.city}`}
                 >
@@ -158,7 +159,7 @@ export function AddressSelector({
         <PopoverContent
           // Follow the trigger width instead of a fixed 350px (which overflowed
           // small screens), and never exceed the viewport minus margins.
-          className="w-[--radix-popover-trigger-width] max-w-[calc(100vw-2rem)] p-0"
+          className="w-(--radix-popover-trigger-width) max-w-[calc(100vw-2rem)] p-0"
         >
           <Command>
             <CommandInput placeholder="Search address..." />
