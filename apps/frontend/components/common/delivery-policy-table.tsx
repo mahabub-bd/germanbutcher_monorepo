@@ -26,8 +26,10 @@ export async function DeliveryPolicyTable() {
         Delivery Charges &amp; Times
       </h3>
 
+      {/* 4 columns can't fit a 320px phone — floor the width so they keep
+          breathing room and the wrapper scrolls instead of crushing. */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[36rem] text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-left text-[11px] font-semibold tracking-wider text-gray-500 uppercase">
               <th className="px-4 py-2.5 font-semibold">Method</th>
