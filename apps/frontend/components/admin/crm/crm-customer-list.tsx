@@ -404,18 +404,22 @@ export function CrmCustomerList({
               setCurrentPage(1);
             }}
           >
-            <TabsList className="h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit">
-              {SEGMENTS.map((seg) => (
-                <TabsTrigger
-                  key={seg.value}
-                  value={seg.value}
-                  className={`inline-flex h-auto flex-none items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-xs font-semibold shadow-none transition-colors data-[state=active]:shadow-none sm:px-4 sm:py-2 sm:text-sm ${seg.colors} ${seg.activeColors}`}
-                >
-                  {seg.icon}
-                  {seg.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <div className="relative w-full md:w-fit">
+              <TabsList className="scrollbar-none h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit">
+                {SEGMENTS.map((seg) => (
+                  <TabsTrigger
+                    key={seg.value}
+                    value={seg.value}
+                    className={`inline-flex h-auto flex-none items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-xs font-semibold shadow-none transition-colors data-[state=active]:shadow-none sm:px-4 sm:py-2 sm:text-sm ${seg.colors} ${seg.activeColors}`}
+                  >
+                    {seg.icon}
+                    {seg.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {/* Right-edge fade cue: signals more tabs off-screen (mobile only) */}
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-background to-transparent md:hidden" />
+            </div>
           </Tabs>
 
           <div className="flex items-center gap-2 w-full md:w-auto">
@@ -425,6 +429,17 @@ export function CrmCustomerList({
               value={searchQuery}
               onChange={handleSearchChange}
             />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0"
+              asChild
+            >
+              <Link href="/admin/customer/customer-list">
+                <MapPin className="h-4 w-4 mr-1 text-sky-600" />
+                Area-wise
+              </Link>
+            </Button>
             <Button
               variant="outline"
               size="sm"

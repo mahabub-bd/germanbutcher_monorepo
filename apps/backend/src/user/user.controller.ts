@@ -63,7 +63,26 @@ export class UserController {
     name: 'search',
     required: false,
     type: String,
-    description: 'Search by name, email, or mobile number',
+    description:
+      'Search by name, email, mobile number, or saved-address area / city / division',
+  })
+  @ApiQuery({
+    name: 'division',
+    required: false,
+    type: String,
+    description: 'Filter by saved-address division (partial match)',
+  })
+  @ApiQuery({
+    name: 'city',
+    required: false,
+    type: String,
+    description: 'Filter by saved-address city (partial match)',
+  })
+  @ApiQuery({
+    name: 'area',
+    required: false,
+    type: String,
+    description: 'Filter by saved-address area (partial match)',
   })
   @ApiQuery({
     name: 'sort',
@@ -77,8 +96,31 @@ export class UserController {
     @Query('limit') limit: number = 10,
     @Query('search') search?: string,
     @Query('sort') sort: 'ASC' | 'DESC' = 'ASC',
+    @Query('division') division?: string,
+    @Query('city') city?: string,
+    @Query('area') area?: string,
   ) {
-    return this.userService.findCustomers(page, limit, search, sort);
+    return this.userService.findCustomers(
+      page,
+      limit,
+      search,
+      sort,
+      division,
+      city,
+      area,
+    );
+  }
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/user')
+  @Get('customers/area-stats')
+  @ApiOperation({
+    summary: 'Customer count per saved-address area',
+    description:
+      'Returns each distinct saved-address area with the number of customers who have it (deduplicated per user), sorted by count descending.',
+  })
+  @ApiResponse({ status: 200, description: 'Area stats retrieved successfully' })
+  async getCustomerAreaStats() {
+    return this.userService.getCustomerAreaStats();
   }
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @ModulePermissions('/admin/user')
