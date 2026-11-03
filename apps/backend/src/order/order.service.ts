@@ -1918,6 +1918,611 @@ export class OrderService {
   }
 
   /**
+   * Date-wise delivery report: delivered orders grouped by the Dhaka
+   * calendar day they were delivered and by the delivery man who handled
+   * them, with an optional delivery-man filter. Only delivered orders with
+   * a non-null deliveredAt count, so "delivery date" always means when the
+   * order was actually delivered (not when it was placed). Cash and online
+   * amounts come from order_payment transactions (refunds excluded), split
+   * by the payment method code ('cash_on_delivery' vs everything else).
+   * Orders whose delivery man was later removed fall under "Unassigned".
+   */
+  async getDateWiseDeliveryReport(
+    fromDate?: string,
+    toDate?: string,
+    dateRangePreset?: string,
+    deliveryManId?: string,
+  ) {
+    let from = this.parseReportDate(fromDate);
+    let to = this.parseReportDate(toDate, true);
+
+    if (dateRangePreset) {
+      const presetRange = this.getDateRangeFromPreset(dateRangePreset);
+      if (!presetRange) {
+        throw new Error(
+          `Invalid date range preset: "${dateRangePreset}". Valid values are: today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year.`,
+        );
+      }
+      from = presetRange.from;
+      to = presetRange.to;
+    }
+
+    const params: unknown[] = [];
+    const conditions: string[] = [
+      `o."orderStatus" = 'delivered'`,
+      `o."deliveredAt" IS NOT NULL`,
+    ];
+    if (from) {
+      params.push(from);
+      conditions.push(`o."deliveredAt" >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`o."deliveredAt" <= $${params.length}`);
+    }
+    const requestedDeliveryManId = parseInt(deliveryManId ?? '', 10);
+    if (!Number.isNaN(requestedDeliveryManId)) {
+      params.push(requestedDeliveryManId);
+      conditions.push(`o."deliveryManId" = $${params.length}`);
+    }
+
+    const dhakaDeliveredAt =
+      "(o.\"deliveredAt\" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka')";
+
+    const rows: Record<string, any>[] = await this.orderRepository.query(
+      `SELECT ${dhakaDeliveredAt}::date AS delivery_date,
+              dm.id AS delivery_man_id,
+              COALESCE(dm.name, 'Unassigned') AS delivery_man_name,
+              COUNT(o.id) AS deliveries,
+              COALESCE(SUM(o."totalValue"), 0) AS delivered_value,
+              COALESCE(SUM(pay.cash), 0) AS cash_collected,
+              COALESCE(SUM(pay.online), 0) AS online_amount
+       FROM "order" o
+       LEFT JOIN delivery_man dm ON o."deliveryManId" = dm.id
+       LEFT JOIN (
+         -- Net payments per order, split cash vs online by the payment
+         -- method code. Only 'payment' transactions count — refunds are
+         -- excluded so collection figures match what actually changed hands.
+         SELECT op."orderId",
+                SUM(op.amount) FILTER (WHERE pm.code = 'cash_on_delivery') AS cash,
+                SUM(op.amount) FILTER (WHERE pm.code <> 'cash_on_delivery') AS online
+         FROM order_payment op
+         JOIN order_payment_method pm ON op."paymentMethodId" = pm.id
+         WHERE op."paymentType" = 'payment'
+         GROUP BY op."orderId"
+       ) pay ON pay."orderId" = o.id
+       WHERE ${conditions.join(' AND ')}
+       GROUP BY 1, dm.id, dm.name
+       ORDER BY 1 DESC, delivered_value DESC`,
+      params,
+    );
+
+    // Group the flat (date × delivery man) rows into one block per day.
+    const dayMap = new Map<string, {
+      date: string;
+      totalDeliveries: number;
+      totalValue: number;
+      totalCash: number;
+      totalOnline: number;
+      deliveryMen: {
+        id: number | null;
+        name: string;
+        deliveries: number;
+        deliveredValue: number;
+        cashCollected: number;
+        onlineAmount: number;
+      }[];
+    }>();
+    for (const row of rows) {
+      // DATE columns come back as ISO date strings; normalize to yyyy-mm-dd.
+      const date = String(row.delivery_date).slice(0, 10);
+      let day = dayMap.get(date);
+      if (!day) {
+        day = {
+          date,
+          totalDeliveries: 0,
+          totalValue: 0,
+          totalCash: 0,
+          totalOnline: 0,
+          deliveryMen: [],
+        };
+        dayMap.set(date, day);
+      }
+      const entry = {
+        id: row.delivery_man_id == null ? null : parseInt(row.delivery_man_id, 10),
+        name: row.delivery_man_name,
+        deliveries: parseInt(row.deliveries, 10) || 0,
+        deliveredValue: parseFloat(row.delivered_value) || 0,
+        cashCollected: parseFloat(row.cash_collected) || 0,
+        onlineAmount: parseFloat(row.online_amount) || 0,
+      };
+      day.deliveryMen.push(entry);
+      day.totalDeliveries += entry.deliveries;
+      day.totalValue += entry.deliveredValue;
+      day.totalCash += entry.cashCollected;
+      day.totalOnline += entry.onlineAmount;
+    }
+    const days = [...dayMap.values()];
+
+    const summary = {
+      totalDeliveries: days.reduce((sum, d) => sum + d.totalDeliveries, 0),
+      totalDeliveredValue: days.reduce((sum, d) => sum + d.totalValue, 0),
+      totalCashCollected: days.reduce((sum, d) => sum + d.totalCash, 0),
+      totalOnlineAmount: days.reduce((sum, d) => sum + d.totalOnline, 0),
+      deliveryDays: days.length,
+      activeDeliveryMen: new Set(
+        rows.map((row) => row.delivery_man_name),
+      ).size,
+      avgPerDay: days.length
+        ? Math.round(
+            days.reduce((sum, d) => sum + d.totalDeliveries, 0) / days.length,
+          )
+        : 0,
+    };
+
+    return { summary, days };
+  }
+
+  /**
+   * Order counts and value grouped by payment method for a date range.
+   * Orders whose payment method was removed (or never set) fall under
+   * "Unknown" so nothing drops out of the totals. Cash/online amounts come
+   * from order_payment transactions, refunds excluded.
+   */
+  async getPaymentMethodReport(
+    fromDate?: string,
+    toDate?: string,
+    dateRangePreset?: string,
+  ) {
+    let from = this.parseReportDate(fromDate);
+    let to = this.parseReportDate(toDate, true);
+
+    if (dateRangePreset) {
+      const presetRange = this.getDateRangeFromPreset(dateRangePreset);
+      if (!presetRange) {
+        throw new Error(
+          `Invalid date range preset: "${dateRangePreset}". Valid values are: today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year.`,
+        );
+      }
+      from = presetRange.from;
+      to = presetRange.to;
+    }
+
+    const params: unknown[] = [];
+    const conditions: string[] = [];
+    if (from) {
+      params.push(from);
+      conditions.push(`o."createdAt" >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`o."createdAt" <= $${params.length}`);
+    }
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
+
+    const rows: Record<string, any>[] = await this.orderRepository.query(
+      `SELECT COALESCE(pm.name, 'Unknown') AS method_name,
+              COALESCE(pm.code, '') AS method_code,
+              COUNT(o.id) AS orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'delivered') AS delivered_orders,
+              COUNT(o.id) FILTER (WHERE o."orderStatus" = 'cancelled') AS cancelled_orders,
+              COALESCE(SUM(o."totalValue"), 0) AS total_value,
+              COALESCE(SUM(o."paidAmount"), 0) AS paid_amount,
+              COALESCE(SUM(pay.cash), 0) AS cash_collected,
+              COALESCE(SUM(pay.online), 0) AS online_amount
+       FROM "order" o
+       LEFT JOIN order_payment_method pm ON o."paymentMethodId" = pm.id
+       LEFT JOIN (
+         -- Net payments per order split cash vs online, refunds excluded
+         -- (same definition as the date-wise delivery report).
+         SELECT op."orderId",
+                SUM(op.amount) FILTER (WHERE pm2.code = 'cash_on_delivery') AS cash,
+                SUM(op.amount) FILTER (WHERE pm2.code <> 'cash_on_delivery') AS online
+         FROM order_payment op
+         JOIN order_payment_method pm2 ON op."paymentMethodId" = pm2.id
+         WHERE op."paymentType" = 'payment'
+         GROUP BY op."orderId"
+       ) pay ON pay."orderId" = o.id
+       ${whereClause}
+       GROUP BY 1, 2
+       ORDER BY COUNT(o.id) DESC, 1 ASC`,
+      params,
+    );
+
+    const methods = rows.map((row) => ({
+      name: row.method_name,
+      code: row.method_code,
+      orders: parseInt(row.orders, 10) || 0,
+      deliveredOrders: parseInt(row.delivered_orders, 10) || 0,
+      cancelledOrders: parseInt(row.cancelled_orders, 10) || 0,
+      totalValue: parseFloat(row.total_value) || 0,
+      paidAmount: parseFloat(row.paid_amount) || 0,
+      cashCollected: parseFloat(row.cash_collected) || 0,
+      onlineAmount: parseFloat(row.online_amount) || 0,
+    }));
+
+    const totalOrders = methods.reduce((sum, m) => sum + m.orders, 0);
+    const summary = {
+      totalOrders,
+      totalValue: methods.reduce((sum, m) => sum + m.totalValue, 0),
+      totalPaid: methods.reduce((sum, m) => sum + m.paidAmount, 0),
+      totalCashCollected: methods.reduce((sum, m) => sum + m.cashCollected, 0),
+      totalOnlineAmount: methods.reduce((sum, m) => sum + m.onlineAmount, 0),
+      avgOrderValue: totalOrders
+        ? Math.round(
+            methods.reduce((sum, m) => sum + m.totalValue, 0) / totalOrders,
+          )
+        : 0,
+      methodCount: methods.filter((m) => m.name !== 'Unknown').length,
+    };
+
+    return { summary, methods };
+  }
+
+  /**
+   * Repeat-buyer report: every customer who ordered in the range, with
+   * order count, spend, first/last order, and whether they are new (no
+   * orders before the range start) or returning (prior orders, or several
+   * orders inside the range). Orders without a user account are excluded —
+   * repeat behaviour needs an identity to track.
+   */
+  async getRepeatBuyerReport(
+    fromDate?: string,
+    toDate?: string,
+    dateRangePreset?: string,
+  ) {
+    let from = this.parseReportDate(fromDate);
+    let to = this.parseReportDate(toDate, true);
+
+    if (dateRangePreset) {
+      const presetRange = this.getDateRangeFromPreset(dateRangePreset);
+      if (!presetRange) {
+        throw new Error(
+          `Invalid date range preset: "${dateRangePreset}". Valid values are: today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year.`,
+        );
+      }
+      from = presetRange.from;
+      to = presetRange.to;
+    }
+
+    const params: unknown[] = [];
+    const conditions: string[] = [`o."userId" IS NOT NULL`];
+    if (from) {
+      params.push(from);
+      conditions.push(`o."createdAt" >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`o."createdAt" <= $${params.length}`);
+    }
+
+    // "Had orders before the range" — only meaningful when a range start
+    // exists; with an open-ended range every customer counts as new.
+    // $1 is always the range start when present (see the params pushes above).
+    const priorCondition = from ? `AND o2."createdAt" < $1` : `AND false`;
+
+    const rows: Record<string, any>[] = await this.orderRepository.query(
+      `WITH range_orders AS (
+         SELECT o."userId",
+                COUNT(o.id) AS orders,
+                COALESCE(SUM(o."totalValue"), 0) AS spend,
+                MIN(o."createdAt") AS first_order,
+                MAX(o."createdAt") AS last_order
+         FROM "order" o
+         WHERE ${conditions.join(' AND ')}
+         GROUP BY o."userId"
+       )
+       SELECT r."userId", r.orders, r.spend, r.first_order, r.last_order,
+              u.name AS user_name, u."mobileNumber",
+              EXISTS (
+                SELECT 1 FROM "order" o2
+                WHERE o2."userId" = r."userId" ${priorCondition}
+              ) AS prior_orders
+       FROM range_orders r
+       JOIN "user" u ON u.id = r."userId"
+       ORDER BY r.orders DESC, r.spend DESC, u.name ASC`,
+      params,
+    );
+
+    const customers = rows.map((row) => ({
+      id: parseInt(row.userId, 10),
+      name: row.user_name ?? 'Unknown',
+      mobileNumber: row.mobileNumber ?? null,
+      orders: parseInt(row.orders, 10) || 0,
+      spend: parseFloat(row.spend) || 0,
+      firstOrder: row.first_order,
+      lastOrder: row.last_order,
+      hadPriorOrders:
+        row.prior_orders === true ||
+        row.prior_orders === 'true' ||
+        row.prior_orders === 't',
+    }));
+
+    const newCustomers = customers.filter((c) => !c.hadPriorOrders).length;
+    const repeatCustomers = customers.filter(
+      (c) => c.hadPriorOrders || c.orders > 1,
+    ).length;
+    const totalOrders = customers.reduce((sum, c) => sum + c.orders, 0);
+
+    const summary = {
+      totalCustomers: customers.length,
+      newCustomers,
+      repeatCustomers,
+      repeatRate: customers.length
+        ? Math.round((repeatCustomers / customers.length) * 100)
+        : 0,
+      totalSpend: customers.reduce((sum, c) => sum + c.spend, 0),
+      avgOrdersPerCustomer: customers.length
+        ? Math.round((totalOrders / customers.length) * 10) / 10
+        : 0,
+    };
+
+    return { summary, customers };
+  }
+
+  /**
+   * Discount impact report: date-wise order counts and value with the
+   * discount given, broken down by source (coupon / BOGO / flash sale) from
+   * the usage logs. Discounts recorded on the order (o.totalDiscount) and
+   * the per-source amounts may overlap (e.g. product-level + coupon), so
+   * the source columns don't necessarily sum to the order total.
+   */
+  async getDiscountImpactReport(
+    fromDate?: string,
+    toDate?: string,
+    dateRangePreset?: string,
+  ) {
+    let from = this.parseReportDate(fromDate);
+    let to = this.parseReportDate(toDate, true);
+
+    if (dateRangePreset) {
+      const presetRange = this.getDateRangeFromPreset(dateRangePreset);
+      if (!presetRange) {
+        throw new Error(
+          `Invalid date range preset: "${dateRangePreset}". Valid values are: today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year.`,
+        );
+      }
+      from = presetRange.from;
+      to = presetRange.to;
+    }
+
+    const params: unknown[] = [];
+    const conditions: string[] = [];
+    if (from) {
+      params.push(from);
+      conditions.push(`o."createdAt" >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`o."createdAt" <= $${params.length}`);
+    }
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
+
+    // Dhaka calendar day of the order's creation, shared by the main query
+    // and the per-source usage-log aggregates so rows line up.
+    const dhakaDay = `(o."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka')::date`;
+
+    const rows: Record<string, any>[] = await this.orderRepository.query(
+      `SELECT ${dhakaDay} AS order_date,
+              COUNT(o.id) AS orders,
+              COUNT(o.id) FILTER (WHERE o."totalDiscount" > 0) AS discounted_orders,
+              COALESCE(SUM(o."totalDiscount"), 0) AS discount_amount,
+              COALESCE(SUM(o."totalValue"), 0) AS order_value,
+              COALESCE(MAX(src.coupon_amount), 0) AS coupon_amount,
+              COALESCE(MAX(src.coupon_uses), 0) AS coupon_uses,
+              COALESCE(MAX(src.bogo_amount), 0) AS bogo_amount,
+              COALESCE(MAX(src.bogo_uses), 0) AS bogo_uses,
+              COALESCE(MAX(src.flash_amount), 0) AS flash_amount,
+              COALESCE(MAX(src.flash_uses), 0) AS flash_uses
+       FROM "order" o
+       LEFT JOIN (
+         SELECT order_day.day,
+                SUM(coupon.amount) AS coupon_amount,
+                SUM(coupon.uses) AS coupon_uses,
+                SUM(bogo.amount) AS bogo_amount,
+                SUM(bogo.uses) AS bogo_uses,
+                SUM(flash.amount) AS flash_amount,
+                SUM(flash.uses) AS flash_uses
+         FROM (SELECT DISTINCT ${dhakaDay} AS day FROM "order" o) order_day
+         LEFT JOIN (
+           SELECT (cu."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka')::date AS day,
+                  SUM(cu."discountAmount") AS amount, COUNT(*) AS uses
+           FROM coupon_usage_log cu GROUP BY 1
+         ) coupon USING (day)
+         LEFT JOIN (
+           SELECT (bu."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka')::date AS day,
+                  SUM(bu."discountAmount") AS amount, COUNT(*) AS uses
+           FROM bogo_usage_log bu GROUP BY 1
+         ) bogo USING (day)
+         LEFT JOIN (
+           SELECT (fu."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka')::date AS day,
+                  SUM(fu."discountAmount") AS amount, COUNT(*) AS uses
+           FROM flash_sale_usage_log fu GROUP BY 1
+         ) flash USING (day)
+         GROUP BY 1
+       ) src ON src.day = ${dhakaDay}
+       ${whereClause}
+       GROUP BY 1
+       ORDER BY 1 DESC`,
+      params,
+    );
+
+    // Parse rows defensively — DATE columns come back as ISO strings.
+    const days = rows.map((row) => {
+      const orderValue = parseFloat(row.order_value) || 0;
+      const discountAmount = parseFloat(row.discount_amount) || 0;
+      return {
+        date: String(row.order_date).slice(0, 10),
+        orders: parseInt(row.orders, 10) || 0,
+        discountedOrders: parseInt(row.discounted_orders, 10) || 0,
+        discountAmount,
+        orderValue,
+        couponAmount: parseFloat(row.coupon_amount) || 0,
+        couponUses: parseInt(row.coupon_uses, 10) || 0,
+        bogoAmount: parseFloat(row.bogo_amount) || 0,
+        bogoUses: parseInt(row.bogo_uses, 10) || 0,
+        flashAmount: parseFloat(row.flash_amount) || 0,
+        flashUses: parseInt(row.flash_uses, 10) || 0,
+        discountSharePct: orderValue
+          ? Math.round((discountAmount / orderValue) * 100)
+          : 0,
+      };
+    });
+
+    const summary = {
+      totalOrders: days.reduce((sum, d) => sum + d.orders, 0),
+      discountedOrders: days.reduce((sum, d) => sum + d.discountedOrders, 0),
+      totalDiscount: days.reduce((sum, d) => sum + d.discountAmount, 0),
+      totalOrderValue: days.reduce((sum, d) => sum + d.orderValue, 0),
+      totalCouponAmount: days.reduce((sum, d) => sum + d.couponAmount, 0),
+      totalCouponUses: days.reduce((sum, d) => sum + d.couponUses, 0),
+      totalBogoAmount: days.reduce((sum, d) => sum + d.bogoAmount, 0),
+      totalBogoUses: days.reduce((sum, d) => sum + d.bogoUses, 0),
+      totalFlashAmount: days.reduce((sum, d) => sum + d.flashAmount, 0),
+      totalFlashUses: days.reduce((sum, d) => sum + d.flashUses, 0),
+      discountSharePct: 0,
+    };
+    summary.discountSharePct = summary.totalOrderValue
+      ? Math.round((summary.totalDiscount / summary.totalOrderValue) * 100)
+      : 0;
+
+    return { summary, days };
+  }
+
+  /**
+   * Late-delivery report: delivered orders measured from placement to
+   * delivery (deliveredAt - createdAt, Dhaka calendar day of delivery),
+   * grouped per delivery man with an on-time threshold in hours (default
+   * 24). Includes the slowest deliveries in the range for follow-up.
+   */
+  async getLateDeliveryReport(
+    fromDate?: string,
+    toDate?: string,
+    dateRangePreset?: string,
+    thresholdHoursParam?: string,
+  ) {
+    let from = this.parseReportDate(fromDate);
+    let to = this.parseReportDate(toDate, true);
+
+    if (dateRangePreset) {
+      const presetRange = this.getDateRangeFromPreset(dateRangePreset);
+      if (!presetRange) {
+        throw new Error(
+          `Invalid date range preset: "${dateRangePreset}". Valid values are: today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year.`,
+        );
+      }
+      from = presetRange.from;
+      to = presetRange.to;
+    }
+
+    const thresholdHours = (() => {
+      const parsed = parseFloat(thresholdHoursParam ?? '');
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 24;
+    })();
+
+    const params: unknown[] = [];
+    const conditions: string[] = [
+      `o."orderStatus" = 'delivered'`,
+      `o."deliveredAt" IS NOT NULL`,
+    ];
+    if (from) {
+      params.push(from);
+      conditions.push(`o."deliveredAt" >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`o."deliveredAt" <= $${params.length}`);
+    }
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
+
+    // Placement→delivery hours; computed once per order in a CTE both the
+    // per-man aggregate and the slowest-orders list reuse.
+    const hoursExpr = `EXTRACT(EPOCH FROM (o."deliveredAt" - o."createdAt")) / 3600.0`;
+
+    const manRows: Record<string, any>[] = await this.orderRepository.query(
+      `WITH delivered AS (
+         SELECT o.id, o."deliveryManId", ${hoursExpr} AS hours
+         FROM "order" o
+         ${whereClause}
+       )
+       SELECT dm.id AS delivery_man_id,
+              COALESCE(dm.name, 'Unassigned') AS delivery_man_name,
+              COUNT(d.id) AS delivered,
+              COUNT(d.id) FILTER (WHERE d.hours > $${params.length + 1}) AS late,
+              COALESCE(ROUND(AVG(d.hours)::numeric, 1), 0) AS avg_hours,
+              COALESCE(ROUND(MAX(d.hours)::numeric, 1), 0) AS worst_hours
+       FROM delivered d
+       LEFT JOIN delivery_man dm ON d."deliveryManId" = dm.id
+       GROUP BY dm.id, dm.name
+       ORDER BY late DESC, delivered DESC, dm.name ASC`,
+      [...params, thresholdHours],
+    );
+
+    const slowLimitIndex = params.length + 2;
+    const slowRows: Record<string, any>[] = await this.orderRepository.query(
+      `WITH delivered AS (
+         SELECT o.id, o."deliveryManId", ${hoursExpr} AS hours
+         FROM "order" o
+         ${whereClause}
+       )
+       SELECT d.id AS order_id, d.hours,
+              o."orderNo", o."totalValue", o."createdAt" AS order_date, o."deliveredAt",
+              c.name AS customer_name, c."mobileNumber",
+              COALESCE(dm.name, 'Unassigned') AS delivery_man_name
+       FROM delivered d
+       JOIN "order" o ON o.id = d.id
+       LEFT JOIN "user" c ON o."userId" = c.id
+       LEFT JOIN delivery_man dm ON d."deliveryManId" = dm.id
+       WHERE d.hours > $${params.length + 1}
+       ORDER BY d.hours DESC
+       LIMIT $${slowLimitIndex}`,
+      [...params, thresholdHours, 50],
+    );
+
+    const deliveryMen = manRows.map((row) => ({
+      id: row.delivery_man_id == null ? null : parseInt(row.delivery_man_id, 10),
+      name: row.delivery_man_name,
+      delivered: parseInt(row.delivered, 10) || 0,
+      late: parseInt(row.late, 10) || 0,
+      avgHours: parseFloat(row.avg_hours) || 0,
+      worstHours: parseFloat(row.worst_hours) || 0,
+    }));
+
+    const lateOrders = slowRows.map((row) => ({
+      orderId: parseInt(row.order_id, 10),
+      orderNo: row.orderNo,
+      customerName: row.customer_name ?? 'Unknown',
+      mobileNumber: row.mobileNumber ?? null,
+      deliveryMan: row.delivery_man_name,
+      totalValue: parseFloat(row.totalValue) || 0,
+      orderDate: row.order_date,
+      deliveredAt: row.deliveredAt,
+      hours: Math.round((parseFloat(row.hours) || 0) * 10) / 10,
+    }));
+
+    const totalDelivered = deliveryMen.reduce((sum, d) => sum + d.delivered, 0);
+    const totalLate = deliveryMen.reduce((sum, d) => sum + d.late, 0);
+    const summary = {
+      totalDelivered,
+      totalLate,
+      lateRate: totalDelivered
+        ? Math.round((totalLate / totalDelivered) * 100)
+        : 0,
+      onTimeRate: totalDelivered
+        ? Math.round(((totalDelivered - totalLate) / totalDelivered) * 100)
+        : 0,
+      thresholdHours,
+      lateMenCount: deliveryMen.filter((d) => d.late > 0).length,
+    };
+
+    return { summary, deliveryMen, lateOrders };
+  }
+
+  /**
    * Order counts and value grouped by shipping address area for a date
    * range. Orders without an area (or with no address) fall under
    * "Unknown" so nothing drops out of the totals.
