@@ -78,7 +78,7 @@ export function SearchableSelect({
           <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+      <PopoverContent className="w-(--radix-popover-trigger-width) max-w-[calc(100vw-2rem)] p-0">
         <Command shouldFilter={!onSearch}>
           <CommandInput
             placeholder={searchPlaceholder}

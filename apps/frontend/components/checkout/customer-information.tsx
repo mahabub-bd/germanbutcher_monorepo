@@ -81,7 +81,9 @@ export function CustomerInformation({
 
   return (
     <div className="space-y-4 md:space-y-5 bg-white rounded-lg border p-4 md:p-6">
-      <div className="flex items-center justify-between gap-2 border-b pb-3 md:pb-4">
+      {/* flex-wrap: when editing, the Cancel/Save buttons would otherwise
+          overflow the heading row on narrow phones (~320px). */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3 md:pb-4">
         <div className="flex items-center gap-2">
           <User className="h-4 w-4 md:h-5 md:w-5 text-primary" />
           <div>
