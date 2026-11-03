@@ -148,7 +148,7 @@ export function PolicyToc({
                     onClick={() =>
                       scrollToSection(item.id, () => setOpen(false))
                     }
-                    className={rowClass(item.id)}
+                    className={cn(rowClass(item.id), "py-2.5")}
                   >
                     {numberedLabel(index, item.title)}
                   </button>

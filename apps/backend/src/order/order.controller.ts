@@ -540,6 +540,237 @@ export class OrderController {
   }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/date-wise-delivery')
+  @Get('reports/date-wise-delivery')
+  @ApiOperation({
+    summary: 'Delivered orders grouped by delivery date and delivery man',
+    description:
+      'Returns each delivery day in the range with per-delivery-man delivered counts and value (grouped by the Dhaka calendar day of deliveredAt). Supports an optional deliveryManId filter.',
+  })
+  @ApiQuery({
+    name: 'fromDate',
+    required: false,
+    example: '2025-11-01',
+    description: 'Start date (inclusive) - use with toDate for custom range',
+  })
+  @ApiQuery({
+    name: 'toDate',
+    required: false,
+    example: '2025-11-10',
+    description: 'End date (inclusive) - use with fromDate for custom range',
+  })
+  @ApiQuery({
+    name: 'preset',
+    required: false,
+    enum: DateRangePreset,
+    description: 'Date range preset - use instead of fromDate/toDate',
+  })
+  @ApiQuery({
+    name: 'deliveryManId',
+    required: false,
+    example: '3',
+    description: 'Optional delivery man id to limit the report to',
+  })
+  async getDateWiseDeliveryReport(
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+    @Query('preset') preset?: DateRangePreset,
+    @Query('deliveryManId') deliveryManId?: string,
+  ): Promise<ApiResponseDto<any>> {
+    const data = await this.orderService.getDateWiseDeliveryReport(
+      fromDate,
+      toDate,
+      preset,
+      deliveryManId,
+    );
+    return {
+      message: 'Date-wise delivery report retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/payment-methods')
+  @Get('reports/payment-methods')
+  @ApiOperation({
+    summary: 'Order counts and value grouped by payment method',
+    description:
+      'Returns each payment method with order counts (delivered/cancelled), order value, recorded paid amount and actual payment transactions split into cash vs online. Orders without a method fall under "Unknown".',
+  })
+  @ApiQuery({
+    name: 'fromDate',
+    required: false,
+    example: '2025-11-01',
+    description: 'Start date (inclusive) - use with toDate for custom range',
+  })
+  @ApiQuery({
+    name: 'toDate',
+    required: false,
+    example: '2025-11-10',
+    description: 'End date (inclusive) - use with fromDate for custom range',
+  })
+  @ApiQuery({
+    name: 'preset',
+    required: false,
+    enum: DateRangePreset,
+    description: 'Date range preset - use instead of fromDate/toDate',
+  })
+  async getPaymentMethodReport(
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+    @Query('preset') preset?: DateRangePreset,
+  ): Promise<ApiResponseDto<any>> {
+    const data = await this.orderService.getPaymentMethodReport(
+      fromDate,
+      toDate,
+      preset,
+    );
+    return {
+      message: 'Payment method report retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/repeat-buyers')
+  @Get('reports/repeat-buyers')
+  @ApiOperation({
+    summary: 'Customers who ordered in the range with repeat behaviour',
+    description:
+      'Per-customer order counts, spend, first/last order and new vs returning classification. A customer is returning when they had orders before the range start or more than one order inside it. Orders without a user account are excluded.',
+  })
+  @ApiQuery({
+    name: 'fromDate',
+    required: false,
+    example: '2025-11-01',
+    description: 'Start date (inclusive) - use with toDate for custom range',
+  })
+  @ApiQuery({
+    name: 'toDate',
+    required: false,
+    example: '2025-11-10',
+    description: 'End date (inclusive) - use with fromDate for custom range',
+  })
+  @ApiQuery({
+    name: 'preset',
+    required: false,
+    enum: DateRangePreset,
+    description: 'Date range preset - use instead of fromDate/toDate',
+  })
+  async getRepeatBuyerReport(
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+    @Query('preset') preset?: DateRangePreset,
+  ): Promise<ApiResponseDto<any>> {
+    const data = await this.orderService.getRepeatBuyerReport(
+      fromDate,
+      toDate,
+      preset,
+    );
+    return {
+      message: 'Repeat buyer report retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/discount-impact')
+  @Get('reports/discount-impact')
+  @ApiOperation({
+    summary: 'Daily orders, value and discount with per-source breakdown',
+    description:
+      'Date-wise rows: order counts, discounted order counts, total discount as share of order value, and coupon / BOGO / flash-sale amounts and uses from the usage logs.',
+  })
+  @ApiQuery({
+    name: 'fromDate',
+    required: false,
+    example: '2025-11-01',
+    description: 'Start date (inclusive) - use with toDate for custom range',
+  })
+  @ApiQuery({
+    name: 'toDate',
+    required: false,
+    example: '2025-11-10',
+    description: 'End date (inclusive) - use with fromDate for custom range',
+  })
+  @ApiQuery({
+    name: 'preset',
+    required: false,
+    enum: DateRangePreset,
+    description: 'Date range preset - use instead of fromDate/toDate',
+  })
+  async getDiscountImpactReport(
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+    @Query('preset') preset?: DateRangePreset,
+  ): Promise<ApiResponseDto<any>> {
+    const data = await this.orderService.getDiscountImpactReport(
+      fromDate,
+      toDate,
+      preset,
+    );
+    return {
+      message: 'Discount impact report retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/reports/late-delivery')
+  @Get('reports/late-delivery')
+  @ApiOperation({
+    summary: 'Delivered orders vs a placement-to-delivery time threshold',
+    description:
+      'Per-delivery-man delivered/late counts, average and worst delivery hours, plus the 50 slowest late orders. Late means delivered more than thresholdHours (default 24) after the order was placed.',
+  })
+  @ApiQuery({
+    name: 'fromDate',
+    required: false,
+    example: '2025-11-01',
+    description: 'Start date (inclusive) - use with toDate for custom range',
+  })
+  @ApiQuery({
+    name: 'toDate',
+    required: false,
+    example: '2025-11-10',
+    description: 'End date (inclusive) - use with fromDate for custom range',
+  })
+  @ApiQuery({
+    name: 'preset',
+    required: false,
+    enum: DateRangePreset,
+    description: 'Date range preset - use instead of fromDate/toDate',
+  })
+  @ApiQuery({
+    name: 'thresholdHours',
+    required: false,
+    example: '24',
+    description: 'On-time threshold in hours from placement to delivery',
+  })
+  async getLateDeliveryReport(
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+    @Query('preset') preset?: DateRangePreset,
+    @Query('thresholdHours') thresholdHours?: string,
+  ): Promise<ApiResponseDto<any>> {
+    const data = await this.orderService.getLateDeliveryReport(
+      fromDate,
+      toDate,
+      preset,
+      thresholdHours,
+    );
+    return {
+      message: 'Late delivery report retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, PermissionGuard)
   @ModulePermissions('/admin/reports/area-wise-orders')
   @Get('reports/area-wise-orders')
   @ApiOperation({
