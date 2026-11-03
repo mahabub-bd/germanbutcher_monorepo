@@ -2014,8 +2014,14 @@ export class OrderService {
       }[];
     }>();
     for (const row of rows) {
-      // DATE columns come back as ISO date strings; normalize to yyyy-mm-dd.
-      const date = String(row.delivery_date).slice(0, 10);
+      // DATE columns may come back as Date objects or strings depending on
+      // the driver; normalize to yyyy-mm-dd either way.
+      const parsed = row.delivery_date instanceof Date
+        ? row.delivery_date
+        : new Date(String(row.delivery_date));
+      const date = Number.isNaN(parsed.getTime())
+        ? String(row.delivery_date).slice(0, 10)
+        : parsed.toISOString().slice(0, 10);
       let day = dayMap.get(date);
       if (!day) {
         day = {
@@ -2356,7 +2362,16 @@ export class OrderService {
       const orderValue = parseFloat(row.order_value) || 0;
       const discountAmount = parseFloat(row.discount_amount) || 0;
       return {
-        date: String(row.order_date).slice(0, 10),
+        // Same normalization as the date-wise delivery report: the driver
+        // may hand back a Date object, not a string.
+        date: (() => {
+          const parsed = row.order_date instanceof Date
+            ? row.order_date
+            : new Date(String(row.order_date));
+          return Number.isNaN(parsed.getTime())
+            ? String(row.order_date).slice(0, 10)
+            : parsed.toISOString().slice(0, 10);
+        })(),
         orders: parseInt(row.orders, 10) || 0,
         discountedOrders: parseInt(row.discounted_orders, 10) || 0,
         discountAmount,
