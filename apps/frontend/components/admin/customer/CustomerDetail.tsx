@@ -65,6 +65,7 @@ import {
   ShoppingCart,
   ShoppingBag,
   Star,
+  History,
   Trash2,
   User,
   Wallet,
@@ -125,6 +126,20 @@ interface CrmExtras {
   }>;
 }
 
+/** Audit-trail entry from the user_activity table (POST/PATCH/DELETE only). */
+interface UserActivityLog {
+  id: number;
+  action: string;
+  entityType: string;
+  entityId: number | null;
+  oldValue: Record<string, unknown> | null;
+  newValue: Record<string, unknown> | null;
+  ipAddress: string | null;
+  status: string;
+  message: string | null;
+  createdAt: string;
+}
+
 const ACTIVITY_TYPE_OPTIONS = [
   { value: "note", label: "Note" },
   { value: "task", label: "Task" },
@@ -144,6 +159,7 @@ export function CustomerDetail() {
 
   const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [extras, setExtras] = useState<CrmExtras | null>(null);
+  const [auditLogs, setAuditLogs] = useState<UserActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -238,9 +254,14 @@ export function CustomerDetail() {
       // users endpoint; cart/wishlist/reviews/messages/activities from the
       // CRM 360 endpoint. The 360 payload failing must not lose the page —
       // only the extra tabs go empty.
-      const [customerRes, extrasRes] = await Promise.allSettled([
+      const [customerRes, extrasRes, auditRes] = await Promise.allSettled([
         fetchProtectedData<CustomerData>(`users/${customerId}`),
         fetchProtectedData<CrmExtras>(`crm/customers/${customerId}`),
+        // System-recorded activity log (order/cart/profile changes) for this
+        // user only; non-fatal if it fails — the tab just goes empty.
+        fetchProtectedData<UserActivityLog[]>(
+          `user-activities/${customerId}`
+        ),
       ]);
       if (customerRes.status === "fulfilled") {
         setCustomer(customerRes.value);
@@ -249,6 +270,9 @@ export function CustomerDetail() {
       }
       setExtras(
         extrasRes.status === "fulfilled" ? extrasRes.value : null,
+      );
+      setAuditLogs(
+        auditRes.status === "fulfilled" ? auditRes.value ?? [] : [],
       );
     } catch (error) {
       console.error("Error fetching customer details:", error);
@@ -623,6 +647,16 @@ export function CustomerDetail() {
                   "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900",
                 activeColors:
                   "data-[state=active]:bg-slate-800 data-[state=active]:text-white dark:data-[state=active]:bg-slate-200 dark:data-[state=active]:text-slate-900",
+              },
+              {
+                value: "audit-log",
+                label: "Activity Log",
+                icon: History,
+                count: auditLogs.length,
+                colors:
+                  "bg-cyan-50 text-cyan-800 hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-300 dark:hover:bg-cyan-950/70",
+                activeColors:
+                  "data-[state=active]:bg-cyan-600 data-[state=active]:text-white dark:data-[state=active]:bg-cyan-400 dark:data-[state=active]:text-cyan-950",
               },
             ] as const
           ).map((tab) => (
@@ -1099,6 +1133,62 @@ export function CustomerDetail() {
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="audit-log" className="mt-4">
+          {auditLogs.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">
+              No recorded activity yet. Order, cart and profile changes made by
+              this customer appear here.
+            </p>
+          ) : (
+            <div className="rounded-lg border bg-card divide-y">
+              {auditLogs.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex items-start justify-between gap-3 p-3.5"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge
+                        variant="outline"
+                        className={
+                          log.action === "POST"
+                            ? "border-transparent bg-emerald-100 font-normal text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                            : log.action === "DELETE"
+                              ? "border-transparent bg-red-100 font-normal text-red-700 dark:bg-red-500/20 dark:text-red-300"
+                              : "border-transparent bg-amber-100 font-normal text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                        }
+                      >
+                        {log.action}
+                      </Badge>
+                      <span className="text-sm font-medium capitalize">
+                        {log.entityType}
+                        {log.entityId ? ` #${log.entityId}` : ""}
+                      </span>
+                      {log.status === "failure" && (
+                        <Badge
+                          variant="outline"
+                          className="border-transparent bg-red-100 font-normal text-red-700 dark:bg-red-500/20 dark:text-red-300"
+                        >
+                          Failed
+                        </Badge>
+                      )}
+                    </div>
+                    {log.message && (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {log.message}
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatDateTime(log.createdAt)}
+                      {log.ipAddress ? ` · IP ${log.ipAddress}` : ""}
+                    </p>
                   </div>
                 </div>
               ))}
