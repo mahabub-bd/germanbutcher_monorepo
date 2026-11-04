@@ -277,6 +277,7 @@ export default function CustomerListReport({
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="pl-4">#</TableHead>
                     <TableHead>Customer</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Mobile</TableHead>
                     <TableHead>Registration</TableHead>
                     <TableHead className="text-right">Orders</TableHead>
@@ -302,28 +303,32 @@ export default function CustomerListReport({
                           {customer.id ? (
                             <Link
                               href={`/admin/customer/${customer.id}/view`}
-                              className="shrink-0 truncate text-sm font-medium text-foreground hover:text-primaryColor hover:underline"
+                              className="truncate text-sm font-medium text-foreground hover:text-primaryColor hover:underline"
                             >
                               {customer.name}
                             </Link>
                           ) : (
-                            <span className="shrink-0 truncate text-sm font-medium">
+                            <span className="truncate text-sm font-medium">
                               {customer.name}
                             </span>
                           )}
-                          {customer.email ? (
-                            <a
-                              href={`mailto:${customer.email}`}
-                              className="min-w-0 truncate text-sm text-muted-foreground hover:text-blue-600 hover:underline dark:hover:text-blue-400"
-                            >
-                              {customer.email}
-                            </a>
-                          ) : (
-                            <span className="min-w-0 truncate text-sm text-muted-foreground">
-                              No email
-                            </span>
-                          )}
                         </div>
+                      </TableCell>
+
+                      <TableCell>
+                        {customer.email ? (
+                          <a
+                            href={`mailto:${customer.email}`}
+                            className="block max-w-48 truncate text-sm text-blue-600 hover:underline dark:text-blue-400"
+                            title={customer.email}
+                          >
+                            {customer.email}
+                          </a>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            No email
+                          </span>
+                        )}
                       </TableCell>
 
                       <TableCell>
@@ -370,7 +375,7 @@ export default function CustomerListReport({
                     <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Total
                     </TableCell>
-                    <TableCell colSpan={3} />
+                    <TableCell colSpan={4} />
                     <TableCell className="text-right">
                       <span className="text-sm font-bold tabular-nums">
                         {totalOrders.toLocaleString("en-US")}
