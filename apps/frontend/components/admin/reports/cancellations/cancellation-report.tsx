@@ -456,6 +456,7 @@ export default function CancellationReport({
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="pl-4">Order</TableHead>
                       <TableHead>Customer</TableHead>
+                      <TableHead>Mobile</TableHead>
                       <TableHead>Area</TableHead>
                       <TableHead>Method</TableHead>
                       <TableHead>Payment</TableHead>
@@ -476,15 +477,23 @@ export default function CancellationReport({
                           <span className="text-sm font-medium">{r.orderNo}</span>
                         </TableCell>
                         <TableCell>
-                          <p className="truncate text-sm">{r.customerName}</p>
-                          {r.mobileNumber && (
+                          <span className="block truncate text-sm">
+                            {r.customerName}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {r.mobileNumber ? (
                             <a
                               href={`tel:${r.mobileNumber}`}
                               onClick={(event) => event.stopPropagation()}
-                              className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                              className="text-sm whitespace-nowrap text-blue-600 hover:underline dark:text-blue-400"
                             >
                               {r.mobileNumber}
                             </a>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              No mobile
+                            </span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -513,12 +522,12 @@ export default function CancellationReport({
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className="text-xs tabular-nums text-muted-foreground">
+                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
                             {formatDateTime(r.placedAt)}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className="text-xs tabular-nums text-muted-foreground">
+                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
                             {formatDateTime(r.cancelledAt)}
                           </span>
                         </TableCell>
