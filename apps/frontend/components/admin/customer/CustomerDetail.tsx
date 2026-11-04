@@ -418,9 +418,9 @@ export function CustomerDetail() {
         {can(CRM_MENU_URL, "canCreate") && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-1" />
-                <span>Add Activity</span>
+              <Button size="sm" aria-label="Add Activity">
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Add Activity</span>
               </Button>
             </DialogTrigger>
             <DialogContent>

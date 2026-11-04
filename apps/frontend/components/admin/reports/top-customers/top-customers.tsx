@@ -14,6 +14,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   Table,
   TableBody,
   TableCell,
@@ -29,6 +39,7 @@ import {
   Mail,
   MapPin,
   ShoppingCart,
+  SlidersHorizontal,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -93,6 +104,8 @@ export default function TopCustomersReport({
   const router = useRouter();
   const settings = useBusinessSettings();
   const [mounted, setMounted] = useState(false);
+  // Below `md` the filter selects collapse into a bottom sheet.
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -121,6 +134,82 @@ export default function TopCustomersReport({
   const hasData = customers.length > 0;
   const rangeLabel = TIME_FILTER_LABELS[timeFilter];
   const rankLabel = sortBy === "spending" ? "spending" : "orders";
+
+  // One source of truth for the filter controls: the toolbar renders them
+  // inline ("bar") at md+, the mobile sheet renders the same nodes full width
+  // ("sheet") under a visible label. Every select applies immediately.
+  const renderFilterControls = (mode: "bar" | "sheet") => {
+    const triggerClass =
+      mode === "bar" ? "h-9 w-full" : "h-11 w-full px-3 text-sm font-medium";
+
+    return [
+      {
+        key: "limit",
+        label: "Customers",
+        barClass: "md:w-44 md:shrink-0",
+        node: (
+          <Select
+            value={limit.toString()}
+            onValueChange={(value) => updateFilter("limit", value)}
+          >
+            <SelectTrigger className={triggerClass}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="5">Top 5</SelectItem>
+              <SelectItem value="10">Top 10</SelectItem>
+              <SelectItem value="20">Top 20</SelectItem>
+              <SelectItem value="50">Top 50</SelectItem>
+              <SelectItem value="100">Top 100</SelectItem>
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        key: "sortBy",
+        label: "Rank by",
+        barClass: "md:w-44 md:shrink-0",
+        node: (
+          <Select
+            value={sortBy}
+            onValueChange={(value) => updateFilter("sortBy", value)}
+          >
+            <SelectTrigger className={triggerClass}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="orders">By Orders</SelectItem>
+              <SelectItem value="spending">By Spending</SelectItem>
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        key: "timeFilter",
+        label: "Time range",
+        barClass: "md:w-44 md:shrink-0",
+        node: (
+          <Select
+            value={timeFilter}
+            onValueChange={(value) => updateFilter("timeFilter", value)}
+          >
+            <SelectTrigger className={triggerClass}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(
+                Object.entries(TIME_FILTER_LABELS) as [TimeFilter, string][]
+              ).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ),
+      },
+    ];
+  };
 
   return (
     <div className="w-full">
@@ -179,56 +268,57 @@ export default function TopCustomersReport({
         )}
       </PageHeader>
 
-      {/* Filters — same card panel as ReportDateFilters, with the report's
-          own limit / sort / time selects */}
+      {/* Filters — same card panel as ReportDateFilters; inline row at md+,
+          bottom sheet on mobile */}
       <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
-        <div className="grid grid-cols-1 items-center gap-2.5 md:flex md:flex-nowrap md:items-center md:gap-3">
-          <Select
-            value={limit.toString()}
-            onValueChange={(value) => updateFilter("limit", value)}
-          >
-            <SelectTrigger className="h-9 w-full md:w-44 md:shrink-0">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="5">Top 5</SelectItem>
-              <SelectItem value="10">Top 10</SelectItem>
-              <SelectItem value="20">Top 20</SelectItem>
-              <SelectItem value="50">Top 50</SelectItem>
-              <SelectItem value="100">Top 100</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-2.5 md:gap-3">
+          {/* Mobile: filters collapse into a bottom sheet */}
+          <div className="shrink-0 md:hidden">
+            <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                  <SlidersHorizontal className="size-3.5" />
+                  Filters
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="bottom"
+                className="inset-x-3 max-h-[82dvh] gap-0 overflow-y-auto rounded-2xl"
+              >
+                <SheetHeader className="border-b pr-14">
+                  <SheetTitle>Filters</SheetTitle>
+                  <SheetDescription>
+                    Choose how many customers to show, the ranking and the
+                    time window.
+                  </SheetDescription>
+                </SheetHeader>
 
-          <Select
-            value={sortBy}
-            onValueChange={(value) => updateFilter("sortBy", value)}
-          >
-            <SelectTrigger className="h-9 w-full md:w-44 md:shrink-0">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="orders">By Orders</SelectItem>
-              <SelectItem value="spending">By Spending</SelectItem>
-            </SelectContent>
-          </Select>
+                {renderFilterControls("sheet").map((control) => (
+                  <div key={control.key} className="px-4 pt-4">
+                    <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {control.label}
+                    </p>
+                    {control.node}
+                  </div>
+                ))}
 
-          <Select
-            value={timeFilter}
-            onValueChange={(value) => updateFilter("timeFilter", value)}
-          >
-            <SelectTrigger className="h-9 w-full md:w-44 md:shrink-0">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {(
-                Object.entries(TIME_FILTER_LABELS) as [TimeFilter, string][]
-              ).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                <SheetFooter className="sticky bottom-0 mt-4 flex-row border-t bg-background pb-[max(1rem,env(safe-area-inset-bottom))]">
+                  <SheetClose asChild>
+                    <Button className="flex-1">Done</Button>
+                  </SheetClose>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          {/* Desktop: inline filter controls */}
+          <div className="hidden items-center gap-3 md:flex">
+            {renderFilterControls("bar").map((control) => (
+              <div key={control.key} className={control.barClass}>
+                {control.node}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

@@ -4,25 +4,22 @@ import { DateRangePreset } from "@/common/enums";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import {
-  ChevronDown,
-  Filter,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 import {
   endOfMonth,
   endOfWeek,
@@ -33,6 +30,12 @@ import {
   subWeeks,
   subYears,
 } from "date-fns";
+import {
+  ChevronDown,
+  Filter,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 export interface ReportFilterParams {
@@ -101,6 +104,8 @@ interface ReportDateFiltersProps {
   /** Extra filter controls (e.g. an Order Status select) rendered inline
    *  between Quick Range and the date pickers. */
   extra?: ReactNode;
+  /** Visible label for `extra` inside the mobile filter sheet. */
+  extraLabel?: string;
   onApply: (params: ReportFilterParams) => void;
   /** Called alongside onApply({}) when Clear is pressed, so pages with
    *  extra filters can reset their own state too. */
@@ -116,6 +121,7 @@ export function ReportDateFilters({
   fromDate,
   toDate,
   extra,
+  extraLabel,
   onApply,
   onClear,
   className,
@@ -204,83 +210,93 @@ export function ReportDateFilters({
 
   const hasSelection = Boolean(startDate || endDate || quickRange);
 
-  // The shared filter controls — rendered in the desktop inline row and
-  // reused inside the mobile modal. The action grid uses md:contents so it
-  // dissolves into the desktop flex row, and stacks as a 2-col grid in the
-  // modal.
+  // The shared filter controls — the same nodes are rendered inline on
+  // desktop ("bar" row) and full width under visible labels inside the
+  // mobile bottom sheet, so both layouts stay in sync.
+  const quickRangeSelect = (
+    <Select value={quickRange} onValueChange={handleQuickRange}>
+      <SelectTrigger className="w-full md:w-44">
+        <SelectValue placeholder="Quick Range" />
+      </SelectTrigger>
+      <SelectContent>
+        {PRESET_ITEMS.map((item) => (
+          <SelectItem key={item.value} value={item.value}>
+            {item.label}
+          </SelectItem>
+        ))}
+        {quickRange && (
+          <SelectItem value="__none__" className="text-muted-foreground">
+            Clear selection
+          </SelectItem>
+        )}
+      </SelectContent>
+    </Select>
+  );
+
+  const fromPicker = (
+    <DatePicker
+      key={`from-${resetKey}`}
+      value={startDate}
+      onChange={handleStartDate}
+      placeholder="From Date"
+      maxDate={endDate}
+      showIcon={false}
+    />
+  );
+
+  const toPicker = (
+    <DatePicker
+      key={`to-${resetKey}`}
+      value={endDate}
+      onChange={handleEndDate}
+      placeholder="To Date"
+      minDate={startDate}
+      showIcon={false}
+    />
+  );
+
   const controls = (
     <>
-      <div className="md:shrink-0">
-        <Select value={quickRange} onValueChange={handleQuickRange}>
-          <SelectTrigger className="w-full md:w-44">
-            <SelectValue placeholder="Quick Range" />
-          </SelectTrigger>
-          <SelectContent>
-            {PRESET_ITEMS.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-            {quickRange && (
-              <SelectItem value="__none__" className="text-muted-foreground">
-                Clear selection
-              </SelectItem>
-            )}
-          </SelectContent>
-        </Select>
-      </div>
-
+      <div className="md:shrink-0">{quickRangeSelect}</div>
       {extra}
-
-      <div className="md:flex-1 md:max-w-48 md:min-w-0">
-        <DatePicker
-          key={`from-${resetKey}`}
-          value={startDate}
-          onChange={handleStartDate}
-          placeholder="From Date"
-          maxDate={endDate}
-          showIcon={false}
-        />
-      </div>
-      <div className="md:flex-1 md:max-w-48 md:min-w-0">
-        <DatePicker
-          key={`to-${resetKey}`}
-          value={endDate}
-          onChange={handleEndDate}
-          placeholder="To Date"
-          minDate={startDate}
-          showIcon={false}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-2.5 md:contents">
-        <Button
-          onClick={handleApply}
-          className="h-9 shrink-0 gap-1.5 px-4 font-medium"
-        >
-          <Filter className="size-4" />
-          Filter
-        </Button>
-        <Button
-          variant="outline"
-          onClick={handleClear}
-          disabled={!hasSelection && !onClear}
-          className={cn(
-            "h-9 shrink-0 gap-1.5 px-4",
-            !hasSelection && "text-muted-foreground"
-          )}
-        >
-          <X className="size-4" />
-          Clear
-        </Button>
-      </div>
+      <div className="md:flex-1 md:max-w-48 md:min-w-0">{fromPicker}</div>
+      <div className="md:flex-1 md:max-w-48 md:min-w-0">{toPicker}</div>
     </>
   );
 
+  // Desktop actions; the mobile sheet gets a sticky footer instead.
+  // md:contents lets the pair dissolve into the inline flex row.
+  const actions = (
+    <div className="grid grid-cols-2 gap-2.5 md:contents">
+      <Button
+        onClick={handleApply}
+        className="h-9 shrink-0 gap-1.5 px-4 font-medium"
+      >
+        <Filter className="size-4" />
+        Filter
+      </Button>
+      <Button
+        variant="outline"
+        onClick={handleClear}
+        disabled={!hasSelection && !onClear}
+        className={cn(
+          "h-9 shrink-0 gap-1.5 px-4",
+          !hasSelection && "text-muted-foreground"
+        )}
+      >
+        <X className="size-4" />
+        Clear
+      </Button>
+    </div>
+  );
+
+  const sheetLabel = "mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground";
+
   // Card-style filter panel.
   //  - Mobile (< md): a "Filters" button showing the active range summary —
-  //    tapping opens a modal with every control stacked full width. Applying
-  //    a preset or pressing Filter/Clear closes the modal.
+  //    tapping opens a bottom sheet with every control stacked full width
+  //    under a label and a sticky Clear/Filter footer. Applying a preset or
+  //    pressing Filter/Clear closes the sheet.
   //  - md+: always-open single nowrap row of equally styled controls.
   return (
     <div className={cn("mb-6 rounded-xl border bg-card p-3 shadow-xs", className)}>
@@ -289,9 +305,9 @@ export function ReportDateFilters({
         type="button"
         onClick={() => setMobileOpen(true)}
         aria-haspopup="dialog"
-        className="flex w-full items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2.5 md:hidden"
+        className="flex w-full items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2.5 text-sm font-medium md:hidden"
       >
-        <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
+        <span className="flex min-w-0 items-center gap-2">
           <SlidersHorizontal className="size-4 shrink-0 text-muted-foreground" />
           Filters
           <span className="truncate rounded-md bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
@@ -304,17 +320,67 @@ export function ReportDateFilters({
       {/* Desktop inline row (hidden below md) */}
       <div className="hidden items-center gap-3 md:flex md:flex-nowrap">
         {controls}
+        {actions}
       </div>
 
-      {/* Mobile filter modal */}
-      <Dialog open={mobileOpen} onOpenChange={setMobileOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Filters</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 items-center gap-2.5">{controls}</div>
-        </DialogContent>
-      </Dialog>
+      {/* Mobile filter bottom sheet */}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent
+          side="bottom"
+          className="inset-x-3 max-h-[82dvh] gap-0 overflow-y-auto rounded-2xl"
+        >
+          <SheetHeader className="border-b pr-14">
+            <SheetTitle>Filters</SheetTitle>
+            <SheetDescription>
+              Narrow this report by date range.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="space-y-4 px-4 pt-4">
+            <div>
+              <p className={sheetLabel}>Quick Range</p>
+              {quickRangeSelect}
+            </div>
+            {extra && (
+              <div>
+                {extraLabel && <p className={sheetLabel}>{extraLabel}</p>}
+                {/* `extra` may carry several stacked controls (e.g. an
+                    order + a payment status select) — space them out. */}
+                <div className="[&>*+*]:mt-4">{extra}</div>
+              </div>
+            )}
+            <div>
+              <p className={sheetLabel}>From Date</p>
+              {fromPicker}
+            </div>
+            <div>
+              <p className={sheetLabel}>To Date</p>
+              {toPicker}
+            </div>
+          </div>
+
+          <SheetFooter className="sticky bottom-0 mt-4 flex-row border-t bg-background pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <Button
+              variant="outline"
+              className="flex-1 gap-1.5"
+              disabled={!hasSelection && !onClear}
+              onClick={() => {
+                handleClear();
+                setMobileOpen(false);
+              }}
+            >
+              <X className="size-4" />
+              Clear
+            </Button>
+            <SheetClose asChild>
+              <Button className="flex-1 gap-1.5" onClick={handleApply}>
+                <Filter className="size-4" />
+                Filter
+              </Button>
+            </SheetClose>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

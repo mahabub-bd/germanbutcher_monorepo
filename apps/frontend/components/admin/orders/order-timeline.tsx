@@ -7,8 +7,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { formatDateTime } from "@/lib/utils";
 import { getStatusDotColor, getStatusIcon } from "@/utils/order-helper";
-import { OrderStatus, type Order, type User } from "@/utils/types";
-
+import { type Order, type StatusTrack, type User } from "@/utils/types";
 
 interface OrderTimelineProps {
   order: Order;
@@ -16,75 +15,21 @@ interface OrderTimelineProps {
 
 interface TimelineItemData {
   status: string;
-  isActive: boolean;
-  timestamp: string | null;
+  isCurrent: boolean;
+  timestamp: string;
   note: string | null;
   updatedBy: {
     name: string;
   } | null;
 }
 
-
-
-const ORDER_FLOW = [
-  OrderStatus.PENDING,
-  OrderStatus.PROCESSING,
-  OrderStatus.SHIPPED,
-  OrderStatus.DELIVERED,
-] as const;
-
-const CANCELLED_FLOW = [OrderStatus.PENDING, OrderStatus.CANCELLED] as const;
-const ON_HOLD_FLOW = [OrderStatus.PENDING, OrderStatus.ON_HOLD] as const;
-
-
-
-const getTimelineFlow = (currentStatus: string): readonly string[] => {
-  const normalized = currentStatus.toLowerCase();
-  if (normalized === OrderStatus.CANCELLED) return CANCELLED_FLOW;
-  if (normalized === OrderStatus.ON_HOLD) return ON_HOLD_FLOW;
-
-  const index = ORDER_FLOW.indexOf(
-    normalized as (typeof ORDER_FLOW)[number]
-  );
-
-  // Always render every step — upcoming ones show as hidden/inactive
-  // (grayed node, no timestamp). Unknown statuses fall back to themselves.
-  if (index >= 0) return ORDER_FLOW;
-  return [normalized];
-};
-
-const isStatusActive = (status: string, currentStatus: string): boolean => {
-  const s = status.toLowerCase();
-  const c = currentStatus.toLowerCase();
-
-  if (c === OrderStatus.CANCELLED) {
-    return s === OrderStatus.PENDING || s === OrderStatus.CANCELLED;
-  }
-
-  if (c === OrderStatus.ON_HOLD) {
-    return s === OrderStatus.PENDING || s === OrderStatus.ON_HOLD;
-  }
-
-  const sIndex = ORDER_FLOW.indexOf(s as (typeof ORDER_FLOW)[number]);
-  const cIndex = ORDER_FLOW.indexOf(c as (typeof ORDER_FLOW)[number]);
-
-  return sIndex >= 0 && cIndex >= 0 && sIndex <= cIndex;
-};
-
 const formatStatusLabel = (status: string) =>
   status.charAt(0).toUpperCase() + status.slice(1);
-
-interface StepProps {
-  item: TimelineItemData;
-  isLast: boolean;
-  currentStatus: string;
-}
 
 const NODE_SIZE = "size-8";
 
 const StepComponent = memo<StepProps>(
-  ({ item, isLast, currentStatus }) => {
-    const isCurrent = item.status === currentStatus;
+  ({ item, isLast }) => {
     const icon = getStatusIcon(item.status);
 
     return (
@@ -94,9 +39,7 @@ const StepComponent = memo<StepProps>(
         {!isLast && (
           <span
             aria-hidden
-            className={`absolute top-4 hidden h-0.5 left-[calc(50%+1.25rem)] right-[calc(-50%+1.25rem)] sm:block ${
-              item.isActive ? "bg-primary/40" : "bg-border"
-            }`}
+            className="absolute top-4 hidden h-0.5 left-[calc(50%+1.25rem)] right-[calc(-50%+1.25rem)] bg-primary/40 sm:block"
           />
         )}
 
@@ -105,39 +48,27 @@ const StepComponent = memo<StepProps>(
         {!isLast && (
           <span
             aria-hidden
-            className={`absolute top-9 bottom-0 left-6 w-0.5 -translate-x-1/2 sm:hidden ${
-              item.isActive ? "bg-primary/40" : "bg-border"
-            }`}
+            className="absolute top-9 bottom-0 left-6 w-0.5 -translate-x-1/2 bg-primary/40 sm:hidden"
           />
         )}
 
         {/* Node */}
         <span
-          className={`z-10 flex shrink-0 ${NODE_SIZE} items-center justify-center rounded-full border-4 border-background shadow-sm ${
-            item.isActive
-              ? getStatusDotColor(item.status)
-              : "bg-muted"
-          } ${isCurrent ? "ring-4 ring-primary/15" : ""}`}
+          className={`z-10 flex shrink-0 ${NODE_SIZE} items-center justify-center rounded-full border-4 border-background shadow-sm ${getStatusDotColor(
+            item.status
+          )} ${item.isCurrent ? "ring-4 ring-primary/15" : ""}`}
         >
-          {icon && (
-            <span className={item.isActive ? "text-white" : "text-muted-foreground/60"}>
-              {icon}
-            </span>
-          )}
+          {icon && <span className="text-white">{icon}</span>}
         </span>
 
         {/* Text column — inline (right of node) on mobile, below node on sm+ */}
         <div className="flex min-w-0 flex-col items-start sm:mt-2 sm:items-center">
           {/* Label */}
           <div className="flex items-center gap-1.5">
-            <span
-              className={`text-sm font-semibold ${
-                item.isActive ? "" : "text-muted-foreground"
-              }`}
-            >
+            <span className="text-sm font-semibold">
               {formatStatusLabel(item.status)}
             </span>
-            {isCurrent && (
+            {item.isCurrent && (
               <Badge
                 className={`h-5 rounded-full border-0 px-2 text-[9px] font-semibold uppercase tracking-wider text-white ${getStatusDotColor(item.status)}`}
               >
@@ -153,29 +84,26 @@ const StepComponent = memo<StepProps>(
             </p>
           )}
 
-          {/* Meta — only for steps that actually happened; hidden steps have
-              no track row and would otherwise read a fabricated "System" */}
-          {item.isActive && (
-            <div className="mt-1 text-[11px] text-muted-foreground">
-              Updated by {item.updatedBy?.name || "System"}
-            </div>
-          )}
+          <div className="mt-1 text-[11px] text-muted-foreground">
+            Updated by {item.updatedBy?.name || "System"}
+          </div>
 
           {/* Timestamp pill */}
-          {item.timestamp && (
-            <div className="mt-1.5 rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
-              {formatDateTime(item.timestamp)}
-            </div>
-          )}
+          <div className="mt-1.5 rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
+            {formatDateTime(item.timestamp)}
+          </div>
         </div>
       </li>
     );
   }
 );
 
+interface StepProps {
+  item: TimelineItemData;
+  isLast: boolean;
+}
+
 StepComponent.displayName = "StepComponent";
-
-
 
 const EmptyTimelineState = () => (
   <div className="flex flex-col items-center justify-center rounded-sm border border-dashed py-7 text-center">
@@ -189,41 +117,31 @@ const EmptyTimelineState = () => (
   </div>
 );
 
-
+/**
+ * Sorts the real status history chronologically and keeps EVERY status the
+ * order has been through (e.g. Pending → Processing → On Hold shows all
+ * three instead of collapsing to a flow derived from the current status).
+ */
 export function OrderTimeline({ order }: OrderTimelineProps) {
-  const statusTracksMap = useMemo(() => {
-    const map = new Map<
-      string,
-      { createdAt: string; note: string | null; updatedBy: User }
-    >();
-
-    order.statusTracks?.forEach((track) => {
-      map.set(track.status.toLowerCase(), track);
-    });
-
-    return map;
-  }, [order.statusTracks]);
-
-  const timelineFlow = useMemo(
-    () => getTimelineFlow(order.orderStatus),
-    [order.orderStatus]
-  );
-
   const timelineItems = useMemo<TimelineItemData[]>(() => {
-    return timelineFlow.map((status) => {
-      const track = statusTracksMap.get(status.toLowerCase());
+    const tracks: StatusTrack[] = [...(order.statusTracks ?? [])].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
 
-      return {
-        status,
-        isActive: isStatusActive(status, order.orderStatus),
-        timestamp: track?.createdAt || null,
-        note: track?.note || null,
-        updatedBy: track?.updatedBy || null,
-      };
-    });
-  }, [timelineFlow, statusTracksMap, order.orderStatus]);
+    const current = order.orderStatus?.toLowerCase();
 
-  const hasData = order.statusTracks && order.statusTracks.length > 0;
+    return tracks.map((track) => ({
+      status: track.status,
+      isCurrent:
+        current != null && track.status.toLowerCase() === current,
+      timestamp: track.createdAt,
+      note: track.note || null,
+      updatedBy: track.updatedBy as User | undefined ?? null,
+    }));
+  }, [order.statusTracks, order.orderStatus]);
+
+  const hasData = timelineItems.length > 0;
 
   return (
     <section className="overflow-hidden rounded-sm border bg-card shadow-sm">
@@ -253,10 +171,9 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
           >
             {timelineItems.map((item, index) => (
               <StepComponent
-                key={item.status}
+                key={`${item.status}-${item.timestamp}-${index}`}
                 item={item}
                 isLast={index === timelineItems.length - 1}
-                currentStatus={order.orderStatus}
               />
             ))}
           </ol>

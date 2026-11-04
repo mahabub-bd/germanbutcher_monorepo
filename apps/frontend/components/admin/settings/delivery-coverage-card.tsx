@@ -791,7 +791,7 @@ export function DeliveryCoverageCard() {
       </PageHeader>
 
       {!isLoading && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-4 sm:grid-cols-3">
           <StatsCard
             icon={Landmark}
             title="Divisions"
@@ -1303,13 +1303,13 @@ export function DeliveryCoverageCard() {
                                               {allCityAreas.length} areas
                                             </span>
                                             {city.deliveryCharge != null && (
-                                                <span
-                                                  className="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-px font-medium tabular-nums text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                                  title="City delivery charge (inherited by areas without their own value)"
-                                                >
-                                                  ৳{city.deliveryCharge}
-                                                </span>
-                                              )}
+                                              <span
+                                                className="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-px font-medium tabular-nums text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                                title="City delivery charge (inherited by areas without their own value)"
+                                              >
+                                                ৳{city.deliveryCharge}
+                                              </span>
+                                            )}
                                           </span>
                                         </button>
                                       )}
