@@ -408,7 +408,6 @@ export function CustomerDetail() {
       <PageHeader
         title={customer.name}
         description="Customer details — profile, orders, cart, reviews, messages and follow-ups"
-        className="mb-0"
       >
         <Button variant="outline" size="sm" asChild>
           <Link href={`/admin/customer/${customer.id}/edit`}>
@@ -505,7 +504,7 @@ export function CustomerDetail() {
       </PageHeader>
 
       {/* Profile strip + stats */}
-      <div className="rounded-lg border bg-card p-4 space-y-4">
+      <div className="mb-6 rounded-lg border bg-card p-4 space-y-4">
         <div className="flex items-center gap-3">
           {customer.profilePhoto ? (
             <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border bg-muted">
