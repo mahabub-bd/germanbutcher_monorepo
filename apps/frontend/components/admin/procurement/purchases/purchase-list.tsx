@@ -556,25 +556,20 @@ export function PurchaseList({
 
               {/* Desktop table */}
               <div className="hidden md:block">
-                {/* Equal columns, fixed layout, no min-width: the six data
-                    columns split the panel width, so the table never scrolls
-                    sideways and every gutter is identical. Gutters are 12px
-                    (6px per side); the outer edges stay aligned to the panel,
-                    and the right-aligned Total value column gets extra right
-                    padding so the money does not crowd the Payment pill. */}
-                <Table className="report-table table-fixed [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_td:nth-child(3)]:pr-5 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4 [&_th:nth-child(3)]:pr-5">
-                  <TableHeader className="[&_th]:font-semibold">
+                {/* One line per cell, uniform text-sm: each stacked pair from
+                    before is now its own column so rows stay single-line. */}
+                <Table className="report-table">
+                  <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead>Purchase</TableHead>
+                      <TableHead className="pl-4">Purchase</TableHead>
+                      <TableHead>Supplier</TableHead>
                       <TableHead>Items</TableHead>
-                      <TableHead className="text-right">Total value</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-right">Paid</TableHead>
                       <TableHead>Payment</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Created by</TableHead>
-                      {/* Label is screen-reader only: at 56px the word
-                          "Actions" overflows the cell and makes the panel
-                          scroll sideways by those 2px. */}
                       <TableHead className="w-14 text-right">
                         <span className="sr-only">Actions</span>
                       </TableHead>
@@ -589,64 +584,57 @@ export function PurchaseList({
                           (sum, item) => sum + item.quantity,
                           0
                         ) ?? 0;
-                      // formatDateTime yields "Oct 27, 2026, 10:30 AM", so the
-                      // date/time boundary is the LAST comma, not the first.
                       const stamp = formatDateTime(purchase.purchaseDate);
-                      const stampSplit = stamp.lastIndexOf(", ");
-                      const purchaseDay =
-                        stampSplit === -1 ? stamp : stamp.slice(0, stampSplit);
-                      const purchaseClock =
-                        stampSplit === -1 ? "" : stamp.slice(stampSplit + 2);
+                      const itemsLabel =
+                        productNames.length === 0
+                          ? "No items"
+                          : productNames.length > 1
+                            ? `${productNames[0]} +${productNames.length - 1} more`
+                            : productNames[0];
 
                       return (
                         <TableRow key={purchase.id}>
-                          <TableCell className="py-2.5">
-                            <p
-                              className="truncate text-sm font-medium leading-tight"
+                          <TableCell className="py-2.5 pl-4">
+                            <span
+                              className="block truncate text-sm font-medium"
                               title={purchase.purchaseNumber}
                             >
                               {purchase.purchaseNumber}
-                            </p>
-                            <p
-                              className="mt-0.5 truncate text-[13px] text-foreground/70"
-                              title={purchase.supplier?.name || undefined}
-                            >
-                              {purchase.supplier?.name || "No supplier"}
-                            </p>
+                            </span>
                           </TableCell>
 
                           <TableCell>
-                            {productNames.length === 0 ? (
-                              <span className="text-[13px] text-foreground/70">
-                                No items
-                              </span>
-                            ) : (
-                              <div className="min-w-0">
-                                <p
-                                  className="truncate text-sm font-medium"
-                                  title={productNames.join(", ")}
-                                >
-                                  {productNames[0]}
-                                </p>
-                                <p className="mt-0.5 truncate text-[13px] text-foreground/70">
-                                  {productNames.length > 1
-                                    ? `+${productNames.length - 1} more · `
-                                    : ""}
-                                  {totalQuantity} unit
-                                  {totalQuantity === 1 ? "" : "s"}
-                                </p>
-                              </div>
-                            )}
+                            <span
+                              className="block truncate text-sm"
+                              title={purchase.supplier?.name || undefined}
+                            >
+                              {purchase.supplier?.name || "No supplier"}
+                            </span>
+                          </TableCell>
+
+                          <TableCell>
+                            <span
+                              className="block truncate text-sm"
+                              title={
+                                productNames.length > 0
+                                  ? `${productNames.join(", ")} · ${totalQuantity} unit${totalQuantity === 1 ? "" : "s"}`
+                                  : undefined
+                              }
+                            >
+                              {itemsLabel}
+                            </span>
                           </TableCell>
 
                           <TableCell className="text-right">
-                            <p className="truncate text-sm font-semibold tabular-nums">
+                            <span className="text-sm font-semibold tabular-nums">
                               {formatCurrencyEnglish(Number(purchase.totalValue))}
-                            </p>
-                            <p className="mt-0.5 truncate text-[13px] tabular-nums text-foreground/70">
-                              Paid{" "}
+                            </span>
+                          </TableCell>
+
+                          <TableCell className="text-right">
+                            <span className="text-sm tabular-nums text-muted-foreground">
                               {formatCurrencyEnglish(Number(purchase.amountPaid))}
-                            </p>
+                            </span>
                           </TableCell>
 
                           <TableCell>
@@ -661,17 +649,12 @@ export function PurchaseList({
                           </TableCell>
 
                           <TableCell>
-                            <p
-                              className="truncate text-sm tabular-nums"
+                            <span
+                              className="block truncate whitespace-nowrap text-sm tabular-nums"
                               title={stamp}
                             >
-                              {purchaseDay}
-                            </p>
-                            {purchaseClock && (
-                              <p className="mt-0.5 truncate text-[13px] text-foreground/70">
-                                {purchaseClock}
-                              </p>
-                            )}
+                              {stamp}
+                            </span>
                           </TableCell>
 
                           <TableCell>
@@ -683,12 +666,12 @@ export function PurchaseList({
                           </TableCell>
 
                           <TableCell>
-                            <p
-                              className="truncate text-sm"
+                            <span
+                              className="block truncate text-sm"
                               title={purchase.createdBy?.name || undefined}
                             >
                               {purchase.createdBy?.name || "—"}
-                            </p>
+                            </span>
                           </TableCell>
 
                           <TableCell className="text-right">

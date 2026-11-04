@@ -296,10 +296,7 @@ export default function CustomerListReport({
                       </TableCell>
 
                       <TableCell>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full border bg-muted">
-                            <User className="size-3.5 text-muted-foreground" />
-                          </span>
+                        <div className="min-w-0">
                           {customer.id ? (
                             <Link
                               href={`/admin/customer/${customer.id}/view`}

@@ -25,7 +25,6 @@ import {
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { cn, formatCurrencyEnglish, shortenArea } from "@/lib/utils";
 import {
-  BadgeCheck,
   Crown,
   Mail,
   MapPin,
@@ -343,25 +342,13 @@ export default function TopCustomersReport({
                       </TableCell>
 
                       <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          <Link
-                            href={`/admin/customer/${customer.id}/view`}
-                            className="truncate text-sm font-medium text-foreground hover:text-primaryColor hover:underline"
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            {customer.name}
-                          </Link>
-                          {customer.isVerified && (
-                            <Badge
-                              variant="secondary"
-                              className="gap-1 border-transparent bg-emerald-100 px-1.5 font-normal text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                              title="Verified customer"
-                            >
-                              <BadgeCheck className="size-3 shrink-0" />
-                              Verified
-                            </Badge>
-                          )}
-                        </div>
+                        <Link
+                          href={`/admin/customer/${customer.id}/view`}
+                          className="truncate text-sm font-medium text-foreground hover:text-primaryColor hover:underline"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          {customer.name}
+                        </Link>
                       </TableCell>
 
                       <TableCell>
@@ -506,16 +493,6 @@ export default function TopCustomersReport({
                           >
                             {customer.name}
                           </Link>
-                          {customer.isVerified && (
-                            <Badge
-                              variant="secondary"
-                              className="gap-1 border-transparent bg-emerald-100 px-1.5 font-normal text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                              title="Verified customer"
-                            >
-                              <BadgeCheck className="size-3 shrink-0" />
-                              Verified
-                            </Badge>
-                          )}
                         </div>
                         {customer.mobileNumber && (
                           <a
