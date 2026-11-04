@@ -118,6 +118,36 @@ export function ContactMessageList({
   const [statistics, setStatistics] = useState<TicketStatistics>(EMPTY_STATS);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
+  // Status tabs overflow horizontally on phones, where overlay scrollbars
+  // never render — edge fades are tracked so the hidden side is still hinted.
+  const tabsScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false);
+  const [canScrollTabsRight, setCanScrollTabsRight] = useState(false);
+
+  const updateTabsScrollState = useCallback(() => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    setCanScrollTabsLeft(el.scrollLeft > 1);
+    setCanScrollTabsRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    updateTabsScrollState();
+    const el = tabsScrollRef.current;
+    if (!el) return;
+
+    // Tab labels change width when counts load — observe both the strip and
+    // its content so the fades re-check without a resize event.
+    const observer = new ResizeObserver(updateTabsScrollState);
+    observer.observe(el);
+    if (el.firstElementChild) observer.observe(el.firstElementChild);
+    window.addEventListener("resize", updateTabsScrollState);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateTabsScrollState);
+    };
+  }, [updateTabsScrollState]);
+
   const updateUrl = useCallback(() => {
     const params = new URLSearchParams();
     params.set("page", currentPage.toString());
@@ -411,7 +441,24 @@ export function ContactMessageList({
         <TicketStatsCards statistics={statistics} isLoading={isLoadingStats} />
 
         {/* Status tabs (mockup style) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 sm:gap-2">
+        <div className="relative">
+          {canScrollTabsLeft && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 rounded-l-xl bg-linear-to-r from-background to-transparent sm:hidden"
+            />
+          )}
+          {canScrollTabsRight && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 rounded-r-xl bg-linear-to-l from-background to-transparent sm:hidden"
+            />
+          )}
+          <div
+            ref={tabsScrollRef}
+            onScroll={updateTabsScrollState}
+            className="flex items-center gap-1.5 overflow-x-auto pb-2 sm:gap-2"
+          >
           {[
             {
               value: "all",
@@ -482,6 +529,7 @@ export function ContactMessageList({
               </button>
             );
           })}
+          </div>
         </div>
 
         {/* Toolbar */}

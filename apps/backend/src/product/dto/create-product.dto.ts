@@ -62,15 +62,16 @@ export class CreateProductDto {
   @IsPositive()
   sellingPrice: number;
 
-  @ApiProperty({
-    example: 50,
-    description: 'Available quantity in stock',
+  // Stock is managed through purchases and cancelled orders only — it is
+  // never sent from the product form, so it must not be required here.
+  @ApiPropertyOptional({
+    example: 0,
+    description: 'Initial stock (defaults to 0; managed via purchases)',
     minimum: 0,
-    required: true,
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
-  stock: number;
+  stock?: number;
 
   @ApiPropertyOptional({
     example: 99.99,

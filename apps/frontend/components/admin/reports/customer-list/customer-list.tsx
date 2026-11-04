@@ -316,7 +316,7 @@ export default function CustomerListReport({
                         {customer.email ? (
                           <a
                             href={`mailto:${customer.email}`}
-                            className="block max-w-48 truncate text-sm text-blue-600 hover:underline dark:text-blue-400"
+                            className="block  truncate text-sm text-blue-600 hover:underline dark:text-blue-400"
                             title={customer.email}
                           >
                             {customer.email}

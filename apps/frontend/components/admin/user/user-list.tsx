@@ -4,9 +4,10 @@ import type React from "react";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
-import { PillBadge, type PillTone } from "@/components/common/pill-badge";
 import { PaginationComponent } from "@/components/common/pagination";
+import { PillBadge, type PillTone } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,6 +22,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -42,11 +53,12 @@ import {
   Plus,
   Shield,
   ShieldCheck,
+  SlidersHorizontal,
   Store,
   Trash2,
   UserCircle,
   User as UserIcon,
-  Users,
+  Users
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -117,6 +129,8 @@ export function UserList({
     getInitialParam("role") as string
   );
   const [isLoading, setIsLoading] = useState(true);
+  // Below `md` the filters collapse into a bottom sheet.
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -216,6 +230,44 @@ export function UserList({
   const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
   const lastRow = Math.min(currentPage * limit, totalItems);
 
+  const activeFilterCount = [
+    Boolean(roleFilter && roleFilter !== "all"),
+  ].filter(Boolean).length;
+
+  // One source of truth for the filter controls: the toolbar renders them
+  // inline ("bar") at md+, the mobile sheet renders the same nodes full width
+  // ("sheet") under a visible label.
+  const renderFilterControls = (mode: "bar" | "sheet") => {
+    const triggerClass =
+      mode === "bar" ? "h-9 w-full" : "h-11 w-full px-3 text-sm font-medium";
+
+    return [
+      {
+        key: "role",
+        label: "Role",
+        barClass: "md:w-40 md:shrink-0",
+        node: (
+          <Select
+            value={roleFilter || "all"}
+            onValueChange={(value) => {
+              setRoleFilter(value === "all" ? "" : value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className={triggerClass}>
+              <SelectValue placeholder="Role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All roles</SelectItem>
+              <SelectItem value="customer">Customer</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
+        ),
+      },
+    ];
+  };
+
   const renderActions = (user: User) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -263,36 +315,83 @@ export function UserList({
 
         {/* Toolbar */}
         <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
-          <div className="flex flex-col gap-2.5 md:flex-row md:flex-nowrap md:items-center md:gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 md:flex-nowrap md:gap-3">
             <TableSearch
-              wrapperClassName="w-full md:max-w-xs"
+              wrapperClassName="min-w-0 flex-1 md:max-w-xs md:flex-none"
               className="h-9"
               placeholder="Search users..."
               value={searchQuery}
               onChange={handleSearchChange}
             />
 
-            <div className="w-full md:w-40 md:shrink-0">
-              <Select
-                value={roleFilter || "all"}
-                onValueChange={(value) => {
-                  setRoleFilter(value === "all" ? "" : value);
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="h-9 w-full">
-                  <SelectValue placeholder="Role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All roles</SelectItem>
-                  <SelectItem value="customer">Customer</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Mobile: filters collapse into a bottom sheet */}
+            <div className="shrink-0 md:hidden">
+              <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                    <SlidersHorizontal className="size-3.5" />
+                    Filters
+                    {activeFilterCount > 0 && (
+                      <Badge className="size-4.5 rounded-full px-0 text-[0.65rem] font-semibold">
+                        {activeFilterCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side="bottom"
+                  className="inset-x-3 max-h-[82dvh] gap-0 overflow-y-auto rounded-2xl"
+                >
+                  <SheetHeader className="border-b pr-14">
+                    <SheetTitle>Filters</SheetTitle>
+                    <SheetDescription>
+                      Narrow users by role.
+                    </SheetDescription>
+                  </SheetHeader>
+
+                  {renderFilterControls("sheet").map((control) => (
+                    <div key={control.key} className="px-4 pt-4">
+                      <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        {control.label}
+                      </p>
+                      {control.node}
+                    </div>
+                  ))}
+
+                  <SheetFooter className="sticky bottom-0 mt-4 flex-row border-t bg-background pb-[max(1rem,env(safe-area-inset-bottom))]">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        clearFilters();
+                        setFilterSheetOpen(false);
+                      }}
+                    >
+                      Clear all
+                    </Button>
+                    <SheetClose asChild>
+                      <Button className="flex-1">
+                        {totalItems > 0
+                          ? `Show ${totalItems.toLocaleString("en-US")} users`
+                          : "Done"}
+                      </Button>
+                    </SheetClose>
+                  </SheetFooter>
+                </SheetContent>
+              </Sheet>
+            </div>
+
+            {/* Desktop: inline filter controls */}
+            <div className="hidden items-center gap-3 md:flex">
+              {renderFilterControls("bar").map((control) => (
+                <div key={control.key} className={control.barClass}>
+                  {control.node}
+                </div>
+              ))}
             </div>
 
             {hasFilters && (
-              <div className="flex items-center gap-2 md:ml-auto">
+              <div className="hidden items-center gap-2 md:flex md:ml-auto">
                 <PillBadge className="font-medium">
                   {[searchQuery && `Search: ${searchQuery}`, roleFilter && roleFilter !== "all" && `Role: ${roleFilter}`]
                     .filter(Boolean)

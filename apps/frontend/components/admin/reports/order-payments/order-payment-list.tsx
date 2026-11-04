@@ -3,8 +3,8 @@
 import { OrderStatus } from "@/common/enums";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PageHeader } from "@/components/admin/page-header";
-import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
 import { ReportExcelButton, dateRangeSubtitle } from "@/components/admin/reports/download-excel-button";
+import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
 import {
   ReportDateFilters,
   type ReportFilterParams,
@@ -114,7 +114,7 @@ export default function OrderPaymentList({
             <ReportExcelButton
               title="Payment Transactions"
               subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
-                            headers={["#", "Payment No", "Date", "Amount", "Method", "Order No"]}
+              headers={["#", "Payment No", "Date", "Amount", "Method", "Order No"]}
               rows={payments.map((p, i) => [
                 i + 1,
                 p.paymentNumber,
@@ -138,7 +138,7 @@ export default function OrderPaymentList({
             <LazyPdfDownloadLink
               document={<PaymentReportPDF payments={payments} settings={settings} />}
               fileName={`order-payments-${new Date().toISOString().split("T")[0]}.pdf`}
-             />
+            />
           </div>
         )}
       </div>
@@ -148,6 +148,7 @@ export default function OrderPaymentList({
         preset={preset}
         fromDate={fromDate}
         toDate={toDate}
+        extraLabel="Order Status"
         extra={
           <Select
             value={selectedOrderStatus || "all"}

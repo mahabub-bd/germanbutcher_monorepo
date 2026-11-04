@@ -471,6 +471,7 @@ export default function OrderReportList({
         preset={preset}
         fromDate={fromDate}
         toDate={toDate}
+        extraLabel="Order & Payment Status"
         extra={
           <>
             <Select

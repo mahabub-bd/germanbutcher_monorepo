@@ -5,8 +5,8 @@ import type React from "react";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
-import { PillBadge } from "@/components/common/pill-badge";
 import { PaginationComponent } from "@/components/common/pagination";
+import { PillBadge } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
 import { Button } from "@/components/ui/button";
 import {
@@ -255,16 +255,16 @@ export function ClientList({
 
         {/* Toolbar */}
         <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
-          <div className="flex flex-col gap-2.5 md:flex-row md:flex-nowrap md:items-center md:gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 md:flex-nowrap md:gap-3">
             <TableSearch
-              wrapperClassName="w-full md:max-w-xs"
+              wrapperClassName="min-w-0 flex-1 md:max-w-xs md:flex-none"
               className="h-9"
               placeholder="Search clients by name..."
               value={searchQuery}
               onChange={handleSearchChange}
             />
 
-            <div className="md:w-35 md:shrink-0">
+            <div className="w-28 shrink-0 md:w-35">
               <Select
                 value={limit.toString()}
                 onValueChange={(value) => {
@@ -284,7 +284,7 @@ export function ClientList({
             </div>
 
             {searchQuery && (
-              <div className="flex items-center gap-2 md:ml-auto">
+              <div className="hidden min-w-0 items-center gap-2 md:flex md:ml-auto">
                 <PillBadge className="font-medium">
                   Search: {searchQuery}
                 </PillBadge>

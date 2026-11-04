@@ -3,6 +3,7 @@
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { PaginationComponent } from "@/components/common/pagination";
 import { TableSearch } from "@/components/common/table-search";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -11,6 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -48,11 +59,11 @@ interface StockMovementEntry {
   productId: number | null;
   productName: string;
   type:
-    | "purchase"
-    | "purchase_reversal"
-    | "order_sale"
-    | "order_cancel"
-    | "adjustment";
+  | "purchase"
+  | "purchase_reversal"
+  | "order_sale"
+  | "order_cancel"
+  | "adjustment";
   quantity: number;
   stockBefore: number;
   stockAfter: number;
@@ -552,6 +563,8 @@ export default function StockMovementHistory({
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [range, setRange] = useState<RangeKey>("all");
+  // Below `sm` the date-range + type filters collapse into a bottom sheet.
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   // Ignore responses from superseded requests (fast filter/page changes).
   const fetchSeqRef = useRef(0);
@@ -624,6 +637,38 @@ export default function StockMovementHistory({
 
   const firstItem = totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const lastItem = Math.min(currentPage * PAGE_SIZE, totalItems);
+
+  const activeFilterCount = [
+    range !== "all",
+    typeFilter !== "all",
+  ].filter(Boolean).length;
+
+  // Shared date-range select — one node reused by the inline toolbar and the
+  // mobile sheet, only the trigger sizing differs.
+  const renderRangeSelect = (triggerClass: string) => (
+    <Select
+      value={range}
+      onValueChange={(value) => {
+        setRange(value as RangeKey);
+        setCurrentPage(1);
+      }}
+    >
+      <SelectTrigger
+        size="sm"
+        className={triggerClass}
+        aria-label="Filter by date range"
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {RANGE_OPTIONS.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
 
   const renderContent = () => {
     if (isLoading) return <LoadingState />;
@@ -761,50 +806,104 @@ export default function StockMovementHistory({
       <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
         {showProduct ? (
           <div className="flex flex-col gap-3 border-b p-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5">
               <TableSearch
-                wrapperClassName="w-full sm:max-w-xs"
+                wrapperClassName="min-w-0 flex-1 sm:max-w-xs sm:flex-none"
                 placeholder="Search by product name..."
                 aria-label="Search stock movements by product name"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
               />
 
-              <div className="flex items-center gap-2">
-                <Select
-                  value={range}
-                  onValueChange={(value) => {
-                    setRange(value as RangeKey);
-                    setCurrentPage(1);
-                  }}
+              {/* Mobile: date-range + type filters collapse into a bottom sheet */}
+              <div className="shrink-0 sm:hidden">
+                <Sheet
+                  open={filterSheetOpen}
+                  onOpenChange={setFilterSheetOpen}
                 >
-                  <SelectTrigger
-                    size="sm"
-                    className="w-full text-xs sm:w-36"
-                    aria-label="Filter by date range"
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                      <SlidersHorizontal className="size-3.5" />
+                      Filters
+                      {activeFilterCount > 0 && (
+                        <Badge className="size-4.5 rounded-full px-0 text-[0.65rem] font-semibold">
+                          {activeFilterCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent
+                    side="bottom"
+                    className="inset-x-3 max-h-[82dvh] gap-0 overflow-y-auto rounded-2xl"
                   >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {RANGE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    <SheetHeader className="border-b pr-14">
+                      <SheetTitle>Filters</SheetTitle>
+                      <SheetDescription>
+                        Narrow movements by date range and type.
+                      </SheetDescription>
+                    </SheetHeader>
 
+                    <div className="px-4 pt-4">
+                      <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Date range
+                      </p>
+                      {renderRangeSelect("h-11 w-full px-3 text-sm font-medium")}
+                    </div>
+
+                    <div className="px-4 pt-4">
+                      <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Movement type
+                      </p>
+                      <TypeFilterChips
+                        value={typeFilter}
+                        summary={summary}
+                        onChange={(next) => {
+                          setTypeFilter(next);
+                          setCurrentPage(1);
+                        }}
+                      />
+                    </div>
+
+                    <SheetFooter className="sticky bottom-0 mt-4 flex-row border-t bg-background pb-[max(1rem,env(safe-area-inset-bottom))]">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          clearFilters();
+                          setFilterSheetOpen(false);
+                        }}
+                      >
+                        Clear all
+                      </Button>
+                      <SheetClose asChild>
+                        <Button className="flex-1">
+                          {totalItems > 0
+                            ? `Show ${totalItems.toLocaleString("en-US")} movements`
+                            : "Done"}
+                        </Button>
+                      </SheetClose>
+                    </SheetFooter>
+                  </SheetContent>
+                </Sheet>
+              </div>
+
+              {/* Desktop / tablet: inline date-range select */}
+              <div className="hidden shrink-0 sm:flex">
+                {renderRangeSelect("w-36 text-xs")}
               </div>
             </div>
 
-            <TypeFilterChips
-              value={typeFilter}
-              summary={summary}
-              onChange={(next) => {
-                setTypeFilter(next);
-                setCurrentPage(1);
-              }}
-            />
+            {/* Desktop / tablet: movement-type chips strip */}
+            <div className="hidden sm:block">
+              <TypeFilterChips
+                value={typeFilter}
+                summary={summary}
+                onChange={(next) => {
+                  setTypeFilter(next);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
           </div>
         ) : (
           <div className="flex flex-col gap-2 border-b p-3">
@@ -812,9 +911,8 @@ export default function StockMovementHistory({
               <p className="text-xs font-medium text-muted-foreground">
                 {isLoading && entries.length === 0
                   ? "Loading movements..."
-                  : `${totalItems.toLocaleString("en-US")} movement${
-                      totalItems === 1 ? "" : "s"
-                    }`}
+                  : `${totalItems.toLocaleString("en-US")} movement${totalItems === 1 ? "" : "s"
+                  }`}
               </p>
             </div>
 

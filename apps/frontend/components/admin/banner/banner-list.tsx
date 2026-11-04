@@ -5,14 +5,10 @@ import type React from "react";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
+import { PillBadge } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -20,16 +16,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { useActiveStatusToggle } from "@/hooks/use-active-status-toggle";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { Banner } from "@/utils/types";
 import {
   Ban,
   CheckCircle,
-  Filter,
   ImageIcon,
   Plus,
-  XCircle,
+  SlidersHorizontal
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -73,6 +78,8 @@ export function BannerList({
     getInitialParam("type") as string
   );
   const [isLoading, setIsLoading] = useState(true);
+  // Below `md` the filters collapse into a bottom sheet.
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedBanner, setSelectedBanner] = useState<Banner | null>(null);
   const [totalItems, setTotalItems] = useState(0);
@@ -190,6 +197,88 @@ export function BannerList({
   const hasActiveFilters = () =>
     Boolean(searchQuery || statusFilter || typeFilter);
 
+  const activeFilterCount = [
+    Boolean(statusFilter),
+    Boolean(typeFilter),
+  ].filter(Boolean).length;
+
+  const activeFilterSummary = [
+    searchQuery && `Search: ${searchQuery}`,
+    statusFilter &&
+    `Status: ${statusFilter === "active" ? "Active" : "Inactive"}`,
+    typeFilter && `Type: ${typeFilter.charAt(0).toUpperCase()}${typeFilter.slice(1)}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  // One source of truth for the filter controls: the toolbar renders them
+  // inline ("bar") at md+, the mobile sheet renders the same nodes full width
+  // ("sheet") under a visible label.
+  const renderFilterControls = (mode: "bar" | "sheet") => {
+    const triggerClass =
+      mode === "bar" ? "h-9 w-full" : "h-11 w-full px-3 text-sm font-medium";
+
+    return [
+      {
+        key: "status",
+        label: "Status",
+        barClass: "md:w-36",
+        node: (
+          <Select
+            value={statusFilter || "all"}
+            onValueChange={(value) => {
+              setStatusFilter(value === "all" ? "" : value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className={triggerClass}>
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  Active
+                </span>
+              </SelectItem>
+              <SelectItem value="inactive">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-red-500" />
+                  Inactive
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        key: "type",
+        label: "Type",
+        barClass: "md:w-36",
+        node: (
+          <Select
+            value={typeFilter || "all"}
+            onValueChange={(value) => {
+              setTypeFilter(value === "all" ? "" : value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className={triggerClass}>
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="main">Main</SelectItem>
+              <SelectItem value="promotional">Promotional</SelectItem>
+              <SelectItem value="featured">Featured</SelectItem>
+            </SelectContent>
+          </Select>
+        ),
+      },
+    ];
+  };
+
   const renderEmptyState = () => (
     <div className="p-4 pb-6">
       <div className="flex flex-col items-center justify-center border border-dashed rounded-xl p-12 text-center">
@@ -214,140 +303,6 @@ export function BannerList({
         )}
       </div>
     </div>
-  );
-
-  const renderActiveFilters = () => {
-    if (!hasActiveFilters()) return null;
-
-    return (
-      <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-        {searchQuery && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Search: {searchQuery}
-            <button onClick={() => setSearchQuery("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {statusFilter && statusFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1"
-          >
-            Status: {statusFilter === "active" ? "Active" : "Inactive"}
-            <button onClick={() => setStatusFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        {typeFilter && typeFilter !== "all" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1 px-3 py-1 capitalize"
-          >
-            Type: {typeFilter}
-            <button onClick={() => setTypeFilter("")} className="ml-1">
-              <XCircle className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="h-7 text-xs"
-        >
-          Clear all
-        </Button>
-      </div>
-    );
-  };
-
-  const renderFiltersMenu = () => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 px-3 shrink-0">
-          <Filter className="h-4 w-4" />
-          <span>Filters</span>
-          {(statusFilter || typeFilter) && (
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72">
-        <div className="grid grid-cols-2 gap-3 p-3">
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Status</h4>
-            <Select
-              value={statusFilter || "all"}
-              onValueChange={(value) => {
-                setStatusFilter(value === "all" ? "" : value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-green-500" />
-                    Active
-                  </span>
-                </SelectItem>
-                <SelectItem value="inactive">
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-red-500" />
-                    Inactive
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Type</h4>
-            <Select
-              value={typeFilter || "all"}
-              onValueChange={(value) => {
-                setTypeFilter(value === "all" ? "" : value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="main">Main</SelectItem>
-                <SelectItem value="promotional">Promotional</SelectItem>
-                <SelectItem value="featured">Featured</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {(statusFilter || typeFilter) && (
-            <div className="col-span-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="w-full mt-2"
-              >
-                Reset Filters
-              </Button>
-            </div>
-          )}
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 
   const renderTableView = () => (
@@ -399,7 +354,7 @@ export function BannerList({
 
         {/* List card: toolbar + table */}
         <div className="rounded-sm border bg-card">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 border-b">
+          <div className="flex flex-col gap-3 border-b p-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400">
                 <ImageIcon className="h-4.5 w-4.5" />
@@ -411,18 +366,103 @@ export function BannerList({
                 </p>
               </div>
             </div>
-            <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
+
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5 lg:flex-nowrap lg:justify-end">
               <TableSearch
-                wrapperClassName="w-full sm:w-64"
+                wrapperClassName="min-w-0 flex-1 md:max-w-xs md:flex-none"
                 placeholder="Search banners..."
                 value={searchQuery}
                 onChange={handleSearchChange}
               />
-              {renderFiltersMenu()}
+
+              {/* Mobile: filters collapse into a bottom sheet */}
+              <div className="shrink-0 md:hidden">
+                <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                      <SlidersHorizontal className="size-3.5" />
+                      Filters
+                      {activeFilterCount > 0 && (
+                        <Badge className="size-4.5 rounded-full px-0 text-[0.65rem] font-semibold">
+                          {activeFilterCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent
+                    side="bottom"
+                    className="inset-x-3 max-h-[82dvh] gap-0 overflow-y-auto rounded-2xl"
+                  >
+                    <SheetHeader className="border-b pr-14">
+                      <SheetTitle>Filters</SheetTitle>
+                      <SheetDescription>
+                        Narrow banners by status and type.
+                      </SheetDescription>
+                    </SheetHeader>
+
+                    {renderFilterControls("sheet").map((control) => (
+                      <div key={control.key} className="px-4 pt-4">
+                        <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          {control.label}
+                        </p>
+                        {control.node}
+                      </div>
+                    ))}
+
+                    <SheetFooter className="sticky bottom-0 mt-4 flex-row border-t bg-background pb-[max(1rem,env(safe-area-inset-bottom))]">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          clearFilters();
+                          setFilterSheetOpen(false);
+                        }}
+                      >
+                        Clear all
+                      </Button>
+                      <SheetClose asChild>
+                        <Button className="flex-1">
+                          {totalItems > 0
+                            ? `Show ${totalItems.toLocaleString("en-US")} banners`
+                            : "Done"}
+                        </Button>
+                      </SheetClose>
+                    </SheetFooter>
+                  </SheetContent>
+                </Sheet>
+              </div>
+
+              {/* Desktop: inline filter controls */}
+              <div className="hidden items-center gap-2.5 md:flex">
+                {renderFilterControls("bar").map((control) => (
+                  <div key={control.key} className={control.barClass}>
+                    {control.node}
+                  </div>
+                ))}
+              </div>
+
+              {hasActiveFilters() && (
+                <div className="hidden min-w-0 items-center gap-2 lg:flex">
+                  <PillBadge
+                    className="min-w-0 font-medium"
+                    title={activeFilterSummary}
+                  >
+                    <span className="max-w-44 truncate">
+                      {activeFilterSummary}
+                    </span>
+                  </PillBadge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 shrink-0 text-muted-foreground"
+                    onClick={clearFilters}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
-
-          {renderActiveFilters()}
 
           {isLoading ? (
             <LoadingIndicator message="Loading Banners..." />

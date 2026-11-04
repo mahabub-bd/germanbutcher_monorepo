@@ -7,6 +7,7 @@ import {
   PAYMENT_STATUS_TONE,
   PillBadge,
 } from "@/components/common/pill-badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
@@ -15,6 +16,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -40,6 +51,7 @@ import {
   Package,
   Percent,
   ShoppingBag,
+  SlidersHorizontal,
   TicketPercent,
   User,
 } from "lucide-react";
@@ -101,6 +113,8 @@ export function CouponUsageLogList({
     totalOrderValue: number | string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Below `md` the date-range filters collapse into a bottom sheet.
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [limit] = useState(initialLimit);
   const [totalItems, setTotalItems] = useState(0);
@@ -118,6 +132,51 @@ export function CouponUsageLogList({
   );
 
   const hasDateRange = Boolean(fromDate || toDate);
+
+  const activeFilterCount = hasDateRange ? 1 : 0;
+
+  // One source of truth for the date-range pickers: the toolbar renders them
+  // inline ("bar") at md+, the mobile sheet renders the same nodes full width
+  // ("sheet") under a visible label.
+  const renderFilterControls = (mode: "bar" | "sheet") => {
+    const wrapClass = mode === "bar" ? "md:w-44" : "w-full";
+    const pickerClass = mode === "bar" ? "h-9 w-full" : "h-11 w-full";
+
+    return [
+      {
+        key: "from",
+        label: "From date",
+        wrapClass,
+        node: (
+          <DatePicker
+            key={`from-${resetKey}`}
+            value={startDate}
+            onChange={setStartDate}
+            placeholder="From date"
+            maxDate={endDate}
+            showIcon={false}
+            className={pickerClass}
+          />
+        ),
+      },
+      {
+        key: "to",
+        label: "To date",
+        wrapClass,
+        node: (
+          <DatePicker
+            key={`to-${resetKey}`}
+            value={endDate}
+            onChange={setEndDate}
+            placeholder="To date"
+            minDate={startDate}
+            showIcon={false}
+            className={pickerClass}
+          />
+        ),
+      },
+    ];
+  };
 
   const updateUrl = useCallback(() => {
     const params = new URLSearchParams();
@@ -265,36 +324,77 @@ export function CouponUsageLogList({
 
       {/* Toolbar */}
       <div className="mb-6 rounded-xl border bg-card p-3 shadow-xs">
-        <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:items-center md:gap-3">
-          <div className="md:w-44">
-            <DatePicker
-              key={`from-${resetKey}`}
-              value={startDate}
-              onChange={setStartDate}
-              placeholder="From date"
-              maxDate={endDate}
-              showIcon={false}
-              className="h-9"
-            />
+        <div className="flex flex-wrap items-center gap-2.5 md:flex-nowrap md:gap-3">
+          {/* Mobile: date-range filters collapse into a bottom sheet */}
+          <div className="shrink-0 md:hidden">
+            <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                  <SlidersHorizontal className="size-3.5" />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <Badge className="size-4.5 rounded-full px-0 text-[0.65rem] font-semibold">
+                      {activeFilterCount}
+                    </Badge>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="bottom"
+                className="inset-x-3 max-h-[82dvh] gap-0 overflow-y-auto rounded-2xl"
+              >
+                <SheetHeader className="border-b pr-14">
+                  <SheetTitle>Filters</SheetTitle>
+                  <SheetDescription>
+                    Narrow redemptions by date range.
+                  </SheetDescription>
+                </SheetHeader>
+
+                {renderFilterControls("sheet").map((control) => (
+                  <div key={control.key} className="px-4 pt-4">
+                    <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {control.label}
+                    </p>
+                    {control.node}
+                  </div>
+                ))}
+
+                <SheetFooter className="sticky bottom-0 mt-4 flex-row border-t bg-background pb-[max(1rem,env(safe-area-inset-bottom))]">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      clearDateRange();
+                      setFilterSheetOpen(false);
+                    }}
+                  >
+                    Clear all
+                  </Button>
+                  <SheetClose asChild>
+                    <Button className="flex-1" onClick={applyDateRange}>
+                      Apply
+                    </Button>
+                  </SheetClose>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
           </div>
-          <div className="md:w-44">
-            <DatePicker
-              key={`to-${resetKey}`}
-              value={endDate}
-              onChange={setEndDate}
-              placeholder="To date"
-              minDate={startDate}
-              showIcon={false}
-              className="h-9"
-            />
+
+          {/* Desktop: inline date-range controls */}
+          <div className="hidden items-center gap-3 md:flex">
+            {renderFilterControls("bar").map((control) => (
+              <div key={control.key} className={control.wrapClass}>
+                {control.node}
+              </div>
+            ))}
+            <Button
+              size="sm"
+              className="h-9 shrink-0 gap-1.5 font-medium"
+              onClick={applyDateRange}
+            >
+              <Filter className="size-4" /> Apply
+            </Button>
           </div>
-          <Button
-            size="sm"
-            className="h-9 gap-1.5 font-medium"
-            onClick={applyDateRange}
-          >
-            <Filter className="size-4" /> Apply
-          </Button>
 
           {hasDateRange && (
             <div className="flex items-center gap-2 md:ml-auto">

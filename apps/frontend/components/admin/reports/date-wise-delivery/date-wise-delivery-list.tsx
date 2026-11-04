@@ -262,6 +262,7 @@ export default function DateWiseDeliveryList({
         preset={preset}
         fromDate={fromDate}
         toDate={toDate}
+        extraLabel="Delivery Man"
         extra={
           <Select
             value={selectedDeliveryMan || "all"}
@@ -344,11 +345,9 @@ export default function DateWiseDeliveryList({
               icon={CalendarDays}
               title="Avg deliveries / day"
               value={(summary?.avgPerDay ?? 0).toLocaleString("en-US")}
-              description={`${summary?.deliveryDays ?? 0} day${
-                (summary?.deliveryDays ?? 0) === 1 ? "" : "s"
-              } · ${summary?.activeDeliveryMen ?? 0} man${
-                (summary?.activeDeliveryMen ?? 0) === 1 ? "" : " involved"
-              }`}
+              description={`${summary?.deliveryDays ?? 0} day${(summary?.deliveryDays ?? 0) === 1 ? "" : "s"
+                } · ${summary?.activeDeliveryMen ?? 0} man${(summary?.activeDeliveryMen ?? 0) === 1 ? "" : " involved"
+                }`}
               bgColor="orange"
             />
           </div>
@@ -411,7 +410,7 @@ export default function DateWiseDeliveryList({
                             className={cn(
                               "text-sm font-bold tabular-nums",
                               day.totalLate > 0 &&
-                                "text-red-600 dark:text-red-400",
+                              "text-red-600 dark:text-red-400",
                             )}
                           >
                             {day.totalLate}
@@ -454,7 +453,7 @@ export default function DateWiseDeliveryList({
                               className={cn(
                                 "text-sm font-semibold tabular-nums",
                                 d.lateOrders > 0 &&
-                                  "text-red-600 dark:text-red-400",
+                                "text-red-600 dark:text-red-400",
                               )}
                             >
                               {d.lateOrders}
