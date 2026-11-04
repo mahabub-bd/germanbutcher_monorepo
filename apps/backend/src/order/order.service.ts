@@ -2775,6 +2775,9 @@ export class OrderService {
     const conditions: string[] = [
       `o."orderStatus" = 'delivered'`,
       `o."deliveredAt" IS NOT NULL`,
+      // Store-collection orders (e.g. "Gulshan Store Collection") are picked
+      // up by the customer, not delivered by a man — exclude them entirely.
+      `COALESCE(sm.name, '') <> 'Gulshan Store Collection'`,
     ];
     if (from) {
       params.push(from);

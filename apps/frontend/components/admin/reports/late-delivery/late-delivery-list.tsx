@@ -438,6 +438,7 @@ export default function LateDeliveryList({
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="pl-4">Order</TableHead>
+                      <TableHead>Customer</TableHead>
                       <TableHead>Delivery Man</TableHead>
                       <TableHead>Method</TableHead>
                       <TableHead>Placed</TableHead>
@@ -456,7 +457,9 @@ export default function LateDeliveryList({
                           >
                             {order.orderNo}
                           </Link>
-                          <span className="block text-xs text-muted-foreground">
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">
                             {order.customerName}
                           </span>
                         </TableCell>
@@ -471,12 +474,12 @@ export default function LateDeliveryList({
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-xs tabular-nums text-muted-foreground">
+                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
                             {formatDateTime(order.orderDate)}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-xs tabular-nums text-muted-foreground">
+                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
                             {formatDateTime(order.deliveredAt)}
                           </span>
                         </TableCell>
