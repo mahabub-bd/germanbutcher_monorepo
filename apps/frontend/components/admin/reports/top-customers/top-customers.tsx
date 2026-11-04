@@ -33,7 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { cn, formatCurrencyEnglish, shortenArea } from "@/lib/utils";
+import { formatCurrencyEnglish, shortenArea } from "@/lib/utils";
 import {
   Crown,
   Mail,
@@ -525,9 +525,9 @@ export default function TopCustomersReport({
                         <span className="text-sm tabular-nums text-muted-foreground">
                           {customer.statistics.totalOrders > 0
                             ? formatCurrencyEnglish(
-                                customer.statistics.averageOrderValue,
-                                0
-                              )
+                              customer.statistics.averageOrderValue,
+                              0
+                            )
                             : "—"}
                         </span>
                       </TableCell>
