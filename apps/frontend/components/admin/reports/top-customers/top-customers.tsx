@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { ReportExcelButton } from "@/components/admin/reports/download-excel-button";
 import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
 import { PillBadge } from "@/components/common/pill-badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -24,7 +25,10 @@ import {
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { cn, formatCurrencyEnglish, shortenArea } from "@/lib/utils";
 import {
+  BadgeCheck,
   Crown,
+  Mail,
+  MapPin,
   ShoppingCart,
   TrendingUp,
   Users,
@@ -134,6 +138,7 @@ export default function TopCustomersReport({
                 "Rank",
                 "Customer Name",
                 "Mobile",
+                "Email",
                 "Area",
                 "Orders",
                 "Total Spent",
@@ -143,6 +148,7 @@ export default function TopCustomersReport({
                 index + 1,
                 customer.name,
                 customer.mobileNumber,
+                customer.email || "-",
                 customer.area || "-",
                 customer.statistics.totalOrders,
                 customer.statistics.totalSpent,
@@ -307,7 +313,8 @@ export default function TopCustomersReport({
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="pl-4">#</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Contact</TableHead>
+                    <TableHead>Mobile</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Area</TableHead>
                     <TableHead className="text-right">Orders</TableHead>
                     <TableHead className="text-right">Spent</TableHead>
@@ -345,20 +352,16 @@ export default function TopCustomersReport({
                             {customer.name}
                           </Link>
                           {customer.isVerified && (
-                            <PillBadge
-                              tone="emerald"
-                              className="px-1.5"
+                            <Badge
+                              variant="secondary"
+                              className="gap-1 border-transparent bg-emerald-100 px-1.5 font-normal text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
                               title="Verified customer"
                             >
-                              ✓
-                            </PillBadge>
+                              <BadgeCheck className="size-3 shrink-0" />
+                              Verified
+                            </Badge>
                           )}
                         </div>
-                        {customer.email && (
-                          <p className="truncate text-sm text-muted-foreground">
-                            {customer.email}
-                          </p>
-                        )}
                       </TableCell>
 
                       <TableCell>
@@ -378,14 +381,42 @@ export default function TopCustomersReport({
                       </TableCell>
 
                       <TableCell>
+                        {customer.email ? (
+                          <a
+                            href={`mailto:${customer.email}`}
+                            onClick={(event) => event.stopPropagation()}
+                            className="block max-w-48 truncate text-sm text-blue-600 hover:underline dark:text-blue-400"
+                            title={customer.email}
+                          >
+                            {customer.email}
+                          </a>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            No email
+                          </span>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
                         {customer.area ? (
-                          <PillBadge
-                            tone="violet"
-                            className="max-w-40 truncate font-normal text-sm"
+                          <Badge
+                            variant="secondary"
+                            className="max-w-52 truncate border-transparent bg-violet-100 font-normal text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
                             title={customer.area}
                           >
-                            {shortenArea(customer.area)}
-                          </PillBadge>
+                            <span className="hidden min-w-0 items-center gap-1 2xl:flex">
+                              <MapPin className="size-3 shrink-0" />
+                              <span className="truncate">
+                                {shortenArea(customer.area, 5)}
+                              </span>
+                            </span>
+                            <span className="flex min-w-0 items-center gap-1 2xl:hidden">
+                              <MapPin className="size-3 shrink-0" />
+                              <span className="truncate">
+                                {shortenArea(customer.area)}
+                              </span>
+                            </span>
+                          </Badge>
                         ) : (
                           <span className="text-sm text-muted-foreground">
                             —
@@ -431,7 +462,7 @@ export default function TopCustomersReport({
                     <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Total
                     </TableCell>
-                    <TableCell colSpan={3} />
+                    <TableCell colSpan={4} />
                     <TableCell className="text-right">
                       <span className="text-sm font-bold tabular-nums">
                         {totalOrders.toLocaleString("en-US")}
@@ -476,13 +507,14 @@ export default function TopCustomersReport({
                             {customer.name}
                           </Link>
                           {customer.isVerified && (
-                            <PillBadge
-                              tone="emerald"
-                              className="px-1.5"
+                            <Badge
+                              variant="secondary"
+                              className="gap-1 border-transparent bg-emerald-100 px-1.5 font-normal text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
                               title="Verified customer"
                             >
-                              ✓
-                            </PillBadge>
+                              <BadgeCheck className="size-3 shrink-0" />
+                              Verified
+                            </Badge>
                           )}
                         </div>
                         {customer.mobileNumber && (
@@ -493,16 +525,30 @@ export default function TopCustomersReport({
                             {customer.mobileNumber}
                           </a>
                         )}
+                        {customer.email && (
+                          <a
+                            href={`mailto:${customer.email}`}
+                            className="flex min-w-0 items-center gap-1 text-[11px] text-blue-600 hover:underline dark:text-blue-400"
+                          >
+                            <Mail className="size-3 shrink-0" />
+                            <span className="truncate">{customer.email}</span>
+                          </a>
+                        )}
                       </div>
                     </div>
                     {customer.area && (
-                      <PillBadge
-                        tone="violet"
-                        className="max-w-36 shrink-0 truncate font-normal"
+                      <Badge
+                        variant="secondary"
+                        className="max-w-36 truncate border-transparent bg-violet-100 font-normal text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
                         title={customer.area}
                       >
-                        {shortenArea(customer.area)}
-                      </PillBadge>
+                        <span className="flex min-w-0 items-center gap-1">
+                          <MapPin className="size-3 shrink-0" />
+                          <span className="truncate">
+                            {shortenArea(customer.area)}
+                          </span>
+                        </span>
+                      </Badge>
                     )}
                   </div>
 
