@@ -419,7 +419,8 @@ export function CustomerDetail() {
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm">
-                <Plus className="h-4 w-4 mr-1" /> Add Activity
+                <Plus className="h-4 w-4 mr-1" />
+                <span>Add Activity</span>
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -680,7 +681,7 @@ export function CustomerDetail() {
               No orders yet.
             </p>
           ) : (
-            <div className="rounded-lg border bg-card">
+            <div className="overflow-x-auto rounded-lg border bg-card">
               <Table className="min-w-180 text-xs">
                 <TableHeader>
                   <TableRow>

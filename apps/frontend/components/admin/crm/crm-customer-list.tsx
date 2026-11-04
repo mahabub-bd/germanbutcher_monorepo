@@ -396,33 +396,8 @@ export function CrmCustomerList({
       />
 
       <div className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-          <Tabs
-            value={segment}
-            onValueChange={(value) => {
-              setSegment(value);
-              setCurrentPage(1);
-            }}
-          >
-            <div className="relative w-full md:w-fit">
-              <TabsList className="scrollbar-none h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit">
-                {SEGMENTS.map((seg) => (
-                  <TabsTrigger
-                    key={seg.value}
-                    value={seg.value}
-                    className={`inline-flex h-auto flex-none items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-xs font-semibold shadow-none transition-colors data-[state=active]:shadow-none sm:px-4 sm:py-2 sm:text-sm ${seg.colors} ${seg.activeColors}`}
-                  >
-                    {seg.icon}
-                    {seg.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              {/* Right-edge fade cue: signals more tabs off-screen (mobile only) */}
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-background to-transparent md:hidden" />
-            </div>
-          </Tabs>
-
-          <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-2 w-full">
             <TableSearch
               wrapperClassName="flex-1 sm:w-64 sm:flex-none"
               placeholder="Search by name, email, or phone..."
@@ -451,6 +426,31 @@ export function CrmCustomerList({
               {isExporting ? "Exporting..." : "Export Excel"}
             </Button>
           </div>
+
+          <Tabs
+            value={segment}
+            onValueChange={(value) => {
+              setSegment(value);
+              setCurrentPage(1);
+            }}
+          >
+            <div className="relative w-full md:w-fit">
+              <TabsList className="scrollbar-none h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit">
+                {SEGMENTS.map((seg) => (
+                  <TabsTrigger
+                    key={seg.value}
+                    value={seg.value}
+                    className={`inline-flex h-auto flex-none items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-xs font-semibold shadow-none transition-colors data-[state=active]:shadow-none sm:px-4 sm:py-2 sm:text-sm ${seg.colors} ${seg.activeColors}`}
+                  >
+                    {seg.icon}
+                    {seg.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {/* Right-edge fade cue: signals more tabs off-screen (mobile only) */}
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-background to-transparent md:hidden" />
+            </div>
+          </Tabs>
         </div>
 
         {searchQuery && (
