@@ -260,11 +260,6 @@ export default function InventoryList({
                       </TableCell>
                       <TableCell>
                         <p className="text-sm font-medium">{p.name}</p>
-                        {p.slug && (
-                          <p className="truncate text-[11px] text-muted-foreground">
-                            {p.slug}
-                          </p>
-                        )}
                       </TableCell>
                       <TableCell>
                         <PillBadge
