@@ -212,6 +212,7 @@ export function TopCustomersPDF({
           <Text style={styles.headerTextRank}>Rank</Text>
           <Text style={styles.tableHeaderText}>Customer Name</Text>
           <Text style={styles.tableHeaderText}>Mobile</Text>
+          <Text style={styles.tableHeaderText}>Email</Text>
           <Text style={styles.tableHeaderText}>Area</Text>
           <Text style={styles.headerTextOrders}>Orders</Text>
           <Text style={styles.headerTextRight}>Total Spent</Text>
@@ -227,6 +228,7 @@ export function TopCustomersPDF({
             <Text style={styles.cellRank}>{index + 1}</Text>
             <Text style={styles.cell}>{customer.name}</Text>
             <Text style={styles.cell}>{customer.mobileNumber}</Text>
+            <Text style={styles.cell}>{customer.email || "-"}</Text>
             <Text style={styles.cell}>{customer.area || "-"}</Text>
             <Text style={styles.cellOrders}>
               {customer.statistics.totalOrders}
