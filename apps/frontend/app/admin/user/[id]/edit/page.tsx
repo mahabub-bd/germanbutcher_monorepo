@@ -1,8 +1,8 @@
 "use client";
 
 import { UserForm } from "@/components/admin/user/user-form";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 import { Button } from "@/components/ui/button";
-import { CardTitle } from "@/components/ui/card";
 
 import { fetchProtectedData } from "@/utils/api-utils";
 import type { User } from "@/utils/types";
@@ -72,14 +72,11 @@ export default function EditUserPage() {
 
   return (
     <AdminPageContainer>
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <CardTitle>User Information</CardTitle>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/admin/user/user-list">Back to User List</Link>
-          </Button>
-        </div>
+      <FormPageHeader
+        title="User information"
+        backHref="/admin/user/user-list"
+        backLabel="Back to Users"
+      />
 
       <UserForm mode="edit" user={user} onSuccess={handleSuccess} />
     </AdminPageContainer>
