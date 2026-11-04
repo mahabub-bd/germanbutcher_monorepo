@@ -276,6 +276,7 @@ export default function DeliverymanPerformanceList({
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="pl-4">Delivery man</TableHead>
+                    <TableHead>Mobile</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Assigned</TableHead>
                     <TableHead className="text-right">In Progress</TableHead>
@@ -289,18 +290,21 @@ export default function DeliverymanPerformanceList({
                   {deliveryMen.map((d) => (
                     <TableRow key={d.id}>
                       <TableCell className="py-2.5 pl-4">
-                        <p className="text-sm font-medium">{d.name}</p>
+                        <span className="text-sm font-medium">{d.name}</span>
+                      </TableCell>
+
+                      <TableCell>
                         {d.mobileNumber ? (
                           <a
                             href={`tel:${d.mobileNumber}`}
-                            className="text-[11px] text-blue-600 hover:underline dark:text-blue-400"
+                            className="text-sm whitespace-nowrap text-blue-600 hover:underline dark:text-blue-400"
                           >
                             {d.mobileNumber}
                           </a>
                         ) : (
-                          <p className="text-[11px] text-muted-foreground">
+                          <span className="text-sm text-muted-foreground">
                             No mobile
-                          </p>
+                          </span>
                         )}
                       </TableCell>
 
@@ -344,6 +348,7 @@ export default function DeliverymanPerformanceList({
                     <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Total
                     </TableCell>
+                    <TableCell />
                     <TableCell />
                     <TableCell className="text-right">
                       <span className="text-sm font-bold tabular-nums">

@@ -273,12 +273,13 @@ export default function RepeatBuyerList({
               <Table className="report-table table-fixed [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-[30%] pl-4">Customer</TableHead>
+                    <TableHead className="w-[22%] pl-4">Customer</TableHead>
+                    <TableHead className="w-[16%]">Mobile</TableHead>
                     <TableHead className="w-[12%]">Type</TableHead>
                     <TableHead className="w-[10%] text-center">Orders</TableHead>
                     <TableHead className="w-[14%] text-center">Spend</TableHead>
-                    <TableHead className="w-[16%]">First Order</TableHead>
-                    <TableHead className="w-[18%] pr-4">Last Order</TableHead>
+                    <TableHead className="w-[13%]">First Order</TableHead>
+                    <TableHead className="w-[13%] pr-4">Last Order</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -288,13 +289,19 @@ export default function RepeatBuyerList({
                       <TableRow key={c.id}>
                         <TableCell className="py-2 pl-4">
                           <span className="text-sm font-medium">{c.name}</span>
-                          {c.mobileNumber && (
+                        </TableCell>
+                        <TableCell>
+                          {c.mobileNumber ? (
                             <a
                               href={`tel:${c.mobileNumber}`}
-                              className="block text-xs text-muted-foreground hover:text-foreground"
+                              className="text-sm whitespace-nowrap text-blue-600 hover:underline dark:text-blue-400"
                             >
                               {c.mobileNumber}
                             </a>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              No mobile
+                            </span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -331,6 +338,7 @@ export default function RepeatBuyerList({
                     <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Total
                     </TableCell>
+                    <TableCell />
                     <TableCell />
                     <TableCell className="text-center">
                       <span className="text-sm font-bold tabular-nums">

@@ -284,6 +284,7 @@ export default function RefundsList({
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="pl-4">Order</TableHead>
                     <TableHead>Customer</TableHead>
+                    <TableHead>Mobile</TableHead>
                     <TableHead>Area</TableHead>
                     <TableHead>Method</TableHead>
                     <TableHead>Payment</TableHead>
@@ -297,26 +298,37 @@ export default function RefundsList({
                   {orders.map((o) => (
                     <TableRow key={o.id}>
                       <TableCell className="py-2.5 pl-4">
-                        <Link
-                          href={`/admin/order/${o.id}/view`}
-                          className="text-sm font-semibold text-foreground hover:text-primaryColor hover:underline"
-                        >
-                          {o.orderNo}
-                        </Link>
-                        <p className="text-[11px] text-muted-foreground">
-                          {o.date}
-                        </p>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <Link
+                            href={`/admin/order/${o.id}/view`}
+                            className="shrink-0 text-sm font-semibold text-foreground hover:text-primaryColor hover:underline"
+                          >
+                            {o.orderNo}
+                          </Link>
+                          <span className="min-w-0 truncate whitespace-nowrap text-sm text-muted-foreground">
+                            {o.date}
+                          </span>
+                        </div>
                       </TableCell>
 
                       <TableCell>
-                        <p className="truncate text-sm">{o.customerName}</p>
-                        {o.mobileNumber && (
+                        <span className="block truncate text-sm">
+                          {o.customerName}
+                        </span>
+                      </TableCell>
+
+                      <TableCell>
+                        {o.mobileNumber ? (
                           <a
                             href={`tel:${o.mobileNumber}`}
-                            className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                            className="text-sm whitespace-nowrap text-blue-600 hover:underline dark:text-blue-400"
                           >
                             {o.mobileNumber}
                           </a>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            No mobile
+                          </span>
                         )}
                       </TableCell>
 
@@ -388,7 +400,7 @@ export default function RefundsList({
                     <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Total
                     </TableCell>
-                    <TableCell colSpan={5} />
+                    <TableCell colSpan={6} />
                     <TableCell className="text-right">
                       <span className="text-sm font-bold tabular-nums">
                         {bare(totalValue)}
