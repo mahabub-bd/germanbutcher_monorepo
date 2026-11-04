@@ -224,6 +224,7 @@ export default function AbandonedCheckoutList({
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="pl-4">Customer</TableHead>
+                    <TableHead>Mobile</TableHead>
                     <TableHead className="text-right">Items</TableHead>
                     <TableHead className="text-right">Cart Value</TableHead>
                     <TableHead className="text-right">Last Activity</TableHead>
@@ -234,19 +235,23 @@ export default function AbandonedCheckoutList({
                   {items.map((row) => (
                     <TableRow key={row.cartId}>
                       <TableCell className="py-2 pl-4">
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-semibold">
-                            {row.userName || "Guest"}
-                          </p>
-                          {row.mobileNumber && (
-                            <a
-                              href={`tel:${row.mobileNumber}`}
-                              className="block text-xs text-blue-600 hover:underline dark:text-blue-400"
-                            >
-                              {row.mobileNumber}
-                            </a>
-                          )}
-                        </div>
+                        <span className="text-sm font-semibold">
+                          {row.userName || "Guest"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {row.mobileNumber ? (
+                          <a
+                            href={`tel:${row.mobileNumber}`}
+                            className="text-sm whitespace-nowrap text-blue-600 hover:underline dark:text-blue-400"
+                          >
+                            {row.mobileNumber}
+                          </a>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            No mobile
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="text-sm font-semibold tabular-nums">
@@ -258,7 +263,7 @@ export default function AbandonedCheckoutList({
                           {bare(row.value)}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="whitespace-nowrap text-right">
                         <span className="text-sm tabular-nums text-muted-foreground">
                           {formatDateTime(row.updatedAt)}
                         </span>

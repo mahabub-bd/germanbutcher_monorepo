@@ -295,36 +295,34 @@ export default function CustomerListReport({
                       </TableCell>
 
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
                           <span className="flex size-7 shrink-0 items-center justify-center rounded-full border bg-muted">
                             <User className="size-3.5 text-muted-foreground" />
                           </span>
-                          <div className="min-w-0">
-                            {customer.id ? (
-                              <Link
-                                href={`/admin/customer/${customer.id}/view`}
-                                className="block truncate text-sm font-medium text-foreground hover:text-primaryColor hover:underline"
-                              >
-                                {customer.name}
-                              </Link>
-                            ) : (
-                              <span className="block truncate text-sm font-medium">
-                                {customer.name}
-                              </span>
-                            )}
-                            {customer.email ? (
-                              <a
-                                href={`mailto:${customer.email}`}
-                                className="block truncate text-sm text-muted-foreground hover:text-blue-600 hover:underline dark:hover:text-blue-400"
-                              >
-                                {customer.email}
-                              </a>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">
-                                No email
-                              </span>
-                            )}
-                          </div>
+                          {customer.id ? (
+                            <Link
+                              href={`/admin/customer/${customer.id}/view`}
+                              className="shrink-0 truncate text-sm font-medium text-foreground hover:text-primaryColor hover:underline"
+                            >
+                              {customer.name}
+                            </Link>
+                          ) : (
+                            <span className="shrink-0 truncate text-sm font-medium">
+                              {customer.name}
+                            </span>
+                          )}
+                          {customer.email ? (
+                            <a
+                              href={`mailto:${customer.email}`}
+                              className="min-w-0 truncate text-sm text-muted-foreground hover:text-blue-600 hover:underline dark:hover:text-blue-400"
+                            >
+                              {customer.email}
+                            </a>
+                          ) : (
+                            <span className="min-w-0 truncate text-sm text-muted-foreground">
+                              No email
+                            </span>
+                          )}
                         </div>
                       </TableCell>
 
@@ -332,7 +330,7 @@ export default function CustomerListReport({
                         {customer.mobileNumber ? (
                           <a
                             href={`tel:${customer.mobileNumber}`}
-                            className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+                            className="text-sm whitespace-nowrap text-blue-600 hover:underline dark:text-blue-400"
                           >
                             {customer.mobileNumber}
                           </a>
@@ -344,14 +342,13 @@ export default function CustomerListReport({
                       </TableCell>
 
                       <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium whitespace-nowrap">
-                            {formatDate(customer.registrationDate)}
-                          </span>
-                          <span className="text-sm text-muted-foreground whitespace-nowrap">
-                            {formatTime(customer.registrationDate)}
-                          </span>
-                        </div>
+                        <span className="whitespace-nowrap text-sm font-medium">
+                          {formatDate(customer.registrationDate)}
+                        </span>
+                        <span className="whitespace-nowrap text-sm text-muted-foreground">
+                          {" "}
+                          {formatTime(customer.registrationDate)}
+                        </span>
                       </TableCell>
 
                       <TableCell className="text-right">
