@@ -46,7 +46,7 @@ export default async function AbandonedCheckoutReportPage({
     queryParams.append("limit", String(limit));
     if (search) queryParams.append("search", search);
 
-    const endpoint = `carts/reports/abandoned?${queryParams.toString()}`;
+    const endpoint = `cart/reports/abandoned?${queryParams.toString()}`;
 
     reportData = await fetchProtectedData(endpoint);
   } catch (error) {
