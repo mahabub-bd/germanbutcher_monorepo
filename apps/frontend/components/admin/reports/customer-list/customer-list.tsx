@@ -314,13 +314,13 @@ export default function CustomerListReport({
 
                       <TableCell>
                         {customer.email ? (
-                          <a
+                          <Link
                             href={`mailto:${customer.email}`}
                             className="block  truncate text-sm text-blue-600 hover:underline dark:text-blue-400"
                             title={customer.email}
                           >
                             {customer.email}
-                          </a>
+                          </Link>
                         ) : (
                           <span className="text-sm text-muted-foreground">
                             No email

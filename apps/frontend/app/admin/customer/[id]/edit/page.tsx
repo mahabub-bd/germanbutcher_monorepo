@@ -1,8 +1,8 @@
 "use client";
 
 import { CustomerForm } from "@/components/admin/customer/customer-form";
+import { FormPageHeader } from "@/components/admin/form-page-header";
 import { Button } from "@/components/ui/button";
-import { CardTitle } from "@/components/ui/card";
 
 import { fetchProtectedData } from "@/utils/api-utils";
 import type { User } from "@/utils/types";
@@ -34,14 +34,15 @@ export default function EditUserPage() {
         setUser(userData);
       } catch (error) {
         console.error("Error fetching user:", error);
-        toast.error("Failed to load user data");
-        router.push("/admin/user/user-list");
+        toast.error("Failed to load customer data");
+        router.push(listUrl);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, router]);
 
   const handleSuccess = () => {
@@ -64,12 +65,12 @@ export default function EditUserPage() {
     return (
       <AdminPageContainer>
         <div className="text-center">
-          <h2 className="text-xl font-semibold">User not found</h2>
+          <h2 className="text-xl font-semibold">Customer not found</h2>
           <p className="text-muted-foreground mt-2">
-            The requested user could not be found.
+            The requested customer could not be found.
           </p>
           <Button asChild className="mt-4">
-            <Link href="/admin/user/user-list">Back to Users</Link>
+            <Link href={listUrl}>Back to Customers</Link>
           </Button>
         </div>
       </AdminPageContainer>
@@ -78,14 +79,11 @@ export default function EditUserPage() {
 
   return (
     <AdminPageContainer>
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <CardTitle>User Information</CardTitle>
-          </div>
-          <Button asChild variant="outline">
-            <Link href={listUrl}>Back to CustomerList</Link>
-          </Button>
-        </div>
+      <FormPageHeader
+        title="Customer information"
+        backHref={listUrl}
+        backLabel="Back to Customers"
+      />
 
       <CustomerForm mode="edit" user={user} onSuccess={handleSuccess} />
     </AdminPageContainer>

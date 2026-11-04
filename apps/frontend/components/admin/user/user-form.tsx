@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { fetchProtectedData, patchData, postData } from "@/utils/api-utils";
 import { userSchema } from "@/utils/form-validation";
 import { Role, User } from "@/utils/types";
@@ -96,14 +97,17 @@ export function UserForm({ user, mode, onSuccess }: UserFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="p-6 space-y-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+        <FormSection
+          title="User"
+          description="Name, email, password and mobile number for this user."
+        >
+          <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
-                <FormItem className="space-y-2">
+                <FormItem className="flex h-full flex-col gap-1.5">
                   <FormLabel>Name</FormLabel>
                   <FormControl>
                     <Input
@@ -121,7 +125,7 @@ export function UserForm({ user, mode, onSuccess }: UserFormProps) {
               control={form.control}
               name="email"
               render={({ field }) => (
-                <FormItem className="space-y-2">
+                <FormItem className="flex h-full flex-col gap-1.5">
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input
@@ -140,12 +144,17 @@ export function UserForm({ user, mode, onSuccess }: UserFormProps) {
               control={form.control}
               name="password"
               render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <FormLabel>
-                    {mode === "create"
-                      ? "Password"
-                      : "New Password (leave blank to keep current)"}
-                  </FormLabel>
+                <FormItem className="flex h-full flex-col gap-1.5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+                    <FormLabel>
+                      {mode === "create" ? "Password" : "New password"}
+                    </FormLabel>
+                    {mode === "edit" && (
+                      <span className="text-xs text-muted-foreground">
+                        Leave blank to keep the current password
+                      </span>
+                    )}
+                  </div>
                   <FormControl>
                     <Input
                       type="password"
@@ -163,8 +172,8 @@ export function UserForm({ user, mode, onSuccess }: UserFormProps) {
               control={form.control}
               name="mobileNumber"
               render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <FormLabel>Mobile Number</FormLabel>
+                <FormItem className="flex h-full flex-col gap-1.5">
+                  <FormLabel>Mobile number</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="+880"
@@ -190,12 +199,19 @@ export function UserForm({ user, mode, onSuccess }: UserFormProps) {
                 </FormItem>
               )}
             />
+          </div>
+        </FormSection>
 
+        <FormSection
+          title="Access"
+          description="Assigned role and verification status."
+        >
+          <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="roleId"
               render={({ field }) => (
-                <FormItem className="space-y-2">
+                <FormItem className="flex h-full flex-col gap-1.5">
                   <FormLabel>Role</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
@@ -224,38 +240,99 @@ export function UserForm({ user, mode, onSuccess }: UserFormProps) {
               control={form.control}
               name="isVerified"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 space-y-0">
-                  <div className="space-y-0.5">
-                    <FormLabel>Verified Status</FormLabel>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
+                <SwitchRow
+                  label="Verified"
+                  hint="User account is verified"
+                  checked={field.value}
+                  onChange={field.onChange}
+                  className="h-full"
+                />
               )}
             />
           </div>
-        </div>
+        </FormSection>
 
-        <div className="flex justify-end space-x-4 pt-2">
+        <div className="sticky bottom-2 flex flex-col-reverse items-stretch gap-2 rounded-lg border bg-card/95 p-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-end">
           <Button
             type="button"
             variant="outline"
             onClick={onSuccess}
             disabled={isSubmitting}
-            className="w-24"
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting} className="w-32">
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {mode === "create" ? "Create User" : "Update User"}
+            {mode === "create" ? "Create user" : "Save changes"}
           </Button>
         </div>
       </form>
     </Form>
+  );
+}
+
+/** Bordered card with a titled header — shared admin form convention. */
+function FormSection({
+  title,
+  description,
+  className,
+  children,
+}: {
+  title: string;
+  description?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className={cn(
+        "flex h-full flex-col overflow-hidden rounded-lg border bg-card shadow-xs",
+        className
+      )}
+    >
+      <div className="border-b px-3.5 py-2.5">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {description && (
+          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+        )}
+      </div>
+      <div className="flex-1 space-y-3 p-3.5">{children}</div>
+    </section>
+  );
+}
+
+/** Clickable full-width toggle row. */
+function SwitchRow({
+  label,
+  hint,
+  checked,
+  onChange,
+  className,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-background p-3 transition-colors hover:border-primary/40 hover:bg-muted/30",
+        className
+      )}
+    >
+      <div className="min-w-0 space-y-0.5">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs leading-snug text-muted-foreground">{hint}</p>
+      </div>
+      <Switch
+        checked={checked}
+        onCheckedChange={onChange}
+        onClick={(event) => event.stopPropagation()}
+        className="shrink-0"
+      />
+    </div>
   );
 }

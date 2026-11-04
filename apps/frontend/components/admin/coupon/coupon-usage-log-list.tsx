@@ -80,16 +80,6 @@ const bare = (value: number | string) =>
 const humanize = (status: string) =>
   status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-/** formatDateTime yields "31 Oct 2026, 10:30 AM" — split on the LAST comma so
- *  the day and the clock can sit on two lines inside a narrow column. */
-const splitStamp = (value: string) => {
-  const stamp = formatDateTime(value);
-  const cut = stamp.lastIndexOf(", ");
-  return cut === -1
-    ? { day: stamp, clock: "" }
-    : { day: stamp.slice(0, cut), clock: stamp.slice(cut + 2) };
-};
-
 export function CouponUsageLogList({
   couponCode,
   initialPage = 1,
@@ -119,16 +109,18 @@ export function CouponUsageLogList({
   const [limit] = useState(initialLimit);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [fromDate, setFromDate] = useState(getInitialParam("fromDate") as string);
+  const [fromDate, setFromDate] = useState(
+    getInitialParam("fromDate") as string,
+  );
   const [toDate, setToDate] = useState(getInitialParam("toDate") as string);
   // DatePicker holds its own copy of the picked date, so Clear bumps this key
   // to remount both pickers without a stale selection.
   const [resetKey, setResetKey] = useState(0);
   const [startDate, setStartDate] = useState<Date | undefined>(
-    fromDate ? new Date(fromDate) : undefined
+    fromDate ? new Date(fromDate) : undefined,
   );
   const [endDate, setEndDate] = useState<Date | undefined>(
-    toDate ? new Date(toDate) : undefined
+    toDate ? new Date(toDate) : undefined,
   );
 
   const hasDateRange = Boolean(fromDate || toDate);
@@ -246,11 +238,11 @@ export function CouponUsageLogList({
 
   const pageDiscount = logs.reduce(
     (sum, log) => sum + Number(log.discountAmount || 0),
-    0
+    0,
   );
   const pageOrderValue = logs.reduce(
     (sum, log) => sum + Number(log.orderTotal || 0),
-    0
+    0,
   );
 
   const renderActions = (log: CouponUsageLog) => (
@@ -285,9 +277,6 @@ export function CouponUsageLogList({
         <p className="truncate font-medium leading-tight">
           {log.user?.name || "Unknown"}
         </p>
-        <p className="truncate text-[11px] text-muted-foreground">
-          {log.user?.email || "—"}
-        </p>
       </div>
     </div>
   );
@@ -299,7 +288,9 @@ export function CouponUsageLogList({
   );
 
   const renderPaymentStatus = (log: CouponUsageLog) => (
-    <PillBadge tone={PAYMENT_STATUS_TONE[log.order?.paymentStatus] ?? "neutral"}>
+    <PillBadge
+      tone={PAYMENT_STATUS_TONE[log.order?.paymentStatus] ?? "neutral"}
+    >
       {humanize(log.order?.paymentStatus ?? "unknown")}
     </PillBadge>
   );
@@ -434,11 +425,7 @@ export function CouponUsageLogList({
             </p>
           </div>
           {hasDateRange && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearDateRange}
-            >
+            <Button variant="outline" size="sm" onClick={clearDateRange}>
               Clear date range
             </Button>
           )}
@@ -526,14 +513,12 @@ export function CouponUsageLogList({
               </PillBadge>
             </div>
 
-            {/* Desktop table — nine columns need xl; below that the cards
-                carry the same fields. Customer and Actions are pinned, the
-                rest split the panel width equally and every column is left-
-                aligned, so the gutters read identical: a right-aligned amount
-                would end flush against the next column's boundary and close
-                its gap. */}
-            <div className="hidden xl:block">
-              <Table className="report-table table-fixed [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
+            {/* One table at every width — nine columns need more room than a
+                phone gives, so the panel scrolls horizontally below xl while
+                each record stays on a single line. Customer and Actions keep
+                bounded widths; the rest split the remaining space equally. */}
+            <div className="overflow-x-auto">
+              <Table className="report-table table-fixed min-w-[1080px] [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
                 <TableHeader className="[&_th]:font-semibold">
                   <TableRow className="hover:bg-transparent">
                     {!couponCode && <TableHead>Coupon</TableHead>}
@@ -554,135 +539,69 @@ export function CouponUsageLogList({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.map((log) => {
-                    const usedAt = splitStamp(log.createdAt);
-                    return (
-                      <TableRow key={log.id}>
-                        {!couponCode && (
-                          <TableCell className="py-2.5">
-                            <PillBadge tone="blue" className="font-mono">
-                              {log.couponCode}
-                            </PillBadge>
-                          </TableCell>
-                        )}
-
+                  {logs.map((log) => (
+                    <TableRow key={log.id}>
+                      {!couponCode && (
                         <TableCell className="py-2.5">
-                          {renderCustomer(log)}
+                          <PillBadge tone="blue" className="font-mono">
+                            {log.couponCode}
+                          </PillBadge>
                         </TableCell>
+                      )}
 
-                        <TableCell>
-                          <Link
-                            href={`/admin/order/${log.order.id}/view`}
-                            className="block truncate font-mono text-sm text-foreground hover:text-primaryColor hover:underline"
-                            title={log.order.orderNo}
-                          >
-                            {log.order.orderNo}
-                          </Link>
-                        </TableCell>
+                      <TableCell className="py-2.5">
+                        {renderCustomer(log)}
+                      </TableCell>
 
-                        <TableCell>
-                          <p className="truncate text-sm tabular-nums">
-                            {bare(log.orderTotal)}
-                          </p>
-                        </TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/admin/order/${log.order.id}/view`}
+                          className="block truncate font-mono text-sm text-foreground hover:text-primaryColor hover:underline"
+                          title={log.order.orderNo}
+                        >
+                          {log.order.orderNo}
+                        </Link>
+                      </TableCell>
 
-                        <TableCell>
-                          <p className="truncate text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">
-                            −{bare(log.discountAmount)}
-                          </p>
-                          <p className="truncate text-[11px] text-muted-foreground">
+                      <TableCell>
+                        <p className="truncate text-sm tabular-nums">
+                          {bare(log.orderTotal)}
+                        </p>
+                      </TableCell>
+
+                      <TableCell>
+                        <p className="truncate text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">
+                          −{bare(log.discountAmount)}
+                          <span className="ml-1 text-[11px] font-normal text-muted-foreground">
+                            (
                             {log.discountType === "percentage"
                               ? `${bare(log.discountValue)}%`
                               : "Fixed"}
-                          </p>
-                        </TableCell>
+                            )
+                          </span>
+                        </p>
+                      </TableCell>
 
-                        <TableCell>{renderOrderStatus(log)}</TableCell>
+                      <TableCell>{renderOrderStatus(log)}</TableCell>
 
-                        <TableCell>{renderPaymentStatus(log)}</TableCell>
+                      <TableCell>{renderPaymentStatus(log)}</TableCell>
 
-                        <TableCell className="text-muted-foreground">
-                          <p
-                            className="truncate text-xs tabular-nums"
-                            title={formatDateTime(log.createdAt)}
-                          >
-                            {usedAt.day}
-                          </p>
-                          {usedAt.clock && (
-                            <p className="truncate text-[11px] tabular-nums">
-                              {usedAt.clock}
-                            </p>
-                          )}
-                        </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <p
+                          className="whitespace-nowrap text-xs tabular-nums"
+                          title={formatDateTime(log.createdAt)}
+                        >
+                          {formatDateTime(log.createdAt)}
+                        </p>
+                      </TableCell>
 
-                        <TableCell className="text-right">
-                          {renderActions(log)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                      <TableCell className="text-right">
+                        {renderActions(log)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
-            </div>
-
-            {/* Mobile cards */}
-            <div className="divide-y xl:hidden">
-              {logs.map((log) => (
-                <article key={log.id} className="space-y-3 p-3.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <Link
-                        href={`/admin/order/${log.order.id}/view`}
-                        className="font-mono text-sm font-semibold hover:text-primaryColor hover:underline"
-                      >
-                        {log.order.orderNo}
-                      </Link>
-                      <p className="text-[11px] text-muted-foreground">
-                        {formatDateTime(log.createdAt)}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <PillBadge tone="blue" className="font-mono">
-                        {log.couponCode}
-                      </PillBadge>
-                      {renderActions(log)}
-                    </div>
-                  </div>
-
-                  {renderCustomer(log)}
-
-                  <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-2.5">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                        Order total
-                      </p>
-                      <p className="text-sm font-semibold tabular-nums">
-                        ৳{bare(log.orderTotal)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                        Discount
-                      </p>
-                      <p className="text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">
-                        −৳{bare(log.discountAmount)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                        Order status
-                      </p>
-                      <div className="mt-1">{renderOrderStatus(log)}</div>
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                        Payment status
-                      </p>
-                      <div className="mt-1">{renderPaymentStatus(log)}</div>
-                    </div>
-                  </div>
-                </article>
-              ))}
             </div>
 
             {/* Footer: what the list covers */}
@@ -692,7 +611,8 @@ export function CouponUsageLogList({
                 {lastRow.toLocaleString("en-US")} of{" "}
                 {totalItems.toLocaleString("en-US")} usage log
                 {totalItems === 1 ? "" : "s"}
-                {hasDateRange && ` · ${[fromDate, toDate].filter(Boolean).join(" → ")}`}
+                {hasDateRange &&
+                  ` · ${[fromDate, toDate].filter(Boolean).join(" → ")}`}
               </p>
               {totalPages > 1 && (
                 <PaginationComponent

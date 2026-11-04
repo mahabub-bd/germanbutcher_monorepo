@@ -24,6 +24,7 @@ import { Gallery } from 'src/gallery/entities/gallery.entity';
 import { OrderItem } from 'src/order/entities/order-item.entity';
 import { Unit } from 'src/unit/entities/unit.entity';
 import { User } from 'src/user/entities/user.entity';
+import { slugify } from 'transliteration';
 import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
 import { Supplier } from '../supplier/entities/supplier.entity';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -124,6 +125,26 @@ export class ProductService {
     this.listCache.invalidate();
   }
 
+  /**
+   * Slug is unique in the DB, and slugify(name) can collide (e.g. "Beef
+   * Bone-In" and "Beef Bone In" both -> "beef-bone-in"). Check BEFORE saving
+   * and reject with a clear 409 instead of a raw unique-constraint 500.
+   * `excludeId` lets updates skip the row being edited.
+   */
+  private async assertSlugAvailable(slug: string, excludeId?: number): Promise<void> {
+    if (!slug) return;
+    const qb = this.productRepository
+      .createQueryBuilder('product')
+      .where('product.slug = :slug', { slug });
+    if (excludeId) qb.andWhere('product.id != :id', { id: excludeId });
+    const clash = await qb.getOne();
+    if (clash) {
+      throw new ConflictException(
+        `Product with slug '${slug}' already exists (product #${clash.id})`,
+      );
+    }
+  }
+
   async create(
     createProductDto: CreateProductDto,
     user: User,
@@ -159,6 +180,12 @@ export class ProductService {
     if (attachment) {
       product.attachment = await this.validateAttachment(attachment);
     }
+
+    // Check before save — the entity hook only generates the slug.
+    if (!product.slug && product.name) {
+      product.slug = slugify(product.name, { lowercase: true, separator: '-' });
+    }
+    await this.assertSlugAvailable(product.slug);
 
     const saved = await this.productRepository.save(product);
     this.invalidateListCache();
@@ -1184,6 +1211,19 @@ export class ProductService {
     // Exclude attachment and relationship fields from Object.assign
     const { attachment, brandId, categoryId, supplierId, unitId, galleryId, ...updateData } = updateDto;
     Object.assign(product, updateData);
+
+    // An explicitly-set slug that collides with another product would 500 on
+    // the unique constraint — reject it here instead (own row is excluded).
+    if (updateDto.slug !== undefined) {
+      await this.assertSlugAvailable(
+        slugify(product.slug ?? product.name ?? '', {
+          lowercase: true,
+          separator: '-',
+        }),
+        id,
+      );
+    }
+
     product.updatedBy = user?.userId;
 
     const savedProduct = await this.productRepository.save(product);
