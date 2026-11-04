@@ -47,6 +47,34 @@ import { toast } from "sonner";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
+interface SegmentRules {
+  vipMinSpent: number;
+  vipMinOrders: number;
+  atRiskDays: number;
+  newDays: number;
+  sleepDays: number;
+  lostDays: number;
+}
+
+/**
+ * Compact rule list for the header — mirrors SEGMENT_CASE in crm.service.ts
+ * (same order, so the precedence reads top-down). Kept terse because it
+ * renders as one long line under the page title.
+ */
+function buildSegmentSummary(r: SegmentRules): string {
+  return [
+    `Champions (VIP + ordered in ${r.newDays}d)`,
+    `VIP (${r.vipMinSpent.toLocaleString()}+ spent or ${r.vipMinOrders}+ orders)`,
+    `Lost (no order in ${r.lostDays}+ days)`,
+    `At Risk (no order in ${r.atRiskDays} days)`,
+    `About to Sleep (no order in ${r.sleepDays} days)`,
+    `Promising (2+ orders in ${r.newDays}d)`,
+    `New (joined in ${r.newDays}d, ≤1 order)`,
+    "Inactive (no orders)",
+    "Loyal (everyone else)",
+  ].join(" · ");
+}
+
 interface CrmCustomer {
   id: number;
   name: string;
@@ -220,24 +248,10 @@ export function CrmCustomerList({
 
   // Segment thresholds live in Business Settings — fetched so the header
   // text always matches what the backend actually uses.
-  const [segmentRules, setSegmentRules] = useState<{
-    vipMinSpent: number;
-    vipMinOrders: number;
-    atRiskDays: number;
-    newDays: number;
-    sleepDays: number;
-    lostDays: number;
-  } | null>(null);
+  const [segmentRules, setSegmentRules] = useState<SegmentRules | null>(null);
 
   useEffect(() => {
-    fetchProtectedData<{
-      vipMinSpent: number;
-      vipMinOrders: number;
-      atRiskDays: number;
-      newDays: number;
-      sleepDays: number;
-      lostDays: number;
-    }>("crm/segment-rules")
+    fetchProtectedData<SegmentRules>("crm/segment-rules")
       .then(setSegmentRules)
       .catch(() => {});
   }, []);
@@ -371,17 +385,7 @@ export function CrmCustomerList({
   // so the precedence reads top-down) using the live Business Settings
   // thresholds, so admins always see the rules actually being applied.
   const segmentSummary = segmentRules
-    ? [
-        `Champions (VIP-level and ordered in the last ${segmentRules.newDays} days)`,
-        `VIP (${segmentRules.vipMinSpent.toLocaleString()}+ spent or ${segmentRules.vipMinOrders}+ orders)`,
-        `Lost (no order in ${segmentRules.lostDays}+ days)`,
-        `At Risk (no order in ${segmentRules.atRiskDays} days)`,
-        `About to Sleep (no order in ${segmentRules.sleepDays} days)`,
-        `Promising (2+ orders in the last ${segmentRules.newDays} days)`,
-        `New (joined in the last ${segmentRules.newDays} days, up to 1 order)`,
-        `Inactive (no orders)`,
-        `Loyal (everyone else with orders)`,
-      ].join(" · ")
+    ? buildSegmentSummary(segmentRules)
     : null;
 
   return (
