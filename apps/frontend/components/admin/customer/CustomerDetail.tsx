@@ -1147,52 +1147,98 @@ export function CustomerDetail() {
               this customer appear here.
             </p>
           ) : (
-            <div className="rounded-lg border bg-card divide-y">
+            <>
+            {/* Desktop table */}
+            <div className="hidden overflow-hidden rounded-lg border bg-card md:block">
+              <Table className="report-table">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="pl-4">Action</TableHead>
+                    <TableHead>Entity</TableHead>
+                    <TableHead>Details</TableHead>
+                    <TableHead>Time</TableHead>
+                    <TableHead className="pr-4 text-right">IP</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {auditLogs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="py-2 pl-4">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-sm font-medium ${
+                            log.action === "POST"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                              : log.action === "DELETE"
+                                ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300"
+                                : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                          }`}
+                        >
+                          {log.action}
+                        </span>
+                        {log.status === "failure" && (
+                          <span className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-sm font-medium text-red-700 dark:bg-red-500/20 dark:text-red-300">
+                            Failed
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm font-medium capitalize">
+                          {log.entityType}
+                          {log.entityId ? ` #${log.entityId}` : ""}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="block max-w-md truncate text-sm text-muted-foreground" title={log.message || undefined}>
+                          {log.message || "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                          {formatDateTime(log.createdAt)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="pr-4 text-right">
+                        <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                          {log.ipAddress || "—"}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile list: one compact line per entry */}
+            <div className="divide-y rounded-lg border bg-card md:hidden">
               {auditLogs.map((log) => (
                 <div
                   key={log.id}
-                  className="flex items-start justify-between gap-3 p-3.5"
+                  className="flex items-center justify-between gap-2 px-3 py-2.5"
                 >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge
-                        variant="outline"
-                        className={
-                          log.action === "POST"
-                            ? "border-transparent bg-emerald-100 font-normal text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                            : log.action === "DELETE"
-                              ? "border-transparent bg-red-100 font-normal text-red-700 dark:bg-red-500/20 dark:text-red-300"
-                              : "border-transparent bg-amber-100 font-normal text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
-                        }
-                      >
-                        {log.action}
-                      </Badge>
-                      <span className="text-sm font-medium capitalize">
-                        {log.entityType}
-                        {log.entityId ? ` #${log.entityId}` : ""}
-                      </span>
-                      {log.status === "failure" && (
-                        <Badge
-                          variant="outline"
-                          className="border-transparent bg-red-100 font-normal text-red-700 dark:bg-red-500/20 dark:text-red-300"
-                        >
-                          Failed
-                        </Badge>
-                      )}
-                    </div>
-                    {log.message && (
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {log.message}
-                      </p>
-                    )}
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {formatDateTime(log.createdAt)}
-                      {log.ipAddress ? ` · IP ${log.ipAddress}` : ""}
-                    </p>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span
+                      className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                        log.action === "POST"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                          : log.action === "DELETE"
+                            ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300"
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                      }`}
+                    >
+                      {log.action}
+                    </span>
+                    <span className="min-w-0 truncate text-sm font-medium capitalize">
+                      {log.entityType}
+                      {log.entityId ? ` #${log.entityId}` : ""}
+                    </span>
                   </div>
+                  <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                    {formatDateTime(log.createdAt)}
+                  </span>
                 </div>
               ))}
             </div>
+            </>
           )}
         </TabsContent>
       </Tabs>
