@@ -33,6 +33,39 @@ import {
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
+  @Get('dashboard')
+  @ApiOperation({
+    summary: 'Get the full analytics dashboard payload',
+    description:
+      'Runs all dashboard aggregations in one request with a short server-side cache. Fixed windows (peak traffic 7d, visitors/traffic sources/conversion 30d) are applied regardless of the selected period.',
+  })
+  @ApiQuery({
+    name: 'period',
+    required: false,
+    description: 'Time period for period-driven panels (1h, 24h, 7d, 15d, 30d)',
+    example: '24h',
+    enum: ['1h', '24h', '7d', '15d', '30d'],
+  })
+  @ApiQuery({
+    name: 'refresh',
+    required: false,
+    description: 'Set to true to bypass the dashboard cache',
+    example: 'false',
+  })
+  async getDashboard(
+    @Query('period') period: string = '24h',
+    @Query('refresh') refresh?: string,
+  ) {
+    const data = await this.analyticsService.getDashboard(period, {
+      refresh: refresh === 'true' || refresh === '1',
+    });
+    return this.formatResponse(
+      'Analytics dashboard retrieved successfully',
+      HttpStatus.OK,
+      data,
+    );
+  }
+
   @Get('overview')
   @ApiOperation({
     summary: 'Get analytics overview',
