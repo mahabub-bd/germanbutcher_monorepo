@@ -277,6 +277,11 @@ export function UserList({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        <DropdownMenuItem asChild>
+          <Link href={`/admin/user/${user?.id}/view`}>
+            <UserCircle className="mr-2 h-4 w-4" /> View
+          </Link>
+        </DropdownMenuItem>
         {can(MENU_URL, "canEdit") && (
           <DropdownMenuItem asChild>
             <Link href={`/admin/user/${user?.id}/edit`}>
