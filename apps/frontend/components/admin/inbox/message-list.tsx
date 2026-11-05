@@ -11,7 +11,7 @@ import {
 } from "@/components/admin/inbox/ticket-shared";
 import { TicketStatsCards } from "@/components/admin/inbox/ticket-stats-cards";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
@@ -303,8 +303,6 @@ export function ContactMessageList({
     Boolean(priorityFilter),
   ].filter(Boolean).length;
 
-  const firstRow = messages.length === 0 ? 0 : (currentPage - 1) * limit + 1;
-  const lastRow = Math.min(currentPage * limit, totalItems);
 
   // One source of truth for the filter controls: the toolbar renders them
   // inline at their fixed widths, the mobile sheet renders the same nodes full
@@ -457,78 +455,78 @@ export function ContactMessageList({
           <div
             ref={tabsScrollRef}
             onScroll={updateTabsScrollState}
-            className="flex items-center gap-1.5 overflow-x-auto pb-2 sm:gap-2"
+            className="scrollbar-none flex items-center gap-1.5 overflow-x-auto overscroll-x-contain pb-2 [-webkit-overflow-scrolling:touch] sm:gap-2"
           >
-          {[
-            {
-              value: "all",
-              label: "All",
-              count: statistics.total,
-              icon: <Inbox className="size-3.5 sm:size-4" />,
-              colors:
-                "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900",
-              activeColors:
-                "bg-slate-800 text-white hover:bg-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-200",
-            },
-            {
-              value: ContactStatus.PENDING,
-              label: "Open",
-              count: statistics.byStatus.pending,
-              icon: <MailOpen className="size-3.5 sm:size-4" />,
-              colors:
-                "bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70",
-              activeColors:
-                "bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-400 dark:text-amber-950 dark:hover:bg-amber-400",
-            },
-            {
-              value: ContactStatus.IN_PROGRESS,
-              label: "In Progress",
-              count: statistics.byStatus.in_progress,
-              icon: <Clock className="size-3.5 sm:size-4" />,
-              colors:
-                "bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/70",
-              activeColors:
-                "bg-blue-600 text-white hover:bg-blue-600 dark:bg-blue-400 dark:text-blue-950 dark:hover:bg-blue-400",
-            },
-            {
-              value: ContactStatus.RESOLVED,
-              label: "Resolved",
-              count: statistics.byStatus.resolved,
-              icon: <CheckCircle2 className="size-3.5 sm:size-4" />,
-              colors:
-                "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/70",
-              activeColors:
-                "bg-emerald-600 text-white hover:bg-emerald-600 dark:bg-emerald-400 dark:text-emerald-950 dark:hover:bg-emerald-400",
-            },
-            {
-              value: ContactStatus.CLOSED,
-              label: "Closed",
-              count: statistics.byStatus.closed,
-              icon: <Archive className="size-3.5 sm:size-4" />,
-              colors:
-                "bg-rose-50 text-rose-800 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/70",
-              activeColors:
-                "bg-rose-600 text-white hover:bg-rose-600 dark:bg-rose-400 dark:text-rose-950 dark:hover:bg-rose-400",
-            },
-          ].map((tab) => {
-            const active =
-              statusFilter === tab.value ||
-              (tab.value === "all" && !statusFilter);
-            return (
-              <button
-                key={tab.value}
-                onClick={() => {
-                  setStatusFilter(tab.value === "all" ? "" : tab.value);
-                  setCurrentPage(1);
-                }}
-                aria-pressed={active}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 sm:px-4 sm:py-2 sm:text-sm ${active ? tab.activeColors : tab.colors}`}
-              >
-                {tab.icon}
-                {tab.label} ({tab.count})
-              </button>
-            );
-          })}
+            {[
+              {
+                value: "all",
+                label: "All",
+                count: statistics.total,
+                icon: <Inbox className="size-3.5 sm:size-4" />,
+                colors:
+                  "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900",
+                activeColors:
+                  "bg-slate-800 text-white hover:bg-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-200",
+              },
+              {
+                value: ContactStatus.PENDING,
+                label: "Open",
+                count: statistics.byStatus.pending,
+                icon: <MailOpen className="size-3.5 sm:size-4" />,
+                colors:
+                  "bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70",
+                activeColors:
+                  "bg-amber-500 text-white hover:bg-amber-500 dark:bg-amber-400 dark:text-amber-950 dark:hover:bg-amber-400",
+              },
+              {
+                value: ContactStatus.IN_PROGRESS,
+                label: "In Progress",
+                count: statistics.byStatus.in_progress,
+                icon: <Clock className="size-3.5 sm:size-4" />,
+                colors:
+                  "bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/70",
+                activeColors:
+                  "bg-blue-600 text-white hover:bg-blue-600 dark:bg-blue-400 dark:text-blue-950 dark:hover:bg-blue-400",
+              },
+              {
+                value: ContactStatus.RESOLVED,
+                label: "Resolved",
+                count: statistics.byStatus.resolved,
+                icon: <CheckCircle2 className="size-3.5 sm:size-4" />,
+                colors:
+                  "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/70",
+                activeColors:
+                  "bg-emerald-600 text-white hover:bg-emerald-600 dark:bg-emerald-400 dark:text-emerald-950 dark:hover:bg-emerald-400",
+              },
+              {
+                value: ContactStatus.CLOSED,
+                label: "Closed",
+                count: statistics.byStatus.closed,
+                icon: <Archive className="size-3.5 sm:size-4" />,
+                colors:
+                  "bg-rose-50 text-rose-800 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/70",
+                activeColors:
+                  "bg-rose-600 text-white hover:bg-rose-600 dark:bg-rose-400 dark:text-rose-950 dark:hover:bg-rose-400",
+              },
+            ].map((tab) => {
+              const active =
+                statusFilter === tab.value ||
+                (tab.value === "all" && !statusFilter);
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => {
+                    setStatusFilter(tab.value === "all" ? "" : tab.value);
+                    setCurrentPage(1);
+                  }}
+                  aria-pressed={active}
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 sm:px-4 sm:py-2 sm:text-sm ${active ? tab.activeColors : tab.colors}`}
+                >
+                  {tab.icon}
+                  {tab.label} ({tab.count})
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -639,23 +637,16 @@ export function ContactMessageList({
           <>
             <TicketList messages={messages} onView={handleViewDetails} />
 
-            <div className="mt-3 flex flex-col items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 md:flex-row">
-              <p className="text-[13px] text-foreground/70">
-                Showing {firstRow.toLocaleString("en-US")}–
-                {lastRow.toLocaleString("en-US")} of{" "}
-                {totalItems.toLocaleString("en-US")} ticket
-                {totalItems === 1 ? "" : "s"}
-                {debouncedSearch && ` matching “${debouncedSearch}”`}
-              </p>
-              {totalPages > 1 && (
-                <PaginationComponent
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  baseUrl="#"
-                  onPageChange={handlePageChange}
-                />
-              )}
-            </div>
+            <ListPaginationFooter
+              variant="standalone"
+              currentPage={currentPage}
+              limit={limit}
+              totalItems={totalItems}
+              totalPages={totalPages}
+              entityLabel="ticket"
+              onPageChange={handlePageChange}
+              searchQuery={debouncedSearch}
+            />
           </>
         )}
       </div>

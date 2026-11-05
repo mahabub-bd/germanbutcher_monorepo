@@ -1,7 +1,7 @@
 "use client";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -635,8 +635,6 @@ export default function StockMovementHistory({
     setCurrentPage(1);
   };
 
-  const firstItem = totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const lastItem = Math.min(currentPage * PAGE_SIZE, totalItems);
 
   const activeFilterCount = [
     range !== "all",
@@ -931,27 +929,14 @@ export default function StockMovementHistory({
         {renderContent()}
 
         {!isLoading && !error && totalItems > 0 && (
-          <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground tabular-nums">
-              Showing{" "}
-              <span className="font-medium text-foreground">
-                {firstItem}–{lastItem}
-              </span>{" "}
-              of{" "}
-              <span className="font-medium text-foreground">
-                {totalItems.toLocaleString("en-US")}
-              </span>{" "}
-              {totalItems === 1 ? "movement" : "movements"}
-            </p>
-            {totalPages > 1 && (
-              <PaginationComponent
-                currentPage={currentPage}
-                totalPages={totalPages}
-                baseUrl="#"
-                onPageChange={setCurrentPage}
-              />
-            )}
-          </div>
+          <ListPaginationFooter
+            currentPage={currentPage}
+            limit={PAGE_SIZE}
+            totalItems={totalItems}
+            totalPages={totalPages}
+            entityLabel="movement"
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
     </div>

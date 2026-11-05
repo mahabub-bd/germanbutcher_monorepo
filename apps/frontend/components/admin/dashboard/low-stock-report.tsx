@@ -1,6 +1,6 @@
 "use client";
 
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -315,17 +315,14 @@ export function LowStockReport({
         </Table>
       </div>
       {!isLoading && products.length > 0 && (
-        <div className="flex flex-col items-center gap-2 p-4 border-t sm:flex-row sm:justify-between">
-          <div className="text-sm text-muted-foreground">
-            Showing {Math.min((currentPage - 1) * limit + 1, totalItems)} to{" "}
-            {Math.min(currentPage * limit, totalItems)} of {totalItems} products
-          </div>
-          <PaginationComponent
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
-        </div>
+        <ListPaginationFooter
+          currentPage={currentPage}
+          limit={limit}
+          totalItems={totalItems}
+          totalPages={totalPages}
+          entityLabel="product"
+          onPageChange={handlePageChange}
+        />
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -22,23 +31,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
   getEnabledAreas,
   getEnabledCities,
   getEnabledDivisions,
 } from "@/lib/delivery-coverage";
-import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { fetchProtectedData, fetchDataPagination, patchData } from "@/utils/api-utils";
+import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import {
+  fetchDataPagination,
+  fetchProtectedData,
+  patchData,
+} from "@/utils/api-utils";
 import {
   getOrderStatusColor,
   getPaymentStatusColor,
@@ -160,7 +164,7 @@ export function UserDetail() {
     } catch (error) {
       console.error("Error updating address:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to update address."
+        error instanceof Error ? error.message : "Failed to update address.",
       );
     } finally {
       setIsSavingAddress(false);
@@ -172,9 +176,6 @@ export function UserDetail() {
     // full-page spinner.
     if (!user) setIsLoading(true);
     try {
-      // Profile + delivered orders/addresses from the users endpoint; the
-      // activity log uses the paginated audit endpoint filtered to this
-      // user. A failing log fetch is non-fatal — the tab just goes empty.
       const [userRes, auditRes] = await Promise.allSettled([
         fetchProtectedData<User>(`users/${userId}`),
         fetchDataPagination<{
@@ -182,7 +183,7 @@ export function UserDetail() {
           total?: number;
           totalPages?: number;
         }>(
-          `user-activities?page=${auditPage}&limit=${AUDIT_PAGE_SIZE}&userId=${userId}`
+          `user-activities?page=${auditPage}&limit=${AUDIT_PAGE_SIZE}&userId=${userId}`,
         ),
       ]);
       if (userRes.status === "fulfilled") {
@@ -236,8 +237,7 @@ export function UserDetail() {
     return {
       total: user.orders.length,
       totalSpent,
-      avgOrder:
-        user.orders.length > 0 ? totalSpent / user.orders.length : 0,
+      avgOrder: user.orders.length > 0 ? totalSpent / user.orders.length : 0,
       lastOrderAt,
     };
   };
@@ -259,7 +259,8 @@ export function UserDetail() {
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-1">User Not Found</h2>
           <p className="text-sm text-muted-foreground mb-3">
-            The user you&apos;re looking for doesn&apos;t exist or has been removed.
+            The user you&apos;re looking for doesn&apos;t exist or has been
+            removed.
           </p>
           <Button asChild size="sm">
             <Link href={USER_MENU_URL}>
@@ -306,7 +307,7 @@ export function UserDetail() {
                 src={user.profilePhoto.url}
                 alt={user.name}
                 fill
-                className="object-cover"
+                className="object-contain"
               />
             </span>
           ) : (
@@ -448,7 +449,7 @@ export function UserDetail() {
             </p>
           ) : (
             <div className="overflow-x-auto rounded-lg border bg-card">
-              <Table className="min-w-180 text-xs">
+              <Table className="min-w-180 report-table text-sm [&_th]:text-sm [&_td]:text-sm">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Order ID / Date</TableHead>
@@ -615,7 +616,7 @@ export function UserDetail() {
                         label: "City",
                         options: getEnabledCities(
                           coverage,
-                          addressForm.division
+                          addressForm.division,
                         ),
                       },
                       {
@@ -642,10 +643,7 @@ export function UserDetail() {
                           }));
                         }}
                       >
-                        <SelectTrigger
-                          id={`address-${key}`}
-                          className="w-full"
-                        >
+                        <SelectTrigger id={`address-${key}`} className="w-full">
                           <SelectValue
                             placeholder={
                               key === "division" ? "Select" : "Select…"
@@ -716,104 +714,75 @@ export function UserDetail() {
         </TabsContent>
 
         <TabsContent value="audit-log" className="mt-4">
+          {/* Activity log — one scrollable table at every breakpoint, so
+              mobile swipes through all columns instead of dropping into a
+              reduced card view. */}
           {auditLogs.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">
               No recorded activity yet. Order, cart and profile changes made by
               this user appear here.
             </p>
           ) : (
-            <>
-              {/* Desktop table */}
-              <div className="hidden overflow-hidden rounded-lg border bg-card md:block">
-                <Table className="report-table text-xs [&_th]:text-xs [&_td]:text-xs">
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="pl-4">Action</TableHead>
-                      <TableHead>Entity</TableHead>
-                      <TableHead>Details</TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead className="pr-4 text-right">IP</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {auditLogs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="py-2 pl-4">
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                              log.action === "POST"
-                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                                : log.action === "DELETE"
-                                  ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300"
-                                  : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+            <div className="overflow-hidden rounded-lg border bg-card">
+              <Table className="min-w-180 report-table text-sm [&_th]:text-sm [&_td]:text-sm">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="pl-4">Action</TableHead>
+                    <TableHead>Entity</TableHead>
+                    <TableHead>Details</TableHead>
+                    <TableHead>Time</TableHead>
+                    <TableHead className="pr-4 text-right">IP</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {auditLogs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="py-2 pl-4">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-sm font-medium ${log.action === "POST"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                              : log.action === "DELETE"
+                                ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300"
+                                : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
                             }`}
-                          >
-                            {log.action}
+                        >
+                          {log.action}
+                        </span>
+                        {log.status === "failure" && (
+                          <span className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-sm font-medium text-red-700 dark:bg-red-500/20 dark:text-red-300">
+                            Failed
                           </span>
-                          {log.status === "failure" && (
-                            <span className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-500/20 dark:text-red-300">
-                              Failed
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-xs font-medium capitalize">
-                            {log.entityType}
-                            {log.entityId ? ` #${log.entityId}` : ""}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="block max-w-md truncate text-xs text-muted-foreground" title={log.message || undefined}>
-                            {log.message || "—"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                            {formatDateTime(log.createdAt)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="pr-4 text-right">
-                          <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                            {log.ipAddress || "—"}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Mobile list: one compact line per entry */}
-              <div className="divide-y rounded-lg border bg-card md:hidden">
-                {auditLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="flex items-center justify-between gap-2 px-3 py-2.5"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span
-                        className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                          log.action === "POST"
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                            : log.action === "DELETE"
-                              ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300"
-                              : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
-                        }`}
-                      >
-                        {log.action}
-                      </span>
-                      <span className="min-w-0 truncate text-xs font-medium capitalize">
-                        {log.entityType}
-                        {log.entityId ? ` #${log.entityId}` : ""}
-                      </span>
-                    </div>
-                    <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                      {formatDateTime(log.createdAt)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              </>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm font-medium capitalize">
+                          {log.entityType}
+                          {log.entityId ? ` #${log.entityId}` : ""}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className="block max-w-md truncate text-sm text-muted-foreground"
+                          title={log.message || undefined}
+                        >
+                          {log.message || "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                          {formatDateTime(log.createdAt)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="pr-4 text-right">
+                        <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                          {log.ipAddress || "—"}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
 
           {auditTotalPages > 1 && (

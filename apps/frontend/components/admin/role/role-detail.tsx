@@ -4,7 +4,7 @@ import StatsCard from "@/components/admin/dashboard/stats-card";
 import { LoadingIndicator } from "@/components/admin/loading-indicator";
 import { PageHeader } from "@/components/admin/page-header";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
 import { Button } from "@/components/ui/button";
@@ -159,8 +159,6 @@ export function RoleDetail() {
     }
 
     const userCount = role.userCount ?? total;
-    const firstRow = members.length ? (currentPage - 1) * MEMBER_LIMIT + 1 : 0;
-    const lastRow = Math.min(currentPage * MEMBER_LIMIT, total);
 
     const infoRow = (label: string, value: React.ReactNode) => (
         <div className="flex items-center justify-between gap-3 border-b px-4 py-2.5 last:border-b-0">
@@ -473,23 +471,14 @@ export function RoleDetail() {
                                 </div>
 
                                 {/* Footer + pagination */}
-                                <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
-                                    <p className="text-xs text-muted-foreground">
-                                        {total > 0
-                                            ? `Showing ${firstRow.toLocaleString("en-US")}–${lastRow.toLocaleString(
-                                                "en-US"
-                                            )} of ${total.toLocaleString("en-US")} accounts`
-                                            : "No accounts to show"}
-                                    </p>
-                                    {totalPages > 1 && (
-                                        <PaginationComponent
-                                            currentPage={currentPage}
-                                            totalPages={totalPages}
-                                            baseUrl="#"
-                                            onPageChange={(page) => setCurrentPage(page)}
-                                        />
-                                    )}
-                                </div>
+                                <ListPaginationFooter
+                                    currentPage={currentPage}
+                                    limit={MEMBER_LIMIT}
+                                    totalItems={total}
+                                    totalPages={totalPages}
+                                    entityLabel="account"
+                                    onPageChange={(page) => setCurrentPage(page)}
+                                />
                             </>
                         )}
                     </div>

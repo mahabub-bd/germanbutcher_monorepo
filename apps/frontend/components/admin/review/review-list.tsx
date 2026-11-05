@@ -4,7 +4,7 @@ import type React from "react";
 
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -555,22 +555,15 @@ export function ReviewList({
           )}
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground text-center md:text-left truncate">
-              {`Showing ${reviews.length} of ${totalItems} reviews`}
-            </p>
-          </div>
-
-          <div className="flex-1 w-full md:w-auto">
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={handlePageChange}
-            />
-          </div>
-        </div>
+        <ListPaginationFooter
+          variant="standalone"
+          currentPage={currentPage}
+          limit={limit}
+          totalItems={totalItems}
+          totalPages={totalPages}
+          entityLabel="review"
+          onPageChange={handlePageChange}
+        />
       </div>
 
       {/* Delete Confirmation Dialog */}

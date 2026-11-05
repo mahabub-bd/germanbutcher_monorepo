@@ -1,6 +1,6 @@
 "use client";
 import { EditOrderModal } from "@/components/admin/orders/edit-order-modal";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -77,17 +77,6 @@ export default function OrdersTable() {
   }, []);
 
   const totalPages = Math.ceil(totalOrders / limit);
-
-  const getOrderRange = () => {
-    if (totalOrders === 0) return { start: 0, end: 0 };
-
-    const start = (page - 1) * limit + 1;
-    const end = Math.min(page * limit, totalOrders);
-
-    return { start, end };
-  };
-
-  const { start, end } = getOrderRange();
 
   return (
     <div className="overflow-x-auto md:p-6 p-2 rounded-lg border">
@@ -249,18 +238,14 @@ export default function OrdersTable() {
           )}
         </TableBody>
       </Table>
-      <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
-        <div className="text-xs text-muted-foreground 2xl:text-sm">
-          {start} to {end} of {totalOrders} Orders
-        </div>
-        {totalOrders > 0 && (
-          <PaginationComponent
-            currentPage={page}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
-        )}
-      </div>
+      <ListPaginationFooter
+        currentPage={page}
+        limit={limit}
+        totalItems={totalOrders}
+        totalPages={totalPages}
+        entityLabel="order"
+        onPageChange={handlePageChange}
+      />
       <EditOrderModal
         orderId={editingOrderId}
         open={editingOrderId !== null}

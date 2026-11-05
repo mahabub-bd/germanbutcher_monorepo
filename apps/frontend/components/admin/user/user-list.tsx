@@ -4,7 +4,7 @@ import type React from "react";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge, type PillTone } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
@@ -227,8 +227,6 @@ export function UserList({
   const verifiedCount = users.filter((u) => u.isVerified).length;
   const unverifiedCount = users.length - verifiedCount;
   const adminCount = users.filter((u) => u.isAdmin).length;
-  const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
-  const lastRow = Math.min(currentPage * limit, totalItems);
 
   const activeFilterCount = [
     Boolean(roleFilter && roleFilter !== "all"),
@@ -513,7 +511,7 @@ export function UserList({
                       <TableRow key={user.id}>
                         <TableCell className="py-2.5 pl-4">
                           <Link
-                            href={`/admin/user/${user?.id}/edit`}
+                            href={`/admin/user/${user?.id}/view`}
                             className="flex items-center gap-3 font-medium leading-tight hover:text-primaryColor hover:underline"
                           >
                             {user.profilePhoto?.url ? (
@@ -600,7 +598,7 @@ export function UserList({
                   <article key={user.id} className="space-y-3 p-3.5">
                     <div className="flex items-start justify-between gap-2">
                       <Link
-                        href={`/admin/user/${user?.id}/edit`}
+                        href={`/admin/user/${user?.id}/view`}
                         className="flex min-w-0 items-center gap-2.5 hover:text-primaryColor"
                       >
                         {user.profilePhoto?.url ? (
@@ -669,23 +667,15 @@ export function UserList({
               </div>
 
               {/* Footer: what the list covers */}
-              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
-                <p className="text-xs text-muted-foreground">
-                  Showing {firstRow.toLocaleString("en-US")}–
-                  {lastRow.toLocaleString("en-US")} of{" "}
-                  {totalItems.toLocaleString("en-US")} user
-                  {totalItems === 1 ? "" : "s"}
-                  {searchQuery && ` matching “${searchQuery}”`}
-                </p>
-                {totalPages > 1 && (
-                  <PaginationComponent
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    baseUrl="#"
-                    onPageChange={handlePageChange}
-                  />
-                )}
-              </div>
+              <ListPaginationFooter
+                currentPage={currentPage}
+                limit={limit}
+                totalItems={totalItems}
+                totalPages={totalPages}
+                entityLabel="user"
+                onPageChange={handlePageChange}
+                searchQuery={searchQuery}
+              />
             </div>
           </>
         )}

@@ -40,7 +40,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
 import { cn, formatCurrencyEnglish } from "@/lib/utils";
@@ -369,8 +369,6 @@ export function StockReport({
   );
   const inStockCount = products.filter((p) => p.stock > 0).length;
   const outOfStockCount = products.filter((p) => p.stock === 0).length;
-  const firstRow = products.length === 0 ? 0 : (currentPage - 1) * limit + 1;
-  const lastRow = Math.min(currentPage * limit, totalItems);
 
   const renderFilterSelect = (
     value: string,
@@ -873,24 +871,16 @@ export function StockReport({
 
               {renderTableView()}
 
-              {/* Footer */}
-              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
-                <p className="text-[13px] text-foreground/70">
-                  Showing {firstRow.toLocaleString("en-US")}–
-                  {lastRow.toLocaleString("en-US")} of{" "}
-                  {totalItems.toLocaleString("en-US")} product
-                  {totalItems === 1 ? "" : "s"}
-                  {debouncedSearch && ` matching “${debouncedSearch}”`}
-                </p>
-                {totalPages > 1 && (
-                  <PaginationComponent
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    baseUrl="#"
-                    onPageChange={handlePageChange}
-                  />
-                )}
-              </div>
+              {/* Footer: what the list covers */}
+              <ListPaginationFooter
+                currentPage={currentPage}
+                limit={limit}
+                totalItems={totalItems}
+                totalPages={totalPages}
+                entityLabel="product"
+                onPageChange={handlePageChange}
+                searchQuery={debouncedSearch}
+              />
             </div>
           </>
         )}

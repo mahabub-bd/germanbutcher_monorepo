@@ -1,12 +1,12 @@
 "use client";
 
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { SendMaintenanceNotification } from "@/components/admin/notifications/send-maintenance-notification";
 import { SendOfferNotification } from "@/components/admin/notifications/send-offer-notification";
 import { Button } from "@/components/ui/button";
 import { Bell, Megaphone, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 const BROADCAST_TABS = [
   {
@@ -47,7 +47,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Pill tabs — same design as the inbox ticket status tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 pt-4 sm:gap-2">
+      <div className="scrollbar-none flex items-center gap-1.5 overflow-x-auto overscroll-x-contain pb-2 pt-4 [-webkit-overflow-scrolling:touch] sm:gap-2">
         {BROADCAST_TABS.map((t) => {
           const active = tab === t.value;
           return (
@@ -55,7 +55,7 @@ export default function NotificationsPage() {
               key={t.value}
               onClick={() => setTab(t.value)}
               aria-pressed={active}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 sm:px-4 sm:py-2 sm:text-sm ${active ? t.activeColors : t.colors}`}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 sm:px-4 sm:py-2 sm:text-sm ${active ? t.activeColors : t.colors}`}
             >
               {t.icon}
               {t.label}

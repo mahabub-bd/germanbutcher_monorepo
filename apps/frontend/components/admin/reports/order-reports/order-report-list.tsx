@@ -12,7 +12,7 @@ import {
   ReportDateFilters,
   type ReportFilterParams,
 } from "@/components/admin/reports/report-date-filters";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge, type PillTone } from "@/components/common/pill-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -357,8 +357,6 @@ export default function OrderReportList({
     totalValue > 0 ? Math.round((totalPaid / totalValue) * 100) : 0;
   const totalDue = Math.max(0, totalValue - totalPaid);
 
-  const firstRow = Math.min((currentPage - 1) * limit + 1, totalOrders);
-  const lastRow = Math.min(currentPage * limit, totalOrders);
 
   return (
     <div className="w-full">
@@ -904,18 +902,14 @@ export default function OrderReportList({
             </div>
 
             {/* Footer: range position + pagination */}
-            <div className="flex flex-col gap-2 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-muted-foreground">
-                Showing {firstRow}–{lastRow} of {totalOrders} order
-                {totalOrders === 1 ? "" : "s"}
-              </p>
-              <PaginationComponent
-                currentPage={currentPage}
-                totalPages={totalPages}
-                baseUrl="#"
-                onPageChange={handlePageChange}
-              />
-            </div>
+            <ListPaginationFooter
+              currentPage={currentPage}
+              limit={limit}
+              totalItems={totalOrders}
+              totalPages={totalPages}
+              entityLabel="order"
+              onPageChange={handlePageChange}
+            />
           </div>
         </>
       )

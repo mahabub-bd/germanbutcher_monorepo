@@ -9,8 +9,8 @@ import {
   rangeForPreset,
   type ReportFilterParams,
 } from "@/components/admin/reports/report-date-filters";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
-import { PaginationComponent } from "@/components/common/pagination";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -259,11 +259,11 @@ export function BogoUsageReport({
 
   const exportSummary = stats
     ? [
-        { label: "Total Uses", value: String(stats.totalUses) },
-        { label: "Discount Given", value: formatMoney(stats.totalDiscount) },
-        { label: "Free Units Given", value: String(stats.totalFreeUnits) },
-        { label: "Total Order Value", value: formatMoney(stats.totalOrderValue) },
-      ]
+      { label: "Total Uses", value: String(stats.totalUses) },
+      { label: "Discount Given", value: formatMoney(stats.totalDiscount) },
+      { label: "Free Units Given", value: String(stats.totalFreeUnits) },
+      { label: "Total Order Value", value: formatMoney(stats.totalOrderValue) },
+    ]
     : undefined;
 
   // Current-page sums — the period totals shown in the cards come from the API.
@@ -277,8 +277,6 @@ export function BogoUsageReport({
   );
 
   const hasData = totalItems > 0;
-  const firstRow = Math.min((currentPage - 1) * limit + 1, totalItems);
-  const lastRow = Math.min(currentPage * limit, totalItems);
 
   return (
     <div className="w-full">
@@ -595,18 +593,14 @@ export function BogoUsageReport({
           </div>
 
           {/* Footer: range position + pagination */}
-          <div className="flex flex-col gap-2 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground">
-              Showing {firstRow}–{lastRow} of {totalItems} usage
-              {totalItems === 1 ? "" : "s"}
-            </p>
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={(page) => setCurrentPage(page)}
-            />
-          </div>
+          <ListPaginationFooter
+            currentPage={currentPage}
+            limit={limit}
+            totalItems={totalItems}
+            totalPages={totalPages}
+            entityLabel="usage"
+            onPageChange={(page) => setCurrentPage(page)}
+          />
         </div>
       )}
     </div>

@@ -3,7 +3,7 @@ import type { Product } from "@/utils/types";
 import { AlertCircle, Package, RefreshCw, Search } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { PaginationComponent } from "../common/pagination";
+import { ListPaginationFooter } from "../common/list-pagination-footer";
 import ProductCard from "./product-card";
 import { ProductSkeleton } from "./product-skeleton";
 
@@ -121,23 +121,6 @@ const ProductGrid = ({ products }: { products: Product[] }) => (
 );
 
 /**
- * Pagination Info Component
- */
-const PaginationInfo = ({
-  currentCount,
-  totalCount,
-}: {
-  currentCount: number;
-  totalCount: number;
-}) => (
-  <div className="flex-1 min-w-0">
-    <p className="text-xs text-muted-foreground text-center md:text-left truncate">
-      Showing {currentCount} of {totalCount} products
-    </p>
-  </div>
-);
-
-/**
  * Main ProductBarList Component
  */
 export default async function ProductBarList({
@@ -174,20 +157,15 @@ export default async function ProductBarList({
           <Suspense fallback={<ProductSkeleton />}>
             <ProductGrid products={response.data} />
           </Suspense>
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
-            <PaginationInfo
-              currentCount={response.data.length}
-              totalCount={response.total}
-            />
-
-            <div className="flex-1 w-full md:w-auto">
-              <PaginationComponent
-                currentPage={currentPage}
-                totalPages={response.totalPages}
-                paginationUrls={paginationUrls}
-              />
-            </div>
-          </div>
+          <ListPaginationFooter
+            variant="plain"
+            currentPage={currentPage}
+            limit={Number(filterParams.limit || 24)}
+            totalItems={response.total}
+            totalPages={response.totalPages}
+            entityLabel="product"
+            paginationUrls={paginationUrls}
+          />
         </>
       ) : (
         <EmptyState hasFilters={hasActiveFilters} />

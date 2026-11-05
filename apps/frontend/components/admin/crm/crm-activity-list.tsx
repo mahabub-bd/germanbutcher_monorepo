@@ -1,6 +1,6 @@
 "use client";
 
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import {
   Select,
   SelectContent,
@@ -277,21 +277,16 @@ export function CrmActivityList() {
       )}
 
       {!isLoading && activities.length > 0 && totalPages > 1 && (
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
-          <div className="text-sm text-muted-foreground">
-            Showing{" "}
-            {((currentPage - 1) * PAGE_SIZE + 1).toLocaleString()} -{" "}
-            {Math.min(currentPage * PAGE_SIZE, totalItems).toLocaleString()} of{" "}
-            {totalItems.toLocaleString()} activities
-          </div>
-
-          <PaginationComponent
-            currentPage={currentPage}
-            totalPages={totalPages}
-            baseUrl="#"
-            onPageChange={setCurrentPage}
-          />
-        </div>
+        <ListPaginationFooter
+          variant="standalone"
+          currentPage={currentPage}
+          limit={PAGE_SIZE}
+          totalItems={totalItems}
+          totalPages={totalPages}
+          entityLabel="activity"
+          entityLabelPlural="activities"
+          onPageChange={setCurrentPage}
+        />
       )}
     </div>
   );

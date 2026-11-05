@@ -4,7 +4,7 @@ import type React from "react";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
@@ -474,22 +474,15 @@ export function BannerList({
         </div>
 
         {/* Pagination */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground text-center md:text-left truncate">
-              {`Showing ${banners.length} of ${totalItems} banners`}
-            </p>
-          </div>
-
-          <div className="flex-1 w-full md:w-auto">
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={handlePageChange}
-            />
-          </div>
-        </div>
+        <ListPaginationFooter
+          variant="standalone"
+          currentPage={currentPage}
+          limit={limit}
+          totalItems={totalItems}
+          totalPages={totalPages}
+          entityLabel="banner"
+          onPageChange={handlePageChange}
+        />
       </div>
 
       {/* Delete Confirmation Dialog */}

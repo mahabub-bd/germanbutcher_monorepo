@@ -6,7 +6,7 @@ import { AddPaymentModal } from "@/components/admin/orders/add-payment-modal";
 import { EditOrderModal } from "@/components/admin/orders/edit-order-modal";
 import { PageHeader } from "@/components/admin/page-header";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -468,7 +468,7 @@ export function OrderList({
   };
 
   const renderTableView = () => (
-    <div className="">
+    <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
       <div className="overflow-x-auto">
         {/* min-w only below lg: on laptop+ the table shrinks to the container
             so all columns fit without horizontal scrolling */}
@@ -765,50 +765,24 @@ export function OrderList({
         </Table>
       </div>
 
-      {/* Pagination Section */}
+      {/* Pagination footer — inset divider inside the table card, matching
+          the product list. */}
       {!isLoading && orders.length > 0 && (
-        <div className="flex flex-col items-center gap-x-3 gap-y-1 border-t px-2 py-2 md:flex-row md:justify-between">
-          {/* Mobile stacks the range above a centered pagination strip; the
-              range collapses to "51–60 of 2,573" and the filter summary
-              truncates instead of stacking a second line. */}
-          <div className="flex min-w-0 grow items-center gap-2 text-[0.7rem] text-muted-foreground md:text-xs 2xl:text-sm">
-            <span className="whitespace-nowrap">
-              <span className="md:hidden">
-                {Math.min((currentPage - 1) * limit + 1, totalItems).toLocaleString(
-                  "en-US"
-                )}
-                –
-                {Math.min(currentPage * limit, totalItems).toLocaleString(
-                  "en-US"
-                )}{" "}
-                of {totalItems.toLocaleString("en-US")} orders
-              </span>
-              <span className="hidden md:inline">
-                Showing {Math.min((currentPage - 1) * limit + 1, totalItems)} to{" "}
-                {Math.min(currentPage * limit, totalItems)} of {totalItems} orders
-              </span>
-            </span>
-            {activeFilterSummary && (
-              <span
-                className="min-w-0 max-w-[45vw] truncate opacity-80 md:max-w-none"
-                title={activeFilterSummary}
-              >
-                · {activeFilterSummary}
-              </span>
-            )}
-          </div>
-          <PaginationComponent
-            currentPage={currentPage}
-            totalPages={totalPages}
-            baseUrl="#"
-            onPageChange={handlePageChange}
-          />
-        </div>
+        <ListPaginationFooter
+          variant="inset"
+          currentPage={currentPage}
+          limit={limit}
+          totalItems={totalItems}
+          totalPages={totalPages}
+          entityLabel="order"
+          onPageChange={handlePageChange}
+          filterSummary={activeFilterSummary}
+        />
       )}
 
-      {/* Loading Pagination Skeleton */}
+      {/* Loading Pagination Skeleton — inset divider inside the card */}
       {isLoading && (
-        <div className="flex flex-col items-center gap-x-3 gap-y-1 border-t px-2 py-2 md:flex-row md:justify-between">
+        <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
           <div className="h-4 w-36 bg-gray-200 rounded animate-pulse md:w-48" />
           <div className="flex gap-1">
             <div className="h-8 w-8 md:h-9 md:w-9 bg-gray-200 rounded animate-pulse" />

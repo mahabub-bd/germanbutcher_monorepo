@@ -4,7 +4,7 @@ import type React from "react";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge, type PillTone } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn, formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { deleteData, fetchDataPagination } from "@/utils/api-utils";
 import type { Purchase } from "@/utils/types";
 import {
@@ -257,8 +257,8 @@ export function PurchaseList({
   const hasActiveFilters = () =>
     Boolean(
       searchQuery.trim() ||
-        (statusFilter && statusFilter !== "all") ||
-        (paymentStatusFilter && paymentStatusFilter !== "all")
+      (statusFilter && statusFilter !== "all") ||
+      (paymentStatusFilter && paymentStatusFilter !== "all")
     );
 
   // Select filters only — search lives outside the mobile filter sheet.
@@ -319,8 +319,6 @@ export function PurchaseList({
     0
   );
 
-  const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
-  const lastRow = Math.min(currentPage * limit, totalItems);
 
   const renderActions = (purchase: Purchase) => (
     <DropdownMenu>
@@ -450,11 +448,11 @@ export function PurchaseList({
                   {[
                     searchQuery.trim() && `Search: ${searchQuery.trim()}`,
                     statusFilter &&
-                      statusFilter !== "all" &&
-                      `Status: ${capitalize(statusFilter)}`,
+                    statusFilter !== "all" &&
+                    `Status: ${capitalize(statusFilter)}`,
                     paymentStatusFilter &&
-                      paymentStatusFilter !== "all" &&
-                      `Payment: ${capitalize(paymentStatusFilter)}`,
+                    paymentStatusFilter !== "all" &&
+                    `Payment: ${capitalize(paymentStatusFilter)}`,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
@@ -779,24 +777,16 @@ export function PurchaseList({
                 })}
               </div>
 
-              {/* Footer */}
-              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
-                <p className="text-[13px] text-foreground/70">
-                  Showing {firstRow.toLocaleString("en-US")}–
-                  {lastRow.toLocaleString("en-US")} of{" "}
-                  {totalItems.toLocaleString("en-US")} purchase
-                  {totalItems === 1 ? "" : "s"}
-                  {searchQuery.trim() && ` matching “${searchQuery.trim()}”`}
-                </p>
-                {totalPages > 1 && (
-                  <PaginationComponent
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    baseUrl="#"
-                    onPageChange={handlePageChange}
-                  />
-                )}
-              </div>
+              {/* Footer: what the list covers */}
+              <ListPaginationFooter
+                currentPage={currentPage}
+                limit={limit}
+                totalItems={totalItems}
+                totalPages={totalPages}
+                entityLabel="purchase"
+                onPageChange={handlePageChange}
+                searchQuery={searchQuery.trim()}
+              />
             </div>
           </>
         )}
