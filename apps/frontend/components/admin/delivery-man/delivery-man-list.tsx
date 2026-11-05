@@ -5,8 +5,8 @@ import type React from "react";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
-import { PaginationComponent } from "@/components/common/pagination";
 import { TableSearch } from "@/components/common/table-search";
 import { Button } from "@/components/ui/button";
 import {
@@ -258,8 +258,6 @@ export function DeliveryManList({
     0
   );
   const hasFilters = Boolean(searchQuery || isActiveFilter !== "all");
-  const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
-  const lastRow = Math.min(currentPage * limit, totalItems);
 
   const renderActions = (deliveryMan: DeliveryMan) => (
     <DropdownMenu>
@@ -385,7 +383,7 @@ export function DeliveryManList({
                 {[
                   searchQuery && `Search: ${searchQuery}`,
                   isActiveFilter !== "all" &&
-                    `Status: ${isActiveFilter === "true" ? "Active" : "Inactive"}`,
+                  `Status: ${isActiveFilter === "true" ? "Active" : "Inactive"}`,
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -556,22 +554,20 @@ export function DeliveryManList({
                       </TableCell>
                       <TableCell className="text-right">
                         <span
-                          className={`text-sm font-semibold tabular-nums ${
-                            (deliveryMan.inProgressOrders ?? 0) > 0
+                          className={`text-sm font-semibold tabular-nums ${(deliveryMan.inProgressOrders ?? 0) > 0
                               ? "text-amber-600 dark:text-amber-400"
                               : "text-muted-foreground"
-                          }`}
+                            }`}
                         >
                           {deliveryMan.inProgressOrders ?? 0}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
                         <span
-                          className={`text-sm font-semibold tabular-nums ${
-                            (deliveryMan.cancelledOrders ?? 0) > 0
+                          className={`text-sm font-semibold tabular-nums ${(deliveryMan.cancelledOrders ?? 0) > 0
                               ? "text-red-600 dark:text-red-400"
                               : "text-muted-foreground"
-                          }`}
+                            }`}
                         >
                           {deliveryMan.cancelledOrders ?? 0}
                         </span>
@@ -700,23 +696,16 @@ export function DeliveryManList({
             </div>
 
             {/* Footer: what the list covers */}
-            <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
-              <p className="text-xs text-muted-foreground">
-                Showing {firstRow.toLocaleString("en-US")}–
-                {lastRow.toLocaleString("en-US")} of{" "}
-                {totalItems.toLocaleString("en-US")} delivery{" "}
-                {totalItems === 1 ? "man" : "men"}
-                {searchQuery && ` matching “${searchQuery}”`}
-              </p>
-              {totalPages > 1 && (
-                <PaginationComponent
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  baseUrl="#"
-                  onPageChange={handlePageChange}
-                />
-              )}
-            </div>
+            <ListPaginationFooter
+              currentPage={currentPage}
+              limit={limit}
+              totalItems={totalItems}
+              totalPages={totalPages}
+              entityLabel="delivery man"
+              entityLabelPlural="delivery men"
+              onPageChange={handlePageChange}
+              searchQuery={searchQuery}
+            />
           </div>
         </>
       )}

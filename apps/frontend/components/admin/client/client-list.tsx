@@ -5,7 +5,7 @@ import type React from "react";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ActiveStatusToggle } from "@/components/common/active-status-toggle";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
 import { Button } from "@/components/ui/button";
@@ -188,8 +188,6 @@ export function ClientList({
 
   const activeCount = clients.filter((client) => client.isActive).length;
   const inactiveCount = clients.length - activeCount;
-  const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
-  const lastRow = Math.min(currentPage * limit, totalItems);
 
   const renderActions = (client: Client) => (
     <DropdownMenu>
@@ -499,23 +497,15 @@ export function ClientList({
               </div>
 
               {/* Footer: what the list covers */}
-              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
-                <p className="text-xs text-muted-foreground">
-                  Showing {firstRow.toLocaleString("en-US")}–
-                  {lastRow.toLocaleString("en-US")} of{" "}
-                  {totalItems.toLocaleString("en-US")} client
-                  {totalItems === 1 ? "" : "s"}
-                  {searchQuery && ` matching “${searchQuery}”`}
-                </p>
-                {totalPages > 1 && (
-                  <PaginationComponent
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    baseUrl="#"
-                    onPageChange={handlePageChange}
-                  />
-                )}
-              </div>
+              <ListPaginationFooter
+                currentPage={currentPage}
+                limit={limit}
+                totalItems={totalItems}
+                totalPages={totalPages}
+                entityLabel="client"
+                onPageChange={handlePageChange}
+                searchQuery={searchQuery}
+              />
             </div>
           </>
         )}

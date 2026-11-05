@@ -1,8 +1,9 @@
 "use client";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -11,7 +12,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import { fetchProtectedData } from "@/utils/api-utils";
 import type { AbandonedCartsSummary } from "@/utils/types";
 import {
@@ -285,17 +285,15 @@ export function AbandonedCartsList() {
             </div>
 
             {/* Footer: range position + pagination */}
-            <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
-              <p className="text-xs text-muted-foreground">
-                Showing {rangeStart + 1}–{rangeEnd} of{" "}
-                {report.total.toLocaleString("en-US")} abandoned carts
-              </p>
-              <PaginationComponent
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={(page) => setCurrentPage(page)}
-              />
-            </div>
+            <ListPaginationFooter
+              currentPage={currentPage}
+              limit={limit}
+              totalItems={report.total}
+              totalPages={totalPages}
+              entityLabel="abandoned cart"
+              entityLabelPlural="abandoned carts"
+              onPageChange={(page) => setCurrentPage(page)}
+            />
           </>
         )}
       </div>

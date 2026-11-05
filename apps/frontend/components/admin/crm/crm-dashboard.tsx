@@ -790,20 +790,20 @@ export function CrmDashboard() {
                 <Table className="table-fixed w-full [&_td]:text-sm [&_th]:text-sm">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-[6%] pl-4 text-right">
+                      <TableHead className="w-[6%] pl-3">
                         #
                       </TableHead>
                       <TableHead className="w-[24%]">Customer</TableHead>
                       <TableHead className="w-[13%]">Mobile</TableHead>
                       <TableHead className="w-[13%]">Segment</TableHead>
                       <TableHead className="w-[14%]">Area</TableHead>
-                      <TableHead className="w-[9%] text-right">
+                      <TableHead className="w-[9%] text-center">
                         Orders
                       </TableHead>
                       <TableHead className="w-[11%] text-right">
                         Total spent
                       </TableHead>
-                      <TableHead className="w-[10%] pr-4">
+                      <TableHead className="w-[10%] pr-3 text-right">
                         Last order
                       </TableHead>
                     </TableRow>
@@ -811,7 +811,7 @@ export function CrmDashboard() {
                   <TableBody>
                     {vipRows.map((customer, index) => (
                       <TableRow key={customer.id}>
-                        <TableCell className="py-2 pl-4 text-right">
+                        <TableCell className="py-2 pl-3">
                           <span
                             className={cn(
                               "text-sm font-bold tabular-nums",
@@ -895,7 +895,7 @@ export function CrmDashboard() {
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                           <span className="text-sm font-semibold tabular-nums">
                             {formatCount(customer.rfm.orderCount)}
                           </span>
@@ -908,7 +908,7 @@ export function CrmDashboard() {
                             {formatMoney(customer.rfm.totalSpent)}
                           </span>
                         </TableCell>
-                        <TableCell className="pr-4">
+                        <TableCell className="pr-3 text-right">
                           <span className="text-sm">
                             {dateOnly(customer.rfm.lastOrderAt)}
                           </span>
@@ -918,13 +918,13 @@ export function CrmDashboard() {
                   </TableBody>
                   <TableFooter>
                     <TableRow className="hover:bg-transparent">
-                      <TableCell className="pl-4" />
+                      <TableCell className="pl-3" />
                       <TableCell colSpan={4}>
                         <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                           Total
                         </span>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-center">
                         <span className="text-sm font-bold tabular-nums">
                           {formatCount(vipOrders)}
                         </span>
@@ -937,7 +937,7 @@ export function CrmDashboard() {
                           {formatMoney(vipSpend)}
                         </span>
                       </TableCell>
-                      <TableCell className="pr-4">
+                      <TableCell className="pr-3 text-right">
                         <span className="text-xs text-muted-foreground">
                           Top {vipRows.length}
                         </span>

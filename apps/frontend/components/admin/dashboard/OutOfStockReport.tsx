@@ -1,4 +1,4 @@
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -114,18 +114,14 @@ export function OutOfStockReport() {
             </Table>
           </div>
 
-          <div className="flex flex-col items-center gap-2 mt-4 p-2 border-t sm:flex-row sm:justify-between">
-            <span className="text-sm text-muted-foreground">
-              Showing {Math.min((currentPage - 1) * limit + 1, totalItems)} to{" "}
-              {Math.min(currentPage * limit, totalItems)} of {totalItems} items
-            </span>
-
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={(page) => setCurrentPage(page)}
-            />
-          </div>
+          <ListPaginationFooter
+            currentPage={currentPage}
+            limit={limit}
+            totalItems={totalItems}
+            totalPages={totalPages}
+            entityLabel="item"
+            onPageChange={(page) => setCurrentPage(page)}
+          />
         </div>
       )}
     </div>

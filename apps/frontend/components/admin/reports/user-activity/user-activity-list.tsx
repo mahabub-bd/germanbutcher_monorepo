@@ -1,6 +1,6 @@
 "use client";
 
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -581,8 +581,6 @@ export function UserActivityList({
     </div>
   );
 
-  const firstRow = activities.length ? (currentPage - 1) * limit + 1 : 0;
-  const lastRow = Math.min(currentPage * limit, totalItems);
 
   return (
     <div className="w-full">
@@ -758,29 +756,15 @@ export function UserActivityList({
           </>
         )}
 
-        <div className="flex flex-col items-center gap-2 border-t px-4 py-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-            <span className="truncate">
-              {totalItems > 0
-                ? `Showing ${firstRow.toLocaleString("en-US")}–${lastRow.toLocaleString(
-                  "en-US"
-                )} of ${totalItems.toLocaleString("en-US")} events`
-                : "No events to show"}
-            </span>
-            {hasActiveFilters && (
-              <span className="min-w-0 truncate">· {activeFilterSummary}</span>
-            )}
-          </div>
-
-          {totalPages > 1 && (
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={handlePageChange}
-            />
-          )}
-        </div>
+        <ListPaginationFooter
+          currentPage={currentPage}
+          limit={limit}
+          totalItems={totalItems}
+          totalPages={totalPages}
+          entityLabel="event"
+          onPageChange={handlePageChange}
+          filterSummary={hasActiveFilters ? activeFilterSummary : undefined}
+        />
       </div>
     </div>
   );

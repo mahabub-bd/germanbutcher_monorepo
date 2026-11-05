@@ -31,15 +31,15 @@ interface PaginationComponentProps {
 // kills the base gradient so the solid fill shows; the postfix-! overrides
 // neutralize the base hover scale/shadow (scrollbar flicker) as before.
 const BTN =
-  'min-h-8 min-w-8 rounded-lg border border-border bg-card px-1.5 p-0 text-xs font-semibold text-foreground hover:scale-100! active:scale-100! hover:bg-muted! hover:text-foreground! sm:h-8 sm:min-h-0 sm:min-w-8 sm:w-auto sm:px-2 sm:text-sm';
+  'min-h-6 min-w-6 rounded-lg border border-border bg-card px-1.5 p-0 text-xs font-semibold text-foreground hover:scale-100! active:scale-100! hover:bg-muted! hover:text-foreground! sm:h-8 sm:min-h-0 sm:min-w-8 sm:w-auto sm:px-2 sm:text-sm';
 const BTN_ACTIVE =
   'bg-primaryColor bg-none! border-primaryColor text-white! hover:bg-primaryColor/90! hover:text-white!';
 const BTN_ARROW =
-  'min-h-8 min-w-8 gap-0 rounded-lg border border-border bg-card p-0 text-foreground hover:scale-100! active:scale-100! hover:bg-muted! hover:text-foreground! sm:h-8 sm:min-h-0 sm:min-w-0 sm:w-8';
+  'min-h-6 min-w-6 gap-0 rounded-lg border border-border bg-card p-0 text-foreground hover:scale-100! active:scale-100! hover:bg-muted! hover:text-foreground! sm:h-8 sm:min-h-0 sm:min-w-0 sm:w-8';
 const BTN_ARROW_DISABLED = 'pointer-events-none opacity-40';
 // Ellipsis is non-interactive — no border, keeps the base hover off.
 const ELLIPSIS =
-  'min-h-8 min-w-6 border-0 bg-transparent p-0 text-muted-foreground hover:text-muted-foreground! sm:h-8 sm:min-h-0 sm:min-w-0 sm:w-6';
+  'min-h-6 min-w-4 border-0 bg-transparent p-0 text-muted-foreground hover:text-muted-foreground! sm:h-8 sm:min-h-0 sm:min-w-0 sm:w-6';
 
 /**
  * GitHub-style page window: always shows first/last page and the current
@@ -167,7 +167,7 @@ export function PaginationComponent({
               className={`${BTN_ARROW} ${safePage <= 1 ? BTN_ARROW_DISABLED : ''}`}
               onClick={(e) => safePage > 1 && handleClick(1, e)}
             >
-              <ChevronsLeft className="size-4" />
+              <ChevronsLeft className="size-3.5 sm:size-4" />
             </PaginationLink>
           </PaginationItem>
         )}
@@ -183,7 +183,7 @@ export function PaginationComponent({
             className={`${BTN_ARROW} ${prevDisabled ? BTN_ARROW_DISABLED : ''}`}
             onClick={(e) => safePage > 1 && handleClick(safePage - 1, e)}
           >
-            <ChevronLeft className="size-4" />
+            <ChevronLeft className="size-3.5 sm:size-4" />
           </PaginationLink>
         </PaginationItem>
 
@@ -200,7 +200,7 @@ export function PaginationComponent({
               className={`${BTN_ARROW} ${safePage >= totalPages ? BTN_ARROW_DISABLED : ''}`}
               onClick={(e) => safePage < totalPages && handleClick(totalPages, e)}
             >
-              <ChevronsRight className="size-4" />
+              <ChevronsRight className="size-3.5 sm:size-4" />
             </PaginationLink>
           </PaginationItem>
         )}
@@ -217,7 +217,7 @@ export function PaginationComponent({
               safePage < totalPages && handleClick(safePage + 1, e)
             }
           >
-            <ChevronRight className="size-4" />
+            <ChevronRight className="size-3.5 sm:size-4" />
           </PaginationLink>
         </PaginationItem>
       </PaginationContent>

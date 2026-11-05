@@ -4,8 +4,8 @@ import type React from "react";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
-import { PaginationComponent } from "@/components/common/pagination";
 import { TableSearch } from "@/components/common/table-search";
 import { Button } from "@/components/ui/button";
 import {
@@ -328,12 +328,10 @@ export function MenuList({
   const subMenuCount = menuItems.length - mainMenuCount;
   const hasFilters = Boolean(
     searchQuery ||
-      (statusFilter && statusFilter !== "all") ||
-      (isMainMenuFilter && isMainMenuFilter !== "all") ||
-      parentFilter
+    (statusFilter && statusFilter !== "all") ||
+    (isMainMenuFilter && isMainMenuFilter !== "all") ||
+    parentFilter
   );
-  const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
-  const lastRow = Math.min(currentPage * limit, totalItems);
 
   const renderActions = (menuItem: MenuItem) => (
     <DropdownMenu>
@@ -452,13 +450,13 @@ export function MenuList({
                   {[
                     searchQuery && `Search: ${searchQuery}`,
                     statusFilter &&
-                      statusFilter !== "all" &&
-                      `Status: ${statusFilter === "active" ? "Active" : "Inactive"}`,
+                    statusFilter !== "all" &&
+                    `Status: ${statusFilter === "active" ? "Active" : "Inactive"}`,
                     isMainMenuFilter &&
-                      isMainMenuFilter !== "all" &&
-                      `Type: ${isMainMenuFilter === "true" ? "Main menu" : "Sub menu"}`,
+                    isMainMenuFilter !== "all" &&
+                    `Type: ${isMainMenuFilter === "true" ? "Main menu" : "Sub menu"}`,
                     parentFilter &&
-                      `Main menu: ${getParentMenuName(Number(parentFilter))}`,
+                    `Main menu: ${getParentMenuName(Number(parentFilter))}`,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
@@ -717,23 +715,15 @@ export function MenuList({
               </div>
 
               {/* Footer: what the list covers */}
-              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
-                <p className="text-xs text-muted-foreground">
-                  Showing {firstRow.toLocaleString("en-US")}–
-                  {lastRow.toLocaleString("en-US")} of{" "}
-                  {totalItems.toLocaleString("en-US")} menu item
-                  {totalItems === 1 ? "" : "s"}
-                  {searchQuery && ` matching “${searchQuery}”`}
-                </p>
-                {totalPages > 1 && (
-                  <PaginationComponent
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    baseUrl="#"
-                    onPageChange={handlePageChange}
-                  />
-                )}
-              </div>
+              <ListPaginationFooter
+                currentPage={currentPage}
+                limit={limit}
+                totalItems={totalItems}
+                totalPages={totalPages}
+                entityLabel="menu item"
+                onPageChange={handlePageChange}
+                searchQuery={searchQuery}
+              />
             </div>
           </>
         )}

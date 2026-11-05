@@ -5,7 +5,7 @@ import type React from "react";
 import { revalidateProducts } from "@/actions/revalidate";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -38,7 +39,6 @@ import {
   type Category,
   type Product,
 } from "@/utils/types";
-import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   BadgePercent,
   CalendarRange,
@@ -334,8 +334,6 @@ export function DiscountList({
     (p) => getDiscountStatus(p) === "expired"
   ).length;
 
-  const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
-  const lastRow = Math.min(currentPage * limit, totalItems);
 
   // Shared filter selects — rendered in the xl toolbar and in the mobile
   // filter sheet so both stay in sync with one definition.
@@ -859,22 +857,14 @@ export function DiscountList({
               </div>
 
               {/* Footer: what the list covers */}
-              <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
-                <p className="text-xs text-muted-foreground">
-                  Showing {firstRow.toLocaleString("en-US")}–
-                  {lastRow.toLocaleString("en-US")} of{" "}
-                  {totalItems.toLocaleString("en-US")} discounted product
-                  {totalItems === 1 ? "" : "s"}
-                </p>
-                {totalPages > 1 && (
-                  <PaginationComponent
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    baseUrl="#"
-                    onPageChange={handlePageChange}
-                  />
-                )}
-              </div>
+              <ListPaginationFooter
+                currentPage={currentPage}
+                limit={limit}
+                totalItems={totalItems}
+                totalPages={totalPages}
+                entityLabel="discounted product"
+                onPageChange={handlePageChange}
+              />
             </div>
           </>
         )}

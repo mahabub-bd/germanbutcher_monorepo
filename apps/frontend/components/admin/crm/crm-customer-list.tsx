@@ -3,7 +3,7 @@
 import type React from "react";
 
 import { SegmentBadge } from "@/components/admin/crm/segment-badge";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -581,20 +581,15 @@ export function CrmCustomerList({
         )}
 
         {!isLoading && customers.length > 0 && totalPages > 1 && (
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
-            <div className="text-sm text-muted-foreground">
-              Showing {((currentPage - 1) * limit + 1).toLocaleString()} -{" "}
-              {Math.min(currentPage * limit, totalItems).toLocaleString()} of{" "}
-              {totalItems.toLocaleString()} customers
-            </div>
-
-            <PaginationComponent
-              currentPage={currentPage}
-              totalPages={totalPages}
-              baseUrl="#"
-              onPageChange={handlePageChange}
-            />
-          </div>
+          <ListPaginationFooter
+            variant="standalone"
+            currentPage={currentPage}
+            limit={limit}
+            totalItems={totalItems}
+            totalPages={totalPages}
+            entityLabel="customer"
+            onPageChange={handlePageChange}
+          />
         )}
       </div>
     </div>

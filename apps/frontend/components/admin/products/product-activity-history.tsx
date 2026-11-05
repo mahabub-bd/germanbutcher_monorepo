@@ -1,7 +1,7 @@
 "use client";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { TableSearch } from "@/components/common/table-search";
 import { Button } from "@/components/ui/button";
 import {
@@ -666,8 +666,6 @@ export default function ProductActivityHistory({
     setCurrentPage(1);
   };
 
-  const firstItem = totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const lastItem = Math.min(currentPage * PAGE_SIZE, totalItems);
 
   const renderContent = () => {
     if (isLoading) return <LoadingState />;
@@ -851,9 +849,8 @@ export default function ProductActivityHistory({
               <p className="text-xs font-medium text-muted-foreground">
                 {isLoading && entries.length === 0
                   ? "Loading events..."
-                  : `${totalItems.toLocaleString("en-US")} event${
-                      totalItems === 1 ? "" : "s"
-                    }`}
+                  : `${totalItems.toLocaleString("en-US")} event${totalItems === 1 ? "" : "s"
+                  }`}
               </p>
             </div>
 
@@ -872,27 +869,14 @@ export default function ProductActivityHistory({
         {renderContent()}
 
         {!isLoading && !error && totalItems > 0 && (
-          <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground tabular-nums">
-              Showing{" "}
-              <span className="font-medium text-foreground">
-                {firstItem}–{lastItem}
-              </span>{" "}
-              of{" "}
-              <span className="font-medium text-foreground">
-                {totalItems.toLocaleString("en-US")}
-              </span>{" "}
-              {totalItems === 1 ? "event" : "events"}
-            </p>
-            {totalPages > 1 && (
-              <PaginationComponent
-                currentPage={currentPage}
-                totalPages={totalPages}
-                baseUrl="#"
-                onPageChange={setCurrentPage}
-              />
-            )}
-          </div>
+          <ListPaginationFooter
+            currentPage={currentPage}
+            limit={PAGE_SIZE}
+            totalItems={totalItems}
+            totalPages={totalPages}
+            entityLabel="event"
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
     </div>

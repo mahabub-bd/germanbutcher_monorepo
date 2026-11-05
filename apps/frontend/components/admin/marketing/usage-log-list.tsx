@@ -1,7 +1,7 @@
 "use client";
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
-import { PaginationComponent } from "@/components/common/pagination";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -237,8 +237,6 @@ export function MarketingUsageLogList({
 
   const valueOf = (log: MarketingUsageLog) => Number(log[valueKey] || 0);
 
-  const firstRow = totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
-  const lastRow = Math.min(currentPage * limit, totalItems);
   const pageValue = logs.reduce((sum, log) => sum + valueOf(log), 0);
   const pageOrderValue = logs.reduce(
     (sum, log) => sum + Number(log.orderTotal || 0),
@@ -552,24 +550,20 @@ export function MarketingUsageLogList({
             </div>
 
             {/* Footer: what the list covers */}
-            <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
-              <p className="text-xs text-muted-foreground">
-                Showing {firstRow.toLocaleString("en-US")}–
-                {lastRow.toLocaleString("en-US")} of{" "}
-                {totalItems.toLocaleString("en-US")} usage log
-                {totalItems === 1 ? "" : "s"}
-                {hasDateRange &&
-                  ` · ${[fromDate, toDate].filter(Boolean).join(" → ")}`}
-              </p>
-              {totalPages > 1 && (
-                <PaginationComponent
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  baseUrl="#"
-                  onPageChange={setCurrentPage}
-                />
-              )}
-            </div>
+            <ListPaginationFooter
+              currentPage={currentPage}
+              limit={limit}
+              totalItems={totalItems}
+              totalPages={totalPages}
+              entityLabel="usage log"
+              entityLabelPlural="usage logs"
+              onPageChange={setCurrentPage}
+              filterSummary={
+                hasDateRange
+                  ? [fromDate, toDate].filter(Boolean).join(" → ")
+                  : undefined
+              }
+            />
           </div>
         </>
       )}
