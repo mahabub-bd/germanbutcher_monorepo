@@ -249,18 +249,16 @@ export default function OrdersTable() {
           )}
         </TableBody>
       </Table>
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
         <div className="text-xs text-muted-foreground 2xl:text-sm">
           {start} to {end} of {totalOrders} Orders
         </div>
         {totalOrders > 0 && (
-          <div className="mt-4 flex flex-col sm:flex-row justify-between items-center gap-2">
-            <PaginationComponent
-              currentPage={page}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          </div>
+          <PaginationComponent
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
         )}
       </div>
       <EditOrderModal

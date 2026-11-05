@@ -114,7 +114,7 @@ export function OutOfStockReport() {
             </Table>
           </div>
 
-          <div className="flex justify-between items-center mt-4 md: p-2 border-t">
+          <div className="flex flex-col items-center gap-2 mt-4 p-2 border-t sm:flex-row sm:justify-between">
             <span className="text-sm text-muted-foreground">
               Showing {Math.min((currentPage - 1) * limit + 1, totalItems)} to{" "}
               {Math.min(currentPage * limit, totalItems)} of {totalItems} items

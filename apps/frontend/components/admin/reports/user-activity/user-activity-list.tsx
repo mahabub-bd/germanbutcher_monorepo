@@ -758,7 +758,7 @@ export function UserActivityList({
           </>
         )}
 
-        <div className="flex flex-col items-start gap-2 border-t px-4 py-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col items-center gap-2 border-t px-4 py-3 md:flex-row md:items-center md:justify-between">
           <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
             <span className="truncate">
               {totalItems > 0

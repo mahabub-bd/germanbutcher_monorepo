@@ -315,7 +315,7 @@ export function LowStockReport({
         </Table>
       </div>
       {!isLoading && products.length > 0 && (
-        <div className="flex justify-between items-center p-4 border-t">
+        <div className="flex flex-col items-center gap-2 p-4 border-t sm:flex-row sm:justify-between">
           <div className="text-sm text-muted-foreground">
             Showing {Math.min((currentPage - 1) * limit + 1, totalItems)} to{" "}
             {Math.min(currentPage * limit, totalItems)} of {totalItems} products
