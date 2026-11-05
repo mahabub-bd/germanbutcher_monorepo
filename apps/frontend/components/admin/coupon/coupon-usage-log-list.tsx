@@ -516,7 +516,7 @@ export function CouponUsageLogList({
                 each record stays on a single line. Customer and Actions keep
                 bounded widths; the rest split the remaining space equally. */}
             <div className="overflow-x-auto">
-              <Table className="report-table table-fixed min-w-[1080px] [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
+              <Table className="report-table table-fixed min-w-270 [&_td]:px-1.5 [&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th]:px-1.5 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
                 <TableHeader className="[&_th]:font-semibold">
                   <TableRow className="hover:bg-transparent">
                     {!couponCode && <TableHead>Coupon</TableHead>}

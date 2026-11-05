@@ -70,7 +70,7 @@ export function NotificationBell({
         >
           <SheetTitle className="sr-only">Notifications</SheetTitle>
           <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-muted" />
-          <div className="min-h-0 flex-1 px-3 pb-3">
+          <div className="flex min-h-0 flex-1 flex-col px-1 pb-1">
             <NotificationPanel />
           </div>
         </SheetContent>
@@ -83,9 +83,10 @@ export function NotificationBell({
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent
         className={cn(
+          "flex flex-col",
           "w-[calc(100vw-2rem)] p-0",
-          "md:w-[680px]",
-          "max-h-[80vh]",
+          "md:w-[820px] xl:w-[960px]",
+          "h-[80vh]",
           "overflow-hidden"
         )}
         align="end"
