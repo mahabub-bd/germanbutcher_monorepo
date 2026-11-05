@@ -515,7 +515,7 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
                     </>
                   )}
 
-                  {linkType === "category" && (
+                  {linkType === "product" && (
                     <>
                       <p className="text-xs text-muted-foreground">
                         Search products or pick a category, then select one —
@@ -640,10 +640,15 @@ export function BannerForm({ mode, banner }: BannerFormProps) {
             variant="outline"
             onClick={() => router.back()}
             disabled={isSubmitting}
+            className="h-8 px-3 text-xs sm:h-9 sm:px-4 sm:text-sm"
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="h-8 px-3 text-xs sm:h-9 sm:px-4 sm:text-sm"
+          >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {mode === "create" ? "Create banner" : "Save changes"}
           </Button>
