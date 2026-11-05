@@ -253,7 +253,7 @@ export function CrmCustomerList({
   useEffect(() => {
     fetchProtectedData<SegmentRules>("crm/segment-rules")
       .then(setSegmentRules)
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const updateUrl = useCallback(() => {
@@ -401,34 +401,38 @@ export function CrmCustomerList({
 
       <div className="space-y-4">
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2 w-full">
+          <div className="flex w-full flex-wrap items-center gap-2">
             <TableSearch
               wrapperClassName="flex-1 sm:w-64 sm:flex-none"
               placeholder="Search by name, email, or phone..."
               value={searchQuery}
               onChange={handleSearchChange}
             />
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 shrink-0"
-              asChild
-            >
-              <Link href="/admin/customer/customer-list">
-                <MapPin className="h-4 w-4 mr-1 text-sky-600" />
-                Area-wise
-              </Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 shrink-0"
-              disabled={isExporting}
-              onClick={handleExportCsv}
-            >
-              <FileSpreadsheet className="h-4 w-4 mr-1 text-emerald-600" />
-              {isExporting ? "Exporting..." : "Export Excel"}
-            </Button>
+            {/* Actions hug the right edge; on narrow screens they wrap to
+                their own right-aligned row instead of squeezing the search. */}
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                asChild
+              >
+                <Link href="/admin/customer/customer-list">
+                  <MapPin className="h-4 w-4 mr-1 text-sky-600" />
+                  Area-wise
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                disabled={isExporting}
+                onClick={handleExportCsv}
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-1 text-emerald-600" />
+                {isExporting ? "Exporting..." : "Export Excel"}
+              </Button>
+            </div>
           </div>
 
           <Tabs
