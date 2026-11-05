@@ -257,7 +257,9 @@ export function CrmDashboard() {
             <AlertTriangle className="size-6 text-muted-foreground" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-semibold">Could not load the dashboard</p>
+            <p className="text-sm font-semibold">
+              Could not load the dashboard
+            </p>
             <p className="text-xs text-muted-foreground">
               {failed
                 ? "Check the backend connection, then try again."
@@ -301,10 +303,12 @@ export function CrmDashboard() {
   const barSegments = segmentRows.map(([segment]) => segment);
 
   const vipRows = stats.topCustomers ?? [];
-  const vipOrders = vipRows.reduce((sum, c) => sum + (c.rfm?.orderCount ?? 0), 0);
-  const vipSpend = vipRows.reduce((sum, c) => sum + (c.rfm?.totalSpent ?? 0), 0);
-  const topVipSpend = vipRows.reduce(
-    (max, c) => Math.max(max, c.rfm?.totalSpent ?? 0),
+  const vipOrders = vipRows.reduce(
+    (sum, c) => sum + (c.rfm?.orderCount ?? 0),
+    0,
+  );
+  const vipSpend = vipRows.reduce(
+    (sum, c) => sum + (c.rfm?.totalSpent ?? 0),
     0,
   );
 
@@ -472,11 +476,7 @@ export function CrmDashboard() {
                         )}
                         title={`Rank ${index + 1}`}
                       >
-                        {index === 0 ? (
-                          <Crown className="size-4" />
-                        ) : (
-                          index + 1
-                        )}
+                        {index === 0 ? <Crown className="size-4" /> : index + 1}
                       </span>
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -577,7 +577,10 @@ export function CrmDashboard() {
                 <AlertTriangle className="size-4 text-orange-500" />
                 Needs attention
                 {stats.tasks.overdue > 0 && (
-                  <span className="relative flex size-2" title="Overdue items exist">
+                  <span
+                    className="relative flex size-2"
+                    title="Overdue items exist"
+                  >
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75" />
                     <span className="relative inline-flex size-2 rounded-full bg-orange-500" />
                   </span>
@@ -685,12 +688,15 @@ export function CrmDashboard() {
                           )
                           .join(" · ")}
                       >
-                        <span className={cn("size-2 rounded-full", group.dot)} />
+                        <span
+                          className={cn("size-2 rounded-full", group.dot)}
+                        />
                         <span className="font-medium text-foreground">
                           {group.label}
                         </span>
                         <span className="tabular-nums">
-                          {formatCount(count)} · {percentOf(count, totalCustomers)}%
+                          {formatCount(count)} ·{" "}
+                          {percentOf(count, totalCustomers)}%
                         </span>
                       </span>
                     );
@@ -776,10 +782,10 @@ export function CrmDashboard() {
             </div>
           ) : (
             <>
-              {/* Desktop table — table-fixed with equal content columns so the
-                  ranking reads as a grid instead of collapsing per cell. */}
+              {/* Desktop table — table-fixed with equal content columns that
+                  flex with the card, so there is no minimum width. */}
               <div className="hidden md:block">
-                <Table className="table-fixed min-w-220 [&_td]:text-sm [&_th]:text-sm">
+                <Table className="table-fixed [&_td]:text-sm [&_th]:text-sm">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="w-[8%] pl-4 text-right">
@@ -801,130 +807,112 @@ export function CrmDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {vipRows.map((customer, index) => {
-                      const share =
-                        topVipSpend > 0
-                          ? Math.round(
-                            ((customer.rfm.totalSpent ?? 0) / topVipSpend) *
-                            100,
-                          )
-                          : 0;
-                      return (
-                        <TableRow key={customer.id}>
-                          <TableCell className="py-2.5 pl-4 text-right">
+                    {vipRows.map((customer, index) => (
+                      <TableRow key={customer.id}>
+                        <TableCell className="py-2 pl-4 text-right">
+                          <span
+                            className={cn(
+                              "text-sm font-bold tabular-nums",
+                              index < 3
+                                ? "text-foreground"
+                                : "text-muted-foreground",
+                            )}
+                          >
+                            {index + 1}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2.5">
                             <span
                               className={cn(
-                                "text-sm font-bold tabular-nums",
-                                index < 3
-                                  ? "text-foreground"
-                                  : "text-muted-foreground",
+                                "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold uppercase",
+                                TOP_RANK_STYLES[index] ??
+                                "bg-muted text-muted-foreground",
                               )}
                             >
-                              {index + 1}
+                              {customer.name?.charAt(0) || "?"}
                             </span>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2.5">
-                              <span
-                                className={cn(
-                                  "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold uppercase",
-                                  TOP_RANK_STYLES[index] ??
-                                  "bg-muted text-muted-foreground",
-                                )}
-                              >
-                                {customer.name?.charAt(0) || "?"}
-                              </span>
-                              <div className="min-w-0">
-                                <Link
-                                  href={`/admin/crm/customers/${customer.id}`}
-                                  className={cn(
-                                    "block max-w-full truncate text-sm font-semibold hover:text-primaryColor hover:underline",
-                                    FOCUS_CLASS,
-                                  )}
-                                  title={customer.name}
-                                >
-                                  {customer.name}
-                                </Link>
-                                {customer.email && (
-                                  <p
-                                    className="block max-w-full truncate text-[11px] text-muted-foreground"
-                                    title={customer.email}
-                                  >
-                                    {customer.email}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {customer.mobileNumber ? (
+                            {/* Name and email share one line so every column
+                                stays a single row high. */}
+                            <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
                               <Link
-                                href={`tel:${customer.mobileNumber}`}
-                                className="text-sm text-muted-foreground hover:underline"
-                              >
-                                {customer.mobileNumber}
-                              </Link>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">
-                                —
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <SegmentBadge
-                              segment={customer.segment}
-                              className="max-w-full px-2 text-[10px]"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {customer.area ? (
-                              <span
-                                className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground"
-                                title={customer.area}
-                              >
-                                <MapPin className="size-3 shrink-0" />
-                                <span className="min-w-0 truncate">
-                                  {customer.area}
-                                </span>
-                              </span>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">
-                                —
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className="text-sm font-semibold tabular-nums">
-                              {formatCount(customer.rfm.orderCount)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className="text-sm font-semibold tabular-nums">
-                              {formatMoney(customer.rfm.totalSpent)}
-                            </span>
-                            {/* Share of the biggest spender in this list — makes
-                                the gap between ranks readable. */}
-                            <span className="mt-1 ml-auto block h-1 w-full max-w-24 overflow-hidden rounded-full bg-muted">
-                              <span
+                                href={`/admin/crm/customers/${customer.id}`}
                                 className={cn(
-                                  "block h-full rounded-full",
-                                  SEGMENT_BAR[customer.segment] ?? "bg-primaryColor",
+                                  "max-w-[60%] shrink-0 truncate text-sm font-semibold hover:text-primaryColor hover:underline",
+                                  FOCUS_CLASS,
                                 )}
-                                style={{ width: `${Math.max(share, 3)}%` }}
-                              />
+                                title={customer.name}
+                              >
+                                {customer.name}
+                              </Link>
+                              {customer.email && (
+                                <span
+                                  className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground"
+                                  title={customer.email}
+                                >
+                                  {customer.email}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {customer.mobileNumber ? (
+                            <Link
+                              href={`tel:${customer.mobileNumber}`}
+                              className="text-sm text-muted-foreground hover:underline"
+                            >
+                              {customer.mobileNumber}
+                            </Link>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              —
                             </span>
-                            <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
-                              avg {formatMoney(customer.rfm.averageOrderValue)}
-                            </p>
-                          </TableCell>
-                          <TableCell className="pr-4">
-                            <span className="text-sm">
-                              {dateOnly(customer.rfm.lastOrderAt)}
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <SegmentBadge
+                            segment={customer.segment}
+                            className="max-w-full px-2 text-[10px]"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {customer.area ? (
+                            <span
+                              className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground"
+                              title={customer.area}
+                            >
+                              <MapPin className="size-3 shrink-0" />
+                              <span className="min-w-0 truncate">
+                                {customer.area}
+                              </span>
                             </span>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              —
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-sm font-semibold tabular-nums">
+                            {formatCount(customer.rfm.orderCount)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span
+                            className="text-sm font-semibold tabular-nums"
+                            title={`Avg per order ${formatMoney(customer.rfm.averageOrderValue)}`}
+                          >
+                            {formatMoney(customer.rfm.totalSpent)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="pr-4">
+                          <span className="text-sm">
+                            {dateOnly(customer.rfm.lastOrderAt)}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                   <TableFooter>
                     <TableRow className="hover:bg-transparent">
@@ -940,13 +928,12 @@ export function CrmDashboard() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <span className="text-sm font-bold tabular-nums">
+                        <span
+                          className="text-sm font-bold tabular-nums"
+                          title={`Avg order ${formatMoney(vipOrders > 0 ? vipSpend / vipOrders : 0)}`}
+                        >
                           {formatMoney(vipSpend)}
                         </span>
-                        <p className="text-[11px] text-muted-foreground tabular-nums">
-                          avg{" "}
-                          {formatMoney(vipOrders > 0 ? vipSpend / vipOrders : 0)}
-                        </p>
                       </TableCell>
                       <TableCell className="pr-4">
                         <span className="text-xs text-muted-foreground">
