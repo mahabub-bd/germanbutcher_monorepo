@@ -11,6 +11,11 @@ import { OrderPayment } from 'src/order-payment/entities/order-payment.entity';
 import { OrderPaymentService } from 'src/order-payment/order-payment.service';
 import { Order } from 'src/order/entities/order.entity';
 import SSLCommerzPayment from 'sslcommerz-lts';
+import {
+  AuditStatus,
+  UserActivityService,
+  UserType,
+} from 'src/user-activity/user-activity.service';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -24,6 +29,7 @@ export class SslPaymentService {
     @InjectRepository(OrderPaymentMethod)
     private readonly paymentMethodRepository: Repository<OrderPaymentMethod>,
     private readonly orderPaymentService: OrderPaymentService,
+    private readonly userActivityService: UserActivityService,
   ) {}
 
   private getStoreConfig() {
@@ -218,6 +224,31 @@ export class SslPaymentService {
       console.log(`📊 Payment Status: ${updatedOrder.paymentStatus}`);
       console.log(`💵 Total Paid: ৳${updatedOrder.paidAmount}`);
       console.log(`📋 Payment Number: ${payment.paymentNumber}`);
+
+      // IPN/success callbacks arrive from SSLCommerz without a JWT, so the
+      // activity interceptor skips them (it bails on !req.user). Record the
+      // audit entry here instead so payments show in the activity log.
+      try {
+        await this.userActivityService.logAction({
+          userId: updatedOrder.user?.id,
+          action: 'POST',
+          entityType: 'payment',
+          entityId: payment.id,
+          userType: UserType.CUSTOMER,
+          status: AuditStatus.SUCCESS,
+          message: `SSLCommerz payment ${payment.paymentNumber} of ৳${paymentAmount} completed for order ${updatedOrder.orderNo} (Transaction ID: ${sslPaymentData.tran_id})`,
+          newValue: {
+            paymentNumber: payment.paymentNumber,
+            amount: paymentAmount,
+            paymentStatus: updatedOrder.paymentStatus,
+            totalPaid: updatedOrder.paidAmount,
+            transactionId: sslPaymentData.tran_id,
+            bankTranId: sslPaymentData.bank_tran_id ?? null,
+          },
+        });
+      } catch (auditError) {
+        console.error('⚠️ Failed to log payment activity:', auditError);
+      }
 
       return {
         success: true,
