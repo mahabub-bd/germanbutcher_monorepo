@@ -150,18 +150,6 @@ const percentOf = (part: number, total: number) =>
 const dateOnly = (value: string | null) =>
   value ? formatDateTime(value).split(",")[0] : "—";
 
-/** "just now / 12m ago / 3h ago" — for the last-refresh timestamp. */
-function relativeFrom(value: Date | null, now: number): string {
-  if (!value) return "";
-  const diff = Math.max(0, now - value.getTime());
-  if (diff < 60_000) return "just now";
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
-
 /** KPI card wrapper: whole card is a link, with a hover chevron. */
 function KpiCard({
   href,
@@ -227,37 +215,25 @@ function DashboardSkeleton() {
 export function CrmDashboard() {
   const [stats, setStats] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [loadedAt, setLoadedAt] = useState<Date | null>(null);
-  // Re-render the "updated Xm ago" label without refetching.
-  const [now, setNow] = useState(() => Date.now());
 
-  const load = useCallback(async (silent = false) => {
-    if (silent) setIsRefreshing(true);
-    else setIsLoading(true);
+  const load = useCallback(async () => {
+    setIsLoading(true);
     try {
       const res = await fetchProtectedData<DashboardData>("crm/dashboard");
       setStats(res);
-      setLoadedAt(new Date());
       setFailed(false);
     } catch {
       toast.error("Failed to load the CRM dashboard.");
       setFailed(true);
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
-
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 30_000);
-    return () => window.clearInterval(id);
-  }, []);
 
   const pageHeader = (
     <PageHeader
@@ -267,32 +243,7 @@ export function CrmDashboard() {
       actionLabel="All customers"
       actionHref="/admin/crm/customers"
       actionIcon={<ArrowRight className="mr-2 size-4" />}
-    >
-      <div className="flex shrink-0 items-center gap-2">
-        {loadedAt && (
-          <span
-            className="hidden text-xs whitespace-nowrap text-muted-foreground sm:inline"
-            title={formatDateTime(loadedAt)}
-          >
-            Updated {relativeFrom(loadedAt, now)}
-          </span>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => load(true)}
-          disabled={isLoading || isRefreshing}
-          aria-label="Refresh dashboard"
-        >
-          <RefreshCw
-            className={cn("size-4", isRefreshing && "animate-spin")}
-          />
-          <span className="ml-1.5 hidden sm:inline">
-            {isRefreshing ? "Refreshing" : "Refresh"}
-          </span>
-        </Button>
-      </div>
-    </PageHeader>
+    />
   );
 
   if (isLoading) return <DashboardSkeleton />;
@@ -435,12 +386,7 @@ export function CrmDashboard() {
     <div className="w-full">
       {pageHeader}
 
-      <div
-        className={cn(
-          "transition-opacity duration-200",
-          isRefreshing && "pointer-events-none opacity-60",
-        )}
-      >
+      <>
         {/* Headline numbers */}
         <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard
@@ -1096,7 +1042,7 @@ export function CrmDashboard() {
             </>
           )}
         </div>
-      </div>
+      </>
     </div>
   );
 }
