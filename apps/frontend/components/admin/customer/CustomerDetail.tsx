@@ -1150,7 +1150,7 @@ export function CustomerDetail() {
             <>
             {/* Desktop table */}
             <div className="hidden overflow-hidden rounded-lg border bg-card md:block">
-              <Table className="report-table">
+              <Table className="report-table text-xs [&_th]:text-xs [&_td]:text-xs">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="pl-4">Action</TableHead>
@@ -1165,7 +1165,7 @@ export function CustomerDetail() {
                     <TableRow key={log.id}>
                       <TableCell className="py-2 pl-4">
                         <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-sm font-medium ${
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                             log.action === "POST"
                               ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
                               : log.action === "DELETE"
@@ -1182,23 +1182,23 @@ export function CustomerDetail() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm font-medium capitalize">
+                        <span className="text-xs font-medium capitalize">
                           {log.entityType}
                           {log.entityId ? ` #${log.entityId}` : ""}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="block max-w-md truncate text-sm text-muted-foreground" title={log.message || undefined}>
+                        <span className="block max-w-md truncate text-xs text-muted-foreground" title={log.message || undefined}>
                           {log.message || "—"}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                        <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
                           {formatDateTime(log.createdAt)}
                         </span>
                       </TableCell>
                       <TableCell className="pr-4 text-right">
-                        <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                        <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
                           {log.ipAddress || "—"}
                         </span>
                       </TableCell>
@@ -1227,7 +1227,7 @@ export function CustomerDetail() {
                     >
                       {log.action}
                     </span>
-                    <span className="min-w-0 truncate text-sm font-medium capitalize">
+                    <span className="min-w-0 truncate text-xs font-medium capitalize">
                       {log.entityType}
                       {log.entityId ? ` #${log.entityId}` : ""}
                     </span>

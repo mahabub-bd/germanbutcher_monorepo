@@ -2,6 +2,7 @@
 
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { PaginationComponent } from "@/components/common/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +38,7 @@ import {
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { fetchProtectedData, patchData } from "@/utils/api-utils";
+import { fetchProtectedData, fetchDataPagination, patchData } from "@/utils/api-utils";
 import {
   getOrderStatusColor,
   getPaymentStatusColor,
@@ -88,7 +89,11 @@ export function UserDetail() {
 
   const [user, setUser] = useState<User | null>(null);
   const [auditLogs, setAuditLogs] = useState<UserActivityLogEntry[]>([]);
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditTotalPages, setAuditTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+
+  const AUDIT_PAGE_SIZE = 10;
 
   // Address editing on the shipping tab — same addresses API the customer
   // detail page uses (staff tokens skip the ownership scope on the backend).
@@ -163,14 +168,21 @@ export function UserDetail() {
   };
 
   const fetchData = useCallback(async () => {
-    setIsLoading(true);
+    // Page changes refresh only the log; the very first load shows the
+    // full-page spinner.
+    if (!user) setIsLoading(true);
     try {
       // Profile + delivered orders/addresses from the users endpoint; the
-      // system-recorded activity log is non-fatal — the tab just goes empty.
+      // activity log uses the paginated audit endpoint filtered to this
+      // user. A failing log fetch is non-fatal — the tab just goes empty.
       const [userRes, auditRes] = await Promise.allSettled([
         fetchProtectedData<User>(`users/${userId}`),
-        fetchProtectedData<UserActivityLogEntry[]>(
-          `user-activities/${userId}`
+        fetchDataPagination<{
+          data: UserActivityLogEntry[] | null;
+          total?: number;
+          totalPages?: number;
+        }>(
+          `user-activities?page=${auditPage}&limit=${AUDIT_PAGE_SIZE}&userId=${userId}`
         ),
       ]);
       if (userRes.status === "fulfilled") {
@@ -178,7 +190,13 @@ export function UserDetail() {
       } else {
         throw userRes.reason;
       }
-      setAuditLogs(auditRes.status === "fulfilled" ? auditRes.value ?? [] : []);
+      if (auditRes.status === "fulfilled") {
+        setAuditLogs(auditRes.value.data ?? []);
+        setAuditTotalPages(auditRes.value.totalPages ?? 1);
+      } else {
+        setAuditLogs([]);
+        setAuditTotalPages(1);
+      }
     } catch (error) {
       console.error("Error fetching user details:", error);
       toast.error("Failed to load user details. Please try again.");
@@ -186,7 +204,7 @@ export function UserDetail() {
     } finally {
       setIsLoading(false);
     }
-  }, [userId, router]);
+  }, [userId, router, auditPage, user]);
 
   useEffect(() => {
     if (userId) {
@@ -707,7 +725,7 @@ export function UserDetail() {
             <>
               {/* Desktop table */}
               <div className="hidden overflow-hidden rounded-lg border bg-card md:block">
-                <Table className="report-table">
+                <Table className="report-table text-xs [&_th]:text-xs [&_td]:text-xs">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="pl-4">Action</TableHead>
@@ -722,7 +740,7 @@ export function UserDetail() {
                       <TableRow key={log.id}>
                         <TableCell className="py-2 pl-4">
                           <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-sm font-medium ${
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                               log.action === "POST"
                                 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
                                 : log.action === "DELETE"
@@ -733,29 +751,29 @@ export function UserDetail() {
                             {log.action}
                           </span>
                           {log.status === "failure" && (
-                            <span className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-sm font-medium text-red-700 dark:bg-red-500/20 dark:text-red-300">
+                            <span className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-500/20 dark:text-red-300">
                               Failed
                             </span>
                           )}
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm font-medium capitalize">
+                          <span className="text-xs font-medium capitalize">
                             {log.entityType}
                             {log.entityId ? ` #${log.entityId}` : ""}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="block max-w-md truncate text-sm text-muted-foreground" title={log.message || undefined}>
+                          <span className="block max-w-md truncate text-xs text-muted-foreground" title={log.message || undefined}>
                             {log.message || "—"}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                          <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
                             {formatDateTime(log.createdAt)}
                           </span>
                         </TableCell>
                         <TableCell className="pr-4 text-right">
-                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                          <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
                             {log.ipAddress || "—"}
                           </span>
                         </TableCell>
@@ -784,7 +802,7 @@ export function UserDetail() {
                       >
                         {log.action}
                       </span>
-                      <span className="min-w-0 truncate text-sm font-medium capitalize">
+                      <span className="min-w-0 truncate text-xs font-medium capitalize">
                         {log.entityType}
                         {log.entityId ? ` #${log.entityId}` : ""}
                       </span>
@@ -795,7 +813,18 @@ export function UserDetail() {
                   </div>
                 ))}
               </div>
-            </>
+              </>
+          )}
+
+          {auditTotalPages > 1 && (
+            <div className="mt-3 flex justify-center border-t pt-3 md:justify-end">
+              <PaginationComponent
+                currentPage={auditPage}
+                totalPages={auditTotalPages}
+                baseUrl="#"
+                onPageChange={(page) => setAuditPage(page)}
+              />
+            </div>
           )}
         </TabsContent>
       </Tabs>

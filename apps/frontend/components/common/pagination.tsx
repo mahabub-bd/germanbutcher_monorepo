@@ -31,7 +31,7 @@ interface PaginationComponentProps {
 // kills the base gradient so the solid fill shows; the postfix-! overrides
 // neutralize the base hover scale/shadow (scrollbar flicker) as before.
 const BTN =
-  'min-h-8 min-w-8 rounded-lg border border-border bg-card p-0 text-xs font-semibold text-foreground hover:scale-100! active:scale-100! hover:bg-muted! hover:text-foreground! sm:h-8 sm:min-h-0 sm:min-w-0 sm:w-8 sm:text-sm';
+  'min-h-8 min-w-8 rounded-lg border border-border bg-card px-1.5 p-0 text-xs font-semibold text-foreground hover:scale-100! active:scale-100! hover:bg-muted! hover:text-foreground! sm:h-8 sm:min-h-0 sm:min-w-8 sm:w-auto sm:px-2 sm:text-sm';
 const BTN_ACTIVE =
   'bg-primaryColor bg-none! border-primaryColor text-white! hover:bg-primaryColor/90! hover:text-white!';
 const BTN_ARROW =

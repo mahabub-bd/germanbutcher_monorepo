@@ -782,26 +782,28 @@ export function CrmDashboard() {
             </div>
           ) : (
             <>
-              {/* Desktop table — table-fixed with equal content columns that
-                  flex with the card, so there is no minimum width. */}
+              {/* Desktop table — table-fixed with columns that total 100%
+                  and give the content-bearing columns (customer, area) the
+                  flexible share, so the table fills the card edge to edge
+                  instead of leaving dead space on the right. */}
               <div className="hidden md:block">
-                <Table className="table-fixed [&_td]:text-sm [&_th]:text-sm">
+                <Table className="table-fixed w-full [&_td]:text-sm [&_th]:text-sm">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-[8%] pl-4 text-right">
+                      <TableHead className="w-[6%] pl-4 text-right">
                         #
                       </TableHead>
-                      <TableHead className="w-[13.14%]">Customer</TableHead>
-                      <TableHead className="w-[13.14%]">Mobile</TableHead>
-                      <TableHead className="w-[13.14%]">Segment</TableHead>
-                      <TableHead className="w-[13.14%]">Area</TableHead>
-                      <TableHead className="w-[13.14%] text-right">
+                      <TableHead className="w-[24%]">Customer</TableHead>
+                      <TableHead className="w-[13%]">Mobile</TableHead>
+                      <TableHead className="w-[13%]">Segment</TableHead>
+                      <TableHead className="w-[14%]">Area</TableHead>
+                      <TableHead className="w-[9%] text-right">
                         Orders
                       </TableHead>
-                      <TableHead className="w-[13.14%] text-right">
+                      <TableHead className="w-[11%] text-right">
                         Total spent
                       </TableHead>
-                      <TableHead className="w-[13.14%] pr-4">
+                      <TableHead className="w-[10%] pr-4">
                         Last order
                       </TableHead>
                     </TableRow>
