@@ -767,10 +767,10 @@ export function OrderList({
 
       {/* Pagination Section */}
       {!isLoading && orders.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t px-2 py-2">
-          {/* One compact row on mobile too: the range collapses to "51–60 of
-              2,573" and the filter summary truncates instead of stacking a
-              second line (order-reports footer convention). */}
+        <div className="flex flex-col items-center gap-x-3 gap-y-1 border-t px-2 py-2 md:flex-row md:justify-between">
+          {/* Mobile stacks the range above a centered pagination strip; the
+              range collapses to "51–60 of 2,573" and the filter summary
+              truncates instead of stacking a second line. */}
           <div className="flex min-w-0 grow items-center gap-2 text-[0.7rem] text-muted-foreground md:text-xs 2xl:text-sm">
             <span className="whitespace-nowrap">
               <span className="md:hidden">
@@ -808,7 +808,7 @@ export function OrderList({
 
       {/* Loading Pagination Skeleton */}
       {isLoading && (
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t px-2 py-2">
+        <div className="flex flex-col items-center gap-x-3 gap-y-1 border-t px-2 py-2 md:flex-row md:justify-between">
           <div className="h-4 w-36 bg-gray-200 rounded animate-pulse md:w-48" />
           <div className="flex gap-1">
             <div className="h-8 w-8 md:h-9 md:w-9 bg-gray-200 rounded animate-pulse" />
