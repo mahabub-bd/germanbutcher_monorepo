@@ -10,7 +10,12 @@ import {
   PaginationLink,
 } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 
 interface PaginationComponentProps {
@@ -21,20 +26,20 @@ interface PaginationComponentProps {
   onPageChange?: (page: number) => void;
 }
 
-// Mobile keeps a ~40px touch target (a11y minimum) while the strip stays
-// compact; targets grow slightly on tablet and up.
-// No hover feedback at all: the base ui/pagination hover:scale-105/shadow-xl
-// and gray hover colors are neutralized with postfix-! overrides, which also
-// kills the scrollbar flicker that scaled buttons caused in the strip.
-// Resting text color is pinned per state (gray buttons, white active pill).
+// Bordered rounded-square buttons per the mockup: white card tiles for idle
+// pages/arrows, solid primaryColor square for the active page. bg-none!
+// kills the base gradient so the solid fill shows; the postfix-! overrides
+// neutralize the base hover scale/shadow (scrollbar flicker) as before.
 const BTN =
-  'min-h-10 min-w-10 rounded-lg p-0 text-xs text-gray-600! hover:scale-100! active:scale-100! hover:bg-transparent! hover:text-gray-600! sm:h-9 sm:min-h-0 sm:min-w-0 sm:w-9 sm:text-sm';
-const BTN_ACTIVE = 'text-white! hover:text-white!';
+  'min-h-10 min-w-10 rounded-xl border border-border bg-card p-0 text-sm font-semibold text-foreground hover:scale-100! active:scale-100! hover:bg-muted! hover:text-foreground! sm:h-10 sm:min-h-0 sm:min-w-0 sm:w-10';
+const BTN_ACTIVE =
+  'bg-primaryColor bg-none! border-primaryColor text-white! hover:bg-primaryColor/90! hover:text-white!';
 const BTN_ARROW =
-  'min-h-10 min-w-10 gap-0 rounded-lg p-0 text-gray-600! hover:scale-100! active:scale-100! hover:bg-transparent! hover:text-gray-600! sm:h-9 sm:min-h-0 sm:min-w-0 sm:w-9';
-// Ellipsis is non-interactive — the base hover color shift is dropped too.
+  'min-h-10 min-w-10 gap-0 rounded-xl border border-border bg-card p-0 text-foreground hover:scale-100! active:scale-100! hover:bg-muted! hover:text-foreground! sm:h-10 sm:min-h-0 sm:min-w-0 sm:w-10';
+const BTN_ARROW_DISABLED = 'pointer-events-none opacity-40';
+// Ellipsis is non-interactive — no border, keeps the base hover off.
 const ELLIPSIS =
-  'min-h-10 min-w-7 p-0 text-muted-foreground hover:text-muted-foreground! sm:h-9 sm:min-h-0 sm:min-w-0 sm:w-7';
+  'min-h-10 min-w-7 border-0 bg-transparent p-0 text-muted-foreground hover:text-muted-foreground! sm:h-10 sm:min-h-0 sm:min-w-0 sm:w-7';
 
 /**
  * GitHub-style page window: always shows first/last page and the current
@@ -151,6 +156,22 @@ export function PaginationComponent({
         ref={contentRef}
         className="scrollbar-none max-w-full gap-1 overflow-x-auto overscroll-x-contain rounded-lg bg-transparent p-0 backdrop-blur-none [-webkit-overflow-scrolling:touch]"
       >
+        {/* Jump-to-first — visible once there is room for it to matter */}
+        {totalPages > 2 && (
+          <PaginationItem className="shrink-0">
+            <PaginationLink
+              aria-label="Go to first page"
+              href={safePage > 1 ? getPageUrl(1) : undefined}
+              aria-disabled={safePage <= 1}
+              tabIndex={safePage <= 1 ? -1 : undefined}
+              className={`${BTN_ARROW} ${safePage <= 1 ? BTN_ARROW_DISABLED : ''}`}
+              onClick={(e) => safePage > 1 && handleClick(1, e)}
+            >
+              <ChevronsLeft className="size-4" />
+            </PaginationLink>
+          </PaginationItem>
+        )}
+
         {/* Icon-only prev/next — the page numbers carry the labels, keeping
             the footer strip compact on mobile. */}
         <PaginationItem className="shrink-0">
@@ -159,8 +180,7 @@ export function PaginationComponent({
             href={prevDisabled ? undefined : getPageUrl(safePage - 1)}
             aria-disabled={prevDisabled}
             tabIndex={prevDisabled ? -1 : undefined}
-            className={`${BTN_ARROW} ${prevDisabled ? 'pointer-events-none opacity-40' : ''
-              }`}
+            className={`${BTN_ARROW} ${prevDisabled ? BTN_ARROW_DISABLED : ''}`}
             onClick={(e) => safePage > 1 && handleClick(safePage - 1, e)}
           >
             <ChevronLeft className="size-4" />
@@ -169,6 +189,22 @@ export function PaginationComponent({
 
         {renderWindow(pageWindow)}
 
+        {/* Jump-to-last */}
+        {totalPages > 2 && (
+          <PaginationItem className="shrink-0">
+            <PaginationLink
+              aria-label="Go to last page"
+              href={safePage < totalPages ? getPageUrl(totalPages) : undefined}
+              aria-disabled={safePage >= totalPages}
+              tabIndex={safePage >= totalPages ? -1 : undefined}
+              className={`${BTN_ARROW} ${safePage >= totalPages ? BTN_ARROW_DISABLED : ''}`}
+              onClick={(e) => safePage < totalPages && handleClick(totalPages, e)}
+            >
+              <ChevronsRight className="size-4" />
+            </PaginationLink>
+          </PaginationItem>
+        )}
+
         {/* Next */}
         <PaginationItem className="shrink-0">
           <PaginationLink
@@ -176,8 +212,7 @@ export function PaginationComponent({
             href={nextDisabled ? undefined : getPageUrl(safePage + 1)}
             aria-disabled={nextDisabled}
             tabIndex={nextDisabled ? -1 : undefined}
-            className={`${BTN_ARROW} ${nextDisabled ? 'pointer-events-none opacity-40' : ''
-              }`}
+            className={`${BTN_ARROW} ${nextDisabled ? BTN_ARROW_DISABLED : ''}`}
             onClick={(e) =>
               safePage < totalPages && handleClick(safePage + 1, e)
             }

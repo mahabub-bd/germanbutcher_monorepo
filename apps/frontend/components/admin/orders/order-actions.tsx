@@ -6,9 +6,10 @@ import {
   canCancelOrder,
 } from "@/components/admin/orders/cancel-order-modal";
 import { EditOrderModal } from "@/components/admin/orders/edit-order-modal";
-import { OrderStatusBadges } from "@/components/admin/orders/order-status-badges";
 import { RefundModal } from "@/components/admin/orders/refund-modal";
+
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,6 +19,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn, formatDateTime } from "@/lib/utils";
+import {
+  getOrderStatusColor,
+  getPaymentStatusColor,
+  getStatusIcon,
+} from "@/utils/order-helper";
 import type { Order } from "@/utils/types";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -33,6 +39,7 @@ import {
   MoreHorizontal,
   Printer,
   RefreshCw,
+  ShoppingCart,
   X
 } from "lucide-react";
 import { Fragment, useState } from "react";
@@ -70,9 +77,6 @@ interface OrderActionsProps {
   onEditSuccess?: () => void;
   onPaymentSuccess?: () => void;
 }
-
-// Compact on mobile, relaxed from sm up.
-const btnClass = "h-9 text-xs sm:h-8";
 
 // Color is reserved for the actions that need it: solid green/blue for the
 // two CTAs, orange outline for the money-sensitive refund, neutral outline
@@ -260,107 +264,154 @@ export function OrderActions({
   const actionLabel = (action: ActionConfig) =>
     action.loading ? action.loadingLabel ?? action.label : action.label;
 
+  // Mockup-style action tile: rounded icon square with the label underneath.
+  const renderTile = (
+    key: React.Key,
+    icon: React.ReactNode,
+    label: string,
+    tileClass: string,
+    props: {
+      onClick?: () => void;
+      disabled?: boolean;
+      ariaLabel?: string;
+    } = {}
+  ) => (
+    <div key={key} className="flex w-14 flex-col items-center gap-1 sm:w-16">
+      <Button
+        onClick={props.onClick}
+        disabled={props.disabled}
+        aria-label={props.ariaLabel ?? label}
+        title={props.ariaLabel ?? label}
+        className={cn(
+          "flex size-11 items-center justify-center rounded-2xl p-0 sm:size-12",
+          tileClass
+        )}
+      >
+        {icon}
+      </Button>
+      <span className="max-w-full truncate text-xs text-foreground">
+        {label}
+      </span>
+    </div>
+  );
+
   return (
     <section className="w-full overflow-hidden rounded-sm border bg-card shadow-sm">
-      {/* Compact single-row header: identity + actions + navigation */}
-      <div className="flex flex-col gap-3 p-3 sm:p-4 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-5">
-        {/* Identity: order no, status badges, inline meta */}
-        <div className="flex min-w-0 items-center gap-2.5">
+      <div className="p-3 sm:p-4 lg:px-5">
+        {/* Header: cart icon tile + order no + copy */}
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primaryColor/10 text-primaryColor sm:size-12">
+            <ShoppingCart className="size-5 sm:size-6" />
+          </div>
+          <h1 className="truncate text-lg font-extrabold tracking-tight sm:text-2xl">
+            {order.orderNo}
+          </h1>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopyOrderId}
+            className="size-8 shrink-0 rounded-lg bg-muted p-0 text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Copy order ID"
+            title="Copy order ID"
+          >
+            {copied ? (
+              <Check className="size-4 text-green-600" />
+            ) : (
+              <Copy className="size-4" />
+            )}
+          </Button>
+        </div>
 
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <h1 className="truncate text-sm font-bold tracking-tight sm:text-base">
-                {order.orderNo}
-              </h1>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCopyOrderId}
-                className="h-6 w-6 shrink-0 p-0 text-muted-foreground hover:text-foreground"
-                aria-label="Copy order ID"
-                title="Copy order ID"
-              >
-                {copied ? (
-                  <Check className="size-3 text-green-600" />
-                ) : (
-                  <Copy className="size-3" />
-                )}
-              </Button>
-              <OrderStatusBadges
-                orderStatus={order.orderStatus}
-                paymentStatus={order.paymentStatus}
-              />
-              {order.createdAt && (
-                <span className="hidden text-[11px] text-muted-foreground sm:inline">
-                  Placed {formatDateTime(order.createdAt)}
-                </span>
+        {/* Status / Payment pills in two labeled columns; vertical divider
+            on sm+ via border on the first column. */}
+        <div className="mt-3 grid grid-cols-2 gap-x-3 sm:gap-x-0">
+          <div className="sm:border-r sm:border-border/70 sm:pr-6">
+            <p className="text-xs text-muted-foreground sm:text-sm">
+              Order Status
+            </p>
+            <Badge
+              className={cn(
+                "mt-1 px-3 py-1 text-xs font-semibold sm:text-sm",
+                getOrderStatusColor(order.orderStatus)
               )}
-            </div>
+            >
+              <span className="mr-1">{getStatusIcon(order.orderStatus)}</span>
+              <span className="truncate capitalize">{order.orderStatus}</span>
+            </Badge>
+          </div>
+          <div className="sm:pl-6">
+            <p className="text-xs text-muted-foreground sm:text-sm">Payment</p>
+            <Badge
+              className={cn(
+                "mt-1 px-3 py-1 text-xs font-semibold sm:text-sm",
+                getPaymentStatusColor(order.paymentStatus)
+              )}
+            >
+              <span className="mr-1">
+                {getStatusIcon(order.paymentStatus)}
+              </span>
+              <span className="truncate capitalize">
+                {order.paymentStatus}
+              </span>
+            </Badge>
+            {order.createdAt && (
+              <span className="mt-1 hidden text-[11px] text-muted-foreground sm:block">
+                Placed {formatDateTime(order.createdAt)}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Actions + navigation, centered on mobile, right-aligned on lg */}
-        <div className="flex shrink-0 flex-wrap items-center justify-center gap-1.5 sm:gap-2 lg:justify-end">
+        <div className="my-3 h-px bg-border/70" />
+
+        {/* Actions + navigation tiles, centered on mobile, right-aligned on lg */}
+        <div className="flex flex-wrap items-start justify-center gap-x-1.5 gap-y-3 sm:gap-x-3 lg:justify-end">
           {visibleActions.length > 0 && (
             <>
-              {/* md+: labeled buttons, destructive visually separated */}
-              <div className="hidden flex-wrap items-center gap-1.5 md:flex">
-                {visibleActions.map((action) => (
-                  <Fragment key={action.id}>
-                    {action.danger && (
-                      <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
-                    )}
-                    <Button
-                      variant={action.variant}
-                      size="sm"
-                      onClick={action.onClick}
-                      disabled={action.disabled}
-                      className={cn(
-                        btnClass,
-                        "w-9 px-0",
-                        action.accent && accentButtonClasses[action.accent]
-                      )}
-                      aria-label={action.label}
-                      title={action.label}
-                    >
-                      {actionIcon(action, "size-3")}
-                    </Button>
-                  </Fragment>
-                ))}
+              {/* md+: every action as a tile */}
+              <div className="flex flex-wrap items-start gap-x-1.5 gap-y-3 max-md:hidden sm:gap-x-3">
+                {visibleActions.map((action) =>
+                  renderTile(
+                    action.id,
+                    actionIcon(action, "size-5"),
+                    actionLabel(action),
+                    action.danger
+                      ? "bg-red-100 text-destructive hover:bg-red-100/80 dark:bg-red-950/50 dark:text-red-400"
+                      : action.accent
+                        ? accentButtonClasses[action.accent]
+                        : "bg-muted text-foreground hover:bg-muted/70",
+                    { onClick: action.onClick, disabled: action.disabled }
+                  )
+                )}
               </div>
 
-              {/* Mobile: icon-only CTAs + overflow menu */}
-              <div className="flex items-center gap-1.5 md:hidden">
-                {primaryActions.map((action) => (
-                  <Button
-                    key={action.id}
-                    variant={action.variant}
-                    size="sm"
-                    onClick={action.onClick}
-                    disabled={action.disabled}
-                    className={cn(
-                      "size-9 rounded-md p-0",
-                      action.accent && accentButtonClasses[action.accent]
-                    )}
-                    aria-label={actionLabel(action)}
-                    title={actionLabel(action)}
-                  >
-                    {actionIcon(action, "size-4")}
-                  </Button>
-                ))}
+              {/* Mobile: CTAs + More overflow */}
+              <div className="flex items-start gap-1.5 md:hidden">
+                {primaryActions.map((action) =>
+                  renderTile(
+                    action.id,
+                    actionIcon(action, "size-5"),
+                    actionLabel(action),
+                    action.accent
+                      ? accentButtonClasses[action.accent]
+                      : "bg-muted text-foreground hover:bg-muted/70",
+                    { onClick: action.onClick, disabled: action.disabled }
+                  )
+                )}
 
                 {overflowActions.length > 0 && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="size-9 p-0"
-                        aria-label="More actions"
-                        title="More actions"
-                      >
-                        <MoreHorizontal className="size-4" />
-                      </Button>
+                      <div className="flex w-14 flex-col items-center gap-1">
+                        <Button
+                          className="flex size-11 items-center justify-center rounded-2xl bg-muted p-0 text-foreground hover:bg-muted/70 sm:size-12"
+                          aria-label="More menu"
+                          title="More menu"
+                        >
+                          <MoreHorizontal className="size-5" />
+                        </Button>
+                        <span className="text-xs text-foreground">More</span>
+                      </div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-44">
                       {overflowActions.map((action) => (
@@ -390,51 +441,37 @@ export function OrderActions({
           {hasNav && (
             <div
               className={cn(
-                "flex items-center gap-1 sm:gap-1.5",
+                "flex items-start gap-1.5 sm:gap-3",
                 visibleActions.length > 0 &&
-                "border-border/70 pl-1.5 sm:border-l sm:pl-2"
+                "border-border/70 pl-1.5 sm:border-l sm:pl-3"
               )}
             >
               {(onPrevOrder || onNextOrder) && (
                 <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onPrevOrder}
-                    disabled={!onPrevOrder}
-                    className="h-9 bg-primaryColor/10 px-2.5 text-xs text-primaryColor hover:bg-primaryColor/20 hover:text-primaryColor sm:px-3"
-                    aria-label="Previous order"
-                    title="Previous order"
-                  >
-                    <ArrowLeft className="size-3" />
-
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onNextOrder}
-                    disabled={!onNextOrder}
-                    className="h-9 bg-primaryColor/10 px-2.5 text-xs text-primaryColor hover:bg-primaryColor/20 hover:text-primaryColor sm:px-3"
-                    aria-label="Next order"
-                    title="Next order"
-                  >
-
-                    <ArrowRight className="size-3" />
-                  </Button>
+                  {renderTile(
+                    "prev",
+                    <ArrowLeft className="size-5" />,
+                    "Previous",
+                    "bg-red-100 text-red-600 hover:bg-red-100/80 dark:bg-red-950/50 dark:text-red-400",
+                    { onClick: onPrevOrder, disabled: !onPrevOrder }
+                  )}
+                  {renderTile(
+                    "next",
+                    <ArrowRight className="size-5" />,
+                    "Next",
+                    "bg-red-100 text-red-600 hover:bg-red-100/80 dark:bg-red-950/50 dark:text-red-400",
+                    { onClick: onNextOrder, disabled: !onNextOrder }
+                  )}
                 </>
               )}
-              {onBack && (
-                <Button
-                  size="sm"
-                  onClick={onBack}
-                  className="h-9 bg-primaryColor px-2.5 text-xs text-white hover:bg-primaryColor/90 sm:px-3"
-                  aria-label="Back to Order List"
-                  title="Back to Order List"
-                >
-                  <List className="size-3" />
-                  <span className="hidden sm:inline">Order List</span>
-                </Button>
-              )}
+              {onBack &&
+                renderTile(
+                  "list",
+                  <List className="size-5" />,
+                  "Order List",
+                  "bg-red-700 text-white hover:bg-red-800",
+                  { onClick: onBack }
+                )}
             </div>
           )}
         </div>
