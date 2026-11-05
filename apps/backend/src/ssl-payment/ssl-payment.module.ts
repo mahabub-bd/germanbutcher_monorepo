@@ -7,6 +7,7 @@ import { OrderPaymentMethod } from 'src/order-payment-method/entities/order-paym
 import { OrderPayment } from 'src/order-payment/entities/order-payment.entity';
 import { OrderPaymentService } from 'src/order-payment/order-payment.service';
 import { Order } from 'src/order/entities/order.entity';
+import { UserActivityModule } from 'src/user-activity/user-activity.module';
 import { SSLPayment } from './entities/payment.entity';
 import { SslPaymentService } from './ssl-payment.service';
 
@@ -19,6 +20,7 @@ import { SslPaymentService } from './ssl-payment.service';
       OrderPaymentMethod,
     ]),
     ConfigModule,
+    UserActivityModule,
   ],
   controllers: [SslPaymentController],
   providers: [SslPaymentService, OrderPaymentService],
