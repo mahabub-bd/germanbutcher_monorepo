@@ -31,15 +31,15 @@ interface PaginationComponentProps {
 // kills the base gradient so the solid fill shows; the postfix-! overrides
 // neutralize the base hover scale/shadow (scrollbar flicker) as before.
 const BTN =
-  'min-h-10 min-w-10 rounded-xl border border-border bg-card p-0 text-sm font-semibold text-foreground hover:scale-100! active:scale-100! hover:bg-muted! hover:text-foreground! sm:h-10 sm:min-h-0 sm:min-w-0 sm:w-10';
+  'min-h-8 min-w-8 rounded-lg border border-border bg-card p-0 text-xs font-semibold text-foreground hover:scale-100! active:scale-100! hover:bg-muted! hover:text-foreground! sm:h-8 sm:min-h-0 sm:min-w-0 sm:w-8 sm:text-sm';
 const BTN_ACTIVE =
   'bg-primaryColor bg-none! border-primaryColor text-white! hover:bg-primaryColor/90! hover:text-white!';
 const BTN_ARROW =
-  'min-h-10 min-w-10 gap-0 rounded-xl border border-border bg-card p-0 text-foreground hover:scale-100! active:scale-100! hover:bg-muted! hover:text-foreground! sm:h-10 sm:min-h-0 sm:min-w-0 sm:w-10';
+  'min-h-8 min-w-8 gap-0 rounded-lg border border-border bg-card p-0 text-foreground hover:scale-100! active:scale-100! hover:bg-muted! hover:text-foreground! sm:h-8 sm:min-h-0 sm:min-w-0 sm:w-8';
 const BTN_ARROW_DISABLED = 'pointer-events-none opacity-40';
 // Ellipsis is non-interactive — no border, keeps the base hover off.
 const ELLIPSIS =
-  'min-h-10 min-w-7 border-0 bg-transparent p-0 text-muted-foreground hover:text-muted-foreground! sm:h-10 sm:min-h-0 sm:min-w-0 sm:w-7';
+  'min-h-8 min-w-6 border-0 bg-transparent p-0 text-muted-foreground hover:text-muted-foreground! sm:h-8 sm:min-h-0 sm:min-w-0 sm:w-6';
 
 /**
  * GitHub-style page window: always shows first/last page and the current
