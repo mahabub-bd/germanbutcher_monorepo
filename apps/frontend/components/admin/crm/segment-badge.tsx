@@ -65,6 +65,11 @@ const SEGMENT_STYLES: Record<
   },
 };
 
+/** Segment key → display label, for tooltips and legends outside the badge. */
+export const SEGMENT_LABELS = Object.fromEntries(
+  Object.entries(SEGMENT_STYLES).map(([key, style]) => [key, style.label]),
+) as Record<string, string>;
+
 export function SegmentBadge({
   segment,
   className,
