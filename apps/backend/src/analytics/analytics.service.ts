@@ -21,6 +21,22 @@ const DEFAULT_FLUSH_INTERVAL_MS = 3000;
 const DEFAULT_MAX_BUFFER_SIZE = 1000;
 /** Rows older than this many days are purged by the daily cron (0 disables). */
 const DEFAULT_RETENTION_DAYS = 90;
+/** Dashboard payload cache TTL (ms) — 0 disables caching. */
+const DEFAULT_DASHBOARD_CACHE_TTL_MS = 60_000;
+
+/** Full analytics-info dashboard payload, mirroring AnalyticsDashboardData on the frontend. */
+type DashboardPayload = {
+  overview: Awaited<ReturnType<AnalyticsService['getOverview']>>;
+  requests: Awaited<ReturnType<AnalyticsService['getRequestMetrics']>>;
+  peakTraffic: Awaited<ReturnType<AnalyticsService['getPeakTraffic']>>;
+  visitors: Awaited<ReturnType<AnalyticsService['getUniqueVisitors']>>;
+  topEndpoints: Awaited<ReturnType<AnalyticsService['getTopEndpoints']>>;
+  responseTimes: Awaited<ReturnType<AnalyticsService['getResponseTimeMetrics']>>;
+  devices: Awaited<ReturnType<AnalyticsService['getDeviceBreakdown']>>;
+  topPages: Awaited<ReturnType<AnalyticsService['getTopProductPages']>>;
+  trafficSources: Awaited<ReturnType<AnalyticsService['getTrafficSources']>>;
+  conversion: Awaited<ReturnType<AnalyticsService['getConversion']>>;
+};
 
 /**
  * Product detail page paths: API style (/v1/products/42, /v1/products/slug/x)
@@ -45,6 +61,12 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
 
   private flushBatchSize: number;
   private maxBufferSize: number;
+  private dashboardCacheTtlMs: number;
+  private dashboardCache = new Map<
+    string,
+    { data: DashboardPayload; expiresAt: number }
+  >();
+  private dashboardInFlight = new Map<string, Promise<DashboardPayload>>();
 
   constructor(
     @InjectRepository(Analytics)
@@ -65,6 +87,11 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
       'ANALYTICS_MAX_BUFFER_SIZE',
       DEFAULT_MAX_BUFFER_SIZE,
     );
+    this.dashboardCacheTtlMs = this.configService.get<number>(
+      'ANALYTICS_DASHBOARD_CACHE_TTL_MS',
+      DEFAULT_DASHBOARD_CACHE_TTL_MS
+    );
+
     const intervalMs = this.configService.get<number>(
       'ANALYTICS_FLUSH_INTERVAL_MS',
       DEFAULT_FLUSH_INTERVAL_MS,
@@ -545,6 +572,85 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
       visitors > 0 ? Math.round((orderCount / visitors) * 10000) / 100 : 0;
 
     return { orders: orderCount, visitors, conversionRate };
+  }
+
+  /**
+   * Whole analytics-info dashboard in one request. The page used to fan out
+   * to 10 endpoints (several aggregating 30-day windows), which queued in the
+   * browser's per-host connection limit and re-ran the heavy COUNT(DISTINCT)
+   * / ILIKE aggregations on every load. Fixed windows mirror the page's
+   * FIXED_RANGES so chart sample sizes are unchanged.
+   */
+  async getDashboard(
+    period: string = '24h',
+    options?: { refresh?: boolean },
+  ): Promise<DashboardPayload> {
+    if (this.dashboardCacheTtlMs <= 0) {
+      return this.computeDashboard(period);
+    }
+
+    const cached = this.dashboardCache.get(period);
+    if (!options?.refresh && cached && cached.expiresAt > Date.now()) {
+      return cached.data;
+    }
+
+    // Single-flight per period: concurrent dashboard requests share one
+    // computation instead of stampeding the aggregations
+    let inFlight = this.dashboardInFlight.get(period);
+    if (!inFlight) {
+      inFlight = this.computeDashboard(period)
+        .then((data) => {
+          this.dashboardCache.set(period, {
+            data,
+            expiresAt: Date.now() + this.dashboardCacheTtlMs,
+          });
+          return data;
+        })
+        .finally(() => {
+          this.dashboardInFlight.delete(period);
+        });
+      this.dashboardInFlight.set(period, inFlight);
+    }
+    return inFlight;
+  }
+
+  private computeDashboard(period: string): Promise<DashboardPayload> {
+    return Promise.all([
+      this.getOverview(period),
+      this.getRequestMetrics(period),
+      this.getPeakTraffic('7d'),
+      this.getUniqueVisitors('30d'),
+      this.getTopEndpoints(10, period),
+      this.getResponseTimeMetrics(period),
+      this.getDeviceBreakdown(period),
+      this.getTopProductPages('7d', 8),
+      this.getTrafficSources('30d'),
+      this.getConversion('30d'),
+    ]).then(
+      ([
+        overview,
+        requests,
+        peakTraffic,
+        visitors,
+        topEndpoints,
+        responseTimes,
+        devices,
+        topPages,
+        trafficSources,
+        conversion,
+      ]) => ({
+        overview,
+        requests,
+        peakTraffic,
+        visitors,
+        topEndpoints,
+        responseTimes,
+        devices,
+        topPages,
+        trafficSources,
+        conversion,
+      }),
+    );
   }
 
   private getHoursFromPeriod(period: string): number {

@@ -1,5 +1,6 @@
 import { fetchProtectedData } from "./api-utils";
 import type {
+  AnalyticsDashboardData,
   AnalyticsOverview,
   AnalyticsPeriod,
   AnalyticsRequests,
@@ -97,43 +98,15 @@ export async function fetchOnlineUsers(): Promise<OnlineUsers> {
   return result as OnlineUsers;
 }
 
-export async function fetchAllAnalyticsData(period: AnalyticsPeriod = "24h") {
-  const [
-    overview,
-    requests,
-    peakTraffic,
-    visitors,
-    topEndpoints,
-    responseTimes,
-    devices,
-    topPages,
-    trafficSources,
-    conversion,
-  ] = await Promise.all([
-    fetchAnalyticsOverview(period),
-    fetchAnalyticsRequests(period),
-    fetchPeakTraffic("7d"),
-    fetchVisitors("30d"),
-    fetchTopEndpoints(10, period),
-    fetchResponseTimes(period),
-    fetchDeviceBreakdown(period),
-    fetchTopProductPages("7d"),
-    fetchTrafficSources("30d"),
-    fetchConversion("30d"),
-  ]);
-
-  return {
-    overview,
-    requests,
-    peakTraffic,
-    visitors,
-    topEndpoints,
-    responseTimes,
-    devices,
-    topPages,
-    trafficSources,
-    conversion,
-  };
+export async function fetchAnalyticsDashboard(
+  period: AnalyticsPeriod = "24h",
+  options?: { refresh?: boolean }
+): Promise<AnalyticsDashboardData> {
+  const params = new URLSearchParams({ period });
+  if (options?.refresh) params.set("refresh", "true");
+  return fetchProtectedData<AnalyticsDashboardData>(
+    `${ANALYTICS_BASE}/dashboard?${params.toString()}`
+  );
 }
 
 export async function fetchDeviceBreakdown(

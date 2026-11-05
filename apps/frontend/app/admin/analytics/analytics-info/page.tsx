@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchAllAnalyticsData } from "@/utils/analytics-utils";
+import { fetchAnalyticsDashboard } from "@/utils/analytics-utils";
 import type { AnalyticsDashboardData, AnalyticsPeriod } from "@/utils/types";
 import {
   AlertTriangle,
@@ -87,7 +87,10 @@ export default function AnalyticsPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const analyticsData = await fetchAllAnalyticsData(period);
+        const analyticsData = await fetchAnalyticsDashboard(period, {
+          // The refresh button bypasses the backend's dashboard cache
+          refresh: refreshKey > 0,
+        });
         if (!cancelled) {
           setData(analyticsData);
           setLastUpdated(new Date());
