@@ -13,15 +13,22 @@ import {
 import { AccountPageHeader } from "@/components/user-account/account-page-header";
 import { useCartContext } from "@/contexts/cart-context";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { formatDateTime } from "@/lib/utils";
+import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { downloadOrderInvoice } from "@/utils/invoice-download";
 import {
+  getOrderStatusColor,
   getPaymentMethodColor,
   getPaymentMethodIcon,
+  getPaymentStatusColor,
   getStatusIcon,
 } from "@/utils/order-helper";
 import { Order } from "@/utils/types";
-import { Eye, FileText, Loader2, Repeat } from "lucide-react";
+import {
+  FileText,
+  Loader2,
+  Repeat,
+  ShoppingCart,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -37,43 +44,16 @@ const OrderTable = ({ orders }: MyOrderProps) => {
   const settings = useBusinessSettings();
   const { addManyItems } = useCartContext();
 
-  // Row-local busy states so one order's action doesn't disable the others
+
   const [reorderingId, setReorderingId] = useState<number | null>(null);
   const [invoicingId, setInvoicingId] = useState<number | null>(null);
 
-  // Sort orders by date (newest first)
-  const sortedOrders = [...orders].sort((a, b) => {
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
+  const sortedOrders = [...(orders ?? [])].sort(
+    (a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "processing":
-        return "bg-blue-100 text-blue-800";
-      case "shipped":
-        return "bg-purple-100 text-purple-800";
-      case "delivered":
-        return "bg-green-100 text-green-800";
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      case "paid":
-        return "bg-green-100 text-green-800";
-      case "failed":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const formatStatus = (status: string) => {
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US").format(amount);
-  };
+  const detailHref = (id: number) => `/user/${userId}/order/${id}`;
 
   const handleReorder = async (order: Order) => {
     setReorderingId(order.id);
@@ -98,124 +78,274 @@ const OrderTable = ({ orders }: MyOrderProps) => {
     }
   };
 
+
+  const shouldShowPayNow = (order: Order): boolean => {
+    if (order.orderStatus === "cancelled") return false;
+    const status = (order.paymentStatus || "").toLowerCase();
+    if (status === "paid" || status === "completed") return false;
+    return Number(order.paidAmount || 0) < Number(order.totalValue || 0);
+  };
+
+  const emptyState = (
+    <div className="rounded-xl border border-gray-200 bg-white">
+      <div className="flex flex-col items-center gap-3 py-14 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-50 text-gray-400">
+          <ShoppingCart className="h-7 w-7" />
+        </span>
+        <div>
+          <h3 className="font-semibold text-gray-900">No orders yet</h3>
+          <p className="text-sm text-muted-foreground">
+            When you place an order it will show up here.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="w-full  ">
+    <div className="w-full">
       <AccountPageHeader title="My Orders" />
 
-      <div className="rounded-md  overflow-hidden">
-        <Table>
-          <TableHeader className="bg-gray-50">
-            <TableRow>
-              <TableHead>Order ID</TableHead>
-              <TableHead>Order Status</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Payment Status</TableHead>
-              <TableHead>Payment Method</TableHead>
-              <TableHead>Payment Actions</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedOrders.length > 0 ? (
-              sortedOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.orderNo}</TableCell>
-
-                  <TableCell>
-                    <Badge
-                      className={`rounded-full px-3 py-1 ${getStatusColor(order.orderStatus)}`}
+      {sortedOrders.length === 0 ? (
+        emptyState
+      ) : (
+        <>
+          {/* Mobile: one compact card per order */}
+          <div className="space-y-3 md:hidden">
+            {sortedOrders.map((order) => (
+              <div
+                key={order.id}
+                className="rounded-xl border border-gray-200 bg-white p-4 shadow-xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <Link
+                      href={detailHref(order.id)}
+                      className="font-medium text-gray-900 hover:text-primaryColor"
                     >
-                      <span className="flex items-center gap-1.5">
-                        {getStatusIcon(order.orderStatus)}
-                        {formatStatus(order.orderStatus)}
-                      </span>
-                    </Badge>
-                  </TableCell>
+                      {order.orderNo}
+                    </Link>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {formatDateTime(order.createdAt)}
+                    </p>
+                  </div>
+                  <Badge
+                    variant="secondary"
+                    className={`shrink-0 capitalize ${getOrderStatusColor(
+                      order.orderStatus
+                    )}`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {getStatusIcon(order.orderStatus)}
+                      {order.orderStatus}
+                    </span>
+                  </Badge>
+                </div>
 
-                  <TableCell className="whitespace-nowrap">
-                    {formatDateTime(order.createdAt)}
-                  </TableCell>
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">Total</span>
+                  <span className="font-semibold text-gray-900">
+                    ৳{formatCurrencyEnglish(order.totalValue || 0)}
+                  </span>
+                </div>
 
-                  <TableCell>৳{formatCurrency(order.totalValue)}</TableCell>
-
-                  <TableCell>
-                    <Badge
-                      className={`rounded-full px-3 py-1 ${getStatusColor(order.paymentStatus)}`}
-                    >
-                      <span className="flex items-center gap-1.5">
-                        {getStatusIcon(order.paymentStatus)}
-                        {formatStatus(order.paymentStatus)}
-                      </span>
-                    </Badge>
-                  </TableCell>
-
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={`capitalize ${getPaymentMethodColor(order.paymentMethod?.name)}`}
-                    >
-                      <span className="flex items-center gap-1.5">
-                        {getPaymentMethodIcon(order.paymentMethod?.name || "")}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <Badge
+                    variant="secondary"
+                    className={`capitalize ${getPaymentStatusColor(
+                      order.paymentStatus
+                    )}`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {getStatusIcon(order.paymentStatus)}
+                      {order.paymentStatus}
+                    </span>
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    title={order.paymentMethod?.name || undefined}
+                    className={`max-w-40 truncate capitalize ${getPaymentMethodColor(
+                      order.paymentMethod?.name
+                    )}`}
+                  >
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      {getPaymentMethodIcon(order.paymentMethod?.name || "")}
+                      <span className="truncate">
                         {order.paymentMethod?.name || "N/A"}
                       </span>
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {order.paymentStatus === "pending" ? (
-                      <PayNow order={order} className="inline-flex" />
+                    </span>
+                  </Badge>
+                </div>
+
+                {shouldShowPayNow(order) && (
+                  <div className="mt-3">
+                    <PayNow order={order} />
+                  </div>
+                )}
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => handleReorder(order)}
+                    disabled={reorderingId === order.id}
+                  >
+                    {reorderingId === order.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <span className="flex justify-center text-muted-foreground">-</span>
+                      <Repeat className="mr-1 h-4 w-4" />
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Link href={`/user/${userId}/order/${order.id}`}>
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleReorder(order)}
-                        disabled={reorderingId === order.id}
-                      >
-                        {reorderingId === order.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Repeat className="h-4 w-4 mr-1" />
-                        )}
-                        Buy Again
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleInvoice(order)}
-                        disabled={invoicingId === order.id}
-                      >
-                        {invoicingId === order.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <FileText className="h-4 w-4 mr-1" />
-                        )}
-                        Invoice
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
-                  No orders found
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                    Buy Again
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => handleInvoice(order)}
+                    disabled={invoicingId === order.id}
+                  >
+                    {invoicingId === order.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileText className="mr-1 h-4 w-4" />
+                    )}
+                    Invoice
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+
+          <div className="hidden md:block">
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs">
+              <div className="overflow-x-auto">
+                <Table className="min-w-220 text-sm [&_td]:py-2.5 [&_th]:h-10 lg:min-w-0">
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead>Order</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedOrders.map((order) => (
+                      <TableRow key={order.id} className="hover:bg-gray-50">
+                        <TableCell className="whitespace-nowrap">
+                          <Link
+                            href={detailHref(order.id)}
+                            className="font-medium text-gray-900 transition-colors hover:text-primaryColor"
+                          >
+                            {order.orderNo}
+                          </Link>
+                        </TableCell>
+
+                        <TableCell className="whitespace-nowrap text-muted-foreground">
+                          {formatDateTime(order.createdAt)}
+                        </TableCell>
+
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className={`capitalize ${getOrderStatusColor(
+                              order.orderStatus
+                            )}`}
+                          >
+                            <span className="flex items-center gap-1.5">
+                              {getStatusIcon(order.orderStatus)}
+                              {order.orderStatus}
+                            </span>
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className={`capitalize ${getPaymentStatusColor(
+                              order.paymentStatus
+                            )}`}
+                          >
+                            <span className="flex items-center gap-1.5">
+                              {getStatusIcon(order.paymentStatus)}
+                              {order.paymentStatus}
+                            </span>
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            title={order.paymentMethod?.name || undefined}
+                            className={`max-w-36 truncate capitalize lg:max-w-none ${getPaymentMethodColor(
+                              order.paymentMethod?.name
+                            )}`}
+                          >
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              {getPaymentMethodIcon(
+                                order.paymentMethod?.name || ""
+                              )}
+                              <span className="truncate">
+                                {order.paymentMethod?.name || "N/A"}
+                              </span>
+                            </span>
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="text-right font-medium whitespace-nowrap">
+                          ৳{formatCurrencyEnglish(order.totalValue || 0)}
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-2">
+                            {shouldShowPayNow(order) && (
+                              <PayNow order={order} className="h-8" />
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() => handleReorder(order)}
+                              disabled={reorderingId === order.id}
+                              title="Buy again"
+                            >
+                              {reorderingId === order.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Repeat className="mr-1 h-4 w-4" />
+                              )}
+                              Buy Again
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() => handleInvoice(order)}
+                              disabled={invoicingId === order.id}
+                              title="Download invoice"
+                            >
+                              {invoicingId === order.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <FileText className="mr-1 h-4 w-4" />
+                              )}
+                              Invoice
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

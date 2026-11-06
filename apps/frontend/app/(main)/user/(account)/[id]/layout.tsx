@@ -48,10 +48,7 @@ const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
     activeColors: string;
   }
 
-  /** Per-tab icon, copy and pill colors, keyed by the menu url. Tabs come from
-   * the menu table (user Dashboard's children); anything unknown falls back to
-   * the neutral slate style. Follows the admin detail-page pill-tab convention:
-   * tinted background when inactive, solid color when active. */
+
   const TAB_META: Record<
     string,
     {
