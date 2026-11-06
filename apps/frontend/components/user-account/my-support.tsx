@@ -57,14 +57,18 @@ const MySupport = ({
         subtitle={`${totalMessages} ${
           totalMessages === 1 ? "message" : "messages"
         }`}
+        // Hidden while empty — the empty-state card below already has a
+        // "New Message" CTA, so showing both doubles the button.
         action={
-          <Button
-            onClick={() => setIsCreateOpen(true)}
-            className="rounded-lg px-5 py-2.5 font-semibold h-auto"
-          >
-            <Plus className="h-4 w-4" />
-            New Message
-          </Button>
+          messages.length > 0 ? (
+            <Button
+              onClick={() => setIsCreateOpen(true)}
+              className="rounded-lg px-5 py-2.5 font-semibold h-auto"
+            >
+              <Plus className="h-4 w-4" />
+              New Message
+            </Button>
+          ) : undefined
         }
       />
 

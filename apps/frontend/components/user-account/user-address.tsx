@@ -1,16 +1,14 @@
 "use client";
 
 import { AccountPageHeader } from "@/components/user-account/account-page-header";
+import { cn } from "@/lib/utils";
 import { deleteData } from "@/utils/api-utils";
 import { serverRevalidate } from "@/utils/revalidatePath";
 import { Address } from "@/utils/types";
 import {
-  Building2,
   CircleCheck,
   FileText,
-  Globe2,
   MapPin,
-  Milestone,
   PencilLine,
   Plus,
   Trash2,
@@ -157,53 +155,53 @@ export default function MyAddress({
         }
       />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 items-start">
+      {/* Stretch (no items-start) keeps cards in a row equal height so the
+          geo footer anchors at the bottom. */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {sortedAddresses.map((address) => {
           const isDeleting = deletingId === address.id;
           const canDelete = canDeleteAddress(address);
           const Icon = address.type === "billing" ? FileText : MapPin;
+          const isBilling = address.type === "billing";
 
-          // Each field keeps a label and an icon; Address spans the full
-          // width and Area/City/Division share a two-column grid so the
-          // card stays compact.
-          const fields: {
-            label: string;
-            value: string;
-            icon: typeof MapPin;
-            full?: boolean;
-          }[] = [
-              { label: "Address", value: address.address, icon: MapPin, full: true },
-              { label: "Area", value: address.area, icon: Milestone },
-              { label: "City", value: address.city, icon: Building2 },
-              { label: "Division", value: address.division, icon: Globe2 },
-            ];
+          // Second line: Label · City · Division — joins only the parts
+          // that exist, so a missing value doesn't leave a dangling dot.
+          const meta = [address.label, address.city, address.division]
+            .filter(Boolean)
+            .join(" · ");
 
           return (
             <div
               key={address.id}
-              className="rounded-xl border border-gray-200 bg-white p-4"
+              className="relative flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
             >
-              <div className="flex items-start justify-between gap-2">
+              {/* Header: type icon + title, Default pill, actions */}
+              <div className="flex items-start justify-between gap-2 p-4 pb-0">
                 <div className="flex min-w-0 items-center gap-2.5">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-primaryColor">
+                  <span
+                    className={cn(
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                      isBilling
+                        ? "bg-blue-50 text-blue-600"
+                        : "bg-red-50 text-primaryColor"
+                    )}
+                  >
                     <Icon className="h-4 w-4" />
                   </span>
-                  <div className="min-w-0">
-                    <h2 className="truncate text-sm font-semibold capitalize text-gray-900">
-                      {address.type} Address
-                    </h2>
-                  </div>
+                  <h2 className="truncate text-sm font-semibold capitalize text-gray-900">
+                    {address.type} Address
+                  </h2>
                 </div>
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex shrink-0 items-center gap-1">
                   {address.isDefault && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700">
-                      <CircleCheck className="h-3 w-3 fill-green-600 text-white" />
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                      <CircleCheck className="h-3 w-3 fill-emerald-600 text-white" />
                       Default
                     </span>
                   )}
                   <button
                     type="button"
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-primaryColor transition-colors hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-primaryColor disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => handleEditAddress(address)}
                     disabled={isDeleting}
                     title="Edit address"
@@ -214,7 +212,7 @@ export default function MyAddress({
                   {canDelete && (
                     <button
                       type="button"
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={() => handleDeleteClick(address)}
                       disabled={isDeleting}
                       title="Delete address"
@@ -226,31 +224,19 @@ export default function MyAddress({
                 </div>
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 border-t border-gray-100 pt-3">
-                {fields.map((field) => {
-                  const FieldIcon = field.icon;
-                  return (
-                    <div
-                      key={field.label}
-                      className={`flex items-start gap-2${field.full ? " col-span-2" : ""
-                        }`}
-                    >
-                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gray-50 text-gray-500">
-                        <FieldIcon className="h-3.5 w-3.5" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm wrap-break-word">
-                          <span className="text-[11px] uppercase tracking-wide text-slate-500">
-                            {field.label}:
-                          </span>{" "}
-                          <span className="font-medium text-gray-900">
-                            {field.value || "—"}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* Body: the address itself is the hero — street line large,
+                  then Label · City · Division on the next line */}
+              <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
+                <div className="min-w-0 space-y-1">
+                  <p className="wrap-break-word text-[15px] font-semibold leading-snug text-gray-900">
+                    {address.address || "—"}
+                  </p>
+                  {meta && (
+                    <p className="wrap-break-word text-sm leading-snug capitalize text-gray-500">
+                      {meta}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           );

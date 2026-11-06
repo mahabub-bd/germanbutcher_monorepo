@@ -68,6 +68,7 @@ import {
   History,
   Trash2,
   User,
+  Users,
   Wallet,
 } from "lucide-react";
 import Image from "next/image";
@@ -536,6 +537,17 @@ export function CustomerDetail() {
               {customer.mobileNumber && (
                 <span className="flex items-center gap-1">
                   <Phone className="h-3 w-3" /> {customer.mobileNumber}
+                </span>
+              )}
+              {customer.gender && (
+                <span className="flex items-center gap-1 capitalize">
+                  <Users className="h-3 w-3" /> {customer.gender}
+                </span>
+              )}
+              {customer.dateOfBirth && (
+                <span className="flex items-center gap-1">
+                  <CalendarClock className="h-3 w-3" />
+                  DOB {formatDateTime(customer.dateOfBirth)}
                 </span>
               )}
               <span className="flex items-center gap-1">

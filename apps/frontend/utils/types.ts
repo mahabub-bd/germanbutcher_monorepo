@@ -162,6 +162,8 @@ export interface User {
   otpExpiresAt: string;
   profilePhoto?: Attachment;
   isAdmin: boolean;
+  gender?: string | null;
+  dateOfBirth?: string | null;
   orders?: Order[];
   /** Customer's saved addresses (default first when sorted by the API consumer). */
   addresses?: Address[];
@@ -182,6 +184,8 @@ export interface CustomerData {
     description: string;
     isActive: boolean;
   };
+  gender?: string | null;
+  dateOfBirth?: string | null;
   addresses: Address[];
   profilePhoto?: {
     id: number;
@@ -833,6 +837,7 @@ export interface Address {
   division: string;
   city: string;
   type: string;
+  label?: string | null;
   isDefault: boolean;
 }
 

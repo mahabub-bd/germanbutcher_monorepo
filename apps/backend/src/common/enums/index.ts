@@ -3,6 +3,17 @@ export enum AddressType {
   BILLING = 'billing',
 }
 
+export enum AddressLabel {
+  HOME = 'home',
+  OFFICE = 'office',
+}
+
+export enum Gender {
+  MALE = 'male',
+  FEMALE = 'female',
+  OTHER = 'other',
+}
+
 export enum LocationType {
   DIVISION = 'division',
   CITY = 'city',
