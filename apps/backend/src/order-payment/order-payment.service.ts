@@ -28,7 +28,7 @@ export class OrderPaymentService {
   async create(createPaymentDto: CreateOrderPaymentDto, user: User) {
     const order = await this.orderRepository.findOne({
       where: { id: createPaymentDto.orderId },
-      relations: ['payments'],
+      relations: ['payments', 'paymentMethod'],
     });
 
     if (!order) throw new NotFoundException('Order not found');
@@ -67,6 +67,18 @@ export class OrderPaymentService {
     });
 
     await this.paymentRepository.save(payment);
+
+    // Keep the order-level method in sync with how the money actually
+    // arrived. If a customer picked SSLCommerz at checkout but never
+    // completed the payment and the admin records a manual (e.g. cash)
+    // payment, the order must stop showing the online method. The SSL
+    // success path is unaffected: it already sets the order method to the
+    // SSL method before calling create(), so this is a no-op there.
+    if (order.paymentMethod?.id !== paymentMethod.id) {
+      order.paymentMethod = paymentMethod;
+      await this.orderRepository.save(order);
+    }
+
     await this.updateOrderPaymentStatus(order.id);
 
     return payment;
