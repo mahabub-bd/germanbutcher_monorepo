@@ -202,9 +202,13 @@ export default function PaymentMethodList({
               document={
                 <ReportTablePDF
                   title="Payment Method Report"
+                  orientation="landscape"
                   headers={[
                     "Payment Method",
                     "Orders",
+                    "Pending",
+                    "Processing",
+                    "On Hold",
                     "Delivered",
                     "Cancelled",
                     "Order Value",
@@ -212,8 +216,8 @@ export default function PaymentMethodList({
                     "Cash",
                     "Online",
                   ]}
-                  flexes={[1.6, 0.8, 0.9, 0.9, 1.1, 1, 1, 1]}
-                  alignRight={[1, 2, 3, 4, 5, 6, 7]}
+                  flexes={[1.6, 0.7, 0.8, 0.9, 0.8, 0.9, 0.9, 1.1, 1, 1, 1]}
+                  alignRight={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
                   rows={exportRows}
                   summary={pdfSummary}
                   settings={settings}

@@ -13,7 +13,7 @@ export class CouponUsageLogResponseDto {
   @ApiPropertyOptional({ example: 123 })
   orderId?: number;
 
-  @ApiPropertyOptional({ example: 'ORD-2024-0001' })
+  @ApiPropertyOptional({ example: '2026-0001' })
   orderNo?: string;
 
   @ApiPropertyOptional({ example: 1 })

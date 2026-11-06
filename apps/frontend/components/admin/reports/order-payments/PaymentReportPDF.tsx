@@ -2,7 +2,6 @@
 
 import {
   Document,
-  Image,
   Page,
   StyleSheet,
   Text,
@@ -10,7 +9,7 @@ import {
 } from "@react-pdf/renderer";
 
 import type { BusinessSettings } from "@/utils/types";
-import { pdfImageUrl } from "@/utils/pdf-image";
+import { ReportPDFHeader } from "../report-pdf-header";
 
 interface PaymentMethod {
   name: string;
@@ -59,43 +58,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
 
-  // ----- Header -----
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottom: 2,
-    borderColor: "#8B0000",
-    paddingBottom: 10,
-    marginBottom: 10,
-  },
-  logoSection: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  logo: {
-    width: 55,
-    height: 55,
-    objectFit: "contain",
-    marginRight: 10,
-  },
-  companyInfo: {
-    flexDirection: "column",
-  },
-  companyName: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#8B0000",
-  },
-  companyAddress: {
-    fontSize: 8,
-    color: "#374151",
-    marginTop: 2,
-  },
-  companyContact: {
-    fontSize: 8,
-    color: "#374151",
-  },
   reportTitle: {
     fontSize: 16,
     fontWeight: "bold",
@@ -217,35 +179,9 @@ export function PaymentReportPDF({ payments, orderId, settings }: Props) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.logoSection}>
-            <Image style={styles.logo} src={pdfImageUrl(settings?.invoiceLogo?.url)} />
-            <View style={styles.companyInfo}>
-              {settings?.businessName?.trim() ? (
-                <Text style={styles.companyName}>
-                  {settings.businessName.trim()}
-                </Text>
-              ) : null}
-              {settings?.address?.trim() ? (
-                <Text style={styles.companyAddress}>
-                  {settings.address.trim()}
-                </Text>
-              ) : null}
-              {settings?.phone?.trim() ? (
-                <Text style={styles.companyContact}>
-                  Mobile: {settings.phone.trim()}
-                </Text>
-              ) : null}
-              {settings?.websiteUrl?.trim() ? (
-                <Text style={styles.companyContact}>
-                  Web: {settings.websiteUrl.trim()}
-                </Text>
-              ) : null}
-            </View>
-          </View>
-          <Text style={styles.reportTitle}>Payment Report</Text>
-        </View>
+        {/* Same company header as every other report PDF. */}
+        <ReportPDFHeader settings={settings} />
+        <Text style={styles.reportTitle}>Payment Report</Text>
 
         {/* Info Section */}
         <View style={styles.infoSection}>

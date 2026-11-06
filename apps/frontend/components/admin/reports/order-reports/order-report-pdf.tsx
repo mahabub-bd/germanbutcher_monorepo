@@ -8,7 +8,7 @@ import {
   View,
 } from "@react-pdf/renderer";
 
-import { formatOrderElapsedTime, getPaymentStatusLabel } from "@/utils/order-helper";
+import { getPaymentStatusLabel } from "@/utils/order-helper";
 import type { BusinessSettings } from "@/utils/types";
 import { ReportPDFHeader } from "../report-pdf-header";
 
@@ -163,14 +163,11 @@ export function OrderReportPDF({ orders, settings }: Props) {
             Shipping Method
           </Text>
           <Text style={styles.tableHeaderText}>Status</Text>
-          <Text style={styles.tableHeaderText}>Elapsed Time</Text>
           <Text style={styles.tableHeaderText}>Payment</Text>
           <Text style={[styles.tableHeaderText, { flex: 1.2 }]}>
             Payment Method
           </Text>
           <Text style={styles.tableHeaderText}>Total</Text>
-          <Text style={styles.tableHeaderText}>Discount</Text>
-          <Text style={styles.tableHeaderText}>Paid</Text>
         </View>
 
         {/* Table Rows */}
@@ -195,20 +192,11 @@ export function OrderReportPDF({ orders, settings }: Props) {
               {o.shippingMethod || "N/A"}
             </Text>
             <Text style={styles.cell}>{o.orderStatus}</Text>
-            <Text style={styles.cell}>
-              {o.cancelledAt
-                ? formatOrderElapsedTime(o.orderDate, o.cancelledAt)
-                : o.deliveredAt
-                  ? formatOrderElapsedTime(o.orderDate, o.deliveredAt)
-                  : formatOrderElapsedTime(o.orderDate)}
-            </Text>
             <Text style={styles.cell}>{getPaymentStatusLabel(o.paymentStatus)}</Text>
             <Text style={[styles.cell, { flex: 1.2 }]}>
               {o.paymentMethod || "N/A"}
             </Text>
             <Text style={styles.cell}>{formatCurrency(o.totalValue)}</Text>
-            <Text style={styles.cell}>{formatCurrency(o.totalDiscount)}</Text>
-            <Text style={styles.cell}>{formatCurrency(o.paidAmount)}</Text>
           </View>
         ))}
 

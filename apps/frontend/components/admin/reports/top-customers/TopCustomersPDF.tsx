@@ -52,17 +52,17 @@ const styles = StyleSheet.create({
   },
 
   // ----- Summary -----
+  // One-line summary strip below the table — same layout as the other
+  // report PDFs (label above value, boxes spread across the row).
   summaryBox: {
     flexDirection: "row",
     justifyContent: "space-around",
-    backgroundColor: "#f9fafb",
-    padding: 10,
-    borderRadius: 4,
-    marginBottom: 15,
-    borderWidth: 1,
+    marginTop: 15,
+    paddingTop: 10,
+    borderTop: 1,
     borderColor: "#e5e7eb",
   },
-  summaryItem: { textAlign: "center", flex: 1 },
+  summaryItem: { textAlign: "center" },
   summaryLabel: { fontSize: 8, color: "#555", marginBottom: 2 },
   summaryValue: {
     fontSize: 12,
@@ -172,7 +172,7 @@ export function TopCustomersPDF({
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" orientation="landscape" style={styles.page}>
         {/* Header */}
         <ReportPDFHeader settings={settings} />
 
@@ -182,30 +182,6 @@ export function TopCustomersPDF({
           {timeFilterLabel} · Sorted by{" "}
           {sortBy === "spending" ? "Spending" : "Orders"}
         </Text>
-
-        {/* Summary */}
-        <View style={styles.summaryBox}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Customers</Text>
-            <Text style={styles.summaryValue}>{customers.length}</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Total Orders</Text>
-            <Text style={styles.summaryValue}>{totalOrders}</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Total Spent</Text>
-            <Text style={styles.summaryValue}>
-              {formatCurrency(totalSpent)}
-            </Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Avg Order Value</Text>
-            <Text style={styles.summaryValue}>
-              {formatCurrency(avgOrderValue)}
-            </Text>
-          </View>
-        </View>
 
         {/* Table Header */}
         <View style={styles.tableHeader}>
@@ -241,6 +217,30 @@ export function TopCustomersPDF({
             </Text>
           </View>
         ))}
+
+        {/* Summary — one line below the table, matching the other reports. */}
+        <View style={styles.summaryBox}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Customers</Text>
+            <Text style={styles.summaryValue}>{customers.length}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Total Orders</Text>
+            <Text style={styles.summaryValue}>{totalOrders}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Total Spent</Text>
+            <Text style={styles.summaryValue}>
+              {formatCurrency(totalSpent)}
+            </Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Avg Order Value</Text>
+            <Text style={styles.summaryValue}>
+              {formatCurrency(avgOrderValue)}
+            </Text>
+          </View>
+        </View>
 
         {/* Footer */}
         <View style={styles.footer}>

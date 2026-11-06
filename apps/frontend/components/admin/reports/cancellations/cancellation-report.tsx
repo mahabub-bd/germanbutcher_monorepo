@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
   BadgeX,
   CalendarX2,
@@ -112,6 +113,8 @@ export default function CancellationReport({
   recent,
 }: CancellationReportProps) {
   const router = useRouter();
+  // Business Settings feed the PDF's company header block.
+  const settings = useBusinessSettings();
   const [mounted, setMounted] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -330,11 +333,13 @@ export default function CancellationReport({
               document={
                 <ReportTablePDF
                   title="Cancellation Report"
+                  orientation="landscape"
                   headers={EXPORT_HEADERS}
-                  flexes={[1, 1.3, 1.1, 1, 1.1, 1, 0.9, 1.4, 1.4, 0.8]}
+                  flexes={[1, 1.3, 1.1, 1, 1.1, 1, 0.9, 1.4, 1.4, 1.2]}
                   alignRight={[5, 6, 9]}
                   rows={exportRows}
                   summary={exportSummary}
+                  settings={settings}
                 />
               }
               fileName={`cancellation-report-${new Date()

@@ -1257,7 +1257,7 @@ export class OrderController {
         statusCode: 200,
         data: {
           id: 123,
-          orderNo: 'ORD-2025-0001',
+          orderNo: '2025-0001',
           orderStatus: 'cancelled',
           paymentStatus: 'refunded',
         },

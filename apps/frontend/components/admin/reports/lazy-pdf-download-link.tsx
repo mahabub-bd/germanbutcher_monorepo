@@ -3,6 +3,7 @@
 import type { DocumentProps } from "@react-pdf/renderer";
 import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import { Button } from "@/components/ui/button";
+import { FileText } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 
@@ -51,11 +52,12 @@ export function LazyPdfDownloadLink({
     </PDFDownloadLink>
   ) : (
     <Button
+      variant="outline"
       onClick={() => setGenerating(true)}
-      className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0 px-3 text-sm"
+      className="shrink-0 gap-1.5 px-3 text-sm"
     >
-      <span className="sm:hidden">PDF</span>
-      <span className="hidden sm:inline">Download PDF</span>
+      <FileText className="size-4 text-red-600" />
+      PDF
     </Button>
   );
 }

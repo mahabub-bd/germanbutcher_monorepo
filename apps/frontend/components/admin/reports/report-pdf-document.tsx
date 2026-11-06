@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   tableHeaderText: {
     flex: 1,
     fontWeight: "bold",
-    fontSize: 9,
+    fontSize: 8,
     textAlign: "left",
     paddingHorizontal: 4,
   },
@@ -77,7 +77,8 @@ const styles = StyleSheet.create({
   cell: {
     flex: 1,
     textAlign: "left",
-    fontSize: 8.5,
+    fontSize: 8,
+    fontWeight: 400,
     paddingHorizontal: 4,
   },
 

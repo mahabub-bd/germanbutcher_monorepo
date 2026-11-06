@@ -22,7 +22,7 @@ export class OrderPayment extends BaseEntity {
   id: number;
 
   @Column({ unique: true })
-  @ApiProperty({ example: 'ORD-PAY-2023-0001' })
+  @ApiProperty({ example: '2026-0001' })
   paymentNumber: string;
 
   @ManyToOne(() => Order, { eager: true })

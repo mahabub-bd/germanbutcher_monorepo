@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrencyEnglish } from "@/lib/utils";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
   getShippingMethodColor,
   getShippingMethodIcon,
@@ -85,6 +86,8 @@ export default function ShippingMethodReport({
   methods,
 }: ShippingMethodReportProps) {
   const router = useRouter();
+  // Business Settings feed the PDF's company header block.
+  const settings = useBusinessSettings();
   const [mounted, setMounted] = useState(false);
   const rangeLabel = `Period: ${preset ?? ""}`.trim();
 
@@ -164,11 +167,13 @@ export default function ShippingMethodReport({
               document={
                 <ReportTablePDF
                   title="Shipping Method Report"
+                  orientation="landscape"
                   headers={EXPORT_HEADERS}
                   flexes={[1.6, 0.8, 0.8, 0.9, 0.8, 0.8, 0.9, 0.9, 1.1, 0.8, 0.7]}
                   alignRight={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
                   rows={exportRows}
                   summary={exportSummary}
+                  settings={settings}
                 />
               }
               fileName="shipping-method-report.pdf"

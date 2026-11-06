@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { OrderStatus, PaymentStatus, PaymentType } from '../common/enums';
 import { OrderPaymentMethod } from '../order-payment-method/entities/order-payment-method.entity';
 import { Order } from '../order/entities/order.entity';
@@ -42,20 +42,9 @@ export class OrderPaymentService {
     if (!paymentMethod) throw new NotFoundException('Payment Method not found');
 
     const currentYear = new Date().getFullYear();
-    const lastPayment = await this.paymentRepository.findOne({
-      where: {
-        paymentNumber: Like(`PAY-${currentYear}-%`),
-      },
-      order: { paymentNumber: 'DESC' },
-    });
+    const lastNumber = await this.getNextPaymentNumber(currentYear);
 
-    let lastNumber = 0;
-    if (lastPayment) {
-      const parts = lastPayment.paymentNumber.split('-');
-      lastNumber = parseInt(parts[2]) || 0;
-    }
-
-    const paymentNumber = `PAY-${currentYear}-${(lastNumber + 1).toString().padStart(4, '0')}`;
+    const paymentNumber = `${currentYear}-${lastNumber.toString().padStart(4, '0')}`;
 
     const payment = this.paymentRepository.create({
       ...createPaymentDto,
@@ -216,6 +205,23 @@ export class OrderPaymentService {
     await this.orderRepository.save(order);
   }
 
+  /**
+   * Next number for payment/refund rows: `YYYY-NNNN`, one shared sequence
+   * across both types (they live in the same table and column, so type
+   * prefixes were dropped — paymentType distinguishes refund rows).
+   * Matches legacy `PAY-`/`REF-` rows too and sorts by the 4-digit numeric
+   * tail so the max is right while both formats coexist mid-backfill.
+   */
+  private async getNextPaymentNumber(year: number): Promise<number> {
+    const last = await this.paymentRepository
+      .createQueryBuilder('payment')
+      .select('payment.paymentNumber', 'paymentNumber')
+      .where('payment.paymentNumber LIKE :pattern', { pattern: `%${year}-%` })
+      .orderBy('RIGHT(payment.paymentNumber, 4)', 'DESC')
+      .getRawOne();
+    return last ? parseInt(last.paymentNumber.split('-').pop(), 10) || 0 : 0;
+  }
+
   private calculatePaymentStatus(paid: number, total: number): PaymentStatus {
     if (paid >= total) return PaymentStatus.PAID;
     if (paid > 0) return PaymentStatus.PARTIAL;
@@ -248,20 +254,9 @@ export class OrderPaymentService {
     }
 
     const currentYear = new Date().getFullYear();
-    const lastRefund = await this.paymentRepository.findOne({
-      where: {
-        paymentNumber: Like(`REF-${currentYear}-%`),
-      },
-      order: { id: 'DESC' },
-    });
+    const lastNumber = await this.getNextPaymentNumber(currentYear);
 
-    let lastNumber = 0;
-    if (lastRefund) {
-      const parts = lastRefund.paymentNumber.split('-');
-      lastNumber = parseInt(parts[2]) || 0;
-    }
-
-    const refundNumber = `REF-${currentYear}-${(lastNumber + 1)
+    const refundNumber = `${currentYear}-${lastNumber
       .toString()
       .padStart(4, '0')}`;
 

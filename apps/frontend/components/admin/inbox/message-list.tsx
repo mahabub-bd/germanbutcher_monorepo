@@ -381,6 +381,27 @@ export function ContactMessageList({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, statusFilter, sourceFilter, priorityFilter]);
 
+  // Same export set as Excel, but with the Subject clipped so each PDF row
+  // stays on one line — a 300-char message wraps a landscape row into
+  // several broken-looking lines. Excel keeps the full text.
+  const fetchPdfSet = useCallback(async () => {
+    const data = await fetchExportSet();
+    const clip = (v: string | number, max = 60) => {
+      const s = String(v ?? "");
+      return s.length > max ? `${s.slice(0, max)}…` : s;
+    };
+    return {
+      ...data,
+      rows: data.rows.map((r) => [
+        ...r.slice(0, 7),
+        clip(r[7]), // Priority
+        clip(r[8]), // Status
+        clip(r[9]), // Created
+        clip(r[10], 130), // Subject — up to ~2 lines in the PDF
+      ]),
+    };
+  }, [fetchExportSet]);
+
   const exportSubtitle = useMemo(
     () =>
       [
@@ -752,7 +773,7 @@ export function ContactMessageList({
                     { header: "Created", width: 1.6 },
                     { header: "Subject", width: 3 },
                   ]}
-                  getRows={fetchExportSet}
+                  getRows={fetchPdfSet}
                   fileName="support-tickets"
                 />
               </div>
