@@ -31,7 +31,7 @@ import { OrderPaymentService } from 'src/order-payment/order-payment.service';
 import { Product } from 'src/product/entities/product.entity';
 import { ShippingMethod } from 'src/shipping-methods/entities/shipping-method.entity';
 import { User } from 'src/user/entities/user.entity';
-import { Like, Repository, SelectQueryBuilder } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { CancelOrderDto } from './dto/cancel-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItem } from './entities/order-item.entity';
@@ -102,20 +102,23 @@ export class OrderService {
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
     const currentYear = new Date().getFullYear();
 
-    const lastOrder = await this.orderRepository.findOne({
-      where: {
-        orderNo: Like(`ORD-${currentYear}-%`),
-      },
-      order: { orderNo: 'DESC' },
-    });
+    // Order numbers are `YYYY-NNNN` (no prefix since the 2026-11 rename).
+    // The lookup matches both the current format and legacy `ORD-YYYY-NNNN`
+    // rows, and sorts by the 4-digit numeric tail so the max is correct
+    // even while both formats coexist mid-backfill.
+    const lastOrder = await this.orderRepository
+      .createQueryBuilder('order')
+      .select('order.orderNo', 'orderNo')
+      .where('order.orderNo LIKE :pattern', { pattern: `%${currentYear}-%` })
+      .orderBy('RIGHT(order.orderNo, 4)', 'DESC')
+      .getRawOne();
 
     let lastNumber = 0;
     if (lastOrder) {
-      const parts = lastOrder.orderNo.split('-');
-      lastNumber = parseInt(parts[2]) || 0;
+      lastNumber = parseInt(lastOrder.orderNo.split('-').pop(), 10) || 0;
     }
 
-    const orderNo = `ORD-${currentYear}-${(lastNumber + 1).toString().padStart(4, '0')}`;
+    const orderNo = `${currentYear}-${(lastNumber + 1).toString().padStart(4, '0')}`;
 
     const {
       items,

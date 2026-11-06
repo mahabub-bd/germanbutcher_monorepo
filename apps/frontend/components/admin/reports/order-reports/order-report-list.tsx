@@ -45,6 +45,7 @@ import {
   getOrderStatusColor,
   getPaymentMethodColor,
   getPaymentMethodIcon,
+  getPaymentStatusLabel,
   getPaymentStatusColor,
   getShippingMethodColor,
   getShippingMethodIcon,
@@ -397,7 +398,7 @@ export default function OrderReportList({
                     o.shippingAddress?.area || "N/A",
                     o.shippingMethod || "N/A",
                     o.orderStatus,
-                    o.paymentStatus,
+                    getPaymentStatusLabel(o.paymentStatus),
                     o.paymentMethod || "N/A",
                     o.cancelledAt
                       ? formatOrderElapsedTime(o.orderDate, o.cancelledAt)

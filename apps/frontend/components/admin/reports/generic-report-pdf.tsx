@@ -101,7 +101,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   altRow: { backgroundColor: "#f9fafb" },
-  cell: { fontSize: 8.5 },
+  // Right padding keeps neighbouring columns from butting into each other
+  // (e.g. Mobile text running straight into Order Ref).
+  cell: { fontSize: 7.5, fontWeight: 400, paddingRight: 6 },
   summarySection: {
     marginTop: 15,
     paddingTop: 10,
@@ -147,7 +149,9 @@ export function GenericReportPDF({
         <Text style={styles.reportTitle}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
 
-        <View style={styles.table} wrap={false}>
+        {/* Table container wraps: long exports split across pages and the
+            fixed header row repeats. Rows themselves stay unsplit. */}
+        <View style={styles.table}>
           {/* Header row */}
           <View style={styles.tableHeader} fixed>
             {columns.map((col) => (
