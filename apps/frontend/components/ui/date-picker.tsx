@@ -22,6 +22,13 @@ interface DatePickerProps {
   className?: string;
   /** Hide the leading calendar icon (e.g. in compact filter bars). */
   showIcon?: boolean;
+  /** "dropdown" renders month + year selects in the caption (good for DOB);
+   *  defaults to "label" like the rest of the app. */
+  captionLayout?: "label" | "dropdown";
+  /** First month navigable in the caption dropdown (e.g. 1900 for DOB). */
+  startMonth?: Date;
+  /** Last month navigable in the caption dropdown. */
+  endMonth?: Date;
 }
 
 export function DatePicker({
@@ -32,6 +39,9 @@ export function DatePicker({
   maxDate,
   className,
   showIcon = true,
+  captionLayout = "label",
+  startMonth,
+  endMonth,
 }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(
     value ? new Date(value) : undefined
@@ -74,6 +84,9 @@ export function DatePicker({
           selected={date}
           onSelect={handleSelect}
           initialFocus
+          captionLayout={captionLayout}
+          startMonth={startMonth}
+          endMonth={endMonth}
           disabled={(date) => {
             if (minDateObj && date < minDateObj) return true;
             if (maxDateObj && date > maxDateObj) return true;

@@ -60,6 +60,7 @@ import {
   Receipt,
   ShoppingBag,
   User as UserIcon,
+  Users,
   Wallet,
 } from "lucide-react";
 import Image from "next/image";
@@ -337,6 +338,17 @@ export function UserDetail() {
               {user.mobileNumber && (
                 <span className="flex items-center gap-1">
                   <Phone className="h-3 w-3" /> {user.mobileNumber}
+                </span>
+              )}
+              {user.gender && (
+                <span className="flex items-center gap-1 capitalize">
+                  <Users className="h-3 w-3" /> {user.gender}
+                </span>
+              )}
+              {user.dateOfBirth && (
+                <span className="flex items-center gap-1">
+                  <CalendarClock className="h-3 w-3" />
+                  DOB {formatDateTime(user.dateOfBirth)}
                 </span>
               )}
               <span className="flex items-center gap-1">

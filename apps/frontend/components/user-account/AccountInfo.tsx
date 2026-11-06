@@ -2,6 +2,7 @@
 
 import { logout } from "@/actions/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -11,11 +12,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AccountPageHeader } from "@/components/user-account/account-page-header";
 import { formPostData, patchData, resetAuthTokenCache } from "@/utils/api-utils";
+import { serverRevalidate } from "@/utils/revalidatePath";
 import { User } from "@/utils/types";
+import { format } from "date-fns";
 import {
   AlertCircle,
+  Calendar,
   Camera,
   CheckCircle,
   Edit3,
@@ -26,6 +37,7 @@ import {
   Phone,
   Shield,
   User as UserIcon,
+  Users,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
@@ -120,6 +132,8 @@ function EditDetailsModal({
 }) {
   const [name, setName] = useState(user.name || "");
   const [email, setEmail] = useState(user.email || "");
+  const [gender, setGender] = useState(user.gender || "");
+  const [dateOfBirth, setDateOfBirth] = useState(user.dateOfBirth || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,6 +148,8 @@ function EditDetailsModal({
     if (nextOpen) {
       setName(user.name || "");
       setEmail(user.email || "");
+      setGender(user.gender || "");
+      setDateOfBirth(user.dateOfBirth?.slice(0, 10) || "");
       setError(null);
       setPhotoFile(null);
       setPhotoPreview(null);
@@ -187,6 +203,21 @@ function EditDetailsModal({
       return;
     }
 
+    // Date of birth must be a real past date (not today or in the future).
+    if (dateOfBirth) {
+      const dob = new Date(`${dateOfBirth}T00:00:00`);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (Number.isNaN(dob.getTime())) {
+        setError("Please enter a valid date of birth");
+        return;
+      }
+      if (dob >= today) {
+        setError("Date of birth must be in the past");
+        return;
+      }
+    }
+
     setSaving(true);
     setError(null);
     try {
@@ -205,6 +236,15 @@ function EditDetailsModal({
       const response = await patchData(`users/${user.id}`, {
         name: trimmedName,
         email: trimmedEmail,
+        // Send a value only when the field changed: new value when set,
+        // null to clear, omitted (undefined) when untouched. The backend
+        // @IsOptional validators let null through as "clear".
+        gender:
+          gender !== (user.gender || "") ? gender || null : undefined,
+        dateOfBirth:
+          dateOfBirth !== (user.dateOfBirth?.slice(0, 10) || "")
+            ? dateOfBirth || null
+            : undefined,
         // undefined = keep current photo, null = remove it
         profilePhotoId: photoFile
           ? String(attachmentId)
@@ -215,6 +255,10 @@ function EditDetailsModal({
 
       if (response?.statusCode === 200) {
         toast.success(response?.message || "Profile updated successfully");
+        // Server action: marks the profile route stale, so Next re-renders it
+        // with the fresh data in the action response — router.refresh() alone
+        // has been unreliable here (UI stayed stale until a manual reload).
+        await serverRevalidate(`/user/${user.id}/profile`);
         onOpenChange(false);
         onSaved();
       } else {
@@ -238,9 +282,12 @@ function EditDetailsModal({
       ? user.profilePhoto?.url
       : null;
 
+  // DatePicker maxDate is exclusive-past via the calendar's disabled check.
+  const maxDobDate = new Date(Date.now() - 86400000);
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Edit Personal Details</DialogTitle>
           <DialogDescription>
@@ -359,6 +406,71 @@ function EditDetailsModal({
               className="h-12 text-base"
               disabled={saving}
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-primaryColor/10">
+                  <Users className="w-4 h-4 text-primaryColor" />
+                </div>
+                Gender
+              </label>
+              <Select value={gender} onValueChange={setGender}>
+                {/* data-[size=default]:h-12 needed because the component's own
+                    size variant class beats a plain h-12 override */}
+                <SelectTrigger className="h-12 text-base w-full data-[size=default]:h-12">
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-primaryColor/10">
+                  <Calendar className="w-4 h-4 text-primaryColor" />
+                </div>
+                Date of Birth
+              </label>
+              <div className="relative">
+                {/* keyed so the popover resets visually after a clear */}
+                <DatePicker
+                  key={dateOfBirth || "empty"}
+                  value={
+                    dateOfBirth ? new Date(`${dateOfBirth}T00:00:00`) : undefined
+                  }
+                  onChange={(selected) =>
+                    setDateOfBirth(format(selected, "yyyy-MM-dd"))
+                  }
+                  maxDate={maxDobDate}
+                  placeholder="Pick your date of birth"
+                  className="h-12 text-base"
+                  // Month + year dropdowns — picking a birth year by clicking
+                  // back through the calendar would take forever.
+                  captionLayout="dropdown"
+                  startMonth={new Date(1900, 0)}
+                  endMonth={maxDobDate}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">Optional</p>
+                {dateOfBirth && (
+                  <button
+                    type="button"
+                    onClick={() => setDateOfBirth("")}
+                    disabled={saving}
+                    className="text-xs text-primaryColor hover:underline disabled:opacity-50"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           {error && (
@@ -655,6 +767,16 @@ export default function AccountInfo({ user }: AccountInfoProps) {
               locked
             />
             <DisplayField label="Email Address" icon={Mail} value={user.email} />
+            <DisplayField
+              label="Gender"
+              icon={Users}
+              value={user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : undefined}
+            />
+            <DisplayField
+              label="Date of Birth"
+              icon={Calendar}
+              value={user.dateOfBirth ?? undefined}
+            />
           </div>
 
           {/* Account Status Section — label and value on one line */}
@@ -692,7 +814,7 @@ export default function AccountInfo({ user }: AccountInfoProps) {
                   Last Updated
                 </p>
                 <p className="ml-auto text-sm text-gray-600 truncate text-right">
-                  {new Date(user.updatedAt).toLocaleDateString()}
+                  {formatDateTime(user.updatedAt)}
                 </p>
               </div>
             </div>

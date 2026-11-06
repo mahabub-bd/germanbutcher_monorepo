@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Exclude } from 'class-transformer';
 import { Address } from 'src/address/entities/address.entity';
+import { Gender } from 'src/common/enums';
 import { Attachment } from 'src/attachment/entities/attachment.entity';
 import { Cart } from 'src/cart/entities/cart.entity';
 import { Order } from 'src/order/entities/order.entity';
@@ -119,6 +120,27 @@ export class User {
     required: false,
   })
   mobileNumber: string;
+
+  // Optional profile fields; nullable so existing rows keep working until
+  // the columns are added in prod (no sync there).
+  @Column({
+    type: 'enum',
+    enum: Gender,
+    nullable: true,
+  })
+  @ApiPropertyOptional({
+    description: 'The gender of the user',
+    enum: Gender,
+    example: Gender.MALE,
+  })
+  gender?: Gender;
+
+  @Column({ type: 'date', nullable: true })
+  @ApiPropertyOptional({
+    description: 'The date of birth of the user (YYYY-MM-DD)',
+    example: '1995-08-20',
+  })
+  dateOfBirth?: string;
 
   @ManyToOne(() => Attachment, { nullable: true, eager: true })
   @JoinColumn({ name: 'profilePhotoId' })

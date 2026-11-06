@@ -179,6 +179,11 @@ export function AddressSelector({
                           {address.type === "shipping"
                             ? "Shipping Address"
                             : "Billing Address"}
+                          {address.label && (
+                            <span className="ml-1.5 text-xs font-normal text-muted-foreground capitalize">
+                              ({address.label})
+                            </span>
+                          )}
                         </span>
                         {address.isDefault && (
                           <span className="shrink-0 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">

@@ -1,7 +1,10 @@
 // src/auth/dto/update-user.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
+import { Gender } from 'src/common/enums';
 import {
   IsBoolean,
+  IsEnum,
+  IsISO8601,
   IsOptional,
   IsPhoneNumber,
   IsString,
@@ -91,4 +94,23 @@ export class UpdateUserDto {
   @IsString()
   @IsOptional()
   profilePhotoId?: string;
+
+  @ApiProperty({
+    description: 'The gender of the user',
+    enum: Gender,
+    example: Gender.MALE,
+    required: false,
+  })
+  @IsEnum(Gender, { message: 'Gender must be male, female or other' })
+  @IsOptional()
+  gender?: Gender;
+
+  @ApiProperty({
+    description: 'The date of birth of the user (ISO 8601 date)',
+    example: '1995-08-20',
+    required: false,
+  })
+  @IsISO8601({}, { message: 'Date of birth must be a valid date' })
+  @IsOptional()
+  dateOfBirth?: string;
 }

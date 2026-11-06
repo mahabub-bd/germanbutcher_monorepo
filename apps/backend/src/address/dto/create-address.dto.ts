@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AddressType } from 'src/common/enums';
+import { AddressLabel, AddressType } from 'src/common/enums';
 import {
   IsBoolean,
   IsEnum,
@@ -36,6 +36,13 @@ export class CreateAddressDto {
   @IsEnum(AddressType, { message: 'Type must be a valid address type' })
   @IsNotEmpty({ message: 'Type cannot be empty' })
   type: AddressType;
+
+  // Optional Home/Office tag; existing clients that don't send it keep
+  // working, and the DB column defaults to 'home'.
+  @ApiProperty({ enum: AddressLabel, example: AddressLabel.HOME, required: false })
+  @IsOptional()
+  @IsEnum(AddressLabel, { message: 'Tag must be home or office' })
+  label?: AddressLabel;
 
   @ApiProperty({ example: true, default: false })
   @IsBoolean({ message: 'isDefault must be a boolean' })

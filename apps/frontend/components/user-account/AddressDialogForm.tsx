@@ -24,6 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
@@ -61,9 +63,16 @@ const buildAddressSchema = (
       ? z.string().min(1, "City is required").trim()
       : z.string().optional(),
     type: z.enum(["shipping", "billing"], {
-        error: (issue) => issue.input === undefined ? "Please select an address type" : undefined
-  }),
+      error: (issue) =>
+        issue.input === undefined
+          ? "Please select an address type"
+          : undefined,
+    }),
     isDefault: z.boolean(),
+    // Home/Office tag; defaults to "home" when the customer doesn't pick.
+    label: z.enum(["home", "office"], {
+      error: () => "Please select home or office",
+    }),
   });
 
 type AddressFormData = z.infer<ReturnType<typeof buildAddressSchema>>;
@@ -107,6 +116,7 @@ export default function AddressDialog({
       division: "",
       city: "",
       type: "shipping",
+      label: "home",
       isDefault: false,
     },
   });
@@ -157,6 +167,7 @@ export default function AddressDialog({
             address.type === "shipping" || address.type === "billing"
               ? address.type
               : "shipping",
+          label: address.label === "office" ? "office" : "home",
           isDefault: address.isDefault || false,
         });
       } else {
@@ -166,6 +177,7 @@ export default function AddressDialog({
           division: "",
           city: "",
           type: "shipping",
+          label: "home",
           isDefault: false,
         });
       }
@@ -346,22 +358,67 @@ export default function AddressDialog({
                     <FormLabel>
                       Address Type <span className="text-red-500">*</span>
                     </FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select address type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="shipping">
-                          Shipping Address
-                        </SelectItem>
-                        <SelectItem value="billing">Billing Address</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <RadioGroup
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        className="grid grid-cols-2 gap-3"
+                      >
+                        {[
+                          { value: "shipping", label: "Shipping" },
+                          { value: "billing", label: "Billing" },
+                        ].map((option) => (
+                          <Label
+                            key={option.value}
+                            htmlFor={`type-${option.value}`}
+                            className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-medium transition-colors hover:bg-gray-100 has-[button[data-state=checked]]:border-primaryColor has-[button[data-state=checked]]:bg-primaryColor/5"
+                          >
+                            <RadioGroupItem
+                              value={option.value}
+                              id={`type-${option.value}`}
+                            />
+                            {option.label}
+                          </Label>
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="label"
+                render={({ field }) => (
+                  <FormItem className="w-full">
+                    <FormLabel>
+                      Tag <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        className="grid grid-cols-2 gap-3"
+                      >
+                        {[
+                          { value: "home", label: "Home" },
+                          { value: "office", label: "Office" },
+                        ].map((option) => (
+                          <Label
+                            key={option.value}
+                            htmlFor={`label-${option.value}`}
+                            className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-medium transition-colors hover:bg-gray-100 has-[button[data-state=checked]]:border-primaryColor has-[button[data-state=checked]]:bg-primaryColor/5"
+                          >
+                            <RadioGroupItem
+                              value={option.value}
+                              id={`label-${option.value}`}
+                            />
+                            {option.label}
+                          </Label>
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
