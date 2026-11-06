@@ -7,8 +7,11 @@ import {
   ContactPriority,
   ContactSource,
   ContactStatus,
+  ticketNo,
   type TicketStatistics,
 } from "@/components/admin/inbox/ticket-shared";
+import { ReportExcelButton } from "@/components/admin/reports/download-excel-button";
+import { ReportPdfButton } from "@/components/admin/reports/generic-report-pdf";
 import { TicketStatsCards } from "@/components/admin/inbox/ticket-stats-cards";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
@@ -34,6 +37,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
+import { formatDateTime } from "@/lib/utils";
 import type { ContactMessage } from "@/utils/types";
 import {
   Archive,
@@ -189,16 +193,9 @@ export function ContactMessageList({
   const fetchMessages = async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams();
+      const params = buildFilterParams();
       params.append("page", currentPage.toString());
       params.append("limit", limit.toString());
-      if (debouncedSearch) params.append("search", debouncedSearch);
-      if (statusFilter && statusFilter !== "all")
-        params.append("status", statusFilter);
-      if (sourceFilter && sourceFilter !== "all")
-        params.append("source", sourceFilter);
-      if (priorityFilter && priorityFilter !== "all")
-        params.append("priority", priorityFilter);
 
       const response = await fetchDataPagination<{
         data: ContactMessage[];
@@ -267,6 +264,20 @@ export function ContactMessageList({
     );
   };
 
+  /** Query params shared by the paged list and the export fetch, so the
+   *  download always mirrors exactly what the on-screen filters select. */
+  const buildFilterParams = () => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.append("search", debouncedSearch);
+    if (statusFilter && statusFilter !== "all")
+      params.append("status", statusFilter);
+    if (sourceFilter && sourceFilter !== "all")
+      params.append("source", sourceFilter);
+    if (priorityFilter && priorityFilter !== "all")
+      params.append("priority", priorityFilter);
+    return params;
+  };
+
   const clearFilters = () => {
     setSearchQuery("");
     setStatusFilter("");
@@ -302,6 +313,67 @@ export function ContactMessageList({
     Boolean(sourceFilter),
     Boolean(priorityFilter),
   ].filter(Boolean).length;
+
+  // ---- Export (Excel / PDF) ----
+  // All tickets matching the current filters, fetched unpaginated so the
+  // download covers the whole filtered list, not just the visible page.
+  const [exportTickets, setExportTickets] = useState<ContactMessage[]>([]);
+  const [isExportLoading, setIsExportLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsExportLoading(true);
+    const params = buildFilterParams();
+    params.append("page", "1");
+    params.append("limit", "100000");
+    fetchDataPagination<{ data: ContactMessage[] }>(
+      `contact-messages?${params.toString()}`
+    )
+      .then((response) => {
+        if (!cancelled) setExportTickets(response.data ?? []);
+      })
+      .catch((error) => {
+        console.error("Error fetching tickets for export:", error);
+        if (!cancelled) setExportTickets([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsExportLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, statusFilter, sourceFilter, priorityFilter]);
+
+  const exportSubtitle = [
+    activeFilterSummary || "All tickets",
+    `${exportTickets.length} ${
+      exportTickets.length === 1 ? "ticket" : "tickets"
+    }`,
+  ].join(" · ");
+
+  const exportRows = exportTickets.map((t, i) => [
+    i + 1,
+    ticketNo(t.id),
+    t.name,
+    t.email,
+    t.mobile ?? "",
+    t.orderReference ?? "",
+    t.source ? labelize(t.source) : "—",
+    t.priority ? labelize(t.priority) : "—",
+    labelize(t.contactStatus),
+    formatDateTime(t.createdAt),
+    (t.message.split("\n")[0] ?? "").slice(0, 300),
+  ]);
+
+  // Status breakdown of the exported set itself (not the global stats), so
+  // a filtered export reports only what it actually contains.
+  const exportSummary = Object.values(ContactStatus).map((status) => ({
+    label: labelize(status),
+    value: String(
+      exportTickets.filter((t) => t.contactStatus === status).length
+    ),
+  }));
 
 
   // One source of truth for the filter controls: the toolbar renders them
@@ -610,7 +682,7 @@ export function ContactMessageList({
             </div>
 
             {hasActiveFilters() && (
-              <div className="hidden min-w-0 items-center gap-2 md:flex md:ml-auto">
+              <div className="hidden min-w-0 items-center gap-2 md:flex">
                 <PillBadge className="font-medium" title={activeFilterSummary}>
                   <span className="truncate">{activeFilterSummary}</span>
                 </PillBadge>
@@ -622,6 +694,53 @@ export function ContactMessageList({
                 >
                   Clear
                 </Button>
+              </div>
+            )}
+
+            {/* Export sits at the toolbar's far end — it downloads exactly
+                what the filters beside it select, not just the page. */}
+            {!isExportLoading && exportRows.length > 0 && (
+              <div className="flex items-center gap-2 md:ml-auto">
+                <ReportExcelButton
+                  title="Support Tickets"
+                  subtitle={exportSubtitle}
+                  headers={[
+                    "#",
+                    "Ticket",
+                    "Customer",
+                    "Email",
+                    "Mobile",
+                    "Order Ref",
+                    "Source",
+                    "Priority",
+                    "Status",
+                    "Created",
+                    "Subject",
+                  ]}
+                  rows={exportRows}
+                  summary={exportSummary}
+                  fileName="support-tickets"
+                />
+                <ReportPdfButton
+                  title="Support Tickets"
+                  subtitle={exportSubtitle}
+                  columns={[
+                    { header: "#", width: 0.5 },
+                    { header: "Ticket", width: 1.2 },
+                    { header: "Customer", width: 1.6 },
+                    { header: "Email", width: 2 },
+                    { header: "Mobile", width: 1.3 },
+                    { header: "Order Ref", width: 1.3 },
+                    { header: "Source", width: 1 },
+                    { header: "Priority", width: 1 },
+                    { header: "Status", width: 1 },
+                    { header: "Created", width: 1.6 },
+                    { header: "Subject", width: 3 },
+                  ]}
+                  rows={exportRows}
+                  summary={exportSummary}
+                  fileName="support-tickets"
+                />
               </div>
             )}
           </div>

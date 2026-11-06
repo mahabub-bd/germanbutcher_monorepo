@@ -1,9 +1,22 @@
 "use client";
 
+import { CartWishlistPanel } from "@/components/admin/customer/shared/cart-wishlist-panel";
+import { CustomerActivitiesPanel } from "@/components/admin/customer/shared/customer-activities-panel";
+import { CustomerMessagesPanel } from "@/components/admin/customer/shared/customer-messages-panel";
+import { CustomerOrdersTable } from "@/components/admin/customer/shared/customer-orders-table";
+import { CustomerReviewsPanel } from "@/components/admin/customer/shared/customer-reviews-panel";
+import { DetailTabsList } from "@/components/admin/customer/shared/detail-tabs-list";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import {
+  formatAction,
+  MethodPill,
+  StatusPill,
+} from "@/components/admin/reports/user-activity/audit-visuals";
+import { ProfileStrip } from "@/components/common/profile-strip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +26,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -21,57 +42,41 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
   getEnabledAreas,
   getEnabledCities,
   getEnabledDivisions,
 } from "@/lib/delivery-coverage";
-import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { formatDateTime } from "@/lib/utils";
 import {
   deleteData,
   fetchProtectedData,
   patchData,
   postData,
 } from "@/utils/api-utils";
-import {
-  getOrderStatusColor,
-  getPaymentStatusColor,
-} from "@/utils/order-helper";
 import { CustomerData } from "@/utils/types";
 import {
   Activity,
   ArrowLeft,
   CalendarClock,
-  CheckCircle2,
-  Circle,
+  CalendarDays,
+  History,
   Mail,
   MapPin,
   Pencil,
   Phone,
   Plus,
   Receipt,
-  ShoppingCart,
   ShoppingBag,
+  ShoppingCart,
   Star,
-  History,
-  Trash2,
   User,
   Users,
   Wallet,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -256,7 +261,8 @@ export function CustomerDetail() {
       // CRM 360 endpoint. The 360 payload failing must not lose the page —
       // only the extra tabs go empty.
       const [customerRes, extrasRes, auditRes] = await Promise.allSettled([
-        fetchProtectedData<CustomerData>(`users/${customerId}`),
+        // ?orders=all — the admin view shows every order, not just delivered.
+        fetchProtectedData<CustomerData>(`users/${customerId}?orders=all`),
         fetchProtectedData<CrmExtras>(`crm/customers/${customerId}`),
         // System-recorded activity log (order/cart/profile changes) for this
         // user only; non-fatal if it fails — the tab just goes empty.
@@ -398,6 +404,13 @@ export function CustomerDetail() {
   }
 
   const orderStats = calculateOrderStats();
+  const rolename = customer.role?.rolename ?? "";
+  // Default shipping area, surfaced next to the contact info — same as the
+  // CRM 360 profile strip.
+  const defaultArea =
+    customer.addresses.find((address) => address.isDefault)?.area ??
+    customer.addresses[0]?.area ??
+    null;
   const cartItems = extras?.cart?.items ?? [];
   const wishlistItems = extras?.wishlist?.items ?? [];
   const reviews = extras?.reviews ?? [];
@@ -507,56 +520,58 @@ export function CustomerDetail() {
 
       {/* Profile strip + stats */}
       <div className="mb-6 rounded-lg border bg-card p-4 space-y-4">
-        <div className="flex items-center gap-3">
-          {customer.profilePhoto ? (
-            <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border bg-muted">
-              <Image
-                src={customer.profilePhoto.url}
-                alt={customer.name}
-                fill
-                className="object-cover"
-              />
-            </span>
-          ) : (
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border bg-muted text-xl font-semibold text-muted-foreground uppercase">
-              {customer.name?.charAt(0) || "?"}
-            </span>
-          )}
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-semibold capitalize">{customer.name}</h2>
-              {customer.isVerified && (
-                <Badge variant="secondary" className="text-xs">
-                  <CheckCircle2 className="h-3 w-3 mr-0.5" />
-                  Verified
-                </Badge>
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:gap-4">
-              <span>{customer.email}</span>
-              {customer.mobileNumber && (
-                <span className="flex items-center gap-1">
-                  <Phone className="h-3 w-3" /> {customer.mobileNumber}
-                </span>
-              )}
-              {customer.gender && (
-                <span className="flex items-center gap-1 capitalize">
-                  <Users className="h-3 w-3" /> {customer.gender}
-                </span>
-              )}
-              {customer.dateOfBirth && (
-                <span className="flex items-center gap-1">
-                  <CalendarClock className="h-3 w-3" />
-                  DOB {formatDateTime(customer.dateOfBirth)}
-                </span>
-              )}
-              <span className="flex items-center gap-1">
-                <CalendarClock className="h-3 w-3" />
-                Joined {formatDateTime(customer.createdAt)}
-              </span>
-            </div>
-          </div>
-        </div>
+        <ProfileStrip
+          name={customer.name}
+          avatarUrl={customer.profilePhoto?.url}
+          rolename={rolename}
+          verified={customer.isVerified}
+          fields={[
+            {
+              icon: Mail,
+              label: "Email",
+              value: customer.email,
+              href: `mailto:${customer.email}`,
+            },
+            {
+              icon: Phone,
+              label: "Mobile",
+              value: customer.mobileNumber || "—",
+              href: customer.mobileNumber
+                ? `tel:${customer.mobileNumber}`
+                : undefined,
+            },
+            {
+              icon: MapPin,
+              label: "Delivery area",
+              value: defaultArea || "—",
+            },
+            {
+              icon: Users,
+              label: "Gender",
+              value: customer.gender || "Not set",
+              capitalize: true,
+            },
+            {
+              icon: CalendarDays,
+              label: "Date of birth",
+              value: customer.dateOfBirth
+                ? formatDateTime(customer.dateOfBirth)
+                : "Not set",
+            },
+            {
+              icon: CalendarClock,
+              label: "Joined",
+              value: formatDateTime(customer.createdAt),
+            },
+            {
+              icon: History,
+              label: "Last login",
+              value: customer.lastLoginAt
+                ? formatDateTime(customer.lastLoginAt)
+                : "Never",
+            },
+          ]}
+        />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatsCard
@@ -597,230 +612,62 @@ export function CustomerDetail() {
       </div>
 
       <Tabs defaultValue="orders">
-        <TabsList className="scrollbar-none h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit">
-          {(
-            [
-              {
-                value: "orders",
-                label: "Orders",
-                icon: ShoppingBag,
-                count: orderStats.total,
-                colors:
-                  "bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/70",
-                activeColors:
-                  "data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-400 dark:data-[state=active]:text-blue-950",
-              },
-              {
-                value: "cart",
-                label: "Cart & Wishlist",
-                icon: ShoppingCart,
-                count: cartItems.length + wishlistItems.length,
-                colors:
-                  "bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70",
-                activeColors:
-                  "data-[state=active]:bg-amber-500 data-[state=active]:text-white dark:data-[state=active]:bg-amber-400 dark:data-[state=active]:text-amber-950",
-              },
-              {
-                value: "shipping",
-                label: "Shipping",
-                icon: MapPin,
-                count: customer.addresses.length,
-                colors:
-                  "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/70",
-                activeColors:
-                  "data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-400 dark:data-[state=active]:text-emerald-950",
-              },
-              {
-                value: "reviews",
-                label: "Reviews",
-                icon: Star,
-                count: reviews.length,
-                colors:
-                  "bg-violet-50 text-violet-800 hover:bg-violet-100 dark:bg-violet-950/40 dark:text-violet-300 dark:hover:bg-violet-950/70",
-                activeColors:
-                  "data-[state=active]:bg-violet-600 data-[state=active]:text-white dark:data-[state=active]:bg-violet-400 dark:data-[state=active]:text-violet-950",
-              },
-              {
-                value: "messages",
-                label: "Messages",
-                icon: Mail,
-                count: messages.length,
-                colors:
-                  "bg-rose-50 text-rose-800 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/70",
-                activeColors:
-                  "data-[state=active]:bg-rose-600 data-[state=active]:text-white dark:data-[state=active]:bg-rose-400 dark:data-[state=active]:text-rose-950",
-              },
-              {
-                value: "activities",
-                label: "Activities",
-                icon: Activity,
-                count: activities.length,
-                colors:
-                  "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900",
-                activeColors:
-                  "data-[state=active]:bg-slate-800 data-[state=active]:text-white dark:data-[state=active]:bg-slate-200 dark:data-[state=active]:text-slate-900",
-              },
-              {
-                value: "audit-log",
-                label: "Activity Log",
-                icon: History,
-                count: auditLogs.length,
-                colors:
-                  "bg-cyan-50 text-cyan-800 hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-300 dark:hover:bg-cyan-950/70",
-                activeColors:
-                  "data-[state=active]:bg-cyan-600 data-[state=active]:text-white dark:data-[state=active]:bg-cyan-400 dark:data-[state=active]:text-cyan-950",
-              },
-            ] as const
-          ).map((tab) => (
-            <TabsTrigger
-              key={tab.value}
-              value={tab.value}
-              className={`h-auto flex-none gap-1.5 rounded-lg border-0 px-2.5 py-1.5 text-xs font-semibold shadow-none transition-colors sm:px-4 sm:py-2 sm:text-sm data-[state=active]:shadow-none ${tab.colors} ${tab.activeColors}`}
-            >
-              <tab.icon className="size-4" />
-              <span className="hidden md:inline">{tab.label}</span>
-              <span className="sr-only md:hidden">{tab.label}</span>
-              <span className="ml-0.5 rounded-full bg-white/40 px-1.5 text-[11px] font-medium tabular-nums dark:bg-black/20">
-                {tab.count}
-              </span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <DetailTabsList
+          tabs={[
+            {
+              value: "orders",
+              label: "Orders",
+              icon: ShoppingBag,
+              count: orderStats.total,
+            },
+            {
+              value: "cart",
+              label: "Cart & Wishlist",
+              icon: ShoppingCart,
+              count: cartItems.length + wishlistItems.length,
+            },
+            {
+              value: "shipping",
+              label: "Shipping",
+              icon: MapPin,
+              count: customer.addresses.length,
+            },
+            {
+              value: "reviews",
+              label: "Reviews",
+              icon: Star,
+              count: reviews.length,
+            },
+            {
+              value: "messages",
+              label: "Messages",
+              icon: Mail,
+              count: messages.length,
+            },
+            {
+              value: "activities",
+              label: "Activities",
+              icon: Activity,
+              count: activities.length,
+            },
+            {
+              value: "audit-log",
+              label: "Activity Log",
+              icon: History,
+              count: auditLogs.length,
+            },
+          ]}
+        />
 
         <TabsContent value="orders" className="mt-4">
-          {customer.orders.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              No orders yet.
-            </p>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border bg-card">
-              <Table className="min-w-180 text-xs">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID / Date</TableHead>
-                    <TableHead>Order Status</TableHead>
-                    <TableHead>Payment Status</TableHead>
-                    <TableHead>Payment Method</TableHead>
-                    <TableHead>Shipping Method</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Discount</TableHead>
-                    <TableHead className="text-right">Due</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {customer.orders.map((order) => {
-                    const paidAmount = Number(order.paidAmount ?? 0);
-                    const due = Number(order.totalValue) - paidAmount;
-                    return (
-                      <TableRow key={order.id} className="hover:bg-muted/50">
-                        <TableCell>
-                          <Link
-                            href={`/admin/order/${order.id}/view`}
-                            className="block font-medium leading-tight hover:underline"
-                          >
-                            {order.orderNo}
-                          </Link>
-                          <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-                            <CalendarClock className="h-3 w-3 shrink-0" />
-                            {formatDateTime(order.createdAt)}
-                          </p>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="secondary"
-                            className={`capitalize ${getOrderStatusColor(order.orderStatus)}`}
-                          >
-                            {order.orderStatus}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="secondary"
-                            className={`capitalize ${getPaymentStatusColor(order.paymentStatus)}`}
-                          >
-                            {order.paymentStatus}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="capitalize">
-                          {order.paymentMethod?.name ?? "—"}
-                        </TableCell>
-                        <TableCell className="capitalize">
-                          {order.shippingMethod?.name ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrencyEnglish(order.totalValue)}
-                        </TableCell>
-                        <TableCell className="text-right text-green-600 dark:text-green-400">
-                          {Number(order.totalDiscount ?? 0) > 0
-                            ? `- ${formatCurrencyEnglish(order.totalDiscount)}`
-                            : "—"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {due > 0 ? (
-                            <span className="font-medium text-destructive">
-                              {formatCurrencyEnglish(due)}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">Paid</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <CustomerOrdersTable orders={customer.orders} showMethodColumns />
         </TabsContent>
 
         <TabsContent value="cart" className="mt-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="rounded-lg border bg-card p-4 space-y-3">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4" /> Current Cart
-              </h3>
-              {cartItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Cart is empty.</p>
-              ) : (
-                <div className="space-y-2">
-                  {cartItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                    >
-                      <span className="truncate">{item.product?.name}</span>
-                      <span className="text-muted-foreground ml-2">
-                        {item.quantity} × {item.product?.salePrice?.toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-lg border bg-card p-4 space-y-3">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <CalendarClock className="h-4 w-4" /> Wishlist
-              </h3>
-              {wishlistItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Wishlist is empty.</p>
-              ) : (
-                <div className="space-y-2">
-                  {wishlistItems.slice(0, 10).map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                    >
-                      <span className="truncate">{item.product?.name}</span>
-                      <span className="text-muted-foreground ml-2">
-                        {item.product?.salePrice?.toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <CartWishlistPanel
+            cartItems={cartItems}
+            wishlistItems={wishlistItems}
+          />
         </TabsContent>
 
         <TabsContent value="shipping" className="mt-4">
@@ -1012,144 +859,21 @@ export function CustomerDetail() {
         </TabsContent>
 
         <TabsContent value="reviews" className="mt-4">
-          {reviews.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              No reviews yet.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {reviews.map((review) => (
-                <div key={review.id} className="rounded-lg border bg-card p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold">
-                        {"★".repeat(review.rating)}
-                        {"☆".repeat(5 - review.rating)}
-                      </span>
-                      {review.title && (
-                        <span className="text-sm font-medium">{review.title}</span>
-                      )}
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDateTime(review.createdAt)}
-                    </span>
-                  </div>
-                  {review.product && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      On {review.product.name}
-                    </p>
-                  )}
-                  <p className="text-sm mt-2">{review.comment}</p>
-                </div>
-              ))}
-            </div>
-          )}
+          <CustomerReviewsPanel reviews={reviews} />
         </TabsContent>
 
         <TabsContent value="messages" className="mt-4">
-          {messages.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              No messages yet.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {messages.map((message) => (
-                <div key={message.id} className="rounded-lg border bg-card p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 text-sm font-medium">
-                      <Mail className="h-4 w-4" /> {message.email}
-                    </span>
-                    <Badge variant="outline" className="capitalize">
-                      {message.contactStatus.replace(/_/g, " ")}
-                    </Badge>
-                  </div>
-                  <p className="text-sm mt-2">{message.message}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatDateTime(message.createdAt)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
+          <CustomerMessagesPanel messages={messages} />
         </TabsContent>
 
         <TabsContent value="activities" className="mt-4">
-          {activities.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              No activities yet. Use &quot;Add Activity&quot; to record a note or task.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {activities.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="rounded-lg border bg-card p-4 flex items-start justify-between gap-3"
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="capitalize">
-                        {activity.type}
-                      </Badge>
-                      <span
-                        className={`text-sm font-medium ${
-                          activity.status === "completed"
-                            ? "line-through text-muted-foreground"
-                            : ""
-                        }`}
-                      >
-                        {activity.title}
-                      </span>
-                    </div>
-                    {activity.description && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {activity.description}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-3 flex-wrap">
-                      <span>{formatDateTime(activity.createdAt)}</span>
-                      {activity.createdBy?.name && (
-                        <span>by {activity.createdBy.name}</span>
-                      )}
-                      {activity.dueDate && activity.status === "open" && (
-                        <span className="flex items-center gap-1">
-                          <CalendarClock className="h-3 w-3" />
-                          due {formatDateTime(activity.dueDate)}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={!can(CRM_MENU_URL, "canEdit")}
-                      onClick={() => handleToggleComplete(activity)}
-                      aria-label={
-                        activity.status === "open"
-                          ? "Mark completed"
-                          : "Reopen"
-                      }
-                    >
-                      {activity.status === "open" ? (
-                        <Circle className="h-4 w-4" />
-                      ) : (
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={!can(CRM_MENU_URL, "canDelete")}
-                      onClick={() => handleDeleteActivity(activity)}
-                      aria-label="Delete activity"
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <CustomerActivitiesPanel
+            activities={activities}
+            canEdit={can(CRM_MENU_URL, "canEdit")}
+            canDelete={can(CRM_MENU_URL, "canDelete")}
+            onToggleComplete={handleToggleComplete}
+            onDelete={handleDeleteActivity}
+          />
         </TabsContent>
 
         <TabsContent value="audit-log" className="mt-4">
@@ -1160,96 +884,90 @@ export function CustomerDetail() {
             </p>
           ) : (
             <>
-            {/* Desktop table */}
-            <div className="hidden overflow-hidden rounded-lg border bg-card md:block">
-              <Table className="report-table text-xs [&_th]:text-xs [&_td]:text-xs">
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="pl-4">Action</TableHead>
-                    <TableHead>Entity</TableHead>
-                    <TableHead>Details</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead className="pr-4 text-right">IP</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {auditLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="py-2 pl-4">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                            log.action === "POST"
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                              : log.action === "DELETE"
-                                ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300"
-                                : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
-                          }`}
-                        >
-                          {log.action}
-                        </span>
-                        {log.status === "failure" && (
-                          <span className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-sm font-medium text-red-700 dark:bg-red-500/20 dark:text-red-300">
-                            Failed
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs font-medium capitalize">
-                          {log.entityType}
-                          {log.entityId ? ` #${log.entityId}` : ""}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="block max-w-md truncate text-xs text-muted-foreground" title={log.message || undefined}>
-                          {log.message || "—"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                          {formatDateTime(log.createdAt)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="pr-4 text-right">
-                        <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                          {log.ipAddress || "—"}
-                        </span>
-                      </TableCell>
+              {/* Desktop table */}
+              <div className="hidden overflow-x-auto rounded-lg border bg-card md:block">
+                <Table className="min-w-220 report-table text-xs [&_th]:text-xs [&_td]:text-xs">
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="pl-4">Method</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Entity</TableHead>
+                      <TableHead>Details</TableHead>
+                      <TableHead>Time</TableHead>
+                      <TableHead className="pr-4 text-right">IP</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {auditLogs.map((log) => {
+                      // Actions are stored as "METHOD /path" — the shared audit
+                      // visuals render the method pill so both pages stay alike.
+                      const { method, path } = formatAction(log.action);
+                      return (
+                        <TableRow key={log.id}>
+                          <TableCell className="py-2 pl-4">
+                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                              <MethodPill method={method} />
+                              {log.status === "failure" && (
+                                <StatusPill status={log.status} />
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <span
+                              className="block max-w-56 truncate font-mono text-xs text-muted-foreground"
+                              title={log.action}
+                            >
+                              {path || log.action}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="whitespace-nowrap text-xs font-medium capitalize">
+                              {log.entityType}
+                              {log.entityId ? ` #${log.entityId}` : ""}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="block max-w-md truncate text-xs text-muted-foreground" title={log.message || undefined}>
+                              {log.message || "—"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                              {formatDateTime(log.createdAt)}
+                            </span>
+                          </TableCell>
+                          <TableCell className="pr-4 text-right">
+                            <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                              {log.ipAddress || "—"}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
 
-            {/* Mobile list: one compact line per entry */}
-            <div className="divide-y rounded-lg border bg-card md:hidden">
-              {auditLogs.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-center justify-between gap-2 px-3 py-2.5"
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span
-                      className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                        log.action === "POST"
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                          : log.action === "DELETE"
-                            ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300"
-                            : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
-                      }`}
-                    >
-                      {log.action}
-                    </span>
-                    <span className="min-w-0 truncate text-xs font-medium capitalize">
-                      {log.entityType}
-                      {log.entityId ? ` #${log.entityId}` : ""}
+              {/* Mobile list: one compact line per entry */}
+              <div className="divide-y rounded-lg border bg-card md:hidden">
+                {auditLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="flex items-center justify-between gap-2 px-3 py-2.5"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <MethodPill method={formatAction(log.action).method} />
+                      <span className="min-w-0 truncate text-xs font-medium capitalize">
+                        {log.entityType}
+                        {log.entityId ? ` #${log.entityId}` : ""}
+                      </span>
+                    </div>
+                    <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                      {formatDateTime(log.createdAt)}
                     </span>
                   </div>
-                  <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                    {formatDateTime(log.createdAt)}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
             </>
           )}
         </TabsContent>

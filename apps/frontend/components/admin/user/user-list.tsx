@@ -5,7 +5,8 @@ import type React from "react";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
-import { PillBadge, type PillTone } from "@/components/common/pill-badge";
+import { PillBadge } from "@/components/common/pill-badge";
+import { getRoleIcon, getRoleTone } from "@/components/common/role-badge-helpers";
 import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,15 +47,12 @@ import type { ApiResponseusers, User } from "@/utils/types";
 import {
   BadgeCheck,
   BadgeX,
-  Briefcase,
   CheckCircle2,
   MoreHorizontal,
   Pencil,
   Plus,
-  Shield,
   ShieldCheck,
   SlidersHorizontal,
-  Store,
   Trash2,
   UserCircle,
   User as UserIcon,
@@ -68,36 +66,6 @@ import { toast } from "sonner";
 import DeleteConfirmationDialog from "../delete-confirmation-dialog";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
-
-// Role badge icons — keyed by rolename with a generic fallback.
-const roleIcons: Record<string, React.ReactNode> = {
-  admin: <ShieldCheck className="h-3 w-3" />,
-  superadmin: <Shield className="h-3 w-3" />,
-  modaretor: <Shield className="h-3 w-3" />,
-  manager: <Briefcase className="h-3 w-3" />,
-  storemanager: <Store className="h-3 w-3" />,
-  staff: <Users className="h-3 w-3" />,
-  customer: <UserIcon className="h-3 w-3" />,
-};
-
-const ROLE_TONE: Record<string, PillTone> = {
-  superadmin: "violet",
-  admin: "violet",
-  modaretor: "sky",
-  manager: "blue",
-  storemanager: "blue",
-  staff: "neutral",
-  customer: "emerald",
-};
-
-const roleKey = (roleName: string | undefined) =>
-  (roleName ?? "").trim().toLowerCase();
-
-const getRoleIcon = (roleName: string | undefined) =>
-  roleIcons[roleKey(roleName)] ?? <UserCircle className="h-3 w-3" />;
-
-const getRoleTone = (roleName: string | undefined): PillTone =>
-  ROLE_TONE[roleKey(roleName)] ?? "neutral";
 
 interface UserListProps {
   initialPage?: number;

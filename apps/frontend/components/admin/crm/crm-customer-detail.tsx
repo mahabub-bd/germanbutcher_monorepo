@@ -1,8 +1,15 @@
 "use client";
 
 import { SegmentBadge } from "@/components/admin/crm/segment-badge";
+import { CartWishlistPanel } from "@/components/admin/customer/shared/cart-wishlist-panel";
+import { CustomerActivitiesPanel } from "@/components/admin/customer/shared/customer-activities-panel";
+import { CustomerMessagesPanel } from "@/components/admin/customer/shared/customer-messages-panel";
+import { CustomerOrdersTable } from "@/components/admin/customer/shared/customer-orders-table";
+import { CustomerReviewsPanel } from "@/components/admin/customer/shared/customer-reviews-panel";
+import { DetailTabsList } from "@/components/admin/customer/shared/detail-tabs-list";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import { ProfileStrip } from "@/components/common/profile-strip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,15 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDateTime } from "@/lib/utils";
 import {
@@ -39,16 +38,11 @@ import {
   postData,
 } from "@/utils/api-utils";
 import {
-  getOrderStatusColor,
-  getPaymentStatusColor,
-  getStatusIcon,
-} from "@/utils/order-helper";
-import {
   Activity,
   ArrowLeft,
   CalendarClock,
-  CheckCircle2,
-  Circle,
+  CalendarDays,
+  History,
   Mail,
   MapPin,
   Phone,
@@ -57,10 +51,9 @@ import {
   ShoppingBag,
   ShoppingCart,
   Star,
-  Trash2,
+  Users,
   Wallet,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -78,6 +71,12 @@ interface OrderItem {
   paidAmount?: string;
   shippingCost?: string | null;
   createdAt: string;
+  /** Terminal timestamps backing the shared Elapsed Time chip. */
+  deliveredAt?: string | null;
+  cancelledAt?: string | null;
+  /** Method relations loaded by the CRM 360 endpoint for the orders table. */
+  paymentMethod?: { name?: string | null } | null;
+  shippingMethod?: { name?: string | null } | null;
 }
 
 interface ActivityItem {
@@ -99,6 +98,8 @@ interface Customer360 {
     email: string;
     mobileNumber: string | null;
     isVerified: boolean;
+    gender?: string | null;
+    dateOfBirth?: string | null;
     createdAt: string;
     lastLoginAt: string | null;
     profilePhoto: { id: number; url: string } | null;
@@ -361,41 +362,58 @@ export function CrmCustomerDetail() {
       </PageHeader>
 
       <div className="mb-6 rounded-lg border bg-card p-4 space-y-4">
-        <div className="flex items-center gap-3">
-          {profile.profilePhoto?.url ? (
-            <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border bg-muted">
-              <Image
-                src={profile.profilePhoto.url}
-                alt={profile.name}
-                fill
-                className="object-contain"
-              />
-            </span>
-          ) : (
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border bg-muted text-xl font-semibold text-muted-foreground uppercase">
-              {profile.name?.charAt(0) || "?"}
-            </span>
-          )}
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-semibold">{profile.name}</h2>
-              <SegmentBadge segment={rfm.segment} />
-            </div>
-            <div className="text-sm text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:gap-4">
-              <span>{profile.email}</span>
-              {profile.mobileNumber && (
-                <span className="flex items-center gap-1">
-                  <Phone className="h-3 w-3" /> {profile.mobileNumber}
-                </span>
-              )}
-              {defaultArea && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" /> {defaultArea}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+        <ProfileStrip
+          name={profile.name}
+          avatarUrl={profile.profilePhoto?.url}
+          verified={profile.isVerified}
+          badges={<SegmentBadge segment={rfm.segment} />}
+          fields={[
+            {
+              icon: Mail,
+              label: "Email",
+              value: profile.email,
+              href: `mailto:${profile.email}`,
+            },
+            {
+              icon: Phone,
+              label: "Mobile",
+              value: profile.mobileNumber || "—",
+              href: profile.mobileNumber
+                ? `tel:${profile.mobileNumber}`
+                : undefined,
+            },
+            {
+              icon: MapPin,
+              label: "Delivery area",
+              value: defaultArea || "—",
+            },
+            {
+              icon: Users,
+              label: "Gender",
+              value: profile.gender || "Not set",
+              capitalize: true,
+            },
+            {
+              icon: CalendarDays,
+              label: "Date of birth",
+              value: profile.dateOfBirth
+                ? formatDateTime(profile.dateOfBirth)
+                : "Not set",
+            },
+            {
+              icon: CalendarClock,
+              label: "Joined",
+              value: formatDateTime(profile.createdAt),
+            },
+            {
+              icon: History,
+              label: "Last login",
+              value: profile.lastLoginAt
+                ? formatDateTime(profile.lastLoginAt)
+                : "Never",
+            },
+          ]}
+        />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatsCard
@@ -430,220 +448,58 @@ export function CrmCustomerDetail() {
       </div>
 
       <Tabs defaultValue="orders">
-        <TabsList className="scrollbar-none h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-none bg-transparent p-0 sm:gap-2 md:w-fit [&::-webkit-scrollbar]:hidden">
-          {(
-            [
-              {
-                value: "orders",
-                label: "Orders",
-                icon: ShoppingBag,
-                count: recentOrders.length,
-                colors:
-                  "bg-blue-50 text-blue-800 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/70",
-                activeColors:
-                  "data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-400 dark:data-[state=active]:text-blue-950",
-              },
-              {
-                value: "cart",
-                label: "Cart & Wishlist",
-                icon: ShoppingCart,
-                count: cart?.items?.length ?? 0,
-                colors:
-                  "bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70",
-                activeColors:
-                  "data-[state=active]:bg-amber-500 data-[state=active]:text-white dark:data-[state=active]:bg-amber-400 dark:data-[state=active]:text-amber-950",
-              },
-              {
-                value: "addresses",
-                label: "Shipping",
-                icon: MapPin,
-                count: profile.addresses?.length ?? 0,
-                colors:
-                  "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/70",
-                activeColors:
-                  "data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-400 dark:data-[state=active]:text-emerald-950",
-              },
-              {
-                value: "reviews",
-                label: "Reviews",
-                icon: Star,
-                count: reviews.length,
-                colors:
-                  "bg-violet-50 text-violet-800 hover:bg-violet-100 dark:bg-violet-950/40 dark:text-violet-300 dark:hover:bg-violet-950/70",
-                activeColors:
-                  "data-[state=active]:bg-violet-600 data-[state=active]:text-white dark:data-[state=active]:bg-violet-400 dark:data-[state=active]:text-violet-950",
-              },
-              {
-                value: "messages",
-                label: "Messages",
-                icon: Mail,
-                count: messages.length,
-                colors:
-                  "bg-rose-50 text-rose-800 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/70",
-                activeColors:
-                  "data-[state=active]:bg-rose-600 data-[state=active]:text-white dark:data-[state=active]:bg-rose-400 dark:data-[state=active]:text-rose-950",
-              },
-              {
-                value: "activities",
-                label: "Activities",
-                icon: Activity,
-                count: activities.length,
-                colors:
-                  "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-900",
-                activeColors:
-                  "data-[state=active]:bg-slate-800 data-[state=active]:text-white dark:data-[state=active]:bg-slate-200 dark:data-[state=active]:text-slate-900",
-              },
-            ] as const
-          ).map((tab) => (
-            <TabsTrigger
-              key={tab.value}
-              value={tab.value}
-              className={`h-auto flex-none gap-1.5 rounded-lg border-0 px-2.5 py-1.5 text-xs font-semibold shadow-none transition-colors sm:px-4 sm:py-2 sm:text-sm data-[state=active]:shadow-none ${tab.colors} ${tab.activeColors}`}
-            >
-              <tab.icon className="size-4" />
-              <span className="hidden md:inline">{tab.label}</span>
-              <span className="sr-only md:hidden">{tab.label}</span>
-              <span className="ml-0.5 rounded-full bg-white/40 px-1.5 text-[11px] font-medium tabular-nums dark:bg-black/20">
-                {tab.count}
-              </span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <DetailTabsList
+          tabs={[
+            {
+              value: "orders",
+              label: "Orders",
+              icon: ShoppingBag,
+              count: recentOrders.length,
+            },
+            {
+              value: "cart",
+              label: "Cart & Wishlist",
+              icon: ShoppingCart,
+              count: cart?.items?.length ?? 0,
+            },
+            {
+              value: "shipping",
+              label: "Shipping",
+              icon: MapPin,
+              count: profile.addresses?.length ?? 0,
+            },
+            {
+              value: "reviews",
+              label: "Reviews",
+              icon: Star,
+              count: reviews.length,
+            },
+            {
+              value: "messages",
+              label: "Messages",
+              icon: Mail,
+              count: messages.length,
+            },
+            {
+              value: "activities",
+              label: "Activities",
+              icon: Activity,
+              count: activities.length,
+            },
+          ]}
+        />
 
         <TabsContent value="orders" className="mt-4">
-          {recentOrders.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              No orders yet.
-            </p>
-          ) : (
-            <div className="rounded-lg border bg-card">
-              <Table className="min-w-180">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Discount</TableHead>
-                    <TableHead className="text-right">Due</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentOrders.map((order) => {
-                    const paidAmount = Number(order.paidAmount ?? 0);
-                    const due = Number(order.totalValue) - paidAmount;
-                    return (
-                      <TableRow key={order.id} className="hover:bg-muted/50">
-                        <TableCell>
-                          <Link
-                            href={`/admin/order/${order.id}/view?page=1`}
-                            className="font-medium hover:underline"
-                          >
-                            {order.orderNo}
-                          </Link>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="secondary"
-                            className={`capitalize ${getOrderStatusColor(order.orderStatus)}`}
-                          >
-                            <span className="flex items-center gap-1.5">
-                              {getStatusIcon(order.orderStatus)}
-                              {order.orderStatus}
-                            </span>
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="secondary"
-                            className={`capitalize ${getPaymentStatusColor(order.paymentStatus)}`}
-                          >
-                            <span className="flex items-center gap-1.5">
-                              {getStatusIcon(order.paymentStatus)}
-                              {order.paymentStatus}
-                            </span>
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {Number(order.totalValue).toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right text-green-600 dark:text-green-400">
-                          {Number(order.totalDiscount ?? 0) > 0
-                            ? `- ${Number(order.totalDiscount).toLocaleString()}`
-                            : "—"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {due > 0 ? (
-                            <span className="font-medium text-destructive">
-                              {due.toLocaleString()}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">Paid</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDateTime(order.createdAt)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <CustomerOrdersTable orders={recentOrders} showMethodColumns />
         </TabsContent>
         <TabsContent value="cart" className="mt-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="rounded-lg border bg-card p-4 space-y-3">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4" /> Current Cart
-              </h3>
-              {!cart?.items?.length ? (
-                <p className="text-sm text-muted-foreground">Cart is empty.</p>
-              ) : (
-                <div className="space-y-2">
-                  {cart.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                    >
-                      <span className="truncate">{item.product?.name}</span>
-                      <span className="text-muted-foreground ml-2">
-                        {item.quantity} × {item.product?.salePrice?.toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-lg border bg-card p-4 space-y-3">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <CalendarClock className="h-4 w-4" /> Wishlist
-              </h3>
-              {!wishlist?.items?.length ? (
-                <p className="text-sm text-muted-foreground">Wishlist is empty.</p>
-              ) : (
-                <div className="space-y-2">
-                  {wishlist.items.slice(0, 10).map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                    >
-                      <span className="truncate">{item.product?.name}</span>
-                      <span className="text-muted-foreground ml-2">
-                        {item.product?.salePrice?.toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <CartWishlistPanel
+            cartItems={cart?.items ?? []}
+            wishlistItems={wishlist?.items ?? []}
+          />
         </TabsContent>
 
-        <TabsContent value="addresses" className="mt-4">
+        <TabsContent value="shipping" className="mt-4">
           {!profile.addresses?.length ? (
             <p className="text-sm text-muted-foreground py-6 text-center">
               No shipping addresses saved.
@@ -683,144 +539,21 @@ export function CrmCustomerDetail() {
         </TabsContent>
 
         <TabsContent value="reviews" className="mt-4">
-          {reviews.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              No reviews yet.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {reviews.map((review) => (
-                <div key={review.id} className="rounded-lg border bg-card p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold">
-                        {"★".repeat(review.rating)}
-                        {"☆".repeat(5 - review.rating)}
-                      </span>
-                      {review.title && (
-                        <span className="text-sm font-medium">{review.title}</span>
-                      )}
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDateTime(review.createdAt)}
-                    </span>
-                  </div>
-                  {review.product && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      On {review.product.name}
-                    </p>
-                  )}
-                  <p className="text-sm mt-2">{review.comment}</p>
-                </div>
-              ))}
-            </div>
-          )}
+          <CustomerReviewsPanel reviews={reviews} />
         </TabsContent>
 
         <TabsContent value="messages" className="mt-4">
-          {messages.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              No messages yet.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {messages.map((message) => (
-                <div key={message.id} className="rounded-lg border bg-card p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 text-sm font-medium">
-                      <Mail className="h-4 w-4" /> {message.email}
-                    </span>
-                    <Badge variant="outline" className="capitalize">
-                      {message.contactStatus.replace(/_/g, " ")}
-                    </Badge>
-                  </div>
-                  <p className="text-sm mt-2">{message.message}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatDateTime(message.createdAt)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
+          <CustomerMessagesPanel messages={messages} />
         </TabsContent>
 
         <TabsContent value="activities" className="mt-4">
-          {activities.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              No activities yet. Use "Add Activity" to record a note or task.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {activities.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="rounded-lg border bg-card p-4 flex items-start justify-between gap-3"
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="capitalize">
-                        {activity.type}
-                      </Badge>
-                      <span
-                        className={`text-sm font-medium ${
-                          activity.status === "completed"
-                            ? "line-through text-muted-foreground"
-                            : ""
-                        }`}
-                      >
-                        {activity.title}
-                      </span>
-                    </div>
-                    {activity.description && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {activity.description}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-3 flex-wrap">
-                      <span>{formatDateTime(activity.createdAt)}</span>
-                      {activity.createdBy?.name && (
-                        <span>by {activity.createdBy.name}</span>
-                      )}
-                      {activity.dueDate && activity.status === "open" && (
-                        <span className="flex items-center gap-1">
-                          <CalendarClock className="h-3 w-3" />
-                          due {formatDateTime(activity.dueDate)}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={!can(MENU_URL, "canEdit")}
-                      onClick={() => handleToggleComplete(activity)}
-                      aria-label={
-                        activity.status === "open"
-                          ? "Mark completed"
-                          : "Reopen"
-                      }
-                    >
-                      {activity.status === "open" ? (
-                        <Circle className="h-4 w-4" />
-                      ) : (
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={!can(MENU_URL, "canDelete")}
-                      onClick={() => handleDeleteActivity(activity)}
-                      aria-label="Delete activity"
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <CustomerActivitiesPanel
+            activities={activities}
+            canEdit={can(MENU_URL, "canEdit")}
+            canDelete={can(MENU_URL, "canDelete")}
+            onToggleComplete={handleToggleComplete}
+            onDelete={handleDeleteActivity}
+          />
         </TabsContent>
       </Tabs>
     </div>

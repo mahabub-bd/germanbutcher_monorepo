@@ -4,12 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  In,
-  LessThan,
-  MoreThanOrEqual,
-  Repository,
-} from 'typeorm';
+import { Address } from 'src/address/entities/address.entity';
+import { SmsService } from 'src/auth/sms.service';
+import { BusinessSetting } from 'src/business-settings/entities/business-setting.entity';
+import { Cart } from 'src/cart/entities/cart.entity';
 import {
   CrmActivityStatus,
   CrmCampaignChannel,
@@ -17,23 +15,25 @@ import {
   CrmCampaignStatus,
   CrmSegment,
 } from 'src/common/enums';
-import { Address } from 'src/address/entities/address.entity';
-import { BusinessSetting } from 'src/business-settings/entities/business-setting.entity';
-import { Cart } from 'src/cart/entities/cart.entity';
 import { ContactMessage } from 'src/contact-message/entities/contact-message.entity';
+import { EmailService } from 'src/email/email.service';
 import { Order } from 'src/order/entities/order.entity';
 import { ProductReview } from 'src/product-review/entities/product-review.entity';
-import { Wishlist } from 'src/wishlist/entities/wishlist.entity';
 import { User } from 'src/user/entities/user.entity';
-import { SmsService } from 'src/auth/sms.service';
-import { EmailService } from 'src/email/email.service';
+import { Wishlist } from 'src/wishlist/entities/wishlist.entity';
+import {
+  In,
+  LessThan,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import { CreateActivityDto } from './dto/create-activity.dto';
-import { UpdateActivityDto } from './dto/update-activity.dto';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { CrmCustomersQueryDto } from './dto/crm-customers-query.dto';
+import { UpdateActivityDto } from './dto/update-activity.dto';
 import { CrmActivity } from './entities/crm-activity.entity';
-import { CrmCampaign } from './entities/crm-campaign.entity';
 import { CrmCampaignRecipient } from './entities/crm-campaign-recipient.entity';
+import { CrmCampaign } from './entities/crm-campaign.entity';
 
 /** RFM thresholds — surfaced on the frontend so admins see the same rules.
  *  VIP_* / AT_RISK_DAYS / NEW_DAYS are admin-editable via Business Settings;
@@ -127,7 +127,7 @@ export class CrmService {
     private productReviewRepository: Repository<ProductReview>,
     @InjectRepository(ContactMessage)
     private contactMessageRepository: Repository<ContactMessage>,
-  ) {}
+  ) { }
 
   /**
    * Effective CRM segment rules: values saved in Business Settings, falling
@@ -570,9 +570,11 @@ export class CrmService {
         .where('user.id = :id', { id })
         .setParameters(segmentParams)
         .getRawOne(),
-      // Recent orders.
+      // Recent orders — the 360 orders table shows payment/shipping
+      // method badges, so those relations must be loaded too.
       this.orderRepository.find({
         where: { user: { id } },
+        relations: ['paymentMethod', 'shippingMethod'],
         order: { createdAt: 'DESC' },
         take: 10,
       }),
