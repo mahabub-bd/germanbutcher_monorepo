@@ -19,6 +19,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { cancelOrder } from "@/utils/api-utils";
+import { getPaymentStatusLabel } from "@/utils/order-helper";
 import { refreshDashboard } from "@/utils/revalidatePath";
 import type { Order } from "@/utils/types";
 import { AlertTriangle } from "lucide-react";
@@ -155,7 +156,7 @@ export function CancelOrderModal({
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Payment Status:</span>
-              <span className="font-semibold capitalize">{order.paymentStatus}</span>
+              <span className="font-semibold capitalize">{getPaymentStatusLabel(order.paymentStatus)}</span>
             </div>
             {isPaidOrder && (
               <div className="pt-2 border-t">

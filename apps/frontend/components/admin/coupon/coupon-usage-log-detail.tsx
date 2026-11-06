@@ -8,6 +8,7 @@ import { getCouponUsageLogById } from "@/lib/coupon-usage-log-service";
 import { formatDateTime } from "@/lib/utils";
 import {
   getOrderStatusColor,
+  getPaymentStatusLabel,
   getPaymentStatusColor,
   getStatusIcon,
 } from "@/utils/order-helper";
@@ -217,7 +218,7 @@ export function CouponUsageLogDetail({ logId }: { logId: string | number }) {
                     >
                       <span className="flex items-center gap-1.5">
                         {getStatusIcon(log.order.paymentStatus)}
-                        {log.order.paymentStatus}
+                        {getPaymentStatusLabel(log.order.paymentStatus)}
                       </span>
                     </Badge>
                   </div>

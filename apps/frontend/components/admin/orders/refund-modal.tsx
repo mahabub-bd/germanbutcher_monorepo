@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { initiateRefund } from "@/utils/api-utils";
+import { getPaymentStatusLabel } from "@/utils/order-helper";
 import type { Order } from "@/utils/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, RefreshCw } from "lucide-react";
@@ -180,7 +181,7 @@ export function RefundModal({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Payment Status:</span>
-                  <span className="font-medium capitalize">{order.paymentStatus}</span>
+                  <span className="font-medium capitalize">{getPaymentStatusLabel(order.paymentStatus)}</span>
                 </div>
               </div>
             </div>

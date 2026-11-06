@@ -8,7 +8,7 @@ import {
   View,
 } from "@react-pdf/renderer";
 
-import { formatOrderElapsedTime } from "@/utils/order-helper";
+import { formatOrderElapsedTime, getPaymentStatusLabel } from "@/utils/order-helper";
 import type { BusinessSettings } from "@/utils/types";
 import { ReportPDFHeader } from "../report-pdf-header";
 
@@ -202,7 +202,7 @@ export function OrderReportPDF({ orders, settings }: Props) {
                   ? formatOrderElapsedTime(o.orderDate, o.deliveredAt)
                   : formatOrderElapsedTime(o.orderDate)}
             </Text>
-            <Text style={styles.cell}>{o.paymentStatus}</Text>
+            <Text style={styles.cell}>{getPaymentStatusLabel(o.paymentStatus)}</Text>
             <Text style={[styles.cell, { flex: 1.2 }]}>
               {o.paymentMethod || "N/A"}
             </Text>

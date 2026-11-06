@@ -29,9 +29,12 @@ export enum OrderStatus {
   CANCELLED = 'cancelled',
 }
 
+// DB values: 'unpaid' (nothing collected) and 'paid' (fully collected —
+// renamed from 'pending'/'completed'; legacy rows migrated by
+// scripts/rename-order-payment-status.sql). 'paid' also covers the
+// post-refund "money remains" state.
 export enum PaymentStatus {
-  PENDING = 'pending',
-  COMPLETED = 'completed',
+  PENDING = 'unpaid',
   PARTIAL = 'partial',
   PAID = 'paid',
   FAILED = 'failed',

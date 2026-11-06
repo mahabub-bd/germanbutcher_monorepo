@@ -123,8 +123,7 @@ const ORDER_STATUS_OPTIONS = [
 ];
 
 const PAYMENT_STATUS_OPTIONS = [
-  { value: PaymentStatus.PENDING, label: "Pending" },
-  { value: PaymentStatus.COMPLETED, label: "Completed" },
+  { value: PaymentStatus.PENDING, label: "Unpaid" },
   { value: PaymentStatus.PARTIAL, label: "Partial" },
   { value: PaymentStatus.PAID, label: "Paid" },
   { value: PaymentStatus.FAILED, label: "Failed" },

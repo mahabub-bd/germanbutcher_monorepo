@@ -42,8 +42,9 @@ export const ORDER_STATUS_TONE: Record<string, PillTone> = {
 
 /** Payment status (API snake_case value) → pill tone. */
 export const PAYMENT_STATUS_TONE: Record<string, PillTone> = {
-  pending: "amber",
-  completed: "emerald",
+  unpaid: "amber",
+  pending: "amber", // legacy pre-rename value
+  completed: "emerald", // legacy pre-rename value
   partial: "sky",
   paid: "emerald",
   failed: "red",

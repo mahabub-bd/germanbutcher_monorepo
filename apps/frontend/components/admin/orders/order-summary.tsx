@@ -174,7 +174,7 @@ export function OrderSummary({
             <span>Total</span>
             <span>{formatCurrencyEnglish(orderSummary.total)}</span>
           </div>
-          {paymentStatus === "pending" && (
+          {(paymentStatus === "unpaid" || paymentStatus === "pending") && (
             <div className="flex justify-between text-red-600 text-sm">
               <span>Due Amount</span>
               <span>{formatCurrencyEnglish(totalValue - paidAmount)}</span>

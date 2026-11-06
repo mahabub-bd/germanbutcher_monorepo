@@ -2,8 +2,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
 import { FALLBACK_IMAGE } from "@/utils/image-fallback";
-import { getDiscountedPrice } from "@/utils/product-utils";
 import { PAYMENT_STATUS_CONFIG } from "@/utils/payment-status-config";
+import { getDiscountedPrice } from "@/utils/product-utils";
 import { Order, OrderItem, OrderPayment, PaymentStatusOption } from "@/utils/types";
 import {
   Check,
@@ -107,9 +107,8 @@ function InfoCell({
 }) {
   return (
     <div
-      className={`flex items-center gap-2.5 ${
-        withDivider ? "md:border-l md:border-gray-100 md:pl-6" : ""
-      }`}
+      className={`flex items-center gap-2.5 ${withDivider ? "md:border-l md:border-gray-100 md:pl-6" : ""
+        }`}
     >
       <Icon className="size-4.5 shrink-0 text-gray-400" />
       <span className="text-sm text-gray-500 whitespace-nowrap">{label}</span>
@@ -211,8 +210,8 @@ export default function PaymentStatusPage({
     const couponDiscount = order.coupon
       ? Math.max(
         Number(order.totalDiscount || 0) -
-          productDiscountTotal -
-          bogoDiscountTotal,
+        productDiscountTotal -
+        bogoDiscountTotal,
         0
       )
       : 0;
@@ -229,6 +228,13 @@ export default function PaymentStatusPage({
   };
 
   const orderSummary = calculateOrderSummary();
+
+  /** "View Order Details" target — the account order-details page (same
+   * route as the orders list). Falls back to the confirmation page when
+   * the user relation is missing from the payload. */
+  const orderDetailsHref = order.user?.id
+    ? `/user/${order.user.id}/order/${orderId}`
+    : `/order-confirmation/${orderId}`;
 
   const statusBadge = (
     <span
@@ -307,7 +313,7 @@ export default function PaymentStatusPage({
 
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
-              href={`/order-confirmation/${orderId}`}
+              href={orderDetailsHref}
               className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold shadow-md transition hover:opacity-90 ${accent.solid}`}
             >
               <FileText className="size-4" />
@@ -324,7 +330,7 @@ export default function PaymentStatusPage({
         </section>
 
         {/* Payment Information */}
-        <Card className="rounded-2xl shadow-sm border-gray-200 bg-white mb-6">
+        <Card className="rounded-sm shadow-sm border-gray-200 bg-white mb-6">
           <CardContent className="pt-5">
             <div className="border-b border-gray-100 pb-4 mb-5">
               <SectionHeader
@@ -375,7 +381,7 @@ export default function PaymentStatusPage({
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Order Summary */}
-          <Card className="rounded-2xl shadow-sm border-gray-200 bg-white">
+          <Card className="rounded-sm shadow-sm border-gray-200 bg-white">
             <CardContent className="pt-5">
               <div className="border-b border-gray-100 pb-4 mb-4">
                 <SectionHeader
@@ -460,19 +466,19 @@ export default function PaymentStatusPage({
                 {orderSummary.productDiscountTotal -
                   orderSummary.bogoDiscountTotal >
                   0 && (
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="flex items-center gap-2 text-gray-600">
-                      <Tag className="size-4 text-gray-400" />
-                      Product Discounts
-                    </span>
-                    <span className="font-semibold text-green-600">
-                      -{formatCurrencyEnglish(
-                        orderSummary.productDiscountTotal -
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="flex items-center gap-2 text-gray-600">
+                        <Tag className="size-4 text-gray-400" />
+                        Product Discounts
+                      </span>
+                      <span className="font-semibold text-green-600">
+                        -{formatCurrencyEnglish(
+                          orderSummary.productDiscountTotal -
                           orderSummary.bogoDiscountTotal
-                      )}
-                    </span>
-                  </div>
-                )}
+                        )}
+                      </span>
+                    </div>
+                  )}
 
                 {orderSummary.bogoUsages.map((usage) => (
                   <div
@@ -531,7 +537,7 @@ export default function PaymentStatusPage({
           </Card>
 
           {/* Delivery Information */}
-          <Card className="rounded-2xl shadow-sm border-gray-200 bg-white">
+          <Card className="rounded-sm shadow-sm border-gray-200 bg-white">
             <CardContent className="pt-5">
               <div className="border-b border-gray-100 pb-4 mb-4">
                 <SectionHeader

@@ -15,6 +15,7 @@ import {
     getOrderStatusColor,
     getPaymentMethodColor,
     getPaymentMethodIcon,
+    getPaymentStatusLabel,
     getPaymentStatusColor,
     getShippingMethodColor,
     getShippingMethodIcon,
@@ -126,7 +127,7 @@ export function CustomerOrdersTable({
                                     >
                                         <span className="flex items-center gap-1.5">
                                             {getStatusIcon(order.paymentStatus)}
-                                            {order.paymentStatus}
+                                            {getPaymentStatusLabel(order.paymentStatus)}
                                         </span>
                                     </Badge>
                                 </TableCell>

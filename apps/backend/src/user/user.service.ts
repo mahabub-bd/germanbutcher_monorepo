@@ -388,6 +388,10 @@ export class UserService {
         'orders.paidAmount',
         'orders.createdAt',
         'orders.updatedAt',
+        // Terminal timestamps — the elapsed-time chip freezes at these when
+        // an order is delivered/cancelled; without them it keeps counting.
+        'orders.deliveredAt',
+        'orders.cancelledAt',
         // Order items
         'orderItems.id',
         'orderItems.productId',

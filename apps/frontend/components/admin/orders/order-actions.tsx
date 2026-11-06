@@ -52,7 +52,6 @@ export function canRefundOrder(order: Order): boolean {
     order.paymentStatus === "partial_refund" ||
     (order.orderStatus === "cancelled" &&
       (order.paymentStatus === "paid" ||
-        order.paymentStatus === "completed" ||
         order.paymentStatus === "partial"));
 
   return hasPayments && hasPaidAmount && isRefundableStatus;
@@ -179,7 +178,7 @@ export function OrderActions({
       visible:
         can(MENU_URL, "canCreate") &&
         !isNeedRefundOnly &&
-        order.paymentStatus !== "completed" &&
+        order.paymentStatus !== "paid" &&
         order.paymentStatus !== "need_refund" &&
         order.paymentStatus !== "refund_complete" &&
         order.orderStatus !== "cancelled",

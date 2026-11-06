@@ -19,6 +19,7 @@ import {
   getOrderStatusColor,
   getPaymentMethodColor,
   getPaymentMethodIcon,
+  getPaymentStatusLabel,
   getPaymentStatusColor,
   getStatusIcon,
 } from "@/utils/order-helper";
@@ -62,7 +63,7 @@ function PaymentStatusBadge({ status }: { status: string }) {
     >
       <span className="flex items-center gap-1.5">
         {getStatusIcon(status)}
-        {status}
+        {getPaymentStatusLabel(status)}
       </span>
     </Badge>
   );
