@@ -15,6 +15,8 @@ interface LazyPdfDownloadLinkProps {
   /** The PDF document element. Only rendered after the user clicks. */
   document: React.ReactElement<DocumentProps>;
   fileName: string;
+  /** Start generating on mount — used when row data was already loaded. */
+  autoStart?: boolean;
 }
 
 /**
@@ -30,8 +32,9 @@ interface LazyPdfDownloadLinkProps {
 export function LazyPdfDownloadLink({
   document: pdfDocument,
   fileName,
+  autoStart = false,
 }: LazyPdfDownloadLinkProps) {
-  const [generating, setGenerating] = useState(false);
+  const [generating, setGenerating] = useState(autoStart);
   const downloaded = useRef(false);
 
   return generating ? (

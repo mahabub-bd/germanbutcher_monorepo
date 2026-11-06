@@ -24,14 +24,19 @@ export function ElapsedTime({
     deliveredAt?: string | null;
     cancelledAt?: string | null;
 }) {
-    const [now, setNow] = useState(() => Date.now());
-    useEffect(() => {
-        const timer = setInterval(() => setNow(Date.now()), 60000);
-        return () => clearInterval(timer);
-    }, []);
-
     const isDelivered = Boolean(deliveredAt);
     const isCancelled = !isDelivered && Boolean(cancelledAt);
+
+    const [now, setNow] = useState(() => Date.now());
+    // Delivered/cancelled chips are frozen at their end date — only open
+    // orders need the minute tick. Detail pages render many rows at once,
+    // so a static row costs no interval and no per-minute re-render.
+    const ticking = !isDelivered && !isCancelled;
+    useEffect(() => {
+        if (!ticking) return;
+        const timer = setInterval(() => setNow(Date.now()), 60000);
+        return () => clearInterval(timer);
+    }, [ticking]);
     const end = isDelivered
         ? new Date(deliveredAt as string).getTime()
         : isCancelled

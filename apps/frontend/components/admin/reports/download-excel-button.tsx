@@ -1,9 +1,16 @@
 "use client";
 
+import { DateRangePreset } from "@/common/enums";
 import { Button } from "@/components/ui/button";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
-import { DateRangePreset } from "@/common/enums";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, Loader2 } from "lucide-react";
+import { useState } from "react";
+
+/** Rows + optional summary resolved for one export. */
+export interface ReportExportData {
+  rows: (string | number)[][];
+  summary?: { label: string; value: string }[];
+}
 
 interface ReportExcelButtonProps {
   title: string;
@@ -11,7 +18,9 @@ interface ReportExcelButtonProps {
   subtitle?: string;
   headers: string[];
   /** Pre-formatted cell values, aligned with `headers`. */
-  rows: (string | number)[][];
+  rows?: (string | number)[][];
+  /** Lazy alternative to `rows`: fetched when the button is clicked. */
+  getRows?: () => Promise<ReportExportData>;
   /** Optional key/value summary appended below the table. */
   summary?: { label: string; value: string }[];
   fileName: string;
@@ -58,15 +67,31 @@ export function ReportExcelButton({
   subtitle,
   headers,
   rows,
+  getRows,
   summary,
   fileName,
   disabled = false,
 }: ReportExcelButtonProps) {
   const settings = useBusinessSettings();
+  const [isPreparing, setIsPreparing] = useState(false);
 
-  if (disabled || rows.length === 0) return null;
+  if (disabled || (!getRows && (!rows || rows.length === 0))) return null;
 
   const handleDownload = async () => {
+    // Lazy mode fetches the (full, filter-matching) row set at click time.
+    let exportRows = rows ?? [];
+    let exportSummary = summary;
+    if (getRows) {
+      setIsPreparing(true);
+      try {
+        const resolved = await getRows();
+        exportRows = resolved.rows;
+        exportSummary = resolved.summary ?? summary;
+      } finally {
+        setIsPreparing(false);
+      }
+    }
+
     const ExcelJS = await import("exceljs");
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet(title.slice(0, 31));
@@ -134,9 +159,9 @@ export function ReportExcelButton({
     headerRow.height = 20;
 
     // --- Data rows (borders + alternating shading, like the PDF) ---
-    for (let r = 0; r < rows.length; r++) {
+    for (let r = 0; r < exportRows.length; r++) {
       const row = sheet.getRow(rowIndex++);
-      rows[r].forEach((value, i) => {
+      exportRows[r].forEach((value, i) => {
         const cell = row.getCell(i + 1);
         cell.value = value;
         cell.border = bordered;
@@ -151,9 +176,9 @@ export function ReportExcelButton({
     }
 
     // --- Summary rows ---
-    if (summary && summary.length > 0) {
+    if (exportSummary && exportSummary.length > 0) {
       rowIndex++; // spacer
-      for (const item of summary) {
+      for (const item of exportSummary) {
         const row = sheet.getRow(rowIndex++);
         const label = row.getCell(1);
         label.value = item.label;
@@ -167,7 +192,7 @@ export function ReportExcelButton({
     // Rough auto-width: longest cell value per column, capped.
     for (let i = 1; i <= colCount; i++) {
       const values = [headers[i - 1] ?? ""];
-      for (const row of rows) values.push(String(row[i - 1] ?? ""));
+      for (const row of exportRows) values.push(String(row[i - 1] ?? ""));
       const width = Math.min(
         45,
         Math.max(8, ...values.map((v) => v.length + 2))
@@ -193,11 +218,18 @@ export function ReportExcelButton({
     <Button
       variant="outline"
       onClick={handleDownload}
+      disabled={isPreparing}
       className="shrink-0 gap-1.5 px-3 text-sm"
     >
-      <FileSpreadsheet className="size-4 text-emerald-600" />
+      {isPreparing ? (
+        <Loader2 className="size-4 animate-spin text-emerald-600" />
+      ) : (
+        <FileSpreadsheet className="size-4 text-emerald-600" />
+      )}
       <span className="sm:hidden">Excel</span>
-      <span className="hidden sm:inline">Download Excel</span>
+      <span className="hidden sm:inline">
+        {isPreparing ? "Preparing…" : "Download Excel"}
+      </span>
     </Button>
   );
 }

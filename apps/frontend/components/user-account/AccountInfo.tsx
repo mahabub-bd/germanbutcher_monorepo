@@ -42,7 +42,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
-import { formatDateTime } from "../../lib/utils";
+import { capitalizeFirstLetter, formatDateTime } from "../../lib/utils";
 import { Button } from "../ui/button";
 
 interface AccountInfoProps {
@@ -770,7 +770,7 @@ export default function AccountInfo({ user }: AccountInfoProps) {
             <DisplayField
               label="Gender"
               icon={Users}
-              value={user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : undefined}
+              value={user.gender ? capitalizeFirstLetter(user.gender) : undefined}
             />
             <DisplayField
               label="Date of Birth"

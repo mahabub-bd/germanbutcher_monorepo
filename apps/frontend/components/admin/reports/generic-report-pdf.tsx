@@ -1,18 +1,35 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { fetchData } from "@/utils/api-utils";
 import type { BusinessSettings } from "@/utils/types";
 import {
   Document,
+  Font,
   Page,
   StyleSheet,
   Text,
   View,
 } from "@react-pdf/renderer";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { LazyPdfDownloadLink } from "./lazy-pdf-download-link";
+import { ReportExportData } from "./download-excel-button";
 import { ReportPDFHeader } from "./report-pdf-header";
+
+// The built-in Helvetica has no Bangla glyphs, so customer names/messages and
+// even ৳ render as broken boxes. Noto Sans Bengali covers Bangla + basic
+// Latin, and is served from /font so it also works offline.
+if (typeof window !== "undefined") {
+  Font.register({
+    family: "NotoSansBengali",
+    fonts: [
+      { src: "/font/NotoSansBengali-Regular.ttf" },
+      { src: "/font/NotoSansBengali-Bold.ttf", fontWeight: 700 },
+    ],
+  });
+}
 
 export interface ReportPdfColumn {
   header: string;
@@ -36,13 +53,20 @@ interface GenericReportPDFProps {
   rows: (string | number)[][];
   /** Optional key/value summary blocks under the table. */
   summary?: ReportPdfSummaryItem[];
+  /** Wide tables (e.g. the 11-column ticket export) use landscape A4. */
+  orientation?: "portrait" | "landscape";
 }
 
 // ৳ is not rendered by @react-pdf's built-in fonts, so use the ASCII "BDT"
 // prefix in cell values passed in.
 
 const styles = StyleSheet.create({
-  page: { padding: 30, fontSize: 10, fontFamily: "Helvetica", color: "#111" },
+  page: {
+    padding: 30,
+    fontSize: 10,
+    fontFamily: "NotoSansBengali",
+    color: "#111",
+  },
   reportTitle: {
     fontSize: 16,
     fontWeight: "bold",
@@ -114,10 +138,11 @@ export function GenericReportPDF({
   columns,
   rows,
   summary,
+  orientation = "portrait",
 }: GenericReportPDFProps) {
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" orientation={orientation} style={styles.page}>
         <ReportPDFHeader settings={settings} />
         <Text style={styles.reportTitle}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -196,30 +221,41 @@ interface ReportPdfButtonProps {
   /** Date-range/period line under the title. */
   subtitle?: string;
   columns: ReportPdfColumn[];
-  rows: (string | number)[][];
+  rows?: (string | number)[][];
+  /** Lazy alternative to `rows`: fetched when the button is clicked. */
+  getRows?: () => Promise<ReportExportData>;
   summary?: ReportPdfSummaryItem[];
   /** Download file name without extension. */
   fileName: string;
   /** Hide the button when there is no data (default: only render with rows). */
   disabled?: boolean;
+  /** Wide tables use landscape A4 (default portrait). */
+  orientation?: "portrait" | "landscape";
 }
 
 /**
  * Reusable "Download PDF" button for admin report pages. Builds a
  * GenericReportPDF from plain columns/rows — no per-report PDF component
  * required. Renders nothing while the page still loads or there is no data.
+ *
+ * With `getRows`, row data is fetched at click time (a spinner replaces the
+ * button while loading) and the download starts as soon as the PDF is built.
  */
 export function ReportPdfButton({
   title,
   subtitle,
   columns,
   rows,
+  getRows,
   summary,
   fileName,
   disabled = false,
+  orientation = "portrait",
 }: ReportPdfButtonProps) {
   const [mounted, setMounted] = useState(false);
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
+  const [lazyData, setLazyData] = useState<ReportExportData | null>(null);
+  const [isPreparing, setIsPreparing] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -229,7 +265,63 @@ export function ReportPdfButton({
       .catch(() => undefined);
   }, []);
 
-  if (!mounted || disabled || rows.length === 0) return null;
+  const prepare = async () => {
+    if (!getRows) return;
+    setIsPreparing(true);
+    try {
+      setLazyData(await getRows());
+    } finally {
+      setIsPreparing(false);
+    }
+  };
+
+  if (!mounted || disabled) return null;
+
+  // Lazy mode: click → fetch rows → mount the (auto-started) PDF link.
+  if (getRows) {
+    if (isPreparing) {
+      return (
+        <Button
+          disabled
+          className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0 px-3 text-sm"
+        >
+          <Loader2 className="size-4 animate-spin" />
+          <span className="sm:hidden">PDF</span>
+          <span className="hidden sm:inline">Preparing PDF…</span>
+        </Button>
+      );
+    }
+    if (!lazyData) {
+      return (
+        <Button
+          onClick={prepare}
+          className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0 px-3 text-sm"
+        >
+          <span className="sm:hidden">PDF</span>
+          <span className="hidden sm:inline">Download PDF</span>
+        </Button>
+      );
+    }
+    return (
+      <LazyPdfDownloadLink
+        autoStart
+        document={
+          <GenericReportPDF
+            title={title}
+            subtitle={subtitle}
+            settings={settings}
+            columns={columns}
+            rows={lazyData.rows}
+            summary={lazyData.summary}
+            orientation={orientation}
+          />
+        }
+        fileName={`${fileName}-${new Date().toISOString().split("T")[0]}.pdf`}
+      />
+    );
+  }
+
+  if (!rows || rows.length === 0) return null;
 
   return (
     <LazyPdfDownloadLink
@@ -241,6 +333,7 @@ export function ReportPdfButton({
           columns={columns}
           rows={rows}
           summary={summary}
+          orientation={orientation}
         />
       }
       fileName={`${fileName}-${new Date().toISOString().split("T")[0]}.pdf`}

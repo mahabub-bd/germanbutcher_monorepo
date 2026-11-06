@@ -10,10 +10,13 @@ import {
   ticketNo,
   type TicketStatistics,
 } from "@/components/admin/inbox/ticket-shared";
-import { ReportExcelButton } from "@/components/admin/reports/download-excel-button";
-import { ReportPdfButton } from "@/components/admin/reports/generic-report-pdf";
 import { TicketStatsCards } from "@/components/admin/inbox/ticket-stats-cards";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import {
+    ReportExcelButton,
+    ReportExportData,
+} from "@/components/admin/reports/download-excel-button";
+import { ReportPdfButton } from "@/components/admin/reports/generic-report-pdf";
 import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
 import { TableSearch } from "@/components/common/table-search";
@@ -36,8 +39,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import { formatDateTime } from "@/lib/utils";
+import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import type { ContactMessage } from "@/utils/types";
 import {
   Archive,
@@ -50,7 +53,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
@@ -69,6 +72,38 @@ const EMPTY_STATS: TicketStatistics = {
 /** "in_progress" → "In Progress" — used by the active filter summary. */
 const labelize = (value: string) =>
   value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+/**
+ * Flatten a ticket list into export rows + a status breakdown, matching the
+ * on-screen columns. Built at export-click time from the full filtered set.
+ */
+const buildTicketExportRows = (tickets: ContactMessage[]): ReportExportData => {
+  const statusCounts = new Map<string, number>();
+  const rows = tickets.map((t, i) => {
+    statusCounts.set(
+      t.contactStatus,
+      (statusCounts.get(t.contactStatus) ?? 0) + 1
+    );
+    return [
+      i + 1,
+      ticketNo(t.id),
+      t.name,
+      t.email,
+      t.mobile ?? "",
+      t.orderReference ?? "",
+      t.source ? labelize(t.source) : "—",
+      t.priority ? labelize(t.priority) : "—",
+      labelize(t.contactStatus),
+      formatDateTime(t.createdAt),
+      (t.message.split("\n")[0] ?? "").slice(0, 300),
+    ];
+  });
+  const summary = Object.values(ContactStatus).map((status) => ({
+    label: labelize(status),
+    value: String(statusCounts.get(status) ?? 0),
+  }));
+  return { rows, summary };
+};
 
 export function ContactMessageList({
   initialPage,
@@ -315,65 +350,45 @@ export function ContactMessageList({
   ].filter(Boolean).length;
 
   // ---- Export (Excel / PDF) ----
-  // All tickets matching the current filters, fetched unpaginated so the
-  // download covers the whole filtered list, not just the visible page.
-  const [exportTickets, setExportTickets] = useState<ContactMessage[]>([]);
-  const [isExportLoading, setIsExportLoading] = useState(false);
+  // The full filtered ticket set is fetched only when an export button is
+  // clicked — it used to be pulled on every keystroke just to keep the
+  // download buttons warm. Rows + the status breakdown are built in one pass.
+  const exportCacheRef = useRef<{
+    key: string;
+    promise: Promise<ReportExportData>;
+  } | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    setIsExportLoading(true);
+  const fetchExportSet = useCallback(() => {
     const params = buildFilterParams();
     params.append("page", "1");
     params.append("limit", "100000");
-    fetchDataPagination<{ data: ContactMessage[] }>(
-      `contact-messages?${params.toString()}`
+    const key = params.toString();
+    // Same filters → reuse the in-flight/finished fetch (e.g. Excel then PDF).
+    if (exportCacheRef.current?.key === key) {
+      return exportCacheRef.current.promise;
+    }
+    const promise = fetchDataPagination<{ data: ContactMessage[] }>(
+      `contact-messages?${key}`
     )
-      .then((response) => {
-        if (!cancelled) setExportTickets(response.data ?? []);
-      })
+      .then((response) => buildTicketExportRows(response.data ?? []))
       .catch((error) => {
         console.error("Error fetching tickets for export:", error);
-        if (!cancelled) setExportTickets([]);
-      })
-      .finally(() => {
-        if (!cancelled) setIsExportLoading(false);
+        toast.error("Failed to prepare the export. Please try again.");
+        throw error;
       });
-    return () => {
-      cancelled = true;
-    };
+    exportCacheRef.current = { key, promise };
+    return promise;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, statusFilter, sourceFilter, priorityFilter]);
 
-  const exportSubtitle = [
-    activeFilterSummary || "All tickets",
-    `${exportTickets.length} ${
-      exportTickets.length === 1 ? "ticket" : "tickets"
-    }`,
-  ].join(" · ");
-
-  const exportRows = exportTickets.map((t, i) => [
-    i + 1,
-    ticketNo(t.id),
-    t.name,
-    t.email,
-    t.mobile ?? "",
-    t.orderReference ?? "",
-    t.source ? labelize(t.source) : "—",
-    t.priority ? labelize(t.priority) : "—",
-    labelize(t.contactStatus),
-    formatDateTime(t.createdAt),
-    (t.message.split("\n")[0] ?? "").slice(0, 300),
-  ]);
-
-  // Status breakdown of the exported set itself (not the global stats), so
-  // a filtered export reports only what it actually contains.
-  const exportSummary = Object.values(ContactStatus).map((status) => ({
-    label: labelize(status),
-    value: String(
-      exportTickets.filter((t) => t.contactStatus === status).length
-    ),
-  }));
+  const exportSubtitle = useMemo(
+    () =>
+      [
+        activeFilterSummary || "All tickets",
+        `${totalItems} ${totalItems === 1 ? "ticket" : "tickets"}`,
+      ].join(" · "),
+    [activeFilterSummary, totalItems]
+  );
 
 
   // One source of truth for the filter controls: the toolbar renders them
@@ -699,7 +714,7 @@ export function ContactMessageList({
 
             {/* Export sits at the toolbar's far end — it downloads exactly
                 what the filters beside it select, not just the page. */}
-            {!isExportLoading && exportRows.length > 0 && (
+            {!isLoading && totalItems > 0 && (
               <div className="flex items-center gap-2 md:ml-auto">
                 <ReportExcelButton
                   title="Support Tickets"
@@ -717,13 +732,13 @@ export function ContactMessageList({
                     "Created",
                     "Subject",
                   ]}
-                  rows={exportRows}
-                  summary={exportSummary}
+                  getRows={fetchExportSet}
                   fileName="support-tickets"
                 />
                 <ReportPdfButton
                   title="Support Tickets"
                   subtitle={exportSubtitle}
+                  orientation="landscape"
                   columns={[
                     { header: "#", width: 0.5 },
                     { header: "Ticket", width: 1.2 },
@@ -737,8 +752,7 @@ export function ContactMessageList({
                     { header: "Created", width: 1.6 },
                     { header: "Subject", width: 3 },
                   ]}
-                  rows={exportRows}
-                  summary={exportSummary}
+                  getRows={fetchExportSet}
                   fileName="support-tickets"
                 />
               </div>

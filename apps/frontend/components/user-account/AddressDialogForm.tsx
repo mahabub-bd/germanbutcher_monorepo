@@ -17,6 +17,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   Select,
   SelectContent,
@@ -24,10 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
   getEnabledAreas,
@@ -39,10 +39,48 @@ import { serverRevalidate } from "@/utils/revalidatePath";
 import { Address } from "@/utils/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+
+/**
+ * One 2-column choice-card radio group, shared by the address-type and
+ * home/office-tag rows (same card look and checked-highlight classes).
+ */
+function RadioOptionGrid({
+    idPrefix,
+    value,
+    onValueChange,
+    options,
+}: {
+    idPrefix: string;
+    value: string;
+    onValueChange: (value: string) => void;
+    options: { value: string; label: string }[];
+}) {
+    return (
+        <RadioGroup
+            value={value}
+            onValueChange={onValueChange}
+            className="grid grid-cols-2 gap-3"
+        >
+            {options.map((option) => (
+                <Label
+                    key={option.value}
+                    htmlFor={`${idPrefix}-${option.value}`}
+                    className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-medium transition-colors hover:bg-gray-100 has-[button[data-state=checked]]:border-primaryColor has-[button[data-state=checked]]:bg-primaryColor/5"
+                >
+                    <RadioGroupItem
+                        value={option.value}
+                        id={`${idPrefix}-${option.value}`}
+                    />
+                    {option.label}
+                </Label>
+            ))}
+        </RadioGroup>
+    );
+}
 
 const buildAddressSchema = (
   showDivision: boolean,
@@ -359,28 +397,15 @@ export default function AddressDialog({
                       Address Type <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <RadioGroup
+                      <RadioOptionGrid
+                        idPrefix="type"
                         value={field.value}
                         onValueChange={field.onChange}
-                        className="grid grid-cols-2 gap-3"
-                      >
-                        {[
+                        options={[
                           { value: "shipping", label: "Shipping" },
                           { value: "billing", label: "Billing" },
-                        ].map((option) => (
-                          <Label
-                            key={option.value}
-                            htmlFor={`type-${option.value}`}
-                            className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-medium transition-colors hover:bg-gray-100 has-[button[data-state=checked]]:border-primaryColor has-[button[data-state=checked]]:bg-primaryColor/5"
-                          >
-                            <RadioGroupItem
-                              value={option.value}
-                              id={`type-${option.value}`}
-                            />
-                            {option.label}
-                          </Label>
-                        ))}
-                      </RadioGroup>
+                        ]}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -396,28 +421,15 @@ export default function AddressDialog({
                       Tag <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <RadioGroup
+                      <RadioOptionGrid
+                        idPrefix="label"
                         value={field.value}
                         onValueChange={field.onChange}
-                        className="grid grid-cols-2 gap-3"
-                      >
-                        {[
+                        options={[
                           { value: "home", label: "Home" },
                           { value: "office", label: "Office" },
-                        ].map((option) => (
-                          <Label
-                            key={option.value}
-                            htmlFor={`label-${option.value}`}
-                            className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-medium transition-colors hover:bg-gray-100 has-[button[data-state=checked]]:border-primaryColor has-[button[data-state=checked]]:bg-primaryColor/5"
-                          >
-                            <RadioGroupItem
-                              value={option.value}
-                              id={`label-${option.value}`}
-                            />
-                            {option.label}
-                          </Label>
-                        ))}
-                      </RadioGroup>
+                        ]}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

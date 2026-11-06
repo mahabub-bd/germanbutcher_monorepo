@@ -4,12 +4,18 @@ import { SegmentBadge } from "@/components/admin/crm/segment-badge";
 import { CartWishlistPanel } from "@/components/admin/customer/shared/cart-wishlist-panel";
 import { CustomerActivitiesPanel } from "@/components/admin/customer/shared/customer-activities-panel";
 import { CustomerMessagesPanel } from "@/components/admin/customer/shared/customer-messages-panel";
-import { CustomerOrdersTable } from "@/components/admin/customer/shared/customer-orders-table";
+import {
+    CustomerOrderRow,
+    CustomerOrdersTable,
+} from "@/components/admin/customer/shared/customer-orders-table";
 import { CustomerReviewsPanel } from "@/components/admin/customer/shared/customer-reviews-panel";
 import { DetailTabsList } from "@/components/admin/customer/shared/detail-tabs-list";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
-import { ProfileStrip } from "@/components/common/profile-strip";
+import {
+    identityProfileFields,
+    ProfileStrip,
+} from "@/components/common/profile-strip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,17 +47,13 @@ import {
   Activity,
   ArrowLeft,
   CalendarClock,
-  CalendarDays,
-  History,
   Mail,
   MapPin,
-  Phone,
   Plus,
   Receipt,
   ShoppingBag,
   ShoppingCart,
   Star,
-  Users,
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
@@ -61,23 +63,9 @@ import { toast } from "sonner";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
 
-interface OrderItem {
-  id: number;
-  orderNo: string;
-  orderStatus: string;
-  paymentStatus: string;
-  totalValue: number;
-  totalDiscount?: string;
-  paidAmount?: string;
-  shippingCost?: string | null;
-  createdAt: string;
-  /** Terminal timestamps backing the shared Elapsed Time chip. */
-  deliveredAt?: string | null;
-  cancelledAt?: string | null;
-  /** Method relations loaded by the CRM 360 endpoint for the orders table. */
-  paymentMethod?: { name?: string | null } | null;
-  shippingMethod?: { name?: string | null } | null;
-}
+// Same row contract the shared CustomerOrdersTable consumes — a parallel
+// local type could silently drift from the columns the table renders.
+type OrderItem = CustomerOrderRow & { shippingCost?: string | null };
 
 interface ActivityItem {
   id: number;
@@ -367,52 +355,7 @@ export function CrmCustomerDetail() {
           avatarUrl={profile.profilePhoto?.url}
           verified={profile.isVerified}
           badges={<SegmentBadge segment={rfm.segment} />}
-          fields={[
-            {
-              icon: Mail,
-              label: "Email",
-              value: profile.email,
-              href: `mailto:${profile.email}`,
-            },
-            {
-              icon: Phone,
-              label: "Mobile",
-              value: profile.mobileNumber || "—",
-              href: profile.mobileNumber
-                ? `tel:${profile.mobileNumber}`
-                : undefined,
-            },
-            {
-              icon: MapPin,
-              label: "Delivery area",
-              value: defaultArea || "—",
-            },
-            {
-              icon: Users,
-              label: "Gender",
-              value: profile.gender || "Not set",
-              capitalize: true,
-            },
-            {
-              icon: CalendarDays,
-              label: "Date of birth",
-              value: profile.dateOfBirth
-                ? formatDateTime(profile.dateOfBirth)
-                : "Not set",
-            },
-            {
-              icon: CalendarClock,
-              label: "Joined",
-              value: formatDateTime(profile.createdAt),
-            },
-            {
-              icon: History,
-              label: "Last login",
-              value: profile.lastLoginAt
-                ? formatDateTime(profile.lastLoginAt)
-                : "Never",
-            },
-          ]}
+          fields={identityProfileFields(profile, defaultArea)}
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

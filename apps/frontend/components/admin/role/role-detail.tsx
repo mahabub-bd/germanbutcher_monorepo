@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
+import { getRoleIconComponent } from "@/components/common/role-badge-helpers";
 import { TableSearch } from "@/components/common/table-search";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,15 +21,12 @@ import { formatDateTime } from "@/lib/utils";
 import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import type { Role } from "@/utils/types";
 import {
-    Briefcase,
     CalendarClock,
     CheckCircle2,
     Mail,
     Pencil,
     Phone,
     Shield,
-    ShieldCheck,
-    Store,
     User,
     Users,
     XCircle,
@@ -52,20 +50,10 @@ interface RoleMember {
 }
 
 // Same identity → icon mapping as the role list, so a role looks alike on both pages.
-const roleIcons: Record<string, React.ReactNode> = {
-    admin: <ShieldCheck className="size-5 text-muted-foreground" />,
-    superadmin: <Shield className="size-5 text-muted-foreground" />,
-    modaretor: <Shield className="size-5 text-muted-foreground" />,
-    manager: <Briefcase className="size-5 text-muted-foreground" />,
-    storemanager: <Store className="size-5 text-muted-foreground" />,
-    staff: <Users className="size-5 text-muted-foreground" />,
-    customer: <User className="size-5 text-muted-foreground" />,
+const getRoleIcon = (roleName: string | undefined) => {
+    const Icon = getRoleIconComponent(roleName);
+    return <Icon className="size-5 text-muted-foreground" />;
 };
-
-const getRoleIcon = (roleName: string | undefined) =>
-    (roleName && roleIcons[roleName.trim().toLowerCase()]) || (
-        <Shield className="size-5 text-muted-foreground" />
-    );
 
 const MEMBER_LIMIT = 10;
 
