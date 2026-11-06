@@ -6,8 +6,10 @@ import { PageHeader } from "@/components/admin/page-header";
 import {
   ReportExcelButton,
   dateRangeSubtitle,
+  type ReportExportData,
 } from "@/components/admin/reports/download-excel-button";
 import { LazyPdfDownloadLink } from "@/components/admin/reports/lazy-pdf-download-link";
+import { ReportPdfLazyButton } from "@/components/admin/reports/report-pdf-lazy-button";
 import {
   ReportDateFilters,
   type ReportFilterParams,
@@ -45,18 +47,17 @@ import {
   getOrderStatusColor,
   getPaymentMethodColor,
   getPaymentMethodIcon,
-  getPaymentStatusLabel,
   getPaymentStatusColor,
+  getPaymentStatusLabel,
   getShippingMethodColor,
   getShippingMethodIcon,
   getStatusIcon,
 } from "@/utils/order-helper";
-import { PaymentStatus } from "@/utils/types";
+import { PaymentStatus, type BusinessSettings } from "@/utils/types";
 import {
   AlertCircle,
   CheckCircle2,
   Clock,
-  Download,
   Loader2,
   MapPin,
   Percent,
@@ -66,8 +67,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { OrderReportPDF } from "./order-report-pdf";
 
 interface Customer {
@@ -240,13 +247,12 @@ export default function OrderReportList({
   );
 
   // Full-range rows for Excel/PDF export, fetched on demand (first export
-  // click of each filter combination) so the page load stays light. Rows are
-  // tagged with the filter they belong to, so a stale set is never exported.
-  const [exportState, setExportState] = useState<{
-    key: string;
-    orders: Order[];
-  } | null>(null);
-  const [exporting, setExporting] = useState(false);
+  // click of each filter combination) so the page load stays light. The
+  // in-flight/finished fetch is cached per filter combination — both export
+  // buttons (Excel + PDF) share it, like the inbox export.
+  const exportCacheRef = useRef<{ key: string; promise: Promise<Order[]> } | null>(
+    null
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -264,11 +270,6 @@ export default function OrderReportList({
     return qs.toString();
   }, [preset, fromDate, toDate, orderStatus, paymentStatus]);
 
-  const exportOrders =
-    exportState && exportState.key === currentFilterQuery
-      ? exportState.orders
-      : null;
-
   // Current-page sums — the range totals shown in the cards come from the API.
   const pageTotals = useMemo(
     () =>
@@ -283,10 +284,13 @@ export default function OrderReportList({
     [orders]
   );
 
-  const handleExportPrepare = async () => {
-    if (exporting || exportOrders) return;
-    setExporting(true);
-    try {
+  // Fetches every page of the filtered range for the export buttons —
+  // shared by Excel and PDF, deduped per filter combination.
+  const fetchExportOrders = useCallback(() => {
+    if (exportCacheRef.current?.key === currentFilterQuery) {
+      return exportCacheRef.current.promise;
+    }
+    const promise = (async () => {
       const token = await resolveAuthToken();
       const all: Order[] = [];
       let page = 1;
@@ -309,14 +313,58 @@ export default function OrderReportList({
         lastPage = data?.totalPages || 1;
         page += 1;
       } while (page <= lastPage);
-      setExportState({ key: currentFilterQuery, orders: all });
-    } catch (error) {
+      return all;
+    })();
+    exportCacheRef.current = { key: currentFilterQuery, promise };
+    promise.catch((error) => {
       console.error("Failed to prepare export:", error);
-      toast.error("Failed to load orders for export");
-    } finally {
-      setExporting(false);
-    }
-  };
+      // Drop the rejected promise from the cache so a retry can re-fetch.
+      if (exportCacheRef.current?.promise === promise) {
+        exportCacheRef.current = null;
+      }
+    });
+    return promise;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFilterQuery]);
+
+  const totalDue = Math.max(0, totalValue - totalPaid);
+
+  // Excel/PDF export rows + summary for the whole filtered range.
+  const buildExportData = useCallback(
+    (orders: Order[]): ReportExportData => ({
+      rows: orders.map((o, i) => [
+        i + 1,
+        formatDateTime(o.orderDate),
+        o.orderNo,
+        o.customer?.name || "N/A",
+        o.customer?.mobileNumber || "N/A",
+        o.shippingAddress?.area || "N/A",
+        o.shippingMethod || "N/A",
+        o.orderStatus,
+        getPaymentStatusLabel(o.paymentStatus),
+        o.paymentMethod || "N/A",
+        o.cancelledAt
+          ? formatOrderElapsedTime(o.orderDate, o.cancelledAt)
+          : o.deliveredAt
+            ? formatOrderElapsedTime(o.orderDate, o.deliveredAt)
+            : formatOrderElapsedTime(o.orderDate),
+        o.totalValue,
+        o.totalDiscount,
+        o.paidAmount,
+      ]),
+      summary: [
+        { label: "Total Orders", value: String(totalOrders) },
+        { label: "Total Value", value: formatCurrencyEnglish(totalValue, 0) },
+        {
+          label: "Total Discount",
+          value: formatCurrencyEnglish(totalDiscount, 0),
+        },
+        { label: "Total Paid", value: formatCurrencyEnglish(totalPaid, 0) },
+        { label: "Total Due", value: formatCurrencyEnglish(totalDue, 0) },
+      ],
+    }),
+    [totalOrders, totalValue, totalDiscount, totalPaid, totalDue]
+  );
 
   const handlePageChange = (page: number) => {
     const qs = new URLSearchParams(currentFilterQuery);
@@ -355,8 +403,6 @@ export default function OrderReportList({
   const hasData = totalOrders > 0;
   const collectedRate =
     totalValue > 0 ? Math.round((totalPaid / totalValue) * 100) : 0;
-  const totalDue = Math.max(0, totalValue - totalPaid);
-
 
   return (
     <div className="w-full">
@@ -368,98 +414,37 @@ export default function OrderReportList({
       >
         {mounted && hasData && (
           <>
-            {exportOrders ? (
-              <>
-                <ReportExcelButton
-                  title="Sales Report"
-                  subtitle={rangeLabel}
-                  headers={[
-                    "#",
-                    "Date",
-                    "Order No",
-                    "Customer",
-                    "Mobile",
-                    "Area",
-                    "Shipping Method",
-                    "Status",
-                    "Payment",
-                    "Payment Method",
-                    "Elapsed Time",
-                    "Total",
-                    "Discount",
-                    "Paid",
-                  ]}
-                  rows={exportOrders.map((o, i) => [
-                    i + 1,
-                    formatDateTime(o.orderDate),
-                    o.orderNo,
-                    o.customer?.name || "N/A",
-                    o.customer?.mobileNumber || "N/A",
-                    o.shippingAddress?.area || "N/A",
-                    o.shippingMethod || "N/A",
-                    o.orderStatus,
-                    getPaymentStatusLabel(o.paymentStatus),
-                    o.paymentMethod || "N/A",
-                    o.cancelledAt
-                      ? formatOrderElapsedTime(o.orderDate, o.cancelledAt)
-                      : o.deliveredAt
-                        ? formatOrderElapsedTime(o.orderDate, o.deliveredAt)
-                        : formatOrderElapsedTime(o.orderDate),
-                    o.totalValue,
-                    o.totalDiscount,
-                    o.paidAmount,
-                  ])}
-                  summary={[
-                    { label: "Total Orders", value: String(totalOrders) },
-                    {
-                      label: "Total Value",
-                      value: formatCurrencyEnglish(totalValue, 0),
-                    },
-                    {
-                      label: "Total Discount",
-                      value: formatCurrencyEnglish(totalDiscount, 0),
-                    },
-                    {
-                      label: "Total Paid",
-                      value: formatCurrencyEnglish(totalPaid, 0),
-                    },
-                    {
-                      label: "Total Due",
-                      value: formatCurrencyEnglish(totalDue, 0),
-                    },
-                  ]}
-                  fileName="sales-report"
-                />
-                <LazyPdfDownloadLink
-                  document={
-                    <OrderReportPDF
-                      orders={exportOrders}
-                      settings={settings}
-                    />
-                  }
-                  fileName={`order-report-${new Date().toISOString().split("T")[0]}.pdf`}
-                />
-              </>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportPrepare}
-                disabled={exporting}
-              >
-                {exporting ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Preparing…
-                  </>
-                ) : (
-                  <>
-                    <Download className="size-4" />
-                    Export
-                  </>
-                )}
-              </Button>
-            )}
+            <ReportExcelButton
+              title="Sales Report"
+              subtitle={rangeLabel}
+              headers={[
+                "#",
+                "Date",
+                "Order No",
+                "Customer",
+                "Mobile",
+                "Area",
+                "Shipping Method",
+                "Status",
+                "Payment",
+                "Payment Method",
+                "Elapsed Time",
+                "Total",
+                "Discount",
+                "Paid",
+              ]}
+              getRows={() =>
+                fetchExportOrders().then((orders) => buildExportData(orders))
+              }
+              fileName="sales-report"
+            />
+            <ReportPdfLazyButton
+              getRows={fetchExportOrders}
+              buildDocument={(orders) => (
+                <OrderReportPDF orders={orders} settings={settings} />
+              )}
+              fileName="order-report"
+            />
           </>
         )}
       </PageHeader>

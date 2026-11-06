@@ -53,18 +53,16 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  // ----- Summary -----
+  // ----- Summary (one line below the table, like the other reports) -----
   summaryBox: {
     flexDirection: "row",
     justifyContent: "space-around",
-    backgroundColor: "#f9fafb",
-    padding: 10,
-    borderRadius: 4,
-    marginBottom: 15,
-    borderWidth: 1,
+    marginTop: 15,
+    paddingTop: 10,
+    borderTop: 1,
     borderColor: "#e5e7eb",
   },
-  summaryItem: { textAlign: "center", flex: 1 },
+  summaryItem: { textAlign: "center" },
   summaryLabel: { fontSize: 8, color: "#555", marginBottom: 2 },
   summaryValue: {
     fontSize: 12,
@@ -184,37 +182,13 @@ export function CustomerListPDF({
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" orientation="landscape" style={styles.page}>
         {/* Header */}
         <ReportPDFHeader settings={settings} />
 
         {/* Title */}
         <Text style={styles.reportTitle}>Customer List Report</Text>
         <Text style={styles.dateRange}>{dateRange}</Text>
-
-        {/* Summary */}
-        <View style={styles.summaryBox}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Total Customers</Text>
-            <Text style={styles.summaryValue}>{summary.totalCustomers}</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Total Orders</Text>
-            <Text style={styles.summaryValue}>{summary.totalOrders}</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Total Order Value</Text>
-            <Text style={styles.summaryValue}>
-              {formatCurrency(summary.totalOrderValue)}
-            </Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Avg Per Customer</Text>
-            <Text style={styles.summaryValue}>
-              {formatCurrency(avgPerCustomer)}
-            </Text>
-          </View>
-        </View>
 
         {/* Table Header */}
         <View style={styles.tableHeader}>
@@ -242,6 +216,30 @@ export function CustomerListPDF({
             </Text>
           </View>
         ))}
+
+        {/* Summary — one line below the table */}
+        <View style={styles.summaryBox}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Total Customers</Text>
+            <Text style={styles.summaryValue}>{summary.totalCustomers}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Total Orders</Text>
+            <Text style={styles.summaryValue}>{summary.totalOrders}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Total Order Value</Text>
+            <Text style={styles.summaryValue}>
+              {formatCurrency(summary.totalOrderValue)}
+            </Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Avg Per Customer</Text>
+            <Text style={styles.summaryValue}>
+              {formatCurrency(avgPerCustomer)}
+            </Text>
+          </View>
+        </View>
 
         {/* Footer */}
         <View style={styles.footer}>

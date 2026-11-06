@@ -176,6 +176,7 @@ export default function RefundsList({
               document={
                 <ReportTablePDF
                   title="Refund & Cancelled Orders Report"
+                  orientation="landscape"
                   headers={[
                     "Date",
                     "Order No",

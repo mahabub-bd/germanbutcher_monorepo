@@ -11,7 +11,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import { Loader2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { LazyPdfDownloadLink } from "./lazy-pdf-download-link";
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   altRow: { backgroundColor: "#f9fafb" },
   // Right padding keeps neighbouring columns from butting into each other
   // (e.g. Mobile text running straight into Order Ref).
-  cell: { fontSize: 7.5, fontWeight: 400, paddingRight: 6 },
+  cell: { fontSize: 8, fontWeight: 400, paddingRight: 6 },
   summarySection: {
     marginTop: 15,
     paddingTop: 10,
@@ -162,7 +162,7 @@ export function GenericReportPDF({
                   {
                     flex: col.width ?? 1,
                     fontWeight: "bold",
-                    fontSize: 9,
+                    fontSize: 8,
                     color: "#fff",
                     textAlign: col.align ?? "left",
                   },
@@ -286,23 +286,24 @@ export function ReportPdfButton({
     if (isPreparing) {
       return (
         <Button
+          variant="outline"
           disabled
-          className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0 px-3 text-sm"
+          className="shrink-0 gap-1.5 px-3 text-sm"
         >
-          <Loader2 className="size-4 animate-spin" />
-          <span className="sm:hidden">PDF</span>
-          <span className="hidden sm:inline">Preparing PDF…</span>
+          <Loader2 className="size-4 animate-spin text-red-600" />
+          Preparing…
         </Button>
       );
     }
     if (!lazyData) {
       return (
         <Button
+          variant="outline"
           onClick={prepare}
-          className="bg-primaryColor hover:bg-primaryColor/90 text-white shrink-0 px-3 text-sm"
+          className="shrink-0 gap-1.5 px-3 text-sm"
         >
-          <span className="sm:hidden">PDF</span>
-          <span className="hidden sm:inline">Download PDF</span>
+          <FileText className="size-4 text-red-600" />
+          PDF
         </Button>
       );
     }

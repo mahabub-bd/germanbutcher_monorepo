@@ -226,10 +226,7 @@ export function ReportExcelButton({
       ) : (
         <FileSpreadsheet className="size-4 text-emerald-600" />
       )}
-      <span className="sm:hidden">Excel</span>
-      <span className="hidden sm:inline">
-        {isPreparing ? "Preparing…" : "Download Excel"}
-      </span>
+      {isPreparing ? "Preparing…" : "Excel"}
     </Button>
   );
 }

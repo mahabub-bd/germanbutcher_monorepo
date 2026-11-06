@@ -2491,8 +2491,10 @@ export class OrderService {
         mobileNumber: row.mobileNumber ?? null,
         area: row.area,
         method: row.method_name,
-        totalValue: parseFloat(row.total_value) || 0,
-        paidAmount: parseFloat(row.paid_amount) || 0,
+        // pg preserves the quoted camelCase identifiers ("totalValue"),
+        // so the row keys are camelCase here — snake_case reads undefined.
+        totalValue: parseFloat(row.totalValue) || 0,
+        paidAmount: parseFloat(row.paidAmount) || 0,
         paymentStatus: row.paymentStatus,
         placedAt: row.createdAt,
         cancelledAt: row.cancelledAt,

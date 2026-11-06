@@ -150,6 +150,7 @@ export default function ProductSalesList({
               document={
                 <ReportTablePDF
                   title="Product Sales Report"
+                  orientation="landscape"
                   headers={EXPORT_HEADERS}
                   flexes={[0.5, 2, 0.9, 0.9, 1.2, 1]}
                   alignRight={[0, 2, 3, 4, 5]}
