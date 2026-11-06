@@ -240,7 +240,7 @@ export function printThermalInvoice(
   <div class="row bold" style="font-size: 15px; margin: 5px 0;"><span>TOTAL:</span><span>${formatCurrencyEnglish(orderSummary.total)}</span></div>
 
   ${
-    order.paymentStatus === "pending"
+    order.paymentStatus === "unpaid" || order.paymentStatus === "pending"
       ? `<div class="row" style="color: #000; background: #fff; padding: 3px 0;"><span>DUE:</span><span class="bold">${formatCurrencyEnglish(order.totalValue - order.paidAmount)}</span></div>`
       : ""
   }

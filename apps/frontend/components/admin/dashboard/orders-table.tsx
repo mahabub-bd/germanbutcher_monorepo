@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   getPaymentMethodColor,
   getPaymentMethodIcon,
+  getPaymentStatusLabel,
   getPaymentStatusColor,
   getShippingMethodColor,
   getShippingMethodIcon,
@@ -171,7 +172,7 @@ export default function OrdersTable() {
                   >
                     <span className="flex items-center gap-1.5">
                       {getStatusIcon(order.paymentStatus)}
-                      {order.paymentStatus}
+                      {getPaymentStatusLabel(order.paymentStatus)}
                     </span>
                   </Badge>
                 </TableCell>
@@ -220,7 +221,7 @@ export default function OrdersTable() {
                     </Button>
                     {!(
                       order.orderStatus.toLowerCase() === "delivered" &&
-                      order.paymentStatus.toLowerCase() === "completed"
+                      order.paymentStatus.toLowerCase() === "paid"
                     ) && (
                         <Button
                           variant="ghost"

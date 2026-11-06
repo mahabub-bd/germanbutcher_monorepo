@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { getOrderStatusColor, getPaymentStatusColor, getStatusIcon } from "@/utils/order-helper";
+import { getOrderStatusColor, getPaymentStatusLabel, getPaymentStatusColor, getStatusIcon } from "@/utils/order-helper";
 
 interface OrderStatusBadgesProps {
   orderStatus: string;
@@ -30,7 +30,7 @@ export function OrderStatusBadges({
         <span className="mr-1">
           {getStatusIcon(paymentStatus)}
         </span>
-        <span className="truncate capitalize">{paymentStatus}</span>
+        <span className="truncate capitalize">{getPaymentStatusLabel(paymentStatus)}</span>
       </Badge>
     </div>
   );

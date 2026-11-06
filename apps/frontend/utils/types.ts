@@ -1151,9 +1151,11 @@ export enum PaymentType {
   REFUND = "REFUND",
 }
 
+// Mirrors the backend PaymentStatus enum / DB values: 'unpaid' (nothing
+// collected), 'paid' (fully collected; also the post-refund money-remains
+// state). Legacy 'pending'/'completed' may still appear in old audit rows.
 export enum PaymentStatus {
-  PENDING = "pending",
-  COMPLETED = "completed",
+  PENDING = "unpaid",
   PARTIAL = "partial",
   PAID = "paid",
   FAILED = "failed",

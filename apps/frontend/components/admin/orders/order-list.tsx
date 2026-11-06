@@ -58,6 +58,7 @@ import {
   getOrderStatusColor,
   getPaymentMethodColor,
   getPaymentMethodIcon,
+  getPaymentStatusLabel,
   getPaymentStatusColor,
   getShippingMethodColor,
   getShippingMethodIcon,
@@ -93,6 +94,18 @@ const STATUS_FILTERS = [
   { value: "shipped", label: "Shipped" },
   { value: "delivered", label: "Delivered" },
   { value: "cancelled", label: "Cancelled" },
+];
+
+// Values are the backend PaymentStatus enum (what the DB stores); labels
+// use the display wording (see getPaymentStatusLabel).
+const PAYMENT_STATUS_FILTERS = [
+  { value: "unpaid", label: "Unpaid" },
+  { value: "paid", label: "Paid" },
+  { value: "partial", label: "Partial" },
+  { value: "failed", label: "Failed" },
+  { value: "refunded", label: "Refunded" },
+  { value: "need_refund", label: "Need refund" },
+  { value: "refund_complete", label: "Refund complete" },
 ];
 
 // Each status route keeps its own heading; the default list covers everything.
@@ -165,6 +178,9 @@ export function OrderList({
   const [statusFilter, setStatusFilter] = useState(
     getInitialParam("orderStatus") as string
   );
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState(
+    getInitialParam("paymentStatus") as string
+  );
   const [paymentMethodFilter, setPaymentMethodFilter] = useState(
     getInitialParam("paymentMethodId") as string
   );
@@ -216,6 +232,7 @@ export function OrderList({
     if (searchQuery) params.set("search", searchQuery);
     if (statusFilter && statusFilter !== "all")
       params.set("orderStatus", statusFilter);
+    if (paymentStatusFilter) params.set("paymentStatus", paymentStatusFilter);
     if (paymentMethodFilter) params.set("paymentMethodId", paymentMethodFilter);
     if (shippingMethodFilter)
       params.set("shippingMethodId", shippingMethodFilter);
@@ -224,7 +241,7 @@ export function OrderList({
     if (cityFilter) params.set("city", cityFilter);
 
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname, currentPage, totalPages, limit, searchQuery, statusFilter, paymentMethodFilter, shippingMethodFilter, areaFilter, divisionFilter, cityFilter]);
+  }, [router, pathname, currentPage, totalPages, limit, searchQuery, statusFilter, paymentStatusFilter, paymentMethodFilter, shippingMethodFilter, areaFilter, divisionFilter, cityFilter]);
 
   const fetchOrders = useCallback(async () => {
     const seq = ++fetchSeqRef.current;
@@ -237,6 +254,8 @@ export function OrderList({
       if (searchQuery) params.append("search", searchQuery);
       if (statusFilter && statusFilter !== "all")
         params.append("orderStatus", statusFilter);
+      if (paymentStatusFilter)
+        params.append("paymentStatus", paymentStatusFilter);
       if (paymentMethodFilter) params.append("paymentMethodId", paymentMethodFilter);
       if (shippingMethodFilter)
         params.append("shippingMethodId", shippingMethodFilter);
@@ -264,7 +283,7 @@ export function OrderList({
         setIsLoading(false);
       }
     }
-  }, [currentPage, limit, searchQuery, statusFilter, paymentMethodFilter, shippingMethodFilter, areaFilter, divisionFilter, cityFilter]);
+  }, [currentPage, limit, searchQuery, statusFilter, paymentStatusFilter, paymentMethodFilter, shippingMethodFilter, areaFilter, divisionFilter, cityFilter]);
 
   // Initial load with URL params
   useEffect(() => {
@@ -286,6 +305,10 @@ export function OrderList({
     }
     if (statusFromUrl && statusFromUrl !== statusFilter) {
       setStatusFilter(statusFromUrl);
+    }
+    const paymentStatusFromUrl = searchParams?.get("paymentStatus");
+    if (paymentStatusFromUrl && paymentStatusFromUrl !== paymentStatusFilter) {
+      setPaymentStatusFilter(paymentStatusFromUrl);
     }
     if (paymentMethodFromUrl && paymentMethodFromUrl !== paymentMethodFilter) {
       setPaymentMethodFilter(paymentMethodFromUrl);
@@ -355,6 +378,7 @@ export function OrderList({
   const clearFilters = () => {
     setSearchQuery("");
     setStatusFilter("");
+    setPaymentStatusFilter("");
     setPaymentMethodFilter("");
     setShippingMethodFilter("");
     setAreaFilter("");
@@ -385,6 +409,7 @@ export function OrderList({
     if (searchQuery) params.set("search", searchQuery);
     if (statusFilter && statusFilter !== "all")
       params.set("orderStatus", statusFilter);
+    if (paymentStatusFilter) params.set("paymentStatus", paymentStatusFilter);
     if (paymentMethodFilter) params.set("paymentMethodId", paymentMethodFilter);
     if (shippingMethodFilter)
       params.set("shippingMethodId", shippingMethodFilter);
@@ -571,7 +596,7 @@ export function OrderList({
                     >
                       <span className="flex items-center gap-1.5">
                         {getStatusIcon(order.paymentStatus)}
-                        {order.paymentStatus}
+                        {getPaymentStatusLabel(order.paymentStatus)}
                       </span>
                     </Badge>
                   </TableCell>
@@ -733,6 +758,7 @@ export function OrderList({
   const hasActiveFilters = Boolean(
     searchQuery ||
     (statusFilter && statusFilter !== "all") ||
+    paymentStatusFilter ||
     paymentMethodFilter ||
     shippingMethodFilter ||
     areaFilter ||
@@ -745,6 +771,7 @@ export function OrderList({
   const activeFilterCount = [
     Boolean(searchQuery),
     Boolean(statusFilter && statusFilter !== "all"),
+    Boolean(paymentStatusFilter),
     Boolean(paymentMethodFilter),
     Boolean(shippingMethodFilter),
     Boolean(divisionFilter),
@@ -766,6 +793,8 @@ export function OrderList({
     statusFilter &&
     statusFilter !== "all" &&
     `Status: ${STATUS_FILTERS.find((s) => s.value === statusFilter)?.label ?? statusFilter}`,
+    paymentStatusFilter &&
+    `Payment status: ${PAYMENT_STATUS_FILTERS.find((s) => s.value === paymentStatusFilter)?.label ?? paymentStatusFilter}`,
     paymentMethodFilter && `Payment: ${paymentMethodName}`,
     shippingMethodFilter && `Shipping: ${shippingMethodName}`,
     divisionFilter && `Division: ${divisionFilter}`,
@@ -800,7 +829,33 @@ export function OrderList({
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              {STATUS_FILTERS.map((status) => (
+              <SelectItem value="all">All order statuses</SelectItem>
+              {STATUS_FILTERS.filter((s) => s.value !== "all").map((status) => (
+                <SelectItem key={status.value} value={status.value}>
+                  {status.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        key: "paymentStatus",
+        label: "Payment Status",
+        node: (
+          <Select
+            value={paymentStatusFilter || "all"}
+            onValueChange={(value) => {
+              setPaymentStatusFilter(value === "all" ? "" : value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className={triggerClass}>
+              <SelectValue placeholder="Payment status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All payment statuses</SelectItem>
+              {PAYMENT_STATUS_FILTERS.map((status) => (
                 <SelectItem key={status.value} value={status.value}>
                   {status.label}
                 </SelectItem>
@@ -824,7 +879,7 @@ export function OrderList({
               <SelectValue placeholder="Payment" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All methods</SelectItem>
+              <SelectItem value="all">All payment methods</SelectItem>
               {paymentMethods.map((method) => (
                 <SelectItem key={method.id} value={method.id.toString()}>
                   {method.name}
@@ -849,7 +904,7 @@ export function OrderList({
               <SelectValue placeholder="Shipping" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All methods</SelectItem>
+              <SelectItem value="all">All shipping methods</SelectItem>
               {shippingMethods.map((method) => (
                 <SelectItem key={method.id} value={method.id.toString()}>
                   {method.name}
@@ -982,7 +1037,8 @@ export function OrderList({
                 <SheetHeader className="border-b pr-14">
                   <SheetTitle>Filters</SheetTitle>
                   <SheetDescription>
-                    Narrow the list by status, payment, shipping and location.
+                    Narrow the list by order/payment status, methods and
+                    location.
                   </SheetDescription>
                 </SheetHeader>
 

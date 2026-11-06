@@ -32,7 +32,7 @@ export class OrderPaymentService {
     });
 
     if (!order) throw new NotFoundException('Order not found');
-    if (order.paymentStatus === PaymentStatus.COMPLETED) {
+    if (order.paymentStatus === PaymentStatus.PAID) {
       throw new BadRequestException('Cannot add payment to completed order');
     }
 
@@ -167,7 +167,7 @@ export class OrderPaymentService {
     });
     if (!payment) throw new NotFoundException('Payment not found');
 
-    if (payment.order.paymentStatus === PaymentStatus.COMPLETED) {
+    if (payment.order.paymentStatus === PaymentStatus.PAID) {
       throw new BadRequestException(
         'Cannot modify payment for completed order',
       );
@@ -217,7 +217,7 @@ export class OrderPaymentService {
   }
 
   private calculatePaymentStatus(paid: number, total: number): PaymentStatus {
-    if (paid >= total) return PaymentStatus.COMPLETED;
+    if (paid >= total) return PaymentStatus.PAID;
     if (paid > 0) return PaymentStatus.PARTIAL;
     return PaymentStatus.PENDING;
   }

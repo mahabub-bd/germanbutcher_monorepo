@@ -1,15 +1,18 @@
 import PayNow from "@/components/payment/pay-now";
 import {
-  Building,
+  BadgeCheck,
   CreditCard,
   FileText,
-  Home,
-  Map,
+  Mail,
   MapPin,
   Package,
   Phone,
+  ShoppingBasket,
+  Tag,
   Truck,
   User,
+  Wallet,
+  XCircle,
   Zap,
 } from "lucide-react";
 import Image from "next/image";
@@ -23,6 +26,7 @@ import { fetchProtectedData } from "@/utils/api-utils";
 import {
   getOrderStatusColor,
   getPaymentStatusColor,
+  getPaymentStatusLabel,
   getStatusIcon,
 } from "@/utils/order-helper";
 import { getDiscountedPrice } from "@/utils/product-utils";
@@ -72,35 +76,52 @@ const isCashOnDelivery = (paymentMethod: string): boolean => {
   );
 };
 
+// Payment is unsettled — "unpaid" since the rename, legacy "pending" for
+// pre-rename rows.
+const isUnpaidStatus = (paymentStatus: string): boolean =>
+  ["unpaid", "pending"].includes(paymentStatus.toLowerCase());
+
 // Determine if Pay Now button should be shown
 const shouldShowPayNow = (order: Order): boolean => {
-  const isPending = order.paymentStatus.toLowerCase() === "pending";
+  const isPending = isUnpaidStatus(order.paymentStatus);
   const isNotCancelled = order.orderStatus.toLowerCase() !== "cancelled";
   const isNotCOD = !isCashOnDelivery(order.paymentMethod.name);
   return isPending && isNotCancelled && isNotCOD;
 };
 
-/** Card shell with an icon + title header. */
+/** Card shell with a round icon-tile header — same design language as the
+ * payment status pages (rounded-2xl card, tinted circle icon, subtitle). */
 function InfoCard({
   icon: Icon,
   title,
+  subtitle,
+  tint = "bg-primaryColor/10 text-primaryColor",
   children,
   className = "",
 }: {
   icon: React.ElementType;
   title: string;
+  subtitle?: string;
+  tint?: string;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
     <div
-      className={`rounded-sm border border-gray-200 bg-white p-4 md:p-5 shadow-sm ${className}`}
+      className={`rounded-sm border border-gray-200 bg-white shadow-sm ${className}`}
     >
-      <div className="flex items-center gap-2 pb-3 mb-1 border-b border-gray-100">
-        <Icon className="size-4.5 text-gray-700" />
-        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+      <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-4 md:px-5">
+        <span
+          className={`flex size-10 shrink-0 items-center justify-center rounded-full ${tint}`}
+        >
+          <Icon className="size-5" />
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-base font-bold text-gray-900">{title}</h2>
+          {subtitle && <p className="truncate text-xs text-gray-500">{subtitle}</p>}
+        </div>
       </div>
-      {children}
+      <div className="p-4 md:p-5">{children}</div>
     </div>
   );
 }
@@ -115,38 +136,36 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-dashed border-gray-100 py-2.5 last:border-0 last:pb-0">
-      <span className="shrink-0 text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium text-gray-900 text-right">
+      <span className="shrink-0 text-sm text-gray-500">{label}</span>
+      <span className="text-right text-sm font-semibold text-gray-900">
         {children}
       </span>
     </div>
   );
 }
 
-/** Iconed address row (mockup style). */
-function AddressRow({
+/** Icon-led line inside the tinted order-summary block. */
+function SummaryLine({
   icon: Icon,
   label,
-  value,
+  children,
 }: {
   icon: React.ElementType;
-  label: string;
-  value: string;
+  label: React.ReactNode;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-2.5 py-1.5">
-      <Icon className="size-3.5 shrink-0 text-muted-foreground" />
-      <span className="w-20 shrink-0 text-sm text-muted-foreground">
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <span className="flex items-center gap-2 text-gray-600">
+        <Icon className="size-4 shrink-0 text-gray-400" />
         {label}
       </span>
-      <span className="min-w-0 flex-1 text-right text-sm font-medium text-gray-900 truncate">
-        {value}
-      </span>
+      <span className="shrink-0 font-semibold text-gray-900">{children}</span>
     </div>
   );
 }
 
-/** Amber/colored status pill used in the page header. */
+/** Soft status pill with leading icon, used in the page header. */
 function StatusPill({
   label,
   status,
@@ -158,10 +177,10 @@ function StatusPill({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium capitalize ${colorClass}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold capitalize ring-1 ring-inset ring-black/5 ${colorClass}`}
     >
       {getStatusIcon(status)}
-      {label} &middot; {status}
+      {label} &middot; {label === "Payment Status" ? getPaymentStatusLabel(status) : status}
     </span>
   );
 }
@@ -208,8 +227,8 @@ export default async function OrderConfirmationPage({
     const couponDiscount = order.coupon
       ? Math.max(
         Number(order.totalDiscount) -
-          productDiscountTotal -
-          bogoDiscountTotal,
+        productDiscountTotal -
+        bogoDiscountTotal,
         0
       )
       : 0;
@@ -228,182 +247,214 @@ export default async function OrderConfirmationPage({
   const orderSummary = calculateOrderSummary();
   const isCOD = isCashOnDelivery(order.paymentMethod.name);
   const dueAmount = order.totalValue - (order.paidAmount || 0);
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+  const isCancelled = order.orderStatus.toLowerCase() === "cancelled";
 
   return (
-    <div className="container mx-auto py-6 px-4 space-y-5">
-      {/* Order Status Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-sm border border-gray-200 bg-white p-4 md:p-5 shadow-sm">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-sm bg-red-50">
-            <FileText className="size-6 text-red-500" />
+    <div className="container mx-auto py-6 px-4 space-y-5 md:space-y-6">
+      {/* Confirmation hero */}
+      <div className="rounded-sm border border-gray-200 bg-white p-5 shadow-sm md:p-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <span
+              className={`flex size-14 shrink-0 items-center justify-center rounded-full ring-8 ring-gray-50 ${isCancelled
+                ? "bg-red-100 text-red-600"
+                : "bg-green-100 text-green-600"
+                }`}
+            >
+              {isCancelled ? (
+                <XCircle className="size-7" />
+              ) : (
+                <BadgeCheck className="size-7" />
+              )}
+            </span>
+            <div className="min-w-0">
+              <h1 className="truncate text-xl md:text-2xl font-extrabold tracking-tight text-gray-900">
+                {isCancelled ? "Order Cancelled" : "Thank You For Your Order!"}
+              </h1>
+              <p className="mt-0.5 text-sm text-gray-500">
+                Order{" "}
+                <span className="font-semibold text-gray-700">
+                  #{order.orderNo}
+                </span>{" "}
+                placed on {formatDateTime(order.createdAt)}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h1 className="truncate text-xl font-bold text-gray-900">
-              Order-{order.orderNo}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Placed on {formatDateTime(order.createdAt)}
-            </p>
+          <div className="flex flex-wrap gap-2.5">
+            <StatusPill
+              label="Order Status"
+              status={order.orderStatus}
+              colorClass={getOrderStatusColor(order.orderStatus)}
+            />
+            <StatusPill
+              label="Payment Status"
+              status={order.paymentStatus}
+              colorClass={getPaymentStatusColor(order.paymentStatus)}
+            />
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2.5">
-          <StatusPill
-            label="Order Status"
-            status={order.orderStatus}
-            colorClass={getOrderStatusColor(order.orderStatus)}
-          />
-          <StatusPill
-            label="Payment Status"
-            status={order.paymentStatus}
-            colorClass={getPaymentStatusColor(order.paymentStatus)}
-          />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-6">
         {/* Left column: items + payment/shipping info */}
-        <div className="lg:col-span-2 space-y-5">
+        <div className="lg:col-span-2 space-y-5 md:space-y-6">
           {/* Order Items */}
-          <InfoCard icon={Package} title="Order Items">
-            <div className="space-y-3 pt-2">
-              {items.map((item: OrderItem) => {
-                const unitPrice = getItemUnitPrice(item);
-                const hasDiscount = getItemUnitDiscount(item) > 0;
-                const flash = isFlashDiscounted(item);
-                return (
-                  <div
-                    key={item.id}
-                    className="flex gap-3 md:gap-4 rounded-sm border border-gray-200 p-3 transition-colors hover:border-gray-300"
-                  >
-                    <div className="relative size-20 shrink-0 overflow-hidden rounded-sm bg-muted">
-                      {item.product.attachment ? (
-                        <Image
-                          src={item.product.attachment.url || "/placeholder.svg"}
-                          alt={item.product.name}
-                          fill
-                          className="object-cover"
-                          sizes="80px"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Package className="size-6 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
+          <InfoCard
+            icon={Package}
+            title="Order Items"
+            subtitle={`You have ordered ${totalQuantity} item${totalQuantity === 1 ? "" : "s"} from German Butcher.`}
+          >
+            {items.length === 0 ? (
+              <p className="py-2 text-sm text-gray-500">No items on this order.</p>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {items.map((item: OrderItem) => {
+                  const unitPrice = getItemUnitPrice(item);
+                  const hasDiscount = getItemUnitDiscount(item) > 0;
+                  const flash = isFlashDiscounted(item);
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 md:gap-4 py-3 first:pt-0 last:pb-0"
+                    >
+                      <div className="relative size-14 md:size-16 shrink-0 overflow-hidden rounded-lg border border-gray-100 bg-gray-50">
+                        {item.product.attachment ? (
+                          <Image
+                            src={item.product.attachment.url || "/placeholder.svg"}
+                            alt={item.product.name}
+                            fill
+                            className="object-cover"
+                            sizes="64px"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Package className="size-5 text-gray-300" />
+                          </div>
+                        )}
+                      </div>
 
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-sm font-semibold text-gray-900">
-                        {item.product.name}
-                      </h4>
-                      {item.product.description && (
-                        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground line-clamp-2">
-                          {item.product.description}
-                        </p>
-                      )}
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        {hasDiscount && flash && (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-0.5 text-[0.7rem] font-medium text-green-800">
-                            <Zap className="size-3 fill-current" />
-                            Flash Sale
-                          </span>
-                        )}
-                        {hasDiscount && !flash && (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-0.5 text-[0.7rem] font-medium text-green-800">
-                            {item.product.discountType === "percentage"
-                              ? `${Number.parseFloat(String(item.product.discountValue))}% OFF`
-                              : `${formatCurrencyEnglish(getItemUnitDiscount(item))} OFF`}
-                          </span>
-                        )}
-                        {item.product.weight && item.product.unit?.name && (
-                          <span className="text-xs text-muted-foreground">
-                            {formatWeight(
-                              item.product.weight,
-                              item.product.unit.name
+                      <div className="min-w-0 flex-1">
+                        <h4 className="truncate text-sm font-bold text-gray-900">
+                          {item.product.name}
+                        </h4>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+                          <span>
+                            Qty: {item.quantity} ×{" "}
+                            {hasDiscount ? (
+                              <span className="line-through">
+                                {formatCurrencyEnglish(item.product.sellingPrice)}
+                              </span>
+                            ) : (
+                              formatCurrencyEnglish(unitPrice)
                             )}
                           </span>
-                        )}
+                          {hasDiscount && flash && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-0.5 text-[0.7rem] font-semibold text-green-700">
+                              <Zap className="size-3 fill-current" />
+                              Flash Sale
+                            </span>
+                          )}
+                          {hasDiscount && !flash && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-0.5 text-[0.7rem] font-semibold text-green-700">
+                              {item.product.discountType === "percentage"
+                                ? `${Number.parseFloat(String(item.product.discountValue))}% OFF`
+                                : `${formatCurrencyEnglish(getItemUnitDiscount(item))} OFF`}
+                            </span>
+                          )}
+                          {item.product.weight && item.product.unit?.name && (
+                            <span>
+                              {formatWeight(
+                                item.product.weight,
+                                item.product.unit.name
+                              )}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="shrink-0 text-right">
-                      <div className="flex items-baseline justify-end gap-2">
-                        {hasDiscount && (
-                          <span className="text-xs text-muted-foreground line-through">
-                            {formatCurrencyEnglish(item.product.sellingPrice)}
-                          </span>
-                        )}
-                        <span
-                          className={`text-base font-bold ${hasDiscount ? "text-red-600" : "text-gray-900"}`}
-                        >
-                          {formatCurrencyEnglish(unitPrice)}
-                        </span>
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        &times; {item.quantity}{" "}
-                        {item.product.unit?.name || "pc"}
+                      <div className="shrink-0 text-right">
+                        <div className="text-sm font-bold text-gray-900 whitespace-nowrap">
+                          {formatCurrencyEnglish(unitPrice * item.quantity)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </InfoCard>
 
           {/* Payment + Shipping info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <InfoCard icon={CreditCard} title="Payment Information">
-              <div className="pt-1">
-                <InfoRow label="Payment Method">
-                  {order.paymentMethod.name}
-                  {isCOD && (
-                    <span className="ml-1.5 rounded-full bg-blue-50 px-2 py-0.5 text-[0.7rem] font-medium text-blue-700">
-                      COD
-                    </span>
-                  )}
-                </InfoRow>
-                <InfoRow label="Payment Status">
-                  <span className="capitalize">{order.paymentStatus}</span>
-                </InfoRow>
-                {order.paidAmount > 0 && (
-                  <InfoRow label="Amount Paid">
-                    <span className="text-green-600">
-                      {formatCurrencyEnglish(order.paidAmount)}
-                    </span>
-                  </InfoRow>
+            <InfoCard
+              icon={CreditCard}
+              title="Payment Information"
+              tint="bg-green-100 text-green-600"
+            >
+              <InfoRow label="Payment Method">
+                {order.paymentMethod.name}
+                {isCOD && (
+                  <span className="ml-1.5 rounded-full bg-blue-50 px-2 py-0.5 text-[0.7rem] font-medium text-blue-700">
+                    COD
+                  </span>
                 )}
-                {isCOD && order.paymentStatus.toLowerCase() === "pending" && (
-                  <p className="pt-2 text-xs text-muted-foreground">
-                    Payment will be collected upon delivery
-                  </p>
-                )}
-              </div>
+              </InfoRow>
+              <InfoRow label="Payment Status">
+                <span
+                  className={`capitalize ${isUnpaidStatus(order.paymentStatus)
+                    ? "text-amber-600"
+                    : "text-green-600"
+                    }`}
+                >
+                  {getPaymentStatusLabel(order.paymentStatus)}
+                </span>
+              </InfoRow>
+              {order.paidAmount > 0 && (
+                <InfoRow label="Amount Paid">
+                  <span className="text-green-600">
+                    {formatCurrencyEnglish(order.paidAmount)}
+                  </span>
+                </InfoRow>
+              )}
+              {isCOD && isUnpaidStatus(order.paymentStatus) && (
+                <p className="pt-2.5 text-xs text-gray-500">
+                  Payment will be collected upon delivery
+                </p>
+              )}
             </InfoCard>
 
-            <InfoCard icon={Truck} title="Shipping Information">
-              <div className="pt-1">
-                <InfoRow label="Shipping Method">
-                  {order.shippingMethod.name}
-                </InfoRow>
-                <InfoRow label="Delivery Time">
-                  {order.shippingMethod.deliveryTime}
-                </InfoRow>
-                <InfoRow label="Shipping Cost">
-                  {orderSummary.shippingCost === 0 ? (
-                    <span className="font-semibold text-green-600">FREE</span>
-                  ) : (
-                    formatCurrencyEnglish(orderSummary.shippingCost)
-                  )}
-                </InfoRow>
-              </div>
+            <InfoCard
+              icon={Truck}
+              title="Shipping Information"
+              tint="bg-amber-100 text-amber-600"
+            >
+              <InfoRow label="Shipping Method">
+                {order.shippingMethod.name}
+              </InfoRow>
+              <InfoRow label="Delivery Time">
+                {order.shippingMethod.deliveryTime}
+              </InfoRow>
+              <InfoRow label="Shipping Cost">
+                {orderSummary.shippingCost === 0 ? (
+                  <span className="font-bold text-green-600">FREE</span>
+                ) : (
+                  formatCurrencyEnglish(orderSummary.shippingCost)
+                )}
+              </InfoRow>
             </InfoCard>
           </div>
         </div>
 
         {/* Right column: customer, address, summary */}
-        <div className="space-y-5">
+        <div className="space-y-5 md:space-y-6">
           {/* Customer Information */}
-          <InfoCard icon={User} title="Customer Information">
-            <div className="flex items-center gap-3 py-2">
+          <InfoCard
+            icon={User}
+            title="Customer Information"
+            tint="bg-blue-100 text-blue-600"
+          >
+            <div className="flex items-center gap-3">
               <Avatar className="size-11 shrink-0 border border-gray-200">
                 <AvatarImage
                   src={
@@ -417,107 +468,109 @@ export default async function OrderConfirmationPage({
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-gray-900">
+                <div className="truncate text-sm font-bold text-gray-900">
                   {order.user.name}
                 </div>
-                <div className="truncate text-xs text-muted-foreground">
+                <div className="truncate text-xs text-gray-500">
                   {order.user.email}
                 </div>
               </div>
             </div>
-            <div className="mt-1 border-t border-gray-100 pt-2">
-              <InfoRow label="Phone">{order.user.mobileNumber}</InfoRow>
+            <div className="mt-3 space-y-1.5 border-t border-gray-100 pt-3 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <Phone className="size-4 shrink-0 text-gray-400" />
+                {order.user.mobileNumber}
+              </div>
+              <div className="flex items-center gap-2 min-w-0">
+                <Mail className="size-4 shrink-0 text-gray-400" />
+                <span className="truncate">{order.user.email}</span>
+              </div>
             </div>
           </InfoCard>
 
           {/* Shipping Address */}
-          <InfoCard icon={MapPin} title="Shipping Address">
-            <div className="pt-1">
-              <AddressRow
-                icon={User}
-                label="Name"
-                value={order.user.name}
-              />
-              <AddressRow
-                icon={Home}
-                label="Address"
-                value={order.address.address}
-              />
-              <AddressRow
-                icon={Building}
-                label="Area / City"
-                value={`${order.address.area}, ${order.address.city}`}
-              />
-              <AddressRow
-                icon={Map}
-                label="Division"
-                value={order.address.division}
-              />
-              <AddressRow
-                icon={Phone}
-                label="Phone"
-                value={order.user.mobileNumber}
-              />
+          <InfoCard
+            icon={MapPin}
+            title="Shipping Address"
+            subtitle="Your order will be delivered to the address below."
+            tint="bg-amber-100 text-amber-600"
+          >
+            <div className="rounded-xl bg-gray-50 p-3.5 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-bold text-gray-900">{order.user.name}</p>
+                {order.address.type && (
+                  <span className="shrink-0 rounded-full bg-gray-100 px-3 py-0.5 text-xs font-medium text-gray-600 capitalize">
+                    {order.address.type}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-gray-600">{order.address.address}</p>
+              <p className="text-gray-600">
+                {order.address.area}, {order.address.city}
+              </p>
+              <p className="text-gray-600">{order.address.division}, Bangladesh</p>
             </div>
           </InfoCard>
 
           {/* Order Summary */}
           <InfoCard icon={FileText} title="Order Summary">
-            <div className="pt-1">
-              <InfoRow label="Subtotal">
+            <div className="space-y-2.5 rounded-xl bg-gray-50 p-4">
+              <SummaryLine icon={ShoppingBasket} label="Subtotal">
                 {formatCurrencyEnglish(orderSummary.originalSubtotal)}
-              </InfoRow>
+              </SummaryLine>
               {/* unitDiscount snapshots include BOGO, so show the pure
                   product discount here and list BOGO separately below */}
               {orderSummary.productDiscountTotal -
                 orderSummary.bogoDiscountTotal >
                 0 && (
-                <InfoRow
-                  label="Product Discounts"
-                >
-                  <span className="text-green-600">
-                    -{formatCurrencyEnglish(
-                      orderSummary.productDiscountTotal -
+                  <SummaryLine icon={Tag} label="Product Discounts">
+                    <span className="text-green-600">
+                      -{formatCurrencyEnglish(
+                        orderSummary.productDiscountTotal -
                         orderSummary.bogoDiscountTotal
-                    )}
-                  </span>
-                </InfoRow>
-              )}
+                      )}
+                    </span>
+                  </SummaryLine>
+                )}
               {orderSummary.bogoUsages.map((usage) => (
-                <InfoRow
+                <SummaryLine
                   key={usage.campaignName}
+                  icon={Tag}
                   label={`BOGO — ${usage.campaignName} (${usage.freeUnits} free)`}
                 >
                   <span className="text-green-600">
                     -{formatCurrencyEnglish(usage.discount)}
                   </span>
-                </InfoRow>
+                </SummaryLine>
               ))}
               {order.coupon && orderSummary.couponDiscount > 0 && (
-                <InfoRow label={`Coupon (${order.coupon.code})`}>
+                <SummaryLine icon={Tag} label={`Coupon (${order.coupon.code})`}>
                   <span className="text-green-600">
                     -{formatCurrencyEnglish(orderSummary.couponDiscount)}
                   </span>
-                </InfoRow>
+                </SummaryLine>
               )}
-              <InfoRow label="Shipping">
+              <SummaryLine icon={Truck} label="Shipping">
                 {orderSummary.shippingCost === 0 ? (
-                  <span className="font-semibold text-green-600">FREE</span>
+                  <span className="font-bold text-green-600">FREE</span>
                 ) : (
                   formatCurrencyEnglish(orderSummary.shippingCost)
                 )}
-              </InfoRow>
+              </SummaryLine>
 
-              <Separator className="my-3" />
+              <Separator className="bg-gray-200" />
 
-              <div className="flex items-center justify-between">
-                <span className="text-base font-bold text-gray-900">Total</span>
-                <span className="text-base font-bold text-gray-900">
+              <div className="flex items-center justify-between pt-1">
+                <span className="flex items-center gap-2 text-base font-bold text-gray-900">
+                  <Wallet className="size-4.5 text-gray-700" />
+                  Total
+                </span>
+                <span className="text-lg font-extrabold text-gray-900">
                   {formatCurrencyEnglish(orderSummary.total)}
                 </span>
               </div>
-              {order.paymentStatus.toLowerCase() === "pending" && !isCOD && (
-                <div className="mt-1.5 flex items-center justify-between">
+              {isUnpaidStatus(order.paymentStatus) && !isCOD && (
+                <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-red-600">
                     Due Amount
                   </span>
@@ -526,20 +579,20 @@ export default async function OrderConfirmationPage({
                   </span>
                 </div>
               )}
+            </div>
 
-              <div className="mt-4">
-                {shouldShowPayNow(order) ? (
-                  <PayNow order={order} className="w-full" />
-                ) : (
-                  <DownloadInvoiceButton order={order} className="w-full" />
-                )}
-              </div>
-              {isCOD && order.paymentStatus.toLowerCase() === "pending" && (
-                <p className="mt-3 rounded-sm bg-amber-50 p-2.5 text-center text-xs text-muted-foreground">
-                  Payment will be collected when your order is delivered
-                </p>
+            <div className="mt-4">
+              {shouldShowPayNow(order) ? (
+                <PayNow order={order} className="w-full" />
+              ) : (
+                <DownloadInvoiceButton order={order} className="w-full" />
               )}
             </div>
+            {isCOD && isUnpaidStatus(order.paymentStatus) && (
+              <p className="mt-3 rounded-lg bg-amber-50 p-2.5 text-center text-xs text-amber-700 ring-1 ring-inset ring-amber-200">
+                Payment will be collected when your order is delivered
+              </p>
+            )}
           </InfoCard>
         </div>
       </div>

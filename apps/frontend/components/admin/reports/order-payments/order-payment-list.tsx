@@ -207,14 +207,14 @@ export default function OrderPaymentList({
             bgColor="green"
           />
           <StatsCard
-            title="Completed Orders"
+            title="Paid Orders"
             value={String(
-              payments.filter((p) => p.order.paymentStatus === "completed")
+              payments.filter((p) => p.order.paymentStatus === "paid")
                 .length
             )}
             count={formatCurrencyEnglish(
               payments
-                .filter((p) => p.order.paymentStatus === "completed")
+                .filter((p) => p.order.paymentStatus === "paid")
                 .reduce((sum, p) => sum + parseFloat(p.amount), 0),
               0
             )}

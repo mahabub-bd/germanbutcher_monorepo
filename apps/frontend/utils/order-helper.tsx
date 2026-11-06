@@ -44,7 +44,8 @@ const getPaymentStatusColor = (status: string): string => {
     case "paid":
     case "completed":
       return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-    case "pending":
+    case "pending": // legacy pre-rename value
+    case "unpaid":
       return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
     case "failed":
       return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
@@ -62,6 +63,37 @@ const getPaymentStatusColor = (status: string): string => {
 };
 
 /**
+ * Display label for a payment status. The DB stores `unpaid`/`paid` since
+ * the payment-status rename; the legacy `pending`/`completed` values may
+ * still appear in old audit rows and cached data, so they map to the same
+ * wording. Everything else falls through to a capitalized raw value.
+ */
+const getPaymentStatusLabel = (status: string): string => {
+  switch (status?.toLowerCase()) {
+    case "completed":
+    case "paid":
+      return "Paid";
+    case "pending":
+    case "unpaid":
+      return "Unpaid";
+    case "partial":
+      return "Partial";
+    case "partial_refund":
+      return "Partial refund";
+    case "refund_complete":
+      return "Refund complete";
+    case "need_refund":
+      return "Need refund";
+    case "refunded":
+      return "Refunded";
+    case "failed":
+      return "Failed";
+    default:
+      return status ? status.charAt(0).toUpperCase() + status.slice(1) : "N/A";
+  }
+};
+
+/**
  * Get icon for status (order or payment)
  */
 const getStatusIcon = (status: string): React.ReactNode => {
@@ -71,7 +103,8 @@ const getStatusIcon = (status: string): React.ReactNode => {
     case OrderStatus.DELIVERED:
       return <CheckCircle className="size-3" />;
     case OrderStatus.PENDING:
-    case "pending":
+    case "pending": // legacy payment status, pre-rename
+    case "unpaid":
       return <Clock className="size-3" />;
     case OrderStatus.PROCESSING:
       return <Package className="size-3" />;
@@ -97,7 +130,8 @@ const getStatusIcon = (status: string): React.ReactNode => {
 const getStatusDotColor = (status: string): string => {
   switch (status.toLowerCase()) {
     case OrderStatus.PENDING:
-    case "pending":
+    case "pending": // legacy payment status, pre-rename
+    case "unpaid":
       return "bg-yellow-500";
     case OrderStatus.PROCESSING:
       return "bg-blue-500";
@@ -218,7 +252,8 @@ const getShippingMethodIcon = (method: string): React.ReactNode => {
 export {
   getOrderStatusColor, getPaymentMethodColor,
   getPaymentMethodIcon,
-  getPaymentStatusColor, getShippingMethodColor,
+  getPaymentStatusLabel, getPaymentStatusColor,
+  getShippingMethodColor,
   getShippingMethodIcon, getStatusDotColor,
   getStatusIcon
 };
