@@ -327,13 +327,20 @@ export class UserService {
   }
   async findOne(
     id: number,
+    includeAllOrders = false,
   ): Promise<{ message: string; statusCode: number; data: User | null }> {
     const user = await this.userRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.role', 'role')
       .leftJoinAndSelect('user.addresses', 'addresses')
       .leftJoinAndSelect('user.profilePhoto', 'profilePhoto')
-      .leftJoinAndSelect('user.orders', 'orders', "orders.orderStatus = 'delivered'")
+      .leftJoinAndSelect(
+        'user.orders',
+        'orders',
+        // Admin detail views pass ?orders=all to see every order; the
+        // default keeps only delivered ones.
+        includeAllOrders ? undefined : "orders.orderStatus = 'delivered'",
+      )
 
       .leftJoinAndSelect('orders.items', 'orderItems')
       .leftJoinAndSelect('orderItems.product', 'product')
@@ -350,6 +357,9 @@ export class UserService {
         'user.createdAt',
         'user.updatedAt',
         'user.roleId',
+        // Optional profile fields
+        'user.gender',
+        'user.dateOfBirth',
         // Role fields
         'role.id',
         'role.rolename',
@@ -366,6 +376,7 @@ export class UserService {
         'addresses.division',
         'addresses.city',
         'addresses.type',
+        'addresses.label',
         'addresses.isDefault',
         // Orders
         'orders.id',

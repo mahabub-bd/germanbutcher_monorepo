@@ -339,12 +339,14 @@ export function AddTicketModal({
 
         <Form {...form}>
           <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="p-6 space-y-4">
+            {/* Two-column form grid on desktop; Source, customer search and
+                message span both columns. */}
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="source"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="md:col-span-2">
                     <FormLabel>Source</FormLabel>
                     <div className="grid grid-cols-3 gap-2">
                       {Object.values(ContactSource).map((option) => {
@@ -356,7 +358,7 @@ export function AddTicketModal({
                             key={option}
                             type="button"
                             onClick={() => field.onChange(option)}
-                            className={`flex items-center justify-center gap-1.5 rounded-lg py-2 px-2 text-xs font-semibold capitalize whitespace-nowrap transition-colors ${active ? meta.activeColors : meta.colors}`}
+                            className={`flex h-11 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold capitalize whitespace-nowrap transition-colors ${active ? meta.activeColors : meta.colors}`}
                           >
                             <Icon className="size-4 shrink-0" />
                             <span>{option}</span>
@@ -369,7 +371,7 @@ export function AddTicketModal({
                 )}
               />
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 md:col-span-2">
                 <label className="text-sm font-medium">
                   Customer account{" "}
                   <span className="text-xs text-gray-400 font-normal">
@@ -395,6 +397,7 @@ export function AddTicketModal({
                         ? "Searching customers…"
                         : "Search customer by name, email or mobile"
                     }
+                    className="h-11"
                   />
                   {showSuggestions && customerSearch.trim() && (
                     <div className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border bg-card shadow-md">
@@ -458,6 +461,7 @@ export function AddTicketModal({
                         value={field.value}
                         onChange={field.onChange}
                         placeholder="Customer name"
+                        className="h-11"
                       />
                     </FormControl>
                     <FormMessage />
@@ -476,6 +480,7 @@ export function AddTicketModal({
                         value={field.value}
                         onChange={field.onChange}
                         placeholder="customer@example.com"
+                        className="h-11"
                       />
                     </FormControl>
                     <FormMessage />
@@ -493,6 +498,7 @@ export function AddTicketModal({
                         value={field.value}
                         onChange={field.onChange}
                         placeholder="+8801XXXXXXXXX"
+                        className="h-11"
                       />
                     </FormControl>
                     <FormMessage />
@@ -527,18 +533,14 @@ export function AddTicketModal({
                       : "No matching recent orders."
                   }
                   disabled={isLoadingOrders || isLoadingCustomerOrders}
+                  className="h-11"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {selectedCustomer
-                    ? "Showing this customer's orders."
-                    : `Showing the ${PICKER_LIMIT} most recent orders.`}
-                </p>
               </div>
               <FormField
                 control={form.control}
                 name="message"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="md:col-span-2">
                     <FormLabel>Message</FormLabel>
                     <FormControl>
                       <textarea

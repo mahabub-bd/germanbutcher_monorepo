@@ -310,8 +310,12 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.userService.findOne(id);
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    // ?orders=all skips the delivered-only filter (admin detail page).
+    @Query('orders') orders?: string,
+  ) {
+    return this.userService.findOne(id, orders === 'all');
   }
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @ModulePermissions('/admin/user')

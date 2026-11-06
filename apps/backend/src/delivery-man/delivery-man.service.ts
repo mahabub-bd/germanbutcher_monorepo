@@ -25,7 +25,7 @@ export class DeliveryManService {
     @InjectRepository(DeliveryMan)
     private readonly deliveryManRepository: Repository<DeliveryMan>,
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   async create(
     createDeliveryManDto: CreateDeliveryManDto,
@@ -125,9 +125,11 @@ export class DeliveryManService {
   }
 
   async findOne(id: number): Promise<DeliveryMan> {
+    // The detail page lists assigned orders with their payment/shipping
+    // method badges, so the nested relations must be loaded too.
     const deliveryMan = await this.deliveryManRepository.findOne({
       where: { id },
-      relations: ['orders'],
+      relations: { orders: { paymentMethod: true, shippingMethod: true } },
     });
 
     if (!deliveryMan) {

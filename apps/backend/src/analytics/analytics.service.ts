@@ -22,7 +22,9 @@ const DEFAULT_MAX_BUFFER_SIZE = 1000;
 /** Rows older than this many days are purged by the daily cron (0 disables). */
 const DEFAULT_RETENTION_DAYS = 90;
 /** Dashboard payload cache TTL (ms) — 0 disables caching. */
-const DEFAULT_DASHBOARD_CACHE_TTL_MS = 60_000;
+const DEFAULT_DASHBOARD_CACHE_TTL_MS = 5 * 60_000;
+/** TTL for the fixed-window widgets shared by every period (ms). */
+const DEFAULT_WIDGET_CACHE_TTL_MS = 10 * 60_000;
 
 /** Full analytics-info dashboard payload, mirroring AnalyticsDashboardData on the frontend. */
 type DashboardPayload = {
@@ -62,11 +64,23 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
   private flushBatchSize: number;
   private maxBufferSize: number;
   private dashboardCacheTtlMs: number;
+  private widgetCacheTtlMs: number;
   private dashboardCache = new Map<
     string,
     { data: DashboardPayload; expiresAt: number }
   >();
   private dashboardInFlight = new Map<string, Promise<DashboardPayload>>();
+  /**
+   * Fixed-window panels (peak traffic 7d, visitors/traffic sources/conversion
+   * 30d, top pages 7d) are identical for every selector value. Caching them
+   * separately means switching the period does not re-run the 30-day
+   * COUNT(DISTINCT) aggregations.
+   */
+  private widgetCache = new Map<
+    string,
+    { data: unknown; expiresAt: number }
+  >();
+  private widgetInFlight = new Map<string, Promise<unknown>>();
 
   constructor(
     @InjectRepository(Analytics)
@@ -91,6 +105,10 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
       'ANALYTICS_DASHBOARD_CACHE_TTL_MS',
       DEFAULT_DASHBOARD_CACHE_TTL_MS
     );
+    this.widgetCacheTtlMs = this.configService.get<number>(
+      'ANALYTICS_WIDGET_CACHE_TTL_MS',
+      DEFAULT_WIDGET_CACHE_TTL_MS,
+    );
 
     const intervalMs = this.configService.get<number>(
       'ANALYTICS_FLUSH_INTERVAL_MS',
@@ -103,7 +121,24 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     // Don't hold the process open just for the timer
     this.flushTimer.unref?.();
 
-    void this.ensureIndexes();
+    void this.ensureIndexes().then(() => this.warmDashboard());
+  }
+
+  /**
+   * Pre-compute the default dashboard (and its shared widgets) in the
+   * background at boot. The first admin visit then hits a warm cache instead
+   * of waiting for the 30-day aggregations.
+   */
+  private async warmDashboard(): Promise<void> {
+    try {
+      await this.recomputeDashboard('24h');
+    } catch (error) {
+      this.logger.warn(
+        `Could not warm analytics dashboard cache: ${
+          error instanceof Error ? error.message : error
+        }`,
+      );
+    }
   }
 
   /**
@@ -409,37 +444,27 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
   /** Device + browser mix from stored user-agent strings (GDPR-free fingerprinting). */
   async getDeviceBreakdown(period: string = '7d') {
     const startDate = this.getDateFromPeriod(period);
-    const ua = "COALESCE(analytics.userAgent, '')";
 
-    const row = await this.analyticsRepository
-      .createQueryBuilder('analytics')
-      .select(
-        `SUM(CASE WHEN ${ua} ILIKE '%mobile%' OR ${ua} ILIKE '%iphone%' OR ${ua} ILIKE '%android%' THEN 1 ELSE 0 END)`,
-        'mobile',
-      )
-      .addSelect(
-        `SUM(CASE WHEN ${ua} ILIKE '%ipad%' OR (${ua} ILIKE '%tablet%' AND ${ua} NOT ILIKE '%mobile%') THEN 1 ELSE 0 END)`,
-        'tablet',
-      )
-      .addSelect(`SUM(CASE WHEN ${ua} ILIKE '%edg/%' THEN 1 ELSE 0 END)`, 'edge')
-      .addSelect(
-        `SUM(CASE WHEN ${ua} ILIKE '%opr/%' OR ${ua} ILIKE '%opera%' THEN 1 ELSE 0 END)`,
-        'opera',
-      )
-      .addSelect(
-        `SUM(CASE WHEN ${ua} ILIKE '%chrome%' AND ${ua} NOT ILIKE '%edg/%' AND ${ua} NOT ILIKE '%opr/%' THEN 1 ELSE 0 END)`,
-        'chrome',
-      )
-      .addSelect(
-        `SUM(CASE WHEN ${ua} ILIKE '%firefox%' THEN 1 ELSE 0 END)`,
-        'firefox',
-      )
-      .addSelect(
-        `SUM(CASE WHEN ${ua} ILIKE '%safari%' AND ${ua} NOT ILIKE '%chrome%' AND ${ua} NOT ILIKE '%edg/%' AND ${ua} NOT ILIKE '%opr/%' THEN 1 ELSE 0 END)`,
-        'safari',
-      )
-      .where('analytics.timestamp >= :startDate', { startDate })
-      .getRawOne();
+    // Lowercase each user-agent once (MATERIALIZED) instead of re-running
+    // ILIKE for every condition, and use FILTER instead of SUM(CASE ...).
+    const rows = await this.analyticsRepository.query(
+      `WITH ua AS MATERIALIZED (
+         SELECT lower(COALESCE("userAgent", '')) AS value
+         FROM analytics
+         WHERE "timestamp" >= $1
+       )
+       SELECT
+         COUNT(*) FILTER (WHERE value LIKE '%mobile%' OR value LIKE '%iphone%' OR value LIKE '%android%') AS mobile,
+         COUNT(*) FILTER (WHERE value LIKE '%ipad%' OR (value LIKE '%tablet%' AND value NOT LIKE '%mobile%')) AS tablet,
+         COUNT(*) FILTER (WHERE value LIKE '%edg/%') AS edge,
+         COUNT(*) FILTER (WHERE value LIKE '%opr/%' OR value LIKE '%opera%') AS opera,
+         COUNT(*) FILTER (WHERE value LIKE '%chrome%' AND value NOT LIKE '%edg/%' AND value NOT LIKE '%opr/%') AS chrome,
+         COUNT(*) FILTER (WHERE value LIKE '%firefox%') AS firefox,
+         COUNT(*) FILTER (WHERE value LIKE '%safari%' AND value NOT LIKE '%chrome%' AND value NOT LIKE '%edg/%' AND value NOT LIKE '%opr/%') AS safari
+       FROM ua`,
+      [startDate],
+    );
+    const row = rows[0];
 
     // Desktop is what's left after mobile/tablet — avoids a fourth CASE
     const desktop =
@@ -533,7 +558,7 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     const results = await this.analyticsRepository
       .createQueryBuilder('analytics')
       .select(
-        `CASE WHEN COALESCE(analytics.referer, '') = '' THEN 'Direct' ELSE substring(analytics.referer from '//([^/]+)') END`,
+        `CASE WHEN COALESCE(analytics.referer, '') = '' THEN 'Direct' ELSE split_part(split_part(analytics.referer, '//', 2), '/', 1) END`,
         'source',
       )
       .addSelect('COUNT(*)', 'count')
@@ -580,25 +605,38 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
    * browser's per-host connection limit and re-ran the heavy COUNT(DISTINCT)
    * / ILIKE aggregations on every load. Fixed windows mirror the page's
    * FIXED_RANGES so chart sample sizes are unchanged.
+   *
+   * Stale-while-revalidate: an expired entry is returned immediately and
+   * recomputed in the background, so only the very first request waits.
    */
   async getDashboard(
     period: string = '24h',
     options?: { refresh?: boolean },
   ): Promise<DashboardPayload> {
     if (this.dashboardCacheTtlMs <= 0) {
-      return this.computeDashboard(period);
+      return this.computeDashboard(period, Boolean(options?.refresh));
     }
 
     const cached = this.dashboardCache.get(period);
-    if (!options?.refresh && cached && cached.expiresAt > Date.now()) {
+    if (!options?.refresh && cached) {
+      if (cached.expiresAt > Date.now()) return cached.data;
+
+      // Serve the stale snapshot now; refresh it in the background.
+      void this.recomputeDashboard(period);
       return cached.data;
     }
 
-    // Single-flight per period: concurrent dashboard requests share one
-    // computation instead of stampeding the aggregations
+    return this.recomputeDashboard(period, Boolean(options?.refresh));
+  }
+
+  /** Single-flight per period so concurrent requests share one computation. */
+  private recomputeDashboard(
+    period: string,
+    forceWidgetRefresh = false,
+  ): Promise<DashboardPayload> {
     let inFlight = this.dashboardInFlight.get(period);
     if (!inFlight) {
-      inFlight = this.computeDashboard(period)
+      inFlight = this.computeDashboard(period, forceWidgetRefresh)
         .then((data) => {
           this.dashboardCache.set(period, {
             data,
@@ -614,18 +652,80 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     return inFlight;
   }
 
-  private computeDashboard(period: string): Promise<DashboardPayload> {
+  /**
+   * Cache a widget whose window does not depend on the selected period.
+   * Expired entries are served immediately while a background refresh runs.
+   */
+  private async cachedWidget<T>(
+    key: string,
+    compute: () => Promise<T>,
+    force = false,
+  ): Promise<T> {
+    if (this.widgetCacheTtlMs <= 0) return compute();
+
+    const cached = this.widgetCache.get(key) as
+      | { data: T; expiresAt: number }
+      | undefined;
+    if (cached && !force && cached.expiresAt > Date.now()) return cached.data;
+
+    let inFlight = this.widgetInFlight.get(key) as Promise<T> | undefined;
+    if (!inFlight) {
+      inFlight = compute()
+        .then((data) => {
+          this.widgetCache.set(key, {
+            data,
+            expiresAt: Date.now() + this.widgetCacheTtlMs,
+          });
+          return data;
+        })
+        .finally(() => {
+          this.widgetInFlight.delete(key);
+        });
+      this.widgetInFlight.set(key, inFlight);
+    }
+
+    if (cached && !force) {
+      void inFlight;
+      return cached.data;
+    }
+    return inFlight;
+  }
+
+  private computeDashboard(
+    period: string,
+    forceWidgetRefresh = false,
+  ): Promise<DashboardPayload> {
     return Promise.all([
       this.getOverview(period),
       this.getRequestMetrics(period),
-      this.getPeakTraffic('7d'),
-      this.getUniqueVisitors('30d'),
+      this.cachedWidget(
+        'peakTraffic:7d',
+        () => this.getPeakTraffic('7d'),
+        forceWidgetRefresh,
+      ),
+      this.cachedWidget(
+        'visitors:30d',
+        () => this.getUniqueVisitors('30d'),
+        forceWidgetRefresh,
+      ),
       this.getTopEndpoints(10, period),
       this.getResponseTimeMetrics(period),
       this.getDeviceBreakdown(period),
-      this.getTopProductPages('7d', 8),
-      this.getTrafficSources('30d'),
-      this.getConversion('30d'),
+      this.cachedWidget(
+        'topPages:7d:8',
+        () => this.getTopProductPages('7d', 8),
+        forceWidgetRefresh,
+      ),
+      this.cachedWidget(
+        'trafficSources:30d',
+        () => this.getTrafficSources('30d'),
+        forceWidgetRefresh,
+      ),
+      this.cachedWidget(
+        'conversion:30d',
+        () => this.getConversion('30d'),
+        forceWidgetRefresh,
+      ),
     ]).then(
       ([
         overview,

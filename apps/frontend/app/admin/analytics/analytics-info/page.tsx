@@ -30,7 +30,7 @@ import {
   Clock3,
   RefreshCw,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const PERIOD_LABELS: Record<AnalyticsPeriod, string> = {
   "1h": "1 hour",
@@ -79,17 +79,23 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  // Only the load triggered by the refresh button bypasses the backend cache.
+  // Without this, the first click would make every later period change
+  // re-run all aggregations from scratch.
+  const forceRefreshRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadData = async () => {
+      const forceRefresh = forceRefreshRef.current;
+      forceRefreshRef.current = false;
       setIsLoading(true);
       setError(null);
       try {
         const analyticsData = await fetchAnalyticsDashboard(period, {
           // The refresh button bypasses the backend's dashboard cache
-          refresh: refreshKey > 0,
+          refresh: forceRefresh,
         });
         if (!cancelled) {
           setData(analyticsData);
@@ -112,7 +118,10 @@ export default function AnalyticsPage() {
     };
   }, [period, refreshKey]);
 
-  const refresh = () => setRefreshKey((key) => key + 1);
+  const refresh = () => {
+    forceRefreshRef.current = true;
+    setRefreshKey((key) => key + 1);
+  };
   const periodLabel = PERIOD_LABELS[period];
   const showSkeleton = isLoading && !data;
   const showErrorState = Boolean(error) && !data;

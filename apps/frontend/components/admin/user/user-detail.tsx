@@ -1,8 +1,15 @@
 "use client";
 
+import { CustomerOrdersTable } from "@/components/admin/customer/shared/customer-orders-table";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
+import {
+  formatAction,
+  MethodPill,
+  StatusPill,
+} from "@/components/admin/reports/user-activity/audit-visuals";
 import { PaginationComponent } from "@/components/common/pagination";
+import { ProfileStrip } from "@/components/common/profile-strip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,21 +44,17 @@ import {
   getEnabledCities,
   getEnabledDivisions,
 } from "@/lib/delivery-coverage";
-import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import {
   fetchDataPagination,
   fetchProtectedData,
   patchData,
 } from "@/utils/api-utils";
-import {
-  getOrderStatusColor,
-  getPaymentStatusColor,
-} from "@/utils/order-helper";
 import { User } from "@/utils/types";
 import {
   ArrowLeft,
   CalendarClock,
-  CheckCircle2,
+  CalendarDays,
   History,
   Mail,
   MapPin,
@@ -63,7 +66,6 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -178,7 +180,8 @@ export function UserDetail() {
     if (!user) setIsLoading(true);
     try {
       const [userRes, auditRes] = await Promise.allSettled([
-        fetchProtectedData<User>(`users/${userId}`),
+        // ?orders=all — the admin view shows every order, not just delivered.
+        fetchProtectedData<User>(`users/${userId}?orders=all`),
         fetchDataPagination<{
           data: UserActivityLogEntry[] | null;
           total?: number;
@@ -301,69 +304,51 @@ export function UserDetail() {
 
       {/* Profile strip + stats */}
       <div className="mb-6 rounded-lg border bg-card p-4 space-y-4">
-        <div className="flex items-center gap-3">
-          {user.profilePhoto ? (
-            <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border bg-muted">
-              <Image
-                src={user.profilePhoto.url}
-                alt={user.name}
-                fill
-                className="object-contain"
-              />
-            </span>
-          ) : (
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border bg-muted text-xl font-semibold text-muted-foreground uppercase">
-              {user.name?.charAt(0) || "?"}
-            </span>
-          )}
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-semibold capitalize">{user.name}</h2>
-              {rolename && (
-                <Badge variant="secondary" className="text-xs capitalize">
-                  {rolename}
-                </Badge>
-              )}
-              {user.isVerified && (
-                <Badge variant="secondary" className="text-xs">
-                  <CheckCircle2 className="h-3 w-3 mr-0.5" />
-                  Verified
-                </Badge>
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:gap-4">
-              <span className="flex items-center gap-1">
-                <Mail className="h-3 w-3" /> {user.email}
-              </span>
-              {user.mobileNumber && (
-                <span className="flex items-center gap-1">
-                  <Phone className="h-3 w-3" /> {user.mobileNumber}
-                </span>
-              )}
-              {user.gender && (
-                <span className="flex items-center gap-1 capitalize">
-                  <Users className="h-3 w-3" /> {user.gender}
-                </span>
-              )}
-              {user.dateOfBirth && (
-                <span className="flex items-center gap-1">
-                  <CalendarClock className="h-3 w-3" />
-                  DOB {formatDateTime(user.dateOfBirth)}
-                </span>
-              )}
-              <span className="flex items-center gap-1">
-                <CalendarClock className="h-3 w-3" />
-                Joined {formatDateTime(user.createdAt)}
-              </span>
-              {user.lastLoginAt && (
-                <span className="flex items-center gap-1">
-                  <History className="h-3 w-3" />
-                  Last login {formatDateTime(user.lastLoginAt)}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+        <ProfileStrip
+          name={user.name}
+          avatarUrl={user.profilePhoto?.url}
+          rolename={rolename}
+          verified={user.isVerified}
+          fields={[
+            {
+              icon: Mail,
+              label: "Email",
+              value: user.email,
+              href: `mailto:${user.email}`,
+            },
+            {
+              icon: Phone,
+              label: "Mobile",
+              value: user.mobileNumber || "—",
+              href: user.mobileNumber ? `tel:${user.mobileNumber}` : undefined,
+            },
+            {
+              icon: Users,
+              label: "Gender",
+              value: user.gender || "Not set",
+              capitalize: true,
+            },
+            {
+              icon: CalendarDays,
+              label: "Date of birth",
+              value: user.dateOfBirth
+                ? formatDateTime(user.dateOfBirth)
+                : "Not set",
+            },
+            {
+              icon: CalendarClock,
+              label: "Joined",
+              value: formatDateTime(user.createdAt),
+            },
+            {
+              icon: History,
+              label: "Last login",
+              value: user.lastLoginAt
+                ? formatDateTime(user.lastLoginAt)
+                : "Never",
+            },
+          ]}
+        />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatsCard
@@ -455,89 +440,11 @@ export function UserDetail() {
         </TabsList>
 
         <TabsContent value="orders" className="mt-4">
-          {orders.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              No delivered orders yet.
-            </p>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border bg-card">
-              <Table className="min-w-180 report-table text-sm [&_th]:text-sm [&_td]:text-sm">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID / Date</TableHead>
-                    <TableHead>Order Status</TableHead>
-                    <TableHead>Payment Status</TableHead>
-                    <TableHead>Payment Method</TableHead>
-                    <TableHead>Shipping Method</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Discount</TableHead>
-                    <TableHead className="text-right">Due</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.map((order) => {
-                    const paidAmount = Number(order.paidAmount ?? 0);
-                    const due = Number(order.totalValue) - paidAmount;
-                    return (
-                      <TableRow key={order.id} className="hover:bg-muted/50">
-                        <TableCell>
-                          <Link
-                            href={`/admin/order/${order.id}/view`}
-                            className="block font-medium leading-tight hover:underline"
-                          >
-                            {order.orderNo}
-                          </Link>
-                          <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-                            <CalendarClock className="h-3 w-3 shrink-0" />
-                            {formatDateTime(order.createdAt)}
-                          </p>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="secondary"
-                            className={`capitalize ${getOrderStatusColor(order.orderStatus)}`}
-                          >
-                            {order.orderStatus}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="secondary"
-                            className={`capitalize ${getPaymentStatusColor(order.paymentStatus)}`}
-                          >
-                            {order.paymentStatus}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="capitalize">
-                          {order.paymentMethod?.name ?? "—"}
-                        </TableCell>
-                        <TableCell className="capitalize">
-                          {order.shippingMethod?.name ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrencyEnglish(order.totalValue)}
-                        </TableCell>
-                        <TableCell className="text-right text-green-600 dark:text-green-400">
-                          {Number(order.totalDiscount ?? 0) > 0
-                            ? `- ${formatCurrencyEnglish(order.totalDiscount)}`
-                            : "—"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {due > 0 ? (
-                            <span className="font-medium text-destructive">
-                              {formatCurrencyEnglish(due)}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">Paid</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <CustomerOrdersTable
+            orders={orders}
+            showMethodColumns
+            emptyMessage="No delivered orders yet."
+          />
         </TabsContent>
 
         <TabsContent value="shipping" className="mt-4">
@@ -735,11 +642,12 @@ export function UserDetail() {
               this user appear here.
             </p>
           ) : (
-            <div className="overflow-hidden rounded-lg border bg-card">
-              <Table className="min-w-180 report-table text-sm [&_th]:text-sm [&_td]:text-sm">
+            <div className="overflow-x-auto rounded-lg border bg-card">
+              <Table className="min-w-240 xl:min-w-0 report-table text-sm [&_th]:h-9 [&_th]:text-sm [&_td]:py-1.5 [&_td]:text-sm">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="pl-4">Action</TableHead>
+                    <TableHead className="pl-4">Method</TableHead>
+                    <TableHead>Action</TableHead>
                     <TableHead>Entity</TableHead>
                     <TableHead>Details</TableHead>
                     <TableHead>Time</TableHead>
@@ -747,51 +655,55 @@ export function UserDetail() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {auditLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="py-2 pl-4">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-sm font-medium ${log.action === "POST"
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                              : log.action === "DELETE"
-                                ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300"
-                                : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
-                            }`}
-                        >
-                          {log.action}
-                        </span>
-                        {log.status === "failure" && (
-                          <span className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-sm font-medium text-red-700 dark:bg-red-500/20 dark:text-red-300">
-                            Failed
+                  {auditLogs.map((log) => {
+                    // Actions are stored as "METHOD /path" — the shared audit
+                    // visuals render the method pill so both pages stay alike.
+                    const { method, path } = formatAction(log.action);
+                    return (
+                      <TableRow key={log.id}>
+                        <TableCell className="py-1.5 pl-4">
+                          <div className="flex items-center gap-1.5 whitespace-nowrap">
+                            <MethodPill method={method} />
+                            {log.status === "failure" && (
+                              <StatusPill status={log.status} />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-1.5">
+                          <span
+                            className="block max-w-56 truncate font-mono text-xs text-muted-foreground"
+                            title={log.action}
+                          >
+                            {path || log.action}
                           </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm font-medium capitalize">
-                          {log.entityType}
-                          {log.entityId ? ` #${log.entityId}` : ""}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className="block max-w-md truncate text-sm text-muted-foreground"
-                          title={log.message || undefined}
-                        >
-                          {log.message || "—"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
-                          {formatDateTime(log.createdAt)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="pr-4 text-right">
-                        <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
-                          {log.ipAddress || "—"}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          <span className="whitespace-nowrap text-sm font-medium capitalize">
+                            {log.entityType}
+                            {log.entityId ? ` #${log.entityId}` : ""}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className="block max-w-md truncate text-sm text-muted-foreground"
+                            title={log.message || undefined}
+                          >
+                            {log.message || "—"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                            {formatDateTime(log.createdAt)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="pr-4 text-right">
+                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                            {log.ipAddress || "—"}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
