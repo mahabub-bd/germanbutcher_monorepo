@@ -38,6 +38,90 @@ interface MyOrderProps {
   orders: Order[];
 }
 
+// Shared renderers for the mobile card and desktop table views, so a badge
+// or action tweak is made once instead of twice.
+function OrderStatusBadge({ status }: { status: string }) {
+  return (
+    <Badge
+      variant="secondary"
+      className={`shrink-0 capitalize ${getOrderStatusColor(status)}`}
+    >
+      <span className="flex items-center gap-1.5">
+        {getStatusIcon(status)}
+        {status}
+      </span>
+    </Badge>
+  );
+}
+
+function PaymentStatusBadge({ status }: { status: string }) {
+  return (
+    <Badge
+      variant="secondary"
+      className={`capitalize ${getPaymentStatusColor(status)}`}
+    >
+      <span className="flex items-center gap-1.5">
+        {getStatusIcon(status)}
+        {status}
+      </span>
+    </Badge>
+  );
+}
+
+function PaymentMethodBadge({
+  method,
+  className = "",
+}: {
+  method?: { name?: string } | null;
+  className?: string;
+}) {
+  const name = method?.name;
+  return (
+    <Badge
+      variant="outline"
+      title={name || undefined}
+      className={`truncate capitalize ${getPaymentMethodColor(name || "")} ${className}`}
+    >
+      <span className="flex min-w-0 items-center gap-1.5">
+        {getPaymentMethodIcon(name || "")}
+        <span className="truncate">{name || "N/A"}</span>
+      </span>
+    </Badge>
+  );
+}
+
+function OrderRowButton({
+  spinning,
+  icon: Icon,
+  label,
+  title,
+  onClick,
+}: {
+  spinning: boolean;
+  icon: typeof FileText;
+  label: string;
+  title?: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="text-xs"
+      onClick={onClick}
+      disabled={spinning}
+      title={title}
+    >
+      {spinning ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Icon className="mr-1 h-4 w-4" />
+      )}
+      {label}
+    </Button>
+  );
+}
+
 const OrderTable = ({ orders }: MyOrderProps) => {
   const params = useParams();
   const userId = params.id as string;
@@ -129,17 +213,7 @@ const OrderTable = ({ orders }: MyOrderProps) => {
                       {formatDateTime(order.createdAt)}
                     </p>
                   </div>
-                  <Badge
-                    variant="secondary"
-                    className={`shrink-0 capitalize ${getOrderStatusColor(
-                      order.orderStatus
-                    )}`}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      {getStatusIcon(order.orderStatus)}
-                      {order.orderStatus}
-                    </span>
-                  </Badge>
+                  <OrderStatusBadge status={order.orderStatus} />
                 </div>
 
                 <div className="mt-3 flex items-center justify-between gap-2">
@@ -150,31 +224,11 @@ const OrderTable = ({ orders }: MyOrderProps) => {
                 </div>
 
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <Badge
-                    variant="secondary"
-                    className={`capitalize ${getPaymentStatusColor(
-                      order.paymentStatus
-                    )}`}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      {getStatusIcon(order.paymentStatus)}
-                      {order.paymentStatus}
-                    </span>
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    title={order.paymentMethod?.name || undefined}
-                    className={`max-w-40 truncate capitalize ${getPaymentMethodColor(
-                      order.paymentMethod?.name
-                    )}`}
-                  >
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      {getPaymentMethodIcon(order.paymentMethod?.name || "")}
-                      <span className="truncate">
-                        {order.paymentMethod?.name || "N/A"}
-                      </span>
-                    </span>
-                  </Badge>
+                  <PaymentStatusBadge status={order.paymentStatus} />
+                  <PaymentMethodBadge
+                    method={order.paymentMethod}
+                    className="max-w-40"
+                  />
                 </div>
 
                 {shouldShowPayNow(order) && (
@@ -184,34 +238,18 @@ const OrderTable = ({ orders }: MyOrderProps) => {
                 )}
 
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs"
+                  <OrderRowButton
+                    spinning={reorderingId === order.id}
+                    icon={Repeat}
+                    label="Buy Again"
                     onClick={() => handleReorder(order)}
-                    disabled={reorderingId === order.id}
-                  >
-                    {reorderingId === order.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Repeat className="mr-1 h-4 w-4" />
-                    )}
-                    Buy Again
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs"
+                  />
+                  <OrderRowButton
+                    spinning={invoicingId === order.id}
+                    icon={FileText}
+                    label="Invoice"
                     onClick={() => handleInvoice(order)}
-                    disabled={invoicingId === order.id}
-                  >
-                    {invoicingId === order.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <FileText className="mr-1 h-4 w-4" />
-                    )}
-                    Invoice
-                  </Button>
+                  />
                 </div>
               </div>
             ))}
@@ -250,50 +288,18 @@ const OrderTable = ({ orders }: MyOrderProps) => {
                         </TableCell>
 
                         <TableCell>
-                          <Badge
-                            variant="secondary"
-                            className={`capitalize ${getOrderStatusColor(
-                              order.orderStatus
-                            )}`}
-                          >
-                            <span className="flex items-center gap-1.5">
-                              {getStatusIcon(order.orderStatus)}
-                              {order.orderStatus}
-                            </span>
-                          </Badge>
+                          <OrderStatusBadge status={order.orderStatus} />
                         </TableCell>
 
                         <TableCell>
-                          <Badge
-                            variant="secondary"
-                            className={`capitalize ${getPaymentStatusColor(
-                              order.paymentStatus
-                            )}`}
-                          >
-                            <span className="flex items-center gap-1.5">
-                              {getStatusIcon(order.paymentStatus)}
-                              {order.paymentStatus}
-                            </span>
-                          </Badge>
+                          <PaymentStatusBadge status={order.paymentStatus} />
                         </TableCell>
 
                         <TableCell>
-                          <Badge
-                            variant="outline"
-                            title={order.paymentMethod?.name || undefined}
-                            className={`max-w-36 truncate capitalize lg:max-w-none ${getPaymentMethodColor(
-                              order.paymentMethod?.name
-                            )}`}
-                          >
-                            <span className="flex min-w-0 items-center gap-1.5">
-                              {getPaymentMethodIcon(
-                                order.paymentMethod?.name || ""
-                              )}
-                              <span className="truncate">
-                                {order.paymentMethod?.name || "N/A"}
-                              </span>
-                            </span>
-                          </Badge>
+                          <PaymentMethodBadge
+                            method={order.paymentMethod}
+                            className="max-w-36 lg:max-w-none"
+                          />
                         </TableCell>
 
                         <TableCell className="text-right font-medium whitespace-nowrap">
@@ -305,36 +311,20 @@ const OrderTable = ({ orders }: MyOrderProps) => {
                             {shouldShowPayNow(order) && (
                               <PayNow order={order} className="h-8" />
                             )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs"
-                              onClick={() => handleReorder(order)}
-                              disabled={reorderingId === order.id}
+                            <OrderRowButton
+                              spinning={reorderingId === order.id}
+                              icon={Repeat}
+                              label="Buy Again"
                               title="Buy again"
-                            >
-                              {reorderingId === order.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Repeat className="mr-1 h-4 w-4" />
-                              )}
-                              Buy Again
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs"
-                              onClick={() => handleInvoice(order)}
-                              disabled={invoicingId === order.id}
+                              onClick={() => handleReorder(order)}
+                            />
+                            <OrderRowButton
+                              spinning={invoicingId === order.id}
+                              icon={FileText}
+                              label="Invoice"
                               title="Download invoice"
-                            >
-                              {invoicingId === order.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <FileText className="mr-1 h-4 w-4" />
-                              )}
-                              Invoice
-                            </Button>
+                              onClick={() => handleInvoice(order)}
+                            />
                           </div>
                         </TableCell>
                       </TableRow>

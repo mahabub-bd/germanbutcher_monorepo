@@ -131,7 +131,13 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
    */
   private async warmDashboard(): Promise<void> {
     try {
-      await this.recomputeDashboard('24h');
+      await this.cachedWithSwr<DashboardPayload>(
+        this.dashboardCache,
+        this.dashboardInFlight,
+        this.dashboardCacheTtlMs,
+        '24h',
+        () => this.computeDashboard('24h', false),
+      );
     } catch (error) {
       this.logger.warn(
         `Could not warm analytics dashboard cache: ${
@@ -613,82 +619,73 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     period: string = '24h',
     options?: { refresh?: boolean },
   ): Promise<DashboardPayload> {
-    if (this.dashboardCacheTtlMs <= 0) {
-      return this.computeDashboard(period, Boolean(options?.refresh));
-    }
-
-    const cached = this.dashboardCache.get(period);
-    if (!options?.refresh && cached) {
-      if (cached.expiresAt > Date.now()) return cached.data;
-
-      // Serve the stale snapshot now; refresh it in the background.
-      void this.recomputeDashboard(period);
-      return cached.data;
-    }
-
-    return this.recomputeDashboard(period, Boolean(options?.refresh));
+    return this.cachedWithSwr<DashboardPayload>(
+      this.dashboardCache,
+      this.dashboardInFlight,
+      this.dashboardCacheTtlMs,
+      period,
+      () => this.computeDashboard(period, Boolean(options?.refresh)),
+      Boolean(options?.refresh),
+    );
   }
 
-  /** Single-flight per period so concurrent requests share one computation. */
-  private recomputeDashboard(
-    period: string,
-    forceWidgetRefresh = false,
-  ): Promise<DashboardPayload> {
-    let inFlight = this.dashboardInFlight.get(period);
-    if (!inFlight) {
-      inFlight = this.computeDashboard(period, forceWidgetRefresh)
+  /**
+   * Stale-while-revalidate cache shared by the whole-dashboard payload and the
+   * fixed-window widgets: fresh hits return instantly, expired entries serve
+   * the stale snapshot while a single-flight background refresh runs (concurrent
+   * callers share one computation), and `force` awaits the freshly computed
+   * value instead.
+   */
+  private async cachedWithSwr<T>(
+    cache: Map<string, { data: unknown; expiresAt: number }>,
+    inFlight: Map<string, Promise<unknown>>,
+    ttlMs: number,
+    key: string,
+    compute: () => Promise<T>,
+    force = false,
+  ): Promise<T> {
+    if (ttlMs <= 0) return compute();
+
+    const cached = cache.get(key) as { data: T; expiresAt: number } | undefined;
+    if (cached && !force && cached.expiresAt > Date.now()) return cached.data;
+
+    let pending = inFlight.get(key) as Promise<T> | undefined;
+    if (!pending) {
+      pending = compute()
         .then((data) => {
-          this.dashboardCache.set(period, {
-            data,
-            expiresAt: Date.now() + this.dashboardCacheTtlMs,
-          });
+          cache.set(key, { data, expiresAt: Date.now() + ttlMs });
           return data;
         })
         .finally(() => {
-          this.dashboardInFlight.delete(period);
+          inFlight.delete(key);
         });
-      this.dashboardInFlight.set(period, inFlight);
+      inFlight.set(key, pending);
     }
-    return inFlight;
+
+    if (cached && !force) {
+      void pending; // stale snapshot now; the refresh is already running
+      return cached.data;
+    }
+    return pending;
   }
 
   /**
    * Cache a widget whose window does not depend on the selected period.
    * Expired entries are served immediately while a background refresh runs.
    */
-  private async cachedWidget<T>(
+  private cachedWidget<T>(
     key: string,
     compute: () => Promise<T>,
     force = false,
   ): Promise<T> {
-    if (this.widgetCacheTtlMs <= 0) return compute();
-
-    const cached = this.widgetCache.get(key) as
-      | { data: T; expiresAt: number }
-      | undefined;
-    if (cached && !force && cached.expiresAt > Date.now()) return cached.data;
-
-    let inFlight = this.widgetInFlight.get(key) as Promise<T> | undefined;
-    if (!inFlight) {
-      inFlight = compute()
-        .then((data) => {
-          this.widgetCache.set(key, {
-            data,
-            expiresAt: Date.now() + this.widgetCacheTtlMs,
-          });
-          return data;
-        })
-        .finally(() => {
-          this.widgetInFlight.delete(key);
-        });
-      this.widgetInFlight.set(key, inFlight);
-    }
-
-    if (cached && !force) {
-      void inFlight;
-      return cached.data;
-    }
-    return inFlight;
+    return this.cachedWithSwr<T>(
+      this.widgetCache,
+      this.widgetInFlight,
+      this.widgetCacheTtlMs,
+      key,
+      compute,
+      force,
+    );
   }
 
   private computeDashboard(

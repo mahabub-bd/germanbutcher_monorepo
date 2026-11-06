@@ -1,15 +1,17 @@
 "use client";
 
+import {
+  AuditLogEntry,
+  AuditLogTable,
+} from "@/components/admin/customer/shared/audit-log-table";
 import { CustomerOrdersTable } from "@/components/admin/customer/shared/customer-orders-table";
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
-import {
-  formatAction,
-  MethodPill,
-  StatusPill,
-} from "@/components/admin/reports/user-activity/audit-visuals";
 import { PaginationComponent } from "@/components/common/pagination";
-import { ProfileStrip } from "@/components/common/profile-strip";
+import {
+  identityProfileFields,
+  ProfileStrip,
+} from "@/components/common/profile-strip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -29,14 +31,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import {
@@ -54,17 +48,13 @@ import { User } from "@/utils/types";
 import {
   ArrowLeft,
   CalendarClock,
-  CalendarDays,
   History,
-  Mail,
   MapPin,
   Pencil,
-  Phone,
   Receipt,
   ShoppingBag,
   User as UserIcon,
-  Users,
-  Wallet,
+  Wallet
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -72,19 +62,6 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoadingIndicator } from "../loading-indicator";
 import { PageHeader } from "../page-header";
-
-/** Audit-trail entry from the user_activity table (POST/PATCH/DELETE only),
- *  same payload the customer detail page renders. */
-interface UserActivityLogEntry {
-  id: number;
-  action: string;
-  entityType: string;
-  entityId: number | null;
-  ipAddress: string | null;
-  status: string;
-  message: string | null;
-  createdAt: string;
-}
 
 const USER_MENU_URL = "/admin/user/user-list";
 
@@ -95,7 +72,7 @@ export function UserDetail() {
   const { can } = usePermissions();
 
   const [user, setUser] = useState<User | null>(null);
-  const [auditLogs, setAuditLogs] = useState<UserActivityLogEntry[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [auditPage, setAuditPage] = useState(1);
   const [auditTotalPages, setAuditTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -183,7 +160,7 @@ export function UserDetail() {
         // ?orders=all — the admin view shows every order, not just delivered.
         fetchProtectedData<User>(`users/${userId}?orders=all`),
         fetchDataPagination<{
-          data: UserActivityLogEntry[] | null;
+          data: AuditLogEntry[] | null;
           total?: number;
           totalPages?: number;
         }>(
@@ -309,45 +286,7 @@ export function UserDetail() {
           avatarUrl={user.profilePhoto?.url}
           rolename={rolename}
           verified={user.isVerified}
-          fields={[
-            {
-              icon: Mail,
-              label: "Email",
-              value: user.email,
-              href: `mailto:${user.email}`,
-            },
-            {
-              icon: Phone,
-              label: "Mobile",
-              value: user.mobileNumber || "—",
-              href: user.mobileNumber ? `tel:${user.mobileNumber}` : undefined,
-            },
-            {
-              icon: Users,
-              label: "Gender",
-              value: user.gender || "Not set",
-              capitalize: true,
-            },
-            {
-              icon: CalendarDays,
-              label: "Date of birth",
-              value: user.dateOfBirth
-                ? formatDateTime(user.dateOfBirth)
-                : "Not set",
-            },
-            {
-              icon: CalendarClock,
-              label: "Joined",
-              value: formatDateTime(user.createdAt),
-            },
-            {
-              icon: History,
-              label: "Last login",
-              value: user.lastLoginAt
-                ? formatDateTime(user.lastLoginAt)
-                : "Never",
-            },
-          ]}
+          fields={identityProfileFields(user)}
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -633,81 +572,10 @@ export function UserDetail() {
         </TabsContent>
 
         <TabsContent value="audit-log" className="mt-4">
-          {/* Activity log — one scrollable table at every breakpoint, so
-              mobile swipes through all columns instead of dropping into a
-              reduced card view. */}
-          {auditLogs.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              No recorded activity yet. Order, cart and profile changes made by
-              this user appear here.
-            </p>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border bg-card">
-              <Table className="min-w-240 xl:min-w-0 report-table text-sm [&_th]:h-9 [&_th]:text-sm [&_td]:py-1.5 [&_td]:text-sm">
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="pl-4">Method</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Entity</TableHead>
-                    <TableHead>Details</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead className="pr-4 text-right">IP</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {auditLogs.map((log) => {
-                    // Actions are stored as "METHOD /path" — the shared audit
-                    // visuals render the method pill so both pages stay alike.
-                    const { method, path } = formatAction(log.action);
-                    return (
-                      <TableRow key={log.id}>
-                        <TableCell className="py-1.5 pl-4">
-                          <div className="flex items-center gap-1.5 whitespace-nowrap">
-                            <MethodPill method={method} />
-                            {log.status === "failure" && (
-                              <StatusPill status={log.status} />
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-1.5">
-                          <span
-                            className="block max-w-56 truncate font-mono text-xs text-muted-foreground"
-                            title={log.action}
-                          >
-                            {path || log.action}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="whitespace-nowrap text-sm font-medium capitalize">
-                            {log.entityType}
-                            {log.entityId ? ` #${log.entityId}` : ""}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className="block max-w-md truncate text-sm text-muted-foreground"
-                            title={log.message || undefined}
-                          >
-                            {log.message || "—"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
-                            {formatDateTime(log.createdAt)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="pr-4 text-right">
-                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
-                            {log.ipAddress || "—"}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <AuditLogTable
+            logs={auditLogs}
+            emptyMessage="No recorded activity yet. Order, cart and profile changes made by this user appear here."
+          />
 
           {auditTotalPages > 1 && (
             <div className="mt-3 flex justify-center border-t pt-3 md:justify-end">

@@ -1,6 +1,7 @@
 "use client";
 
 import { CartWishlistPanel } from "@/components/admin/customer/shared/cart-wishlist-panel";
+import { AuditLogTable } from "@/components/admin/customer/shared/audit-log-table";
 import { CustomerActivitiesPanel } from "@/components/admin/customer/shared/customer-activities-panel";
 import { CustomerMessagesPanel } from "@/components/admin/customer/shared/customer-messages-panel";
 import { CustomerOrdersTable } from "@/components/admin/customer/shared/customer-orders-table";
@@ -9,11 +10,9 @@ import { DetailTabsList } from "@/components/admin/customer/shared/detail-tabs-l
 import StatsCard from "@/components/admin/dashboard/stats-card";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import {
-  formatAction,
-  MethodPill,
-  StatusPill,
-} from "@/components/admin/reports/user-activity/audit-visuals";
-import { ProfileStrip } from "@/components/common/profile-strip";
+    identityProfileFields,
+    ProfileStrip,
+} from "@/components/common/profile-strip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,14 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
@@ -62,12 +53,10 @@ import {
   Activity,
   ArrowLeft,
   CalendarClock,
-  CalendarDays,
   History,
   Mail,
   MapPin,
   Pencil,
-  Phone,
   Plus,
   Receipt,
   ShoppingBag,
@@ -525,52 +514,7 @@ export function CustomerDetail() {
           avatarUrl={customer.profilePhoto?.url}
           rolename={rolename}
           verified={customer.isVerified}
-          fields={[
-            {
-              icon: Mail,
-              label: "Email",
-              value: customer.email,
-              href: `mailto:${customer.email}`,
-            },
-            {
-              icon: Phone,
-              label: "Mobile",
-              value: customer.mobileNumber || "—",
-              href: customer.mobileNumber
-                ? `tel:${customer.mobileNumber}`
-                : undefined,
-            },
-            {
-              icon: MapPin,
-              label: "Delivery area",
-              value: defaultArea || "—",
-            },
-            {
-              icon: Users,
-              label: "Gender",
-              value: customer.gender || "Not set",
-              capitalize: true,
-            },
-            {
-              icon: CalendarDays,
-              label: "Date of birth",
-              value: customer.dateOfBirth
-                ? formatDateTime(customer.dateOfBirth)
-                : "Not set",
-            },
-            {
-              icon: CalendarClock,
-              label: "Joined",
-              value: formatDateTime(customer.createdAt),
-            },
-            {
-              icon: History,
-              label: "Last login",
-              value: customer.lastLoginAt
-                ? formatDateTime(customer.lastLoginAt)
-                : "Never",
-            },
-          ]}
+          fields={identityProfileFields(customer, defaultArea)}
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -877,99 +821,10 @@ export function CustomerDetail() {
         </TabsContent>
 
         <TabsContent value="audit-log" className="mt-4">
-          {auditLogs.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              No recorded activity yet. Order, cart and profile changes made by
-              this customer appear here.
-            </p>
-          ) : (
-            <>
-              {/* Desktop table */}
-              <div className="hidden overflow-x-auto rounded-lg border bg-card md:block">
-                <Table className="min-w-220 report-table text-xs [&_th]:text-xs [&_td]:text-xs">
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="pl-4">Method</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>Entity</TableHead>
-                      <TableHead>Details</TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead className="pr-4 text-right">IP</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {auditLogs.map((log) => {
-                      // Actions are stored as "METHOD /path" — the shared audit
-                      // visuals render the method pill so both pages stay alike.
-                      const { method, path } = formatAction(log.action);
-                      return (
-                        <TableRow key={log.id}>
-                          <TableCell className="py-2 pl-4">
-                            <div className="flex items-center gap-1.5 whitespace-nowrap">
-                              <MethodPill method={method} />
-                              {log.status === "failure" && (
-                                <StatusPill status={log.status} />
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-2">
-                            <span
-                              className="block max-w-56 truncate font-mono text-xs text-muted-foreground"
-                              title={log.action}
-                            >
-                              {path || log.action}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="whitespace-nowrap text-xs font-medium capitalize">
-                              {log.entityType}
-                              {log.entityId ? ` #${log.entityId}` : ""}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="block max-w-md truncate text-xs text-muted-foreground" title={log.message || undefined}>
-                              {log.message || "—"}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                              {formatDateTime(log.createdAt)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="pr-4 text-right">
-                            <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                              {log.ipAddress || "—"}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Mobile list: one compact line per entry */}
-              <div className="divide-y rounded-lg border bg-card md:hidden">
-                {auditLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="flex items-center justify-between gap-2 px-3 py-2.5"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <MethodPill method={formatAction(log.action).method} />
-                      <span className="min-w-0 truncate text-xs font-medium capitalize">
-                        {log.entityType}
-                        {log.entityId ? ` #${log.entityId}` : ""}
-                      </span>
-                    </div>
-                    <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                      {formatDateTime(log.createdAt)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+          <AuditLogTable
+            logs={auditLogs}
+            emptyMessage="No recorded activity yet. Order, cart and profile changes made by this customer appear here."
+          />
         </TabsContent>
       </Tabs>
     </div>
