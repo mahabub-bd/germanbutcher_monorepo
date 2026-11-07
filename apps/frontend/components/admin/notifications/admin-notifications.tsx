@@ -155,7 +155,7 @@ const AdminNotifications = ({
                     <>
                       {notification.message}{" "}
                       <Link
-                        href={`/admin/order/${order.orderId}/view`}
+                        href={`/admin/order/${order.orderNo}/view`}
                         onClick={(e) => e.stopPropagation()}
                         className="inline-flex items-center gap-1 rounded-lg border bg-white px-1.5 py-0.5 align-middle text-xs font-semibold text-gray-900 hover:underline"
                       >

@@ -100,7 +100,7 @@ export function CustomerOrdersTable({
                             <TableRow key={order.id} className="hover:bg-muted/50">
                                 <TableCell className="whitespace-nowrap">
                                     <Link
-                                        href={`/admin/order/${order.id}/view`}
+                                        href={`/admin/order/${order.orderNo}/view`}
                                         className="font-medium hover:text-blue-600 hover:underline dark:hover:text-blue-400"
                                     >
                                         {order.orderNo}

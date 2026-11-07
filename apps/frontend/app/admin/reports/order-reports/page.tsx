@@ -52,6 +52,14 @@ export default async function OrderReportPage({ searchParams }: Props) {
     typeof resolvedParams.paymentStatus === "string"
       ? resolvedParams.paymentStatus
       : undefined;
+  const shippingMethodId =
+    typeof resolvedParams.shippingMethodId === "string"
+      ? resolvedParams.shippingMethodId
+      : undefined;
+  const paymentMethodId =
+    typeof resolvedParams.paymentMethodId === "string"
+      ? resolvedParams.paymentMethodId
+      : undefined;
   const page =
     typeof resolvedParams.page === "string"
       ? Math.max(1, parseInt(resolvedParams.page, 10) || 1)
@@ -69,6 +77,10 @@ export default async function OrderReportPage({ searchParams }: Props) {
     }
     if (orderStatus) queryParams.append("orderStatus", orderStatus);
     if (paymentStatus) queryParams.append("paymentStatus", paymentStatus);
+    if (shippingMethodId)
+      queryParams.append("shippingMethodId", shippingMethodId);
+    if (paymentMethodId)
+      queryParams.append("paymentMethodId", paymentMethodId);
     queryParams.append("page", String(page));
     queryParams.append("limit", "50");
 
@@ -98,6 +110,8 @@ export default async function OrderReportPage({ searchParams }: Props) {
         preset={preset}
         orderStatus={orderStatus}
         paymentStatus={paymentStatus}
+        shippingMethodId={shippingMethodId}
+        paymentMethodId={paymentMethodId}
         totalOrders={totalOrders}
         totalValue={totalValue}
         totalDiscount={totalDiscount}

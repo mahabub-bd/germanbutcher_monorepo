@@ -216,7 +216,7 @@ export function NotificationPanel() {
                             <div className="inline-flex shrink-0 items-center gap-1 rounded-md border bg-muted/40 px-1.5 py-0.5">
                               <Hash className="size-3 text-muted-foreground" />
                               <Link
-                                href={`/admin/order/${notification.data.orderId}/view`}
+                                href={`/admin/order/${notification.data.orderNo}/view`}
                                 className="text-xs font-semibold hover:underline"
                               >
                                 {notification.data.orderNo}

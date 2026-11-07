@@ -463,7 +463,7 @@ export default function LateDeliveryList({
                       <TableRow key={order.orderId}>
                         <TableCell className="py-2 pl-4">
                           <Link
-                            href={`/admin/order/${order.orderId}/view`}
+                            href={`/admin/order/${order.orderNo}/view`}
                             className="text-sm font-medium text-primary underline-offset-4 hover:underline"
                           >
                             {order.orderNo}
@@ -517,7 +517,7 @@ export default function LateDeliveryList({
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <Link
-                          href={`/admin/order/${order.orderId}/view`}
+                          href={`/admin/order/${order.orderNo}/view`}
                           className="text-sm font-medium text-primary underline-offset-4 hover:underline"
                         >
                           {order.orderNo}

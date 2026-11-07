@@ -227,7 +227,7 @@ export class OrderPaymentService {
     for (let attempt = 0; attempt < attempts; attempt++) {
       const currentYear = new Date().getFullYear();
       const nextNumber = await this.getNextPaymentNumber(currentYear);
-      const paymentNumber = `${currentYear}-${nextNumber.toString().padStart(4, '0')}`;
+      const paymentNumber = `${currentYear}-${nextNumber.toString().padStart(6, '0')}`;
       try {
         return await this.paymentRepository.save(build(paymentNumber));
       } catch (error) {
@@ -241,21 +241,24 @@ export class OrderPaymentService {
   }
 
   /**
-   * Next number for payment/refund rows: `YYYY-NNNN`, one shared sequence
+   * Next number for payment/refund rows: `YYYY-NNNNNN`, one shared sequence
    * across both types (they live in the same table and column, so type
-   * prefixes were dropped — paymentType distinguishes refund rows).
-   * Matches legacy `PAY-`/`REF-` rows too and sorts by the 4-digit numeric
-   * tail so the max is right while both formats coexist mid-backfill.
+   * prefixes were dropped — paymentType distinguishes refund rows). Rows
+   * from before the 2026-11 6-digit migration keep 4-digit tails; the
+   * lookup sorts by the zero-padded numeric tail, so mixed widths are safe.
    */
   private async getNextPaymentNumber(year: number): Promise<number> {
     const last = await this.paymentRepository
       .createQueryBuilder('payment')
       .select('payment.paymentNumber', 'paymentNumber')
       .where('payment.paymentNumber LIKE :pattern', { pattern: `%${year}-%` })
-      // Length first, then lexicographic: works for 4- and 5-digit tails,
-      // unlike RIGHT(paymentNumber, 4) which truncates 5-digit numbers
-      .orderBy('LENGTH(payment.paymentNumber)', 'DESC')
-      .addOrderBy('payment.paymentNumber', 'DESC')
+      // Strip to the last `-` segment and pad to a fixed width for a plain
+      // numeric max — length-then-lexicographic breaks on mixed prefix
+      // lengths, and RIGHT(paymentNumber, 4) truncates longer tails
+      .orderBy(
+        "lpad(REGEXP_REPLACE(payment.paymentNumber, '^.*-', ''), 10, '0')::bigint",
+        'DESC',
+      )
       .getRawOne();
     return (
       (last ? parseInt(last.paymentNumber.split('-').pop(), 10) || 0 : 0) + 1

@@ -394,7 +394,9 @@ export function OrderList({
   };
 
 
-  const buildDetailHref = (id: Order["id"], tab: "view" | "payments") => {
+  // Admin order URLs carry the human-readable orderNo (backend accepts both
+  // orderNo and numeric id)
+  const buildDetailHref = (orderNo: string, tab: "view" | "payments") => {
     const params = new URLSearchParams();
     const listSlug = listRouteToSlug(pathname);
     if (listSlug && listSlug !== "orders") params.set("from", listSlug);
@@ -409,7 +411,7 @@ export function OrderList({
     if (areaFilter) params.set("area", areaFilter);
     if (divisionFilter) params.set("division", divisionFilter);
     if (cityFilter) params.set("city", cityFilter);
-    return `/admin/order/${id}/${tab}?${params.toString()}`;
+    return `/admin/order/${orderNo}/${tab}?${params.toString()}`;
   };
 
   const handleCopyOrderNo = async (orderNo: string) => {
@@ -525,7 +527,7 @@ export function OrderList({
                   <TableCell className="align-top">
                     <div className="flex items-center gap-1">
                       <Link
-                        href={buildDetailHref(order.id, "view")}
+                        href={buildDetailHref(order.orderNo, "view")}
                         className="font-mono font-semibold hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                       >
                         {order.orderNo}
@@ -665,7 +667,7 @@ export function OrderList({
                       <DropdownMenuContent align="end">
                         {/* View - Always available */}
                         <DropdownMenuItem asChild>
-                          <Link href={buildDetailHref(order.id, "view")}>
+                          <Link href={buildDetailHref(order.orderNo, "view")}>
                             <Eye className="mr-2 h-4 w-4" /> View Details
                           </Link>
                         </DropdownMenuItem>
@@ -704,7 +706,7 @@ export function OrderList({
 
                         {/* View Payments - Always available */}
                         <DropdownMenuItem asChild>
-                          <Link href={buildDetailHref(order.id, "payments")}>
+                          <Link href={buildDetailHref(order.orderNo, "payments")}>
                             <List className="mr-2 h-4 w-4" /> Payment History
                           </Link>
                         </DropdownMenuItem>

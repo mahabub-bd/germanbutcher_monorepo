@@ -230,11 +230,11 @@ export default function PaymentStatusPage({
   const orderSummary = calculateOrderSummary();
 
   /** "View Order Details" target — the account order-details page (same
-   * route as the orders list). Falls back to the confirmation page when
-   * the user relation is missing from the payload. */
+   * route as the orders list). Prefers the human-readable orderNo; falls
+   * back to the confirmation page when the user relation is missing. */
   const orderDetailsHref = order.user?.id
-    ? `/user/${order.user.id}/order/${orderId}`
-    : `/order-confirmation/${orderId}`;
+    ? `/user/${order.user.id}/order/${order.orderNo ?? orderId}`
+    : `/order-confirmation/${order.orderNo ?? orderId}`;
 
   const statusBadge = (
     <span

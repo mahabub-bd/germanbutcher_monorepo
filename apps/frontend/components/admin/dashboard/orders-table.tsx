@@ -215,7 +215,7 @@ export default function OrdersTable() {
                 <TableCell>
                   <div className="flex gap-2">
                     <Button variant="ghost" className="h-8 w-8 p-0">
-                      <Link href={`/admin/order/${order.id}/view`}>
+                      <Link href={`/admin/order/${order.orderNo}/view`}>
                         <Eye className="h-4 w-4 mr-1" />
                       </Link>
                     </Button>

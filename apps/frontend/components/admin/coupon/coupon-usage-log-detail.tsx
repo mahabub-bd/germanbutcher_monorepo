@@ -188,7 +188,7 @@ export function CouponUsageLogDetail({ logId }: { logId: string | number }) {
                   <label className="text-sm text-muted-foreground">Order Number</label>
                   <div className="font-medium mt-1">
                     <Link
-                      href={`/admin/order/${log.order.id}/view`}
+                      href={`/admin/order/${log.order.orderNo}/view`}
                       className="text-blue-600 hover:underline font-mono"
                     >
                       {log.order.orderNo}
@@ -343,7 +343,7 @@ export function CouponUsageLogDetail({ logId }: { logId: string | number }) {
                 className="w-full justify-start"
                 asChild
               >
-                <Link href={`/admin/order/${log.order.id}/view`}>
+                <Link href={`/admin/order/${log.order.orderNo}/view`}>
                   <Package className="h-4 w-4 mr-2" />
                   View Order
                 </Link>

@@ -41,7 +41,11 @@ import {
   formatDateTime,
   shortenArea,
 } from "@/lib/utils";
-import { apiUrl, resolveAuthToken } from "@/utils/api-utils";
+import {
+  apiUrl,
+  fetchProtectedData,
+  resolveAuthToken,
+} from "@/utils/api-utils";
 import {
   formatOrderElapsedTime,
   getOrderStatusColor,
@@ -53,7 +57,12 @@ import {
   getShippingMethodIcon,
   getStatusIcon,
 } from "@/utils/order-helper";
-import { PaymentStatus, type BusinessSettings } from "@/utils/types";
+import {
+  PaymentStatus,
+  type BusinessSettings,
+  type PaymentMethod,
+  type ShippingMethod,
+} from "@/utils/types";
 import {
   AlertCircle,
   CheckCircle2,
@@ -111,6 +120,8 @@ interface OrderReportProps {
   preset?: string;
   orderStatus?: string;
   paymentStatus?: string;
+  shippingMethodId?: string;
+  paymentMethodId?: string;
   totalOrders: number;
   totalValue: number;
   totalDiscount: number;
@@ -226,6 +237,8 @@ export default function OrderReportList({
   preset,
   orderStatus,
   paymentStatus,
+  shippingMethodId,
+  paymentMethodId,
   totalOrders,
   totalValue,
   totalDiscount,
@@ -245,6 +258,40 @@ export default function OrderReportList({
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<string>(
     paymentStatus || "all"
   );
+  const [selectedShippingMethod, setSelectedShippingMethod] = useState<string>(
+    shippingMethodId || "all"
+  );
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>(
+    paymentMethodId || "all"
+  );
+
+  // Method lists for the filter dropdowns — same endpoints as the orders list.
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [shipping, payment] = await Promise.all([
+          fetchProtectedData<ShippingMethod[]>(
+            "shipping-methods?isActive=true"
+          ),
+          fetchProtectedData<PaymentMethod[]>("order-payment-methods"),
+        ]);
+        if (!cancelled) {
+          setShippingMethods(shipping);
+          setPaymentMethods(payment);
+        }
+      } catch (error) {
+        console.error("Failed to load method lists:", error);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Full-range rows for Excel/PDF export, fetched on demand (first export
   // click of each filter combination) so the page load stays light. The
@@ -258,6 +305,15 @@ export default function OrderReportList({
     setMounted(true);
   }, []);
 
+  // Keep the select states in sync with the URL — back/forward navigation
+  // changes the props without remounting this component.
+  useEffect(() => {
+    setSelectedOrderStatus(orderStatus || "all");
+    setSelectedPaymentStatus(paymentStatus || "all");
+    setSelectedShippingMethod(shippingMethodId || "all");
+    setSelectedPaymentMethod(paymentMethodId || "all");
+  }, [orderStatus, paymentStatus, shippingMethodId, paymentMethodId]);
+
   const currentFilterQuery = useMemo(() => {
     const qs = new URLSearchParams();
     if (preset) qs.set("preset", preset);
@@ -267,8 +323,18 @@ export default function OrderReportList({
     }
     if (orderStatus) qs.set("orderStatus", orderStatus);
     if (paymentStatus) qs.set("paymentStatus", paymentStatus);
+    if (shippingMethodId) qs.set("shippingMethodId", shippingMethodId);
+    if (paymentMethodId) qs.set("paymentMethodId", paymentMethodId);
     return qs.toString();
-  }, [preset, fromDate, toDate, orderStatus, paymentStatus]);
+  }, [
+    preset,
+    fromDate,
+    toDate,
+    orderStatus,
+    paymentStatus,
+    shippingMethodId,
+    paymentMethodId,
+  ]);
 
   // Current-page sums — the range totals shown in the cards come from the API.
   const pageTotals = useMemo(
@@ -372,31 +438,83 @@ export default function OrderReportList({
     startTransition(() => router.push(`?${qs.toString()}`));
   };
 
+  /** Applies a filter change immediately — updates the URL (server refetch)
+   * using the just-picked value plus the current date range and the other
+   * select states. Selects no longer wait for the Filter button. */
+  const pushWithFilter = (patch: {
+    orderStatus?: string;
+    paymentStatus?: string;
+    shippingMethodId?: string;
+    paymentMethodId?: string;
+  }) => {
+    const qs = new URLSearchParams();
+    if (preset) {
+      qs.set("preset", preset);
+    } else {
+      if (fromDate) qs.set("fromDate", fromDate);
+      if (toDate) qs.set("toDate", toDate);
+    }
+    const orderStatus = patch.orderStatus ?? selectedOrderStatus;
+    const paymentStatus = patch.paymentStatus ?? selectedPaymentStatus;
+    const shippingMethodId = patch.shippingMethodId ?? selectedShippingMethod;
+    const paymentMethodId = patch.paymentMethodId ?? selectedPaymentMethod;
+    if (orderStatus && orderStatus !== "all")
+      qs.set("orderStatus", orderStatus);
+    if (paymentStatus && paymentStatus !== "all")
+      qs.set("paymentStatus", paymentStatus);
+    if (shippingMethodId && shippingMethodId !== "all")
+      qs.set("shippingMethodId", shippingMethodId);
+    if (paymentMethodId && paymentMethodId !== "all")
+      qs.set("paymentMethodId", paymentMethodId);
+    startTransition(() => router.push(`?${qs.toString()}`));
+  };
+
   const handleFilterApply = (params: ReportFilterParams) => {
     const qs = new URLSearchParams();
-    if (params.preset) qs.set("preset", params.preset);
-    if (params.fromDate) qs.set("fromDate", params.fromDate);
-    if (params.toDate) qs.set("toDate", params.toDate);
 
-    // An empty filter set means "clear" — drop the status filters too, which
-    // the date bar owns no state for.
-    if (!qs.toString()) {
+    // Explicit Clear (the date bar's Clear button) — reset everything,
+    // including the status/method filters this page owns.
+    if (params.clear) {
       setSelectedOrderStatus("all");
       setSelectedPaymentStatus("all");
+      setSelectedShippingMethod("all");
+      setSelectedPaymentMethod("all");
       startTransition(() => router.push("?"));
       return;
+    }
+
+    // Date selection: a preset, or an explicit from/to pair. Filter with no
+    // date change (the pickers start empty when the range came from a URL
+    // preset) keeps the current range — without this, pressing Filter after
+    // only changing a status select would drop it entirely.
+    if (params.preset) {
+      qs.set("preset", params.preset);
+    } else if (params.fromDate || params.toDate) {
+      if (params.fromDate) qs.set("fromDate", params.fromDate);
+      if (params.toDate) qs.set("toDate", params.toDate);
+    } else if (preset) {
+      qs.set("preset", preset);
+    } else {
+      if (fromDate) qs.set("fromDate", fromDate);
+      if (toDate) qs.set("toDate", toDate);
     }
 
     if (selectedOrderStatus && selectedOrderStatus !== "all")
       qs.set("orderStatus", selectedOrderStatus);
     if (selectedPaymentStatus && selectedPaymentStatus !== "all")
       qs.set("paymentStatus", selectedPaymentStatus);
+    if (selectedShippingMethod && selectedShippingMethod !== "all")
+      qs.set("shippingMethodId", selectedShippingMethod);
+    if (selectedPaymentMethod && selectedPaymentMethod !== "all")
+      qs.set("paymentMethodId", selectedPaymentMethod);
     startTransition(() => router.push(`?${qs.toString()}`));
   };
 
   const handleFilterClear = () => {
     setSelectedOrderStatus("all");
     setSelectedPaymentStatus("all");
+    setSelectedShippingMethod("all");
+    setSelectedPaymentMethod("all");
   };
 
   const rangeLabel = dateRangeSubtitle(preset, fromDate, toDate);
@@ -454,12 +572,15 @@ export default function OrderReportList({
         preset={preset}
         fromDate={fromDate}
         toDate={toDate}
-        extraLabel="Order & Payment Status"
+        extraLabel="Status & Method Filters"
         extra={
           <>
             <Select
               value={selectedOrderStatus || "all"}
-              onValueChange={setSelectedOrderStatus}
+              onValueChange={(value) => {
+                setSelectedOrderStatus(value);
+                pushWithFilter({ orderStatus: value });
+              }}
             >
               <SelectTrigger className="w-full md:w-40 md:shrink-0">
                 <SelectValue placeholder="Order Status" />
@@ -475,7 +596,10 @@ export default function OrderReportList({
             </Select>
             <Select
               value={selectedPaymentStatus || "all"}
-              onValueChange={setSelectedPaymentStatus}
+              onValueChange={(value) => {
+                setSelectedPaymentStatus(value);
+                pushWithFilter({ paymentStatus: value });
+              }}
             >
               <SelectTrigger className="w-full md:w-40 md:shrink-0">
                 <SelectValue placeholder="Payment Status" />
@@ -485,6 +609,44 @@ export default function OrderReportList({
                 {PAYMENT_STATUS_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={selectedShippingMethod || "all"}
+              onValueChange={(value) => {
+                setSelectedShippingMethod(value);
+                pushWithFilter({ shippingMethodId: value });
+              }}
+            >
+              <SelectTrigger className="w-full md:w-40 md:shrink-0">
+                <SelectValue placeholder="Shipping Method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All shipping methods</SelectItem>
+                {shippingMethods.map((method) => (
+                  <SelectItem key={method.id} value={method.id.toString()}>
+                    {method.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={selectedPaymentMethod || "all"}
+              onValueChange={(value) => {
+                setSelectedPaymentMethod(value);
+                pushWithFilter({ paymentMethodId: value });
+              }}
+            >
+              <SelectTrigger className="w-full md:w-40 md:shrink-0">
+                <SelectValue placeholder="Payment Method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All payment methods</SelectItem>
+                {paymentMethods.map((method) => (
+                  <SelectItem key={method.id} value={method.id.toString()}>
+                    {method.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -608,7 +770,7 @@ export default function OrderReportList({
                       <TableRow key={order.orderNo}>
                         <TableCell className="py-2.5 pl-4">
                           <Link
-                            href={`/admin/order/${order.id}/view`}
+                            href={`/admin/order/${order.orderNo}/view`}
                             className="text-sm font-semibold text-foreground hover:text-primaryColor hover:underline"
                           >
                             {order.orderNo}
@@ -770,7 +932,7 @@ export default function OrderReportList({
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <Link
-                          href={`/admin/order/${order.id}/view`}
+                          href={`/admin/order/${order.orderNo}/view`}
                           className="text-sm font-semibold hover:text-primaryColor hover:underline"
                         >
                           {order.orderNo}

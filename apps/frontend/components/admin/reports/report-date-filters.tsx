@@ -42,6 +42,9 @@ export interface ReportFilterParams {
   preset?: string;
   fromDate?: string;
   toDate?: string;
+  /** True when this onApply comes from the Clear button (as opposed to
+   * Filter with no date selection) so pages can tell the two apart. */
+  clear?: boolean;
 }
 
 // Bangladesh business week runs Sunday→Saturday (weekend is Fri/Sat), which
@@ -203,7 +206,7 @@ export function ReportDateFilters({
     setQuickRange("");
     setResetKey((k) => k + 1);
     onClear?.();
-    onApply({});
+    onApply({ clear: true });
   };
 
   if (!mounted) return null;
