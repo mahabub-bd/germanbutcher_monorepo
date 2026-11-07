@@ -35,7 +35,8 @@ export class SubscribersController {
   constructor(private readonly subscribersService: SubscribersService) {}
 
   @Post()
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 subscriptions per minute
+  // Requests come from the browser, so this limit is per real customer IP.
+  @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 subscriptions per minute
   @ApiOperation({ summary: 'Add a new subscriber by email' })
   @ApiBody({
     description: 'Subscriber email to add',

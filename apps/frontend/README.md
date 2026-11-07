@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# `germanbutcher-frontend`
 
-## Getting Started
+Next.js 16 App Router application for the German Butcher platform: the public storefront,
+the customer account area, and the admin back office. Server components fetch from the Nest
+API; the access token stays in an `httpOnly` cookie and never reaches client JavaScript.
 
-First, run the development server:
+**Full documentation:** [`docs/06-frontend-guide.md`](../../docs/06-frontend-guide.md) ·
+[`docs/04-api-reference.md`](../../docs/04-api-reference.md) ·
+[`docs/07-features.md`](../../docs/07-features.md)
+
+---
+
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# from the repository root (recommended)
+pnpm dev:frontend
+
+# or from this directory
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Storefront: <http://localhost:3002>
+- Admin: <http://localhost:3002/admin>
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Dev uses Turbopack; the production build uses webpack (`next build --webpack`) because the
+PDF renderer and image pipeline are validated there.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Configuration
 
-## Learn More
+`apps/frontend/.env.local`:
 
-To learn more about Next.js, take a look at the following resources:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3000/v1
+NEXT_PUBLIC_BASE_URL=http://localhost:3002
+NEXT_PUBLIC_SOCKET_URL=http://localhost:3000
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+These are **build-time** values — Docker builds must pass them as `--build-arg`. Missing
+`NEXT_PUBLIC_API_URL` produces requests to `undefined/...`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Structure
 
-## Deploy on Vercel
+```
+app/
+├── (main)/        storefront: home, products, cart, checkout, payment, account, policies
+├── admin/         back office, sidebar driven by menu-permissions
+├── auth/          sign-in / sign-up / forgot-password
+├── api/           two route handlers: /api/auth/token, /api/pdf-image
+├── layout.tsx     fonts, GTM/GA, Toaster, global providers
+└── globals.css    Tailwind v4 tokens
+components/        ui/ primitives + admin/ + storefront sections
+actions/           server actions: auth, JWT helpers, revalidation
+providers/         cart, notifications (Socket.IO), search
+utils/             api-utils (fetch layer), types, formatting, PDF invoice
+proxy.ts           route protection for /user and /admin
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Route inventory, layout/provider chain and admin screen patterns:
+[`docs/06-frontend-guide.md`](../../docs/06-frontend-guide.md#3-route-map).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Conventions that matter
+
+- Server components by default; `"use client"` only for state, effects and Radix
+  interactivity.
+- All HTTP through `utils/api-utils.ts` — it resolves the cookie token and clears cookies on
+  401. Raw `fetch` bypasses both.
+- Product **detail** fetches are `no-store` on purpose; product lists use ISR (300 s, tag
+  `products`). Call `revalidatePath`/`revalidateTag` after mutations.
+- Admin navigation comes from `GET /v1/menu-permissions/accessible-menus/:userId`. A new
+  screen also needs a `menu` row, or nobody can see it.
+- List state lives in the URL (`page`, `limit`, `search`, `sort`) via
+  `utils/admin-search-params.ts`.
+- Guest carts live in `localStorage` (`user-cart`, `user-coupon`) and are not merged into the
+  server cart on login.
+
+## Lint and build
+
+```bash
+pnpm lint      # next lint
+pnpm build     # next build --webpack
+pnpm start     # next start -p 3002
+```
+
+There is no test runner configured in this app — see
+[`docs/09-contributing.md`](../../docs/09-contributing.md#3-testing).

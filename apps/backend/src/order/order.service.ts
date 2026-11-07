@@ -9,6 +9,7 @@ import { BogoUsageLogService } from 'src/bogo-usage-log/bogo-usage-log.service';
 import { CancellationReason, OrderStatus, PaymentStatus } from 'src/common/enums';
 import { formatDhakaDate, getDateRangeFromPreset, parseReportDate, } from 'src/common/utils/report-date-range.util';
 import { Coupon } from 'src/coupon/entities/coupon.entity';
+import { CouponService } from 'src/coupon/coupon.service';
 import { DeliveryMan } from 'src/delivery-man/entities/delivery-man.entity';
 import {
   computeFlashPrice,
@@ -90,6 +91,7 @@ export class OrderService {
     private readonly notificationService: NotificationService,
     private readonly smsService: SmsService,
     private readonly couponUsageLogService: CouponUsageLogService,
+    private readonly couponService: CouponService,
     private readonly freeDeliveryCampaignsService: FreeDeliveryCampaignsService,
     private readonly freeDeliveryUsageLogService: FreeDeliveryUsageLogService,
     private readonly flashSaleCampaignsService: FlashSaleCampaignsService,
@@ -345,49 +347,60 @@ export class OrderService {
 
     let couponDiscountAmount = 0;
     if (coupon) {
-      const now = new Date().getTime();
-      const couponStart = new Date(coupon.validFrom).getTime();
-      const couponEnd = new Date(coupon.validUntil).getTime();
+      // Re-validate at order creation — the checkout-time apply check may be
+      // stale (coupon deactivated/expired/limit-reached since it was applied).
+      // A lapsed coupon must fail the order, not silently charge full price.
+      this.couponService.assertUsable(coupon);
 
-      if (now >= couponStart && now <= couponEnd) {
-        // Get excluded product IDs
-        const excludedProductIds = coupon.excludedItems
-          ? coupon.excludedItems.map((p) => p.id)
-          : [];
+      // Get excluded product IDs
+      const excludedProductIds = coupon.excludedItems
+        ? coupon.excludedItems.map((p) => p.id)
+        : [];
 
-        // Calculate total eligible amount (excluding excluded items)
-        let eligibleTotal = 0;
-        for (const itemPricing of itemPricingDetails) {
-          const isExcluded = excludedProductIds.includes(itemPricing.productId);
-          if (!isExcluded) {
-            eligibleTotal += itemPricing.totalPrice;
-          }
+      // Calculate total eligible amount (excluding excluded items)
+      let eligibleTotal = 0;
+      for (const itemPricing of itemPricingDetails) {
+        const isExcluded = excludedProductIds.includes(itemPricing.productId);
+        if (!isExcluded) {
+          eligibleTotal += itemPricing.totalPrice;
         }
-
-        switch (coupon.discountType) {
-          case DiscountType.FIXED:
-            couponDiscountAmount = Number(coupon.value);
-            break;
-          case DiscountType.PERCENTAGE:
-            const roundedEligibleTotal = Math.round(eligibleTotal * 100) / 100;
-            let couponDiscount =
-              roundedEligibleTotal * (Number(coupon.value) / 100);
-
-            if (
-              coupon.maxDiscountAmount &&
-              couponDiscount > Number(coupon.maxDiscountAmount)
-            ) {
-              couponDiscount = Number(coupon.maxDiscountAmount);
-            }
-
-            couponDiscountAmount = couponDiscount;
-            break;
-        }
-
-        totalValue -= couponDiscountAmount;
-        totalDiscount += couponDiscountAmount;
-        totalValue = Math.max(totalValue, 0);
       }
+
+      // Same minimum-order rule the checkout apply-check enforces. Checked
+      // here (not in assertUsable) because the eligible basis is order-side:
+      // post-product/flash/BOGO item totals, not raw cart prices.
+      if (
+        coupon.minOrderAmount != null &&
+        eligibleTotal < Number(coupon.minOrderAmount)
+      ) {
+        throw new BadRequestException(
+          `Coupon ${coupon.code} requires a minimum eligible order amount of ${Number(coupon.minOrderAmount)}`,
+        );
+      }
+
+      switch (coupon.discountType) {
+        case DiscountType.FIXED:
+          couponDiscountAmount = Number(coupon.value);
+          break;
+        case DiscountType.PERCENTAGE:
+          const roundedEligibleTotal = Math.round(eligibleTotal * 100) / 100;
+          let couponDiscount =
+            roundedEligibleTotal * (Number(coupon.value) / 100);
+
+          if (
+            coupon.maxDiscountAmount &&
+            couponDiscount > Number(coupon.maxDiscountAmount)
+          ) {
+            couponDiscount = Number(coupon.maxDiscountAmount);
+          }
+
+          couponDiscountAmount = couponDiscount;
+          break;
+      }
+
+      totalValue -= couponDiscountAmount;
+      totalDiscount += couponDiscountAmount;
+      totalValue = Math.max(totalValue, 0);
     }
 
     // Add shipping cost — waived when a free-delivery campaign matches the

@@ -72,6 +72,9 @@ import { WishlistModule } from './wishlist/wishlist.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
+        // These are the ONLY bucket names that exist. A @Throttle({ default: ... })
+        // override matches none of them and is silently ignored — per-route
+        // overrides must use short/medium/long (see auth/order controllers).
         throttlers: [
           {
             name: 'short',
