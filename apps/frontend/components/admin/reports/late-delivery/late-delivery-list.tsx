@@ -92,6 +92,17 @@ const formatMoney = (value: number) =>
 /** Hours are always shown with one decimal place. */
 const hours1 = (value: number) => Number(value || 0).toFixed(1);
 
+/** ≥ 24h reads as days + hours ("5 Day 12 Hours"); under 24h stays in hours. */
+const durationLabel = (value: number) => {
+  const h = Number(value || 0);
+  if (h < 24) return `${hours1(h)} Hours`;
+  const days = Math.floor(h / 24);
+  const rem = Math.round(h - days * 24);
+  const [d, r] = rem === 24 ? [days + 1, 0] : [days, rem];
+  const dayPart = `${d} Day${d === 1 ? "" : "s"}`;
+  return r > 0 ? `${dayPart} ${r} Hour${r === 1 ? "" : "s"}` : dayPart;
+};
+
 export default function LateDeliveryList({
   fromDate,
   toDate,
@@ -485,7 +496,7 @@ export default function LateDeliveryList({
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">
-                            {hours1(order.hours)}
+                            {durationLabel(order.hours)}
                           </span>
                         </TableCell>
                         <TableCell className="pr-4 text-right">
@@ -516,7 +527,7 @@ export default function LateDeliveryList({
                         </p>
                       </div>
                       <PillBadge tone="red" className="shrink-0 tabular-nums">
-                        {hours1(order.hours)} hrs
+                        {durationLabel(order.hours)}
                       </PillBadge>
                     </div>
                     <p className="text-xs text-muted-foreground">

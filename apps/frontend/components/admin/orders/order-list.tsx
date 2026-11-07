@@ -58,8 +58,8 @@ import {
   getOrderStatusColor,
   getPaymentMethodColor,
   getPaymentMethodIcon,
-  getPaymentStatusLabel,
   getPaymentStatusColor,
+  getPaymentStatusLabel,
   getShippingMethodColor,
   getShippingMethodIcon,
   getStatusIcon,
@@ -209,11 +209,6 @@ export function OrderList({
 
   // Below md the filters live in a bottom sheet instead of the toolbar strip.
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
-
-  // Skip URL writes until the first fetch resolves: totalPages starts at 1,
-  // so clamping a deep-linked ?page=N against it would rewrite it to page 1.
-  // The sequence ref ignores stale responses so the table always matches
-  // currentPage (older fetches can resolve after newer ones).
   const hasFetchedRef = useRef(false);
   const fetchSeqRef = useRef(0);
 
@@ -398,9 +393,7 @@ export function OrderList({
     return !nonEditableStatuses.includes(orderStatus.toLowerCase());
   };
 
-  // Detail links carry the list context (route, page, filters) so the
-  // detail pages can send the user back to the exact spot in the list.
-  // The source list is a readable slug, omitted for the default list.
+
   const buildDetailHref = (id: Order["id"], tab: "view" | "payments") => {
     const params = new URLSearchParams();
     const listSlug = listRouteToSlug(pathname);
@@ -431,8 +424,7 @@ export function OrderList({
   const renderTableView = () => (
     <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
       <div className="overflow-x-auto">
-        {/* min-w only below lg: on laptop+ the table shrinks to the container
-            so all columns fit without horizontal scrolling */}
+
         <Table className="min-w-220 lg:min-w-0 text-xs 2xl:text-sm [&_th]:h-9 [&_td]:py-1.5">
           <TableHeader>
             <TableRow>
@@ -534,7 +526,7 @@ export function OrderList({
                     <div className="flex items-center gap-1">
                       <Link
                         href={buildDetailHref(order.id, "view")}
-                        className="font-mono hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        className="font-mono font-semibold hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                       >
                         {order.orderNo}
                       </Link>
@@ -544,7 +536,7 @@ export function OrderList({
                         className="h-6 w-6 shrink-0"
                         onClick={() => handleCopyOrderNo(order.orderNo)}
                       >
-                        <Copy className="h-3 w-3" />
+                        <Copy className="size-3" />
                         <span className="sr-only">Copy order number</span>
                       </Button>
                     </div>
@@ -567,12 +559,12 @@ export function OrderList({
                     )}
                     <div className="mt-0.5">
                       {order.user?.mobileNumber ? (
-                        <a
+                        <Link
                           href={`tel:${order.user.mobileNumber}`}
-                          className="text-blue-600 hover:underline dark:text-blue-400"
+
                         >
                           {order.user.mobileNumber}
-                        </a>
+                        </Link>
                       ) : (
                         <span className="text-muted-foreground">N/A</span>
                       )}
