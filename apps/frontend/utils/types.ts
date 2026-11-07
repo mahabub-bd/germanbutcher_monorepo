@@ -310,6 +310,10 @@ export interface Product {
     name: string;
     buyQuantity: number;
     getQuantity: number;
+    /** Per-order free-group cap (0 = unlimited) — cart blocks quantity past this */
+    maxGroupsPerOrder: number;
+    /** Per-customer lifetime free-unit cap (0 = unlimited) */
+    maxFreePerUser: number;
     endsAt: string | null;
   } | null;
 }
@@ -635,6 +639,8 @@ export interface BogoCampaign {
   getQuantity: number;
   /** Max free groups a single order can earn (0 = unlimited) */
   maxGroupsPerOrder: number;
+  /** Max free units one customer can ever receive from this campaign (0 = unlimited) */
+  maxFreePerUser: number;
   maxUsage: number;
   timesUsed: number;
   productIds?: number[];
@@ -676,6 +682,19 @@ export interface BogoPreviewResult {
     };
     discount: number;
     freeUnits: number;
+    /** Deal groups the cart could have earned before caps. */
+    groupsPotential: number;
+    /** Deal groups actually granted after caps. */
+    groupsEarned: number;
+    /** The cap that reduced the grant, if one did. */
+    capLimit: "per_order" | "per_user" | null;
+    /** Product lines the campaign made free — rendered as auto-added cart rows. */
+    freeLines: Array<{
+      productId: number;
+      productName: string;
+      quantity: number;
+      unitPrice: number;
+    }>;
   }>;
 }
 

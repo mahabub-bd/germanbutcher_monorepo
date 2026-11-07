@@ -557,14 +557,21 @@ export class AnalyticsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /** Traffic sources by referer host; missing referer counts as Direct. */
+  /** Traffic sources by referer host; missing referer counts as Direct.
+   * Facebook's redirector hosts (l./lm./m./web.facebook.com, fb.me) are
+   * merged into one facebook.com bucket so campaign traffic isn't split. */
   async getTrafficSources(period: string = '30d') {
     const startDate = this.getDateFromPeriod(period);
 
+    const hostSql = `split_part(split_part(analytics.referer, '//', 2), '/', 1)`;
     const results = await this.analyticsRepository
       .createQueryBuilder('analytics')
       .select(
-        `CASE WHEN COALESCE(analytics.referer, '') = '' THEN 'Direct' ELSE split_part(split_part(analytics.referer, '//', 2), '/', 1) END`,
+        `CASE
+          WHEN COALESCE(analytics.referer, '') = '' THEN 'Direct'
+          WHEN ${hostSql} LIKE '%facebook.com' OR ${hostSql} IN ('fb.me', 'fb.watch') THEN 'facebook.com'
+          ELSE ${hostSql}
+        END`,
         'source',
       )
       .addSelect('COUNT(*)', 'count')

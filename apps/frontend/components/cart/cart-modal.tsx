@@ -24,6 +24,7 @@ import { useBogo } from "@/hooks/use-bogo";
 import { useFreeDelivery } from "@/hooks/use-free-delivery";
 import { cn, formatCurrencyEnglish } from "@/lib/utils";
 import type { Cart, CartItem } from "@/utils/types";
+import { BogoFreeItems } from "./bogo-free-items";
 import { CartItemProduct } from "./cart-item";
 import { EmptyCart } from "./empty-cart";
 import { FreeDeliveryBanner } from "./free-delivery-banner";
@@ -191,6 +192,10 @@ export function CartModal({
                   <CartItemProduct item={item} />
                 </div>
               ))}
+              {/* Free items auto-added by active BOGO campaigns */}
+              <div className="py-3 px-4 sm:py-4 sm:px-6">
+                <BogoFreeItems bogoResult={bogoResult} />
+              </div>
             </div>
           ) : (
             <div className="p-4 sm:p-6">
@@ -281,17 +286,26 @@ export function CartModal({
                     </div>
                   )}
 
-                  {bogoResult?.eligible && bogoDiscount > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>
-                        BOGO Discount
-                        {bogoResult.usages[0]?.campaign?.name
-                          ? ` (${bogoResult.usages[0].campaign.name})`
-                          : ""}
-                      </span>
-                      <span>-{formatCurrencyEnglish(bogoDiscount)}</span>
-                    </div>
-                  )}
+                  {/* One row per campaign — multiple BOGO deals can apply at once */}
+                  {bogoResult?.eligible &&
+                    bogoResult.usages
+                      .filter((usage) => usage.discount > 0)
+                      .map((usage) => (
+                        <div
+                          key={usage.campaign.id}
+                          className="flex justify-between text-green-600"
+                        >
+                          <span>
+                            BOGO Discount
+                            {usage.campaign.name
+                              ? ` (${usage.campaign.name})`
+                              : ""}
+                          </span>
+                          <span>
+                            -{formatCurrencyEnglish(usage.discount)}
+                          </span>
+                        </div>
+                      ))}
 
                   {appliedCoupon && (
                     <div className="flex justify-between text-green-600">

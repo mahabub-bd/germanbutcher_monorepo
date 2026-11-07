@@ -41,21 +41,16 @@ export class OrderPaymentService {
     });
     if (!paymentMethod) throw new NotFoundException('Payment Method not found');
 
-    const currentYear = new Date().getFullYear();
-    const lastNumber = await this.getNextPaymentNumber(currentYear);
-
-    const paymentNumber = `${currentYear}-${lastNumber.toString().padStart(4, '0')}`;
-
-    const payment = this.paymentRepository.create({
-      ...createPaymentDto,
-      order,
-      paymentMethod,
-      createdBy: user?.userId,
-      updatedBy: user?.userId,
-      paymentNumber,
-    });
-
-    await this.paymentRepository.save(payment);
+    const payment = await this.savePaymentWithRetry((paymentNumber) =>
+      this.paymentRepository.create({
+        ...createPaymentDto,
+        order,
+        paymentMethod,
+        createdBy: user?.userId,
+        updatedBy: user?.userId,
+        paymentNumber,
+      }),
+    );
 
     // Keep the order-level method in sync with how the money actually
     // arrived. If a customer picked SSLCommerz at checkout but never
@@ -206,6 +201,46 @@ export class OrderPaymentService {
   }
 
   /**
+   * Insert a payment/refund row with a generated `YYYY-NNNN` number,
+   * retrying when a concurrent insert takes the same number (unique
+   * violation on paymentNumber — e.g. SSLCommerz firing the success
+   * redirect and the IPN callback at the same time).
+   */
+  private async savePaymentWithRetry(
+    build: (paymentNumber: string) => OrderPayment,
+    attempts = 3,
+  ): Promise<OrderPayment> {
+    const isUniqueViolation = (error: unknown): boolean => {
+      const err = error as {
+        code?: string;
+        driverError?: { code?: string };
+        message?: string;
+      };
+      return (
+        err?.code === '23505' ||
+        err?.driverError?.code === '23505' ||
+        (err?.message ?? '').includes('duplicate key')
+      );
+    };
+
+    let lastError: unknown;
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      const currentYear = new Date().getFullYear();
+      const nextNumber = await this.getNextPaymentNumber(currentYear);
+      const paymentNumber = `${currentYear}-${nextNumber.toString().padStart(4, '0')}`;
+      try {
+        return await this.paymentRepository.save(build(paymentNumber));
+      } catch (error) {
+        lastError = error;
+        // 23505 = Postgres unique violation — number taken by a concurrent
+        // insert; regenerate from the (now updated) max and try again
+        if (!isUniqueViolation(error)) throw error;
+      }
+    }
+    throw lastError;
+  }
+
+  /**
    * Next number for payment/refund rows: `YYYY-NNNN`, one shared sequence
    * across both types (they live in the same table and column, so type
    * prefixes were dropped — paymentType distinguishes refund rows).
@@ -217,9 +252,14 @@ export class OrderPaymentService {
       .createQueryBuilder('payment')
       .select('payment.paymentNumber', 'paymentNumber')
       .where('payment.paymentNumber LIKE :pattern', { pattern: `%${year}-%` })
-      .orderBy('RIGHT(payment.paymentNumber, 4)', 'DESC')
+      // Length first, then lexicographic: works for 4- and 5-digit tails,
+      // unlike RIGHT(paymentNumber, 4) which truncates 5-digit numbers
+      .orderBy('LENGTH(payment.paymentNumber)', 'DESC')
+      .addOrderBy('payment.paymentNumber', 'DESC')
       .getRawOne();
-    return last ? parseInt(last.paymentNumber.split('-').pop(), 10) || 0 : 0;
+    return (
+      (last ? parseInt(last.paymentNumber.split('-').pop(), 10) || 0 : 0) + 1
+    );
   }
 
   private calculatePaymentStatus(paid: number, total: number): PaymentStatus {
@@ -253,28 +293,23 @@ export class OrderPaymentService {
       );
     }
 
-    const currentYear = new Date().getFullYear();
-    const lastNumber = await this.getNextPaymentNumber(currentYear);
-
-    const refundNumber = `${currentYear}-${lastNumber
-      .toString()
-      .padStart(4, '0')}`;
-
-    const refund = this.paymentRepository.create({
-      paymentNumber: refundNumber,
-      order: originalPayment.order,
-      amount: -Math.abs(refundAmount),
-      paymentDate: new Date(),
-      paymentMethod: originalPayment.paymentMethod,
-      notes: refundRemarks || `Refund for payment ${originalPayment.paymentNumber}`,
-      paymentType: PaymentType.REFUND,
-      originalPayment: originalPayment,
-      originalPaymentId: originalPayment.id,
-      createdBy: user,
-      updatedBy: user,
-    });
-
-    await this.paymentRepository.save(refund);
+    const refund = await this.savePaymentWithRetry((refundNumber) =>
+      this.paymentRepository.create({
+        paymentNumber: refundNumber,
+        order: originalPayment.order,
+        amount: -Math.abs(refundAmount),
+        paymentDate: new Date(),
+        paymentMethod: originalPayment.paymentMethod,
+        notes:
+          refundRemarks ||
+          `Refund for payment ${originalPayment.paymentNumber}`,
+        paymentType: PaymentType.REFUND,
+        originalPayment: originalPayment,
+        originalPaymentId: originalPayment.id,
+        createdBy: user,
+        updatedBy: user,
+      }),
+    );
 
     // Update order payment status after refund
     await this.updateOrderPaymentStatusAfterRefund(originalPayment.order.id);

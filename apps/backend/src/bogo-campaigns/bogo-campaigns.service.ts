@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Category } from 'src/category/entities/category.entity';
+import { BogoUsageLogService } from 'src/bogo-usage-log/bogo-usage-log.service';
 import { Product } from 'src/product/entities/product.entity';
 import {
   computeFlashPrice,
@@ -64,17 +65,37 @@ export type AdminBogoCampaignSummary = Omit<
 export interface BogoPricingDetail {
   productId: number;
   categoryId?: number;
+  /** Display name — set by preview() so free lines can be labeled. */
+  productName?: string;
   quantity: number;
   unitPrice: number;
   unitDiscount: number;
   totalPrice: number;
 }
 
+/** One product line the campaign made free on this order. */
+export interface BogoFreeLine {
+  productId: number;
+  quantity: number;
+  unitPrice: number;
+}
+
+/** Which limit reduced a campaign's free units (null = uncapped). */
+export type BogoCapLimit = 'per_order' | 'per_user';
+
 /** One campaign's effect on a single order. */
 export interface BogoUsage {
   campaign: BogoCampaign;
   discount: number;
   freeUnits: number;
+  /** Which product lines the free units came from (product display in cart). */
+  freeLines: BogoFreeLine[];
+  /** Deal groups the cart could have earned before caps. */
+  groupsPotential: number;
+  /** Deal groups actually granted after caps. */
+  groupsEarned: number;
+  /** The cap that reduced the grant, if one did. */
+  capLimit: BogoCapLimit;
 }
 
 export interface BogoDiscountResult {
@@ -91,10 +112,15 @@ export interface BogoDiscountResult {
  * (buyQuantity + getQuantity) pooled units, the getQuantity cheapest become
  * free. The ledger guarantees one unit never feeds two campaigns; campaigns
  * run in id order (lowest id claims units first), matching flash sales.
+ *
+ * `perUserFreeUsed` (campaignId → free units this user already received
+ * lifetime) clamps free units to the campaign's `maxFreePerUser` cap; omit
+ * it where the cap doesn't apply (admin previews, guest carts).
  */
 export function applyBogoDiscount(
   itemPricingDetails: BogoPricingDetail[],
   campaigns: BogoCampaign[],
+  perUserFreeUsed?: Map<number, number>,
 ): BogoDiscountResult {
   const ledger = itemPricingDetails.map((detail) => ({
     detail,
@@ -127,20 +153,32 @@ export function applyBogoDiscount(
       0,
     );
     const groupSize = campaign.buyQuantity + campaign.getQuantity;
-    let freeUnits =
-      Math.floor(totalUnits / groupSize) * campaign.getQuantity;
+    const groupsPotential = Math.floor(totalUnits / groupSize);
+    let freeUnits = groupsPotential * campaign.getQuantity;
+    let capLimit: BogoCapLimit = null;
     // Per-order cap: maxGroupsPerOrder limits how many free groups one
     // order can earn (0 = unlimited)
-    if ((campaign.maxGroupsPerOrder ?? 0) > 0) {
-      freeUnits = Math.min(
-        freeUnits,
-        campaign.maxGroupsPerOrder * campaign.getQuantity,
-      );
+    const maxGroups = campaign.maxGroupsPerOrder ?? 0;
+    if (maxGroups > 0 && freeUnits > maxGroups * campaign.getQuantity) {
+      freeUnits = maxGroups * campaign.getQuantity;
+      capLimit = 'per_order';
+    }
+    // Per-user lifetime cap: maxFreePerUser minus what this customer already
+    // received from the campaign across all their past orders (0 = unlimited)
+    const maxPerUser = campaign.maxFreePerUser ?? 0;
+    if (maxPerUser > 0) {
+      const used = perUserFreeUsed?.get(campaign.id) ?? 0;
+      const allowed = Math.max(maxPerUser - used, 0);
+      if (freeUnits > allowed) {
+        freeUnits = allowed;
+        capLimit = 'per_user';
+      }
     }
     if (freeUnits <= 0) continue;
 
     let discount = 0;
     let left = freeUnits;
+    const freeLines: BogoFreeLine[] = [];
     for (const line of [...eligible].sort(
       (a, b) => a.detail.unitPrice - b.detail.unitPrice,
     )) {
@@ -151,9 +189,22 @@ export function applyBogoDiscount(
       line.bogo += cost;
       line.remaining -= take;
       left -= take;
+      freeLines.push({
+        productId: line.detail.productId,
+        quantity: take,
+        unitPrice: Number(line.detail.unitPrice),
+      });
     }
 
-    usages.push({ campaign, discount, freeUnits });
+    usages.push({
+      campaign,
+      discount,
+      freeUnits,
+      freeLines,
+      groupsPotential,
+      groupsEarned: Math.floor(freeUnits / campaign.getQuantity),
+      capLimit,
+    });
   }
 
   // Write the discount back into the pricing details
@@ -184,6 +235,7 @@ export class BogoCampaignsService {
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
     private readonly flashSaleCampaignsService: FlashSaleCampaignsService,
+    private readonly bogoUsageLogService: BogoUsageLogService,
   ) {}
 
   // ----- CRUD -----
@@ -402,6 +454,10 @@ export class BogoCampaignsService {
             name: campaign.name,
             buyQuantity: campaign.buyQuantity,
             getQuantity: campaign.getQuantity,
+            // Caps surface to the cart so it can block quantity changes
+            // past the deal's per-order ceiling (0 = unlimited)
+            maxGroupsPerOrder: campaign.maxGroupsPerOrder ?? 0,
+            maxFreePerUser: campaign.maxFreePerUser ?? 0,
             endsAt: campaign.validUntil
               ? new Date(campaign.validUntil).toISOString()
               : null,
@@ -418,6 +474,7 @@ export class BogoCampaignsService {
    */
   async preview(
     items: { productId: number; quantity: number }[],
+    userId?: number,
   ): Promise<{
     eligible: boolean;
     totalDiscount: number;
@@ -425,6 +482,15 @@ export class BogoCampaignsService {
       campaign: ActiveBogoCampaignSummary;
       discount: number;
       freeUnits: number;
+      groupsPotential: number;
+      groupsEarned: number;
+      capLimit: 'per_order' | 'per_user' | null;
+      freeLines: {
+        productId: number;
+        productName: string;
+        quantity: number;
+        unitPrice: number;
+      }[];
     }[];
   }> {
     const details: BogoPricingDetail[] = [];
@@ -472,6 +538,7 @@ export class BogoCampaignsService {
       details.push({
         productId: product.id,
         categoryId: product.category?.id,
+        productName: product.name,
         quantity: item.quantity,
         unitPrice: price,
         unitDiscount: productDiscount,
@@ -480,7 +547,18 @@ export class BogoCampaignsService {
     }
 
     const campaigns = await this.getActiveCampaigns();
-    const result = applyBogoDiscount(details, campaigns);
+    const perUserFreeUsed = userId
+      ? await this.bogoUsageLogService.sumFreeUnitsByUser(
+          userId,
+          campaigns.map((campaign) => campaign.id),
+        )
+      : undefined;
+    const result = applyBogoDiscount(details, campaigns, perUserFreeUsed);
+
+    // Product names for the free lines the cart renders
+    const productNames = new Map(
+      details.map((detail) => [detail.productId, detail.productName]),
+    );
 
     return {
       eligible: result.totalDiscount > 0,
@@ -489,6 +567,15 @@ export class BogoCampaignsService {
         campaign: this.toActiveSummary(usage.campaign),
         discount: usage.discount,
         freeUnits: usage.freeUnits,
+        groupsPotential: usage.groupsPotential,
+        groupsEarned: usage.groupsEarned,
+        capLimit: usage.capLimit,
+        freeLines: usage.freeLines.map((line) => ({
+          productId: line.productId,
+          productName: productNames.get(line.productId) ?? 'Unknown product',
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+        })),
       })),
     };
   }

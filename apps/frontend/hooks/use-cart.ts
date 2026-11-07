@@ -162,10 +162,62 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
     setIsLoading(true);
 
     try {
+      // BOGO auto-complete: when the product is covered by an active
+      // Buy-X-Get-Y campaign, top the quantity up to a full (buy + get)
+      // group so the free units materialize immediately — adding 1 nugget
+      // under "Buy 1 Get 1" lands 2 in the cart with 1 free, instead of a
+      // groupless unit the deal math can't apply to.
+      let finalQuantity = quantity;
+      const bogo = product.bogo;
+      if (bogo && quantity > 0) {
+        const groupSize = bogo.buyQuantity + bogo.getQuantity;
+        const items =
+          isLoggedIn && serverCart ? serverCart.items : localCart?.items || [];
+        const existing =
+          items.find((item) => item.product.id === product.id)?.quantity ?? 0;
+
+        // Per-order ceiling from the campaign's maxGroupsPerOrder — a full
+        // cart can't take more of this product (they'd be charged at full
+        // price). Block with a warning; bulk callers get a throw instead so
+        // their summary counts it as failed.
+        const maxUnits =
+          bogo.maxGroupsPerOrder > 0
+            ? bogo.maxGroupsPerOrder * groupSize
+            : Infinity;
+        const campaignLive =
+          !bogo.endsAt || new Date(bogo.endsAt).getTime() > Date.now();
+        if (
+          campaignLive &&
+          Number.isFinite(maxUnits) &&
+          existing + quantity > maxUnits
+        ) {
+          if (options?.silent) {
+            throw new Error(`"${bogo.name}" per-order limit reached`);
+          }
+          toast.error(`"${bogo.name}" limit reached`, {
+            description: `This deal allows at most ${maxUnits} × ${product.name} per order. Checkout with the current cart or remove something.`,
+          });
+          return;
+        }
+
+        const shortfall = (existing + quantity) % groupSize;
+        // Only top up when stock allows it — never exceed what's available
+        const maxAddable =
+          typeof product.stock === "number"
+            ? product.stock - existing
+            : Infinity;
+        if (shortfall !== 0 && maxAddable > quantity) {
+          finalQuantity = Math.min(
+            quantity + (groupSize - shortfall),
+            maxAddable
+          );
+        }
+      }
+
       if (isLoggedIn) {
         await postData("cart/items", {
           productId: product.id,
-          quantity,
+          quantity: finalQuantity,
         });
 
         serverRevalidate(["/", "/cart"]);
@@ -173,7 +225,7 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
         setLocalCart((prev) => {
           if (!prev)
             return {
-              items: [{ productId: product.id, quantity, product }],
+              items: [{ productId: product.id, quantity: finalQuantity, product }],
               lastUpdated: Date.now(),
             };
 
@@ -185,7 +237,7 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
             const updatedItems = [...prev.items];
             updatedItems[existingItemIndex] = {
               ...updatedItems[existingItemIndex],
-              quantity: updatedItems[existingItemIndex].quantity + quantity,
+              quantity: updatedItems[existingItemIndex].quantity + finalQuantity,
             };
 
             return {
@@ -198,7 +250,7 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
               ...prev,
               items: [
                 ...prev.items,
-                { productId: product.id, quantity, product },
+                { productId: product.id, quantity: finalQuantity, product },
               ],
               lastUpdated: Date.now(),
             };
@@ -208,7 +260,10 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
 
       if (!options?.silent) {
         toast.success("Item added to cart", {
-          description: `${product.name} has been added to your cart`,
+          description:
+            finalQuantity > quantity
+              ? `${product.name} × ${finalQuantity} · ${bogo?.getQuantity ?? 0} free`
+              : `${product.name} has been added to your cart`,
         });
       }
     } catch (error) {
@@ -216,7 +271,10 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
       // Bulk callers show their own summary toast — rethrow for them.
       if (options?.silent) throw error;
       toast.error("Failed to add item", {
-        description: "Please try again later",
+        description:
+          error instanceof Error && error.message
+            ? error.message
+            : "Please try again later",
       });
     } finally {
       setIsLoading(false);
@@ -283,8 +341,56 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
   const updateItemQuantity = async (
     itemId: number | string,
     quantity: number
-  ) => {
-    if (quantity < 1) return;
+  ): Promise<boolean> => {
+    // Returns false when the change was rejected (BOGO ceiling / server
+    // error) so optimistic callers can roll back their local quantity.
+    if (quantity < 1) return false;
+
+    // BOGO guard: while an active campaign covers this product, quantities
+    // below a full (buy + get) group would silently drop the deal the
+    // customer was shown. Remove the line entirely instead — with a warning
+    // explaining why.
+    const items =
+      isLoggedIn && serverCart ? serverCart.items : localCart?.items || [];
+    const targetItem = items.find(
+      (item) =>
+        item.product.id === itemId ||
+        (item as CartItem).id === itemId
+    );
+    const bogo = targetItem?.product.bogo;
+    if (targetItem && bogo) {
+      const campaignLive =
+        !bogo.endsAt || new Date(bogo.endsAt).getTime() > Date.now();
+      const groupSize = bogo.buyQuantity + bogo.getQuantity;
+      if (campaignLive && quantity < groupSize) {
+        toast.info(`"${bogo.name}" needs at least ${groupSize}`, {
+          description: `${targetItem.product.name} was removed from your cart — smaller quantities lose the free item.`,
+        });
+        await removeItem(itemId, { silent: true });
+        return true;
+      }
+
+      // Per-order ceiling: the campaign's maxGroupsPerOrder caps how many
+      // units this product can carry — extra units would be charged at
+      // full price, so block the increase instead.
+      const maxUnits =
+        bogo.maxGroupsPerOrder > 0
+          ? bogo.maxGroupsPerOrder * groupSize
+          : Infinity;
+      const currentQty = targetItem.quantity;
+      if (
+        campaignLive &&
+        quantity > currentQty &&
+        Number.isFinite(maxUnits) &&
+        quantity > maxUnits
+      ) {
+        toast.error(`"${bogo.name}" limit reached`, {
+          description: `This deal allows at most ${maxUnits} × ${targetItem.product.name} per order (${bogo.maxGroupsPerOrder} free group${bogo.maxGroupsPerOrder !== 1 ? "s" : ""}).`,
+        });
+        return false;
+      }
+    }
+
     setIsLoading(true);
 
     try {
@@ -310,17 +416,26 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
           };
         });
       }
+
+      return true;
     } catch (error) {
       console.error("Error updating item quantity:", error);
       toast.error("Failed to update quantity", {
-        description: "Please try again later",
+        description:
+          error instanceof Error && error.message
+            ? error.message
+            : "Please try again later",
       });
+      return false;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const removeItem = async (itemId: number | string) => {
+  const removeItem = async (
+    itemId: number | string,
+    options?: { silent?: boolean }
+  ) => {
     setIsLoading(true);
 
     try {
@@ -345,7 +460,9 @@ export function useCart({ serverCart, isLoggedIn }: UseCartProps) {
         });
       }
 
-      toast.success("Item removed from cart");
+      if (!options?.silent) {
+        toast.success("Item removed from cart");
+      }
     } catch (error) {
       console.error("Error removing item from cart:", error);
       toast.error("Failed to remove item", {

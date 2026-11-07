@@ -19,7 +19,7 @@ type CartContextType = {
   updateItemQuantity: (
     itemId: number | string,
     quantity: number
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   removeItem: (itemId: number | string) => Promise<void>;
   clearCart: () => Promise<void>;
   applyCoupon: (code: string, subtotal: number) => Promise<void>;
@@ -46,3 +46,4 @@ export function useCartContext() {
 }
 
 export { CartContext };
+

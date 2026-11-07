@@ -7,7 +7,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
 import { Request } from 'express';
 import { SkipAnalytics } from 'src/common/decorators/skip-analytics.decorator';
 import { getClientIp } from 'src/common/utils/ip-extractor.util';
@@ -18,6 +18,16 @@ class TrackPageViewDto {
   @IsString()
   @IsNotEmpty()
   path: string;
+
+  /**
+   * document.referrer of the landing page — the real traffic source. The HTTP
+   * Referer header of this request is the storefront's own page and is useless
+   * for attribution. Empty string = no external referrer (Direct).
+   */
+  @IsOptional()
+  @IsString()
+  @Length(0, 2048)
+  referrer?: string;
 }
 
 /**
@@ -45,7 +55,11 @@ export class AnalyticsTrackController {
   ): void {
     if (!PRODUCT_PAGE_PATH_REGEX.test(dto.path)) return;
 
-    // Same log shape the interceptor records for a page "request"
+    // Same log shape the interceptor records for a page "request". The body's
+    // `referrer` (document.referrer of the landing page) is preferred: the
+    // HTTP Referer header here is always our own storefront page.
+    const explicitReferrer =
+      dto.referrer !== undefined ? dto.referrer.trim() : undefined;
     this.analyticsService.logRequest({
       endpoint: 'page-view',
       method: 'GET',
@@ -53,7 +67,7 @@ export class AnalyticsTrackController {
       responseTime: 0,
       ipAddress: getClientIp(req),
       userAgent: req.headers['user-agent'],
-      referer: req.headers['referer'],
+      referer: explicitReferrer ?? req.headers['referer'],
       requestPath: dto.path,
       isAuthenticated: false,
     });

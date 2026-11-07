@@ -85,14 +85,13 @@ export function NotificationBell({
         className={cn(
           "flex flex-col",
           "w-[calc(100vw-2rem)] p-0",
-          "md:w-[820px] xl:w-[960px]",
+          "md:w-205 xl:w-240",
           "h-[80vh]",
           "overflow-hidden"
         )}
         align="end"
         side="bottom"
-        // Keep a gap between the popover and the viewport edge when it
-        // would otherwise be shifted/clamped to fit.
+
         collisionPadding={16}
       >
         <NotificationPanel />

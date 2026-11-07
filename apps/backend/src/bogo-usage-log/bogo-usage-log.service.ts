@@ -108,6 +108,30 @@ export class BogoUsageLogService {
     });
   }
 
+  /**
+   * Lifetime free units one customer has already received per campaign — the
+   * basis for the campaign's `maxFreePerUser` cap. Only campaigns with a
+   * nonzero sum appear in the returned map.
+   */
+  async sumFreeUnitsByUser(
+    userId: number,
+    campaignIds: number[],
+  ): Promise<Map<number, number>> {
+    if (campaignIds.length === 0) return new Map();
+    const rows: { campaignId: number; used: string }[] =
+      await this.usageLogRepository
+        .createQueryBuilder('log')
+        .select('log.campaign.id', 'campaignId')
+        .addSelect('SUM(log.freeUnits)', 'used')
+        .where('log.user.id = :userId', { userId })
+        .andWhere('log.campaign.id IN (:...campaignIds)', { campaignIds })
+        .groupBy('log.campaign.id')
+        .getRawMany();
+    return new Map(
+      rows.map((row) => [Number(row.campaignId), parseInt(row.used, 10) || 0]),
+    );
+  }
+
   // Aggregate stats for the Reports page — across all campaigns (or one when
   // campaignId is given), optionally within a date range.
   async getReportStats(options: BogoReportStatsOptions = {}) {

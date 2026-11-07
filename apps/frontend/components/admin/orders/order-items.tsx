@@ -10,9 +10,16 @@ import Image from "next/image";
 
 interface OrderItemsProps {
   items: OrderItem[];
+  /** Show every amount as whole taka (display-only rounding, e.g. the
+   * customer order view). Admin views keep exact figures by default. */
+  roundPrices?: boolean;
 }
 
-export function OrderItems({ items }: OrderItemsProps) {
+export function OrderItems({ items, roundPrices = false }: OrderItemsProps) {
+  const fmt = (n: number) =>
+    roundPrices
+      ? formatCurrencyEnglish(Math.round(n))
+      : formatCurrencyEnglish(n);
   return (
     <div className="rounded-sm border bg-card shadow-sm">
       <div className="px-4 py-3 border-b">
@@ -56,7 +63,7 @@ export function OrderItems({ items }: OrderItemsProps) {
 
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs text-muted-foreground">
-                        {formatCurrencyEnglish(unitPrice)} × {item.quantity}
+                        {fmt(unitPrice)} × {item.quantity}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {parseInt(String(item.product.weight || 0))}{" "}
@@ -64,7 +71,7 @@ export function OrderItems({ items }: OrderItemsProps) {
                       </span>
                       {unitDiscount > 0 && (
                         <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                          -{formatCurrencyEnglish(unitDiscount * item.quantity)}
+                          -{fmt(unitDiscount * item.quantity)}
                         </Badge>
                       )}
                     </div>
@@ -78,11 +85,11 @@ export function OrderItems({ items }: OrderItemsProps) {
 
                   <div className="text-right shrink-0">
                     <p className="text-sm font-semibold">
-                      {formatCurrencyEnglish(totalPrice)}
+                      {fmt(totalPrice)}
                     </p>
                     {unitDiscount > 0 && (
                       <p className="text-[10px] text-muted-foreground line-through">
-                        {formatCurrencyEnglish(
+                        {fmt(
                           (unitPrice + unitDiscount) * item.quantity
                         )}
                       </p>

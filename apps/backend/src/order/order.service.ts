@@ -335,7 +335,19 @@ export class OrderService {
     try {
       const bogoCampaigns = await this.bogoCampaignsService.getActiveCampaigns();
       if (bogoCampaigns.length > 0) {
-        bogoResult = applyBogoDiscount(itemPricingDetails, bogoCampaigns);
+        // Per-user lifetime caps (maxFreePerUser) are counted from the usage
+        // log so a customer can't farm the same campaign across orders.
+        const perUserFreeUsed = user?.id
+          ? await this.bogoUsageLogService.sumFreeUnitsByUser(
+              user.id,
+              bogoCampaigns.map((campaign) => campaign.id),
+            )
+          : undefined;
+        bogoResult = applyBogoDiscount(
+          itemPricingDetails,
+          bogoCampaigns,
+          perUserFreeUsed,
+        );
         if (bogoResult.totalDiscount > 0) {
           totalValue -= bogoResult.totalDiscount;
           totalDiscount += bogoResult.totalDiscount;

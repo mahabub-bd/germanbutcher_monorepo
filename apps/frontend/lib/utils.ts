@@ -33,6 +33,12 @@ export function formatCurrencyEnglish(amount: number, maximumFractionDigits: num
   }).format(amount);
 }
 
+/** Money displayed rounded to whole taka — display-only rounding; stored
+ * values keep their decimals (invoices/PDFs show exact figures). */
+export function formatRound(amount: number | string): string {
+  return formatCurrencyEnglish(Math.round(Number(amount) || 0));
+}
+
 export const formatDateTime = (input: string | Date) => {
   if (!input) return "-";
 

@@ -737,19 +737,14 @@ export function ProductList({
                 <Table className="report-table table-fixed">
                   <TableHeader className="[&_th]:font-semibold">
                     <TableRow className="hover:bg-transparent">
-                      {/* Category is its own column from md; unit joins at lg,
-                          purchase price and sold count at xl, brand last at 2xl.
-                          Product keeps a fixed width and carries the SKU and
-                          brand under its name, so the table adds figures
-                          without the name columns collapsing. Below xl the cost
-                          and sold count stay as sublines — the narrower table
-                          keeps the same column count. On 2xl the measure
-                          columns also gain width and side padding so they don't
-                          read as one crowded block. */}
-                      <TableHead className="pl-4 lg:w-64 2xl:w-96">
+
+                      <TableHead className="pl-4 lg:w-64 2xl:w-90">
                         Product
                       </TableHead>
-                      <TableHead className="w-24 lg:w-auto">
+                      <TableHead className="w-24 lg:w-32 2xl:w-36">
+                        Main Category
+                      </TableHead>
+                      <TableHead >
                         Category
                       </TableHead>
                       <TableHead className="hidden 2xl:table-cell">
@@ -783,8 +778,7 @@ export function ProductList({
                       <TableRow key={product.id}>
                         <TableCell className="py-2.5 pl-4">
                           <div className="flex min-w-0 items-center gap-2.5">
-                            {/* Below lg the row gives up the thumbnail so the
-                                category column has somewhere to sit. */}
+
                             <span className="hidden size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted lg:flex">
                               <ProductImage
                                 product={product}
@@ -815,7 +809,16 @@ export function ProductList({
                           </div>
                         </TableCell>
 
-                        <TableCell className="w-24 lg:w-auto">
+                        <TableCell className="w-24 lg:w-28">
+                          <p
+                            className="truncate text-sm"
+                            title={product.category?.parent?.name || undefined}
+                          >
+                            {product.category?.parent?.name || "—"}
+                          </p>
+                        </TableCell>
+
+                        <TableCell className="w-28 lg:w-auto">
                           <p
                             className="truncate text-sm"
                             title={product.category?.name || undefined}
@@ -824,7 +827,7 @@ export function ProductList({
                           </p>
                         </TableCell>
 
-                        <TableCell className="hidden 2xl:table-cell">
+                        <TableCell className="hidden w-20 2xl:table-cell">
                           <p
                             className="truncate text-sm"
                             title={product.brand?.name || undefined}
@@ -959,6 +962,11 @@ export function ProductList({
                       <DetailField label="Brand">
                         <p className="truncate text-sm">
                           {product.brand?.name || "No brand"}
+                        </p>
+                      </DetailField>
+                      <DetailField label="Main Category">
+                        <p className="truncate text-sm">
+                          {product.category?.parent?.name || "—"}
                         </p>
                       </DetailField>
                       <DetailField label="Category">
