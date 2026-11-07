@@ -238,9 +238,9 @@ export function CrmDashboard() {
   const pageHeader = (
     <PageHeader
       title="CRM dashboard"
-      titleIcon={<Users className="size-6 text-primaryColor" />}
+
       description="Customer health, lifetime value and follow-ups in one view."
-      actionLabel="All customers"
+      actionLabel="Customer List"
       actionHref="/admin/crm/customers"
       actionIcon={<ArrowRight className="mr-2 size-4" />}
     />
