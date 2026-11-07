@@ -50,6 +50,7 @@ export class ActivityInterceptor implements NestInterceptor {
   private readonly EXCLUDED_PATHS = [
     '/v1/online-users/heartbeat',
     '/v1/free-delivery-campaigns/check',
+    '/v1/bogo-campaigns/preview',
   ];
 
   constructor(
@@ -632,10 +633,6 @@ export class ActivityInterceptor implements NestInterceptor {
 
     if (entityType === 'user-activities' && routePath.includes('/retention')) {
       return `Ran activity log retention cleanup`;
-    }
-
-    if (entityType === 'bogo-campaigns' && routePath.includes('/preview')) {
-      return `Previewed BOGO campaign discount`;
     }
 
     if (entityType === 'attachment' && routePath.includes('/upload-multiple')) {
