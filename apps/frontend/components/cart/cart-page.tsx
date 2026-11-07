@@ -26,6 +26,7 @@ import { useBogo } from "@/hooks/use-bogo";
 import { useFreeDelivery } from "@/hooks/use-free-delivery";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import type { Cart, CartItem } from "@/utils/types";
+import { BogoFreeItems } from "./bogo-free-items";
 import { CartItemProductPage } from "./cart-item-product-page";
 import { EmptyCart } from "./empty-cart";
 import { FreeDeliveryBanner } from "./free-delivery-banner";
@@ -115,7 +116,7 @@ export function CartPage({ cart }: { cart?: Cart }) {
     }
   };
   return (
-    <div className="container mx-auto grid grid-cols-1 items-start gap-6 px-2 py-4 md:px-0 md:py-4 lg:grid-cols-3 lg:gap-8">
+    <div className="container mx-auto grid grid-cols-1 items-start gap-6 px-4 py-4 md:px-6 lg:grid-cols-3 lg:gap-8">
       {/* Main Cart Content */}
       <div className="lg:col-span-2">
         {/* Cart Header */}
@@ -149,12 +150,14 @@ export function CartPage({ cart }: { cart?: Cart }) {
           )}
         </div>
 
-        {/* Cart Items */}
+        {/* Cart Items — already sorted A→Z by the backend */}
         {itemCount > 0 ? (
           <div className="space-y-4">
             {cart?.items.map((item: CartItem) => (
               <CartItemProductPage key={item.product?.id} item={item} />
             ))}
+            {/* Free items auto-added by active BOGO campaigns */}
+            <BogoFreeItems bogoResult={bogoResult} />
           </div>
         ) : (
           <EmptyCart />
@@ -231,18 +234,25 @@ export function CartPage({ cart }: { cart?: Cart }) {
                 </div>
               )}
 
-              {bogoResult?.eligible && bogoDiscount > 0 && (
-                <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                  <span>
-                    BOGO Discount
-                    {bogoResult.usages[0]?.campaign?.name
-                      ? ` (${bogoResult.usages[0].campaign.name})`
-                      : ""}
-                    :
-                  </span>
-                  <span>-{formatCurrencyEnglish(bogoDiscount)}</span>
-                </div>
-              )}
+              {/* One row per campaign — multiple BOGO deals can apply at once */}
+              {bogoResult?.eligible &&
+                bogoResult.usages
+                  .filter((usage) => usage.discount > 0)
+                  .map((usage) => (
+                    <div
+                      key={usage.campaign.id}
+                      className="flex justify-between text-sm text-green-600 dark:text-green-400"
+                    >
+                      <span>
+                        BOGO Discount
+                        {usage.campaign.name
+                          ? ` (${usage.campaign.name})`
+                          : ""}
+                        :
+                      </span>
+                      <span>-{formatCurrencyEnglish(usage.discount)}</span>
+                    </div>
+                  ))}
 
               {appliedCoupon && (
                 <div className="flex justify-between text-sm text-green-600 dark:text-green-400">

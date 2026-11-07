@@ -71,6 +71,14 @@ export class BogoCampaign {
   @Column({ default: 0 })
   @ApiProperty({
     example: 0,
+    description:
+      'Maximum free units one customer can receive from this campaign across all their orders (0 = unlimited). Counted from the BOGO usage log.',
+  })
+  maxFreePerUser: number;
+
+  @Column({ default: 0 })
+  @ApiProperty({
+    example: 0,
     description: 'Maximum uses (0 = unlimited)',
   })
   maxUsage: number;

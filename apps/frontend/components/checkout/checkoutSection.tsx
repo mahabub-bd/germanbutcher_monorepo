@@ -655,8 +655,13 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
               <OrderSummary
                 originalSubtotal={originalSubtotal}
                 productDiscounts={productDiscounts}
-                bogoDiscount={bogoDiscount}
-                bogoCampaignName={bogoResult?.usages[0]?.campaign?.name ?? null}
+                bogoUsages={(bogoResult?.usages ?? [])
+                  .filter((usage) => usage.discount > 0)
+                  .map((usage) => ({
+                    campaignId: usage.campaign.id,
+                    label: usage.campaign.name,
+                    discount: usage.discount,
+                  }))}
                 appliedCoupon={appliedCoupon}
                 shippingCost={effectiveShippingCost}
                 isFreeDelivery={isShippingFree}
@@ -689,8 +694,13 @@ export default function CheckoutPage({ user }: { user?: UserType }) {
               <OrderSummary
                 originalSubtotal={originalSubtotal}
                 productDiscounts={productDiscounts}
-                bogoDiscount={bogoDiscount}
-                bogoCampaignName={bogoResult?.usages[0]?.campaign?.name ?? null}
+                bogoUsages={(bogoResult?.usages ?? [])
+                  .filter((usage) => usage.discount > 0)
+                  .map((usage) => ({
+                    campaignId: usage.campaign.id,
+                    label: usage.campaign.name,
+                    discount: usage.discount,
+                  }))}
                 appliedCoupon={appliedCoupon}
                 shippingCost={effectiveShippingCost}
                 isFreeDelivery={isShippingFree}

@@ -124,10 +124,12 @@ Errors are **not** wrapped in the success envelope. They use Nest's default exce
 
 **Rate limiting is not per shopper.** Login, register and OTP calls are made from the
 Next.js server (server actions), so the API sees one shared source IP for every visitor;
-their `@Throttle({ short, medium, long })` buckets are site-wide (login: 120/min, 400/5 min,
-1200/h; register: 60/min, 200/5 min, 600/h — sized for campaign peaks; OTP endpoints stay
-tight because each send costs SMS money). Overrides must use those bucket names — a
-`default` key matches nothing and is silently ignored (see `app.module.ts`).
+their `@Throttle({ short, medium, long })` buckets are site-wide and sized for campaign
+peaks (login and mobile-login: 120/min, 400/5 min, 1200/h; verify-otp: 1200/h plus retry
+headroom; register: 60/min, 200/5 min, 600/h). `mobile-login` sends a paid SMS per call,
+so its limit is also the SMS-drain guard — don't loosen it further without checking the
+gateway bill. Overrides must use those bucket names — a `default` key matches nothing and
+is silently ignored (see `app.module.ts`).
 
 Notes:
 

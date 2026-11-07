@@ -21,8 +21,9 @@ import { notFound } from "next/navigation";
 import { DownloadInvoiceButton } from "@/components/admin/orders/download-invoice-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { formatCurrencyEnglish, formatDateTime, formatWeight } from "@/lib/utils";
+import { formatDateTime, formatRound, formatWeight } from "@/lib/utils";
 import { fetchProtectedData } from "@/utils/api-utils";
+
 import {
   getOrderStatusColor,
   getPaymentStatusColor,
@@ -311,8 +312,19 @@ export default async function OrderConfirmationPage({
               <div className="divide-y divide-gray-100">
                 {items.map((item: OrderItem) => {
                   const unitPrice = getItemUnitPrice(item);
-                  const hasDiscount = getItemUnitDiscount(item) > 0;
-                  const flash = isFlashDiscounted(item);
+                  // BOGO free units are blended into unitDiscount (saving ÷
+                  // qty), shrinking item.totalPrice below unitPrice × qty.
+                  // Genuine product/flash discounts keep them equal — detect
+                  // the BOGO case so it isn't shown as a per-unit "OFF"
+                  // badge (the free units are itemized in the summary).
+                  const bogoPooled =
+                    Math.abs(
+                      unitPrice * item.quantity -
+                        Number(item.totalPrice ?? 0),
+                    ) > 0.01;
+                  const hasDiscount =
+                    getItemUnitDiscount(item) > 0 && !bogoPooled;
+                  const flash = isFlashDiscounted(item) && !bogoPooled;
                   return (
                     <div
                       key={item.id}
@@ -343,10 +355,10 @@ export default async function OrderConfirmationPage({
                             Qty: {item.quantity} ×{" "}
                             {hasDiscount ? (
                               <span className="line-through">
-                                {formatCurrencyEnglish(item.product.sellingPrice)}
+                                {formatRound(item.product.sellingPrice)}
                               </span>
                             ) : (
-                              formatCurrencyEnglish(unitPrice)
+                              formatRound(unitPrice)
                             )}
                           </span>
                           {hasDiscount && flash && (
@@ -359,7 +371,7 @@ export default async function OrderConfirmationPage({
                             <span className="inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-0.5 text-[0.7rem] font-semibold text-green-700">
                               {item.product.discountType === "percentage"
                                 ? `${Number.parseFloat(String(item.product.discountValue))}% OFF`
-                                : `${formatCurrencyEnglish(getItemUnitDiscount(item))} OFF`}
+                                : `${formatRound(getItemUnitDiscount(item))} OFF`}
                             </span>
                           )}
                           {item.product.weight && item.product.unit?.name && (
@@ -375,7 +387,7 @@ export default async function OrderConfirmationPage({
 
                       <div className="shrink-0 text-right">
                         <div className="text-sm font-bold text-gray-900 whitespace-nowrap">
-                          {formatCurrencyEnglish(unitPrice * item.quantity)}
+                          {formatRound(unitPrice * item.quantity)}
                         </div>
                       </div>
                     </div>
@@ -413,7 +425,7 @@ export default async function OrderConfirmationPage({
               {order.paidAmount > 0 && (
                 <InfoRow label="Amount Paid">
                   <span className="text-green-600">
-                    {formatCurrencyEnglish(order.paidAmount)}
+                    {formatRound(order.paidAmount)}
                   </span>
                 </InfoRow>
               )}
@@ -439,7 +451,7 @@ export default async function OrderConfirmationPage({
                 {orderSummary.shippingCost === 0 ? (
                   <span className="font-bold text-green-600">FREE</span>
                 ) : (
-                  formatCurrencyEnglish(orderSummary.shippingCost)
+                  formatRound(orderSummary.shippingCost)
                 )}
               </InfoRow>
             </InfoCard>
@@ -516,7 +528,7 @@ export default async function OrderConfirmationPage({
           <InfoCard icon={FileText} title="Order Summary">
             <div className="space-y-2.5 rounded-xl bg-gray-50 p-4">
               <SummaryLine icon={ShoppingBasket} label="Subtotal">
-                {formatCurrencyEnglish(orderSummary.originalSubtotal)}
+                {formatRound(orderSummary.originalSubtotal)}
               </SummaryLine>
               {/* unitDiscount snapshots include BOGO, so show the pure
                   product discount here and list BOGO separately below */}
@@ -525,7 +537,7 @@ export default async function OrderConfirmationPage({
                 0 && (
                   <SummaryLine icon={Tag} label="Product Discounts">
                     <span className="text-green-600">
-                      -{formatCurrencyEnglish(
+                      -{formatRound(
                         orderSummary.productDiscountTotal -
                         orderSummary.bogoDiscountTotal
                       )}
@@ -536,25 +548,28 @@ export default async function OrderConfirmationPage({
                 <SummaryLine
                   key={usage.campaignName}
                   icon={Tag}
-                  label={`BOGO — ${usage.campaignName} (${usage.freeUnits} free)`}
+                  label={`${usage.campaignName} (${usage.freeUnits} free)`}
                 >
                   <span className="text-green-600">
-                    -{formatCurrencyEnglish(usage.discount)}
+                    -{formatRound(usage.discount)}
                   </span>
                 </SummaryLine>
               ))}
               {order.coupon && orderSummary.couponDiscount > 0 && (
                 <SummaryLine icon={Tag} label={`Coupon (${order.coupon.code})`}>
                   <span className="text-green-600">
-                    -{formatCurrencyEnglish(orderSummary.couponDiscount)}
+                    -{formatRound(orderSummary.couponDiscount)}
                   </span>
                 </SummaryLine>
               )}
-              <SummaryLine icon={Truck} label="Shipping">
+              <SummaryLine
+                icon={Truck}
+                label={`Shipping${order.shippingMethod?.name ? ` (${order.shippingMethod.name})` : ""}`}
+              >
                 {orderSummary.shippingCost === 0 ? (
                   <span className="font-bold text-green-600">FREE</span>
                 ) : (
-                  formatCurrencyEnglish(orderSummary.shippingCost)
+                  formatRound(orderSummary.shippingCost)
                 )}
               </SummaryLine>
 
@@ -566,7 +581,7 @@ export default async function OrderConfirmationPage({
                   Total
                 </span>
                 <span className="text-lg font-extrabold text-gray-900">
-                  {formatCurrencyEnglish(orderSummary.total)}
+                  {formatRound(orderSummary.total)}
                 </span>
               </div>
               {isUnpaidStatus(order.paymentStatus) && !isCOD && (
@@ -575,7 +590,7 @@ export default async function OrderConfirmationPage({
                     Due Amount
                   </span>
                   <span className="text-sm font-bold text-red-600">
-                    {formatCurrencyEnglish(dueAmount)}
+                    {formatRound(dueAmount)}
                   </span>
                 </div>
               )}

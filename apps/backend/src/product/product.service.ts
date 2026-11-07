@@ -224,6 +224,7 @@ export class ProductService {
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('category.parent', 'parentCategory')
       .leftJoinAndSelect('product.supplier', 'supplier')
       .leftJoinAndSelect('product.unit', 'unit')
       .leftJoinAndSelect('product.attachment', 'attachment')
@@ -255,6 +256,10 @@ export class ProductService {
         'category.id',
         'category.name',
         'category.slug',
+
+        'parentCategory.id',
+        'parentCategory.name',
+        'parentCategory.slug',
 
         'supplier.id',
         'supplier.name',

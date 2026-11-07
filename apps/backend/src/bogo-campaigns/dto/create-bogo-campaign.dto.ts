@@ -57,6 +57,17 @@ export class CreateBogoCampaignDto {
   @ApiPropertyOptional({
     example: 0,
     default: 0,
+    description:
+      'Maximum free units one customer can receive from this campaign across all their orders; 0 = unlimited. Counted from the BOGO usage log.',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  maxFreePerUser?: number;
+
+  @ApiPropertyOptional({
+    example: 0,
+    default: 0,
     description: 'Maximum uses; 0 = unlimited',
   })
   @IsOptional()

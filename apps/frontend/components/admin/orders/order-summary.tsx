@@ -35,6 +35,9 @@ interface OrderSummaryProps {
   totalValue: number;
   paidAmount: number;
   paymentStatus: string;
+  /** Show every amount as whole taka (display-only rounding, e.g. the
+   * customer order view). Admin views keep exact figures by default. */
+  roundPrices?: boolean;
   /** BOGO campaign usages attached by the backend on order detail */
   bogoUsage?: Array<{
     campaignName: string;
@@ -52,8 +55,13 @@ export function OrderSummary({
   totalValue,
   paidAmount,
   paymentStatus,
+  roundPrices = false,
   bogoUsage,
 }: OrderSummaryProps) {
+  const fmt = (n: number) =>
+    roundPrices
+      ? formatCurrencyEnglish(Math.round(n))
+      : formatCurrencyEnglish(n);
   const calculateOrderSummary = (): OrderSummaryData => {
     const itemsSubtotal = items.reduce((sum, item) => {
       const itemTotal =
@@ -117,7 +125,7 @@ export function OrderSummary({
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Subtotal</span>
             <span className="text-sm">
-              {formatCurrencyEnglish(orderSummary.originalSubtotal)}
+              {fmt(orderSummary.originalSubtotal)}
             </span>
           </div>
           {orderSummary.productDiscountTotal -
@@ -128,7 +136,7 @@ export function OrderSummary({
                 Product Discounts
               </span>
               <span className="text-sm text-green-600">
-                -{formatCurrencyEnglish(
+                -{fmt(
                   orderSummary.productDiscountTotal -
                     orderSummary.bogoDiscountTotal
                 )}
@@ -138,10 +146,10 @@ export function OrderSummary({
           {orderSummary.bogoUsages.map((usage) => (
             <div key={usage.campaignName} className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground flex items-center">
-                BOGO — {usage.campaignName} ({usage.freeUnits} free)
+                {usage.campaignName} ({usage.freeUnits} free)
               </span>
               <span className="text-sm text-green-600">
-                -{formatCurrencyEnglish(Number(usage.discountAmount))}
+                -{fmt(Number(usage.discountAmount))}
               </span>
             </div>
           ))}
@@ -151,7 +159,7 @@ export function OrderSummary({
                 Coupon Discount ({coupon.code})
               </span>
               <span className="text-sm text-green-600">
-                -{formatCurrencyEnglish(orderSummary.couponDiscount)}
+                -{fmt(orderSummary.couponDiscount)}
               </span>
             </div>
           )}
@@ -161,7 +169,7 @@ export function OrderSummary({
             </span>
             {orderSummary.shippingCost > 0 ? (
               <span className="text-sm">
-                {formatCurrencyEnglish(orderSummary.shippingCost)}
+                {fmt(orderSummary.shippingCost)}
               </span>
             ) : (
               <span className="text-sm font-medium text-green-600">
@@ -172,12 +180,12 @@ export function OrderSummary({
           <Separator className="my-2" />
           <div className="flex justify-between font-medium text-base">
             <span>Total</span>
-            <span>{formatCurrencyEnglish(orderSummary.total)}</span>
+            <span>{fmt(orderSummary.total)}</span>
           </div>
           {(paymentStatus === "unpaid" || paymentStatus === "pending") && (
             <div className="flex justify-between text-red-600 text-sm">
               <span>Due Amount</span>
-              <span>{formatCurrencyEnglish(totalValue - paidAmount)}</span>
+              <span>{fmt(totalValue - paidAmount)}</span>
             </div>
           )}
         </div>

@@ -108,7 +108,7 @@ export default function OrderView({ order, onBack }: OrderViewProps) {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2 space-y-4">
-          <OrderItems items={order.items} />
+          <OrderItems items={order.items} roundPrices />
 
           <OrderTimeline order={order} />
 
@@ -138,6 +138,7 @@ export default function OrderView({ order, onBack }: OrderViewProps) {
             totalValue={order.totalValue}
             paidAmount={order.paidAmount}
             paymentStatus={order.paymentStatus}
+            roundPrices
             bogoUsage={order.bogoUsage}
           />
         </div>

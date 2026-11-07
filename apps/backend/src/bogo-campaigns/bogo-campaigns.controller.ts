@@ -8,12 +8,14 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from 'src/auth/guards/optional-jwt-auth.guard';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { ApiResponseDto } from 'src/common/types';
 import { CreateBogoCampaignDto } from './dto/create-bogo-campaign.dto';
@@ -32,10 +34,16 @@ export class BogoCampaignsController {
     private readonly campaignsService: BogoCampaignsService,
   ) {}
 
-  /** Public: estimate BOGO discount for a cart (display-only). */
+  /**
+   * Public: estimate BOGO discount for a cart (display-only). When a valid
+   * token is present, the caller's per-user lifetime caps are applied too,
+   * so the cart shows exactly what checkout will charge.
+   */
+  @UseGuards(OptionalJwtAuthGuard)
   @Post('preview')
   async preview(
     @Body() dto: PreviewBogoDto,
+    @Req() req,
   ): Promise<ApiResponseDto<{
     eligible: boolean;
     totalDiscount: number;
@@ -43,9 +51,18 @@ export class BogoCampaignsController {
       campaign: ActiveBogoCampaignSummary;
       discount: number;
       freeUnits: number;
+      freeLines: {
+        productId: number;
+        productName: string;
+        quantity: number;
+        unitPrice: number;
+      }[];
     }[];
   }>> {
-    const data = await this.campaignsService.preview(dto.items);
+    const data = await this.campaignsService.preview(
+      dto.items,
+      req?.user?.id,
+    );
     return {
       message: 'BOGO preview retrieved successfully',
       statusCode: HttpStatus.OK,

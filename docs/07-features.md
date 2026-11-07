@@ -159,12 +159,16 @@ line total after BOGO.
 
 ### BOGO (buy X get Y)
 
-Fields: `buyQuantity`, `getQuantity`, `maxGroupsPerOrder` (0 = unlimited), `maxUsage`
+Fields: `buyQuantity`, `getQuantity`, `maxGroupsPerOrder` (0 = unlimited), `maxFreePerUser`
+(0 = unlimited — lifetime free units per customer, counted from the usage log), `maxUsage`
 (0 = unlimited), `usageCount`, product/category scope, validity window.
 
 Rules: units pool across eligible lines (not per line), the cheapest units become free,
 campaigns are processed in id order and a unit can only feed one campaign, and every
-campaign that freed a unit gets its own usage-log row.
+campaign that freed a unit gets its own usage-log row. The cart shows the granted free
+items as read-only rows under the regular items (auto-added by the campaign); they carry
+no separate cart entry — the discount line already accounts for them, and order creation
+re-checks every cap authoritatively.
 
 ### Flash sales
 

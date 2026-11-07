@@ -87,6 +87,11 @@ export function BogoForm({ campaign, mode, onSuccess }: BogoFormProps) {
     campaign?.products?.length ? SELECTED_KEY : ""
   );
   const [products, setProducts] = useState<MinimalProduct[]>([]);
+  /** The last server fetch for the selected category (subcategories
+   * included by the backend, so this is the list to display). */
+  const [categoryProducts, setCategoryProducts] = useState<MinimalProduct[]>(
+    []
+  );
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [validFromTime, setValidFromTime] = useState(() =>
@@ -104,6 +109,7 @@ export function BogoForm({ campaign, mode, onSuccess }: BogoFormProps) {
       buyQuantity: campaign?.buyQuantity || 2,
       getQuantity: campaign?.getQuantity || 1,
       maxGroupsPerOrder: campaign?.maxGroupsPerOrder || 0,
+      maxFreePerUser: campaign?.maxFreePerUser || 0,
       maxUsage: campaign?.maxUsage || 0,
       validFrom: campaign?.validFrom ? new Date(campaign.validFrom) : undefined,
       validUntil: campaign?.validUntil ? new Date(campaign.validUntil) : undefined,
@@ -158,6 +164,13 @@ export function BogoForm({ campaign, mode, onSuccess }: BogoFormProps) {
           `products/all?category=${selectedCategoryId}&isActive=true`
         );
         if (Array.isArray(fetched)) {
+          // The backend already scopes this to the category (its
+          // subcategories included) — display it as-is. Filtering here by
+          // p.categoryId === selectedCategoryId would drop subcategory
+          // products, making the list look empty.
+          setCategoryProducts(
+            [...fetched].sort((a, b) => a.name.localeCompare(b.name))
+          );
           // Merge by id so selections survive switching between categories
           setProducts((prev) => {
             const byId = new Map(prev.map((p) => [p.id, p]));
@@ -377,6 +390,33 @@ export function BogoForm({ campaign, mode, onSuccess }: BogoFormProps) {
 
                 <FormField
                   control={form.control}
+                  name="maxFreePerUser"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1.5">
+                        <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
+                        Per-Customer Limit
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value))
+                          }
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Max free units one customer can ever receive from this
+                        campaign; 0 = unlimited
+                      </p>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="maxUsage"
                   render={({ field }) => (
                     <FormItem>
@@ -555,11 +595,7 @@ export function BogoForm({ campaign, mode, onSuccess }: BogoFormProps) {
                                   (field.value || []).includes(p.id)
                                 )
                                 : selectedCategoryId
-                                  ? products.filter(
-                                    (p) =>
-                                      p.categoryId ===
-                                      Number(selectedCategoryId)
-                                  )
+                                  ? categoryProducts
                                   : []
                             }
                             selectedProductIds={field.value || []}

@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   // Summary Section
   summaryContainer: {
     alignSelf: "flex-end",
-    width: "45%",
+    width: "62%",
     marginTop: 10,
     marginBottom: 20,
   },
@@ -246,10 +246,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-end",
     paddingVertical: 2,
+    gap: 8,
   },
   summaryLabel: {
     fontSize: 9,
     color: "#64748b",
+    // Long labels (BOGO campaign names) wrap within the row instead of
+    // pushing the amount out of the card
+    flexGrow: 1,
+    paddingRight: 6,
   },
   summaryValue: {
     fontSize: 9,
@@ -591,7 +596,16 @@ export const OrderPDFDocument = ({
                 Number(item.totalPrice) ||
                 unitPrice * (Number(item.quantity) || 0);
               const unitDiscount = Number(item.unitDiscount) || 0;
-              const hasDiscount = unitDiscount > 0;
+              // BOGO free units are blended into unitDiscount (saving ÷ qty),
+              // which shrinks the line total below unitPrice × qty. Genuine
+              // product-discount lines keep them equal. Detect the BOGO case
+              // so it isn't drawn as a fake per-unit strikethrough price —
+              // the free units are already itemized in the summary block.
+              const bogoPooled =
+                Math.abs(
+                  unitPrice * (Number(item.quantity) || 0) - totalPrice,
+                ) > 0.01;
+              const hasDiscount = unitDiscount > 0 && !bogoPooled;
               const originalPrice = unitPrice + unitDiscount;
 
               return (
@@ -682,7 +696,7 @@ export const OrderPDFDocument = ({
             {orderSummary.bogoUsages.map((usage) => (
               <View key={usage.campaignName} style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>
-                  BOGO — {usage.campaignName} ({usage.freeUnits} free):
+                  {usage.campaignName} ({usage.freeUnits} free):
                 </Text>
                 <Text style={[styles.summaryValue, styles.discountValue]}>
                   -{formatCurrency(usage.discountAmount)}

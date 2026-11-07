@@ -100,6 +100,9 @@ export class CartService {
           });
 
           if (cart) {
+            cart.items?.sort((a, b) =>
+              (a.product?.name ?? '').localeCompare(b.product?.name ?? ''),
+            );
             return this.withFlashSale(cart);
           }
         }
@@ -119,7 +122,39 @@ export class CartService {
       });
     }
 
+    // Alphabetical (A→Z) item order — one canonical ordering the storefront
+    // renders as-is, so every endpoint returns a consistent sequence
+    cart.items?.sort((a, b) =>
+      (a.product?.name ?? '').localeCompare(b.product?.name ?? ''),
+    );
+
     return this.withFlashSale(cart);
+  }
+
+  /**
+   * BOGO per-order ceiling for a product: a campaign with maxGroupsPerOrder
+   * caps how many units of an eligible product one cart may carry (extra
+   * units would be charged at full price, so the cart refuses them).
+   * Returns Infinity when no live campaign caps the product.
+   */
+  private async getBogoPerOrderCeiling(
+    productId: number,
+  ): Promise<number> {
+    const product = await this.productRepo.findOne({
+      where: { id: productId },
+      relations: ['category'],
+    });
+    if (!product) return Infinity;
+
+    const campaigns = await this.bogoCampaignsService.getActiveCampaigns();
+    const campaign = this.bogoCampaignsService.resolveForProductFromList(
+      campaigns,
+      product.id,
+      product.category?.id,
+    );
+    if (!campaign || (campaign.maxGroupsPerOrder ?? 0) <= 0) return Infinity;
+
+    return campaign.maxGroupsPerOrder * (campaign.buyQuantity + campaign.getQuantity);
   }
 
   async addItemToCart(dto: AddCartItemDto, user: User): Promise<Cart> {
@@ -141,6 +176,18 @@ export class CartService {
     const existingItem = cart.items?.find(
       (item) => item.product.id === dto.productId,
     );
+
+    // Per-order ceiling is enforced here (not just client-side) so stale
+    // storefront state can't push a cart past the deal limit
+    const ceiling = await this.getBogoPerOrderCeiling(dto.productId);
+    if (
+      Number.isFinite(ceiling) &&
+      (existingItem?.quantity ?? 0) + dto.quantity > ceiling
+    ) {
+      throw new BadRequestException(
+        `Per-order limit reached: at most ${ceiling} × ${product.name} with the active BOGO deal.`,
+      );
+    }
 
     if (existingItem) {
       // Update existing item quantity
@@ -168,10 +215,20 @@ export class CartService {
   ): Promise<Cart> {
     const item = await this.itemRepo.findOne({
       where: { id: itemId, cart: { user: { id: user?.userId } } },
+      relations: ['product'],
     });
 
     if (!item) {
       throw new NotFoundException('Cart item not found');
+    }
+
+    // Same per-order ceiling as addItemToCart — quantity can't be pushed
+    // past the deal limit through the update path either
+    const ceiling = await this.getBogoPerOrderCeiling(item.product.id);
+    if (Number.isFinite(ceiling) && dto.quantity > ceiling) {
+      throw new BadRequestException(
+        `Per-order limit reached: at most ${ceiling} × ${item.product.name} with the active BOGO deal.`,
+      );
     }
 
     item.quantity = dto.quantity;

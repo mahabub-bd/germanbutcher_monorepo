@@ -48,28 +48,17 @@ export function CartItemProduct({ item }: { item: CartItem }) {
       return;
     }
 
-    // Optimistic update
+    // Optimistic update — rolled back when the change is rejected
+    // (BOGO per-order ceiling, server error)
     const previousQuantity = localQuantity;
     setLocalQuantity(newQuantity);
     setIsUpdating(true);
 
-    try {
-      await updateItemQuantity(itemId, newQuantity);
-    } catch (error) {
-      console.error(error);
+    const updated = await updateItemQuantity(itemId, newQuantity);
+    if (!updated) {
       setLocalQuantity(previousQuantity);
-
-      // Check if error is due to stock issues
-      if (error instanceof Error && error.message.includes("stock")) {
-        toast.error("Stock unavailable", {
-          description: `${item.product.name} is out of stock`,
-        });
-      } else {
-        toast.error("Failed to update quantity");
-      }
-    } finally {
-      setIsUpdating(false);
     }
+    setIsUpdating(false);
   };
 
   const handleIncrement = () => {

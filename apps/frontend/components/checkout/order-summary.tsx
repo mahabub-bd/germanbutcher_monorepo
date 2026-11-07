@@ -26,8 +26,8 @@ interface OrderSummaryProps {
   originalSubtotal: number;
 
   productDiscounts: number;
-  bogoDiscount?: number;
-  bogoCampaignName?: string | null;
+  /** One entry per applied BOGO campaign — multiple deals can apply at once */
+  bogoUsages?: { campaignId: number; label?: string | null; discount: number }[];
   appliedCoupon: { code: string; discount: number } | null;
   shippingCost: number;
   isFreeDelivery?: boolean;
@@ -52,8 +52,7 @@ interface OrderSummaryProps {
 export function OrderSummary({
   originalSubtotal,
   productDiscounts,
-  bogoDiscount = 0,
-  bogoCampaignName = null,
+  bogoUsages = [],
   appliedCoupon,
   shippingCost,
   isFreeDelivery = false,
@@ -142,22 +141,22 @@ export function OrderSummary({
           </div>
         )}
 
-        {bogoDiscount > 0 && (
-          <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-            <span className="flex items-center gap-2">
-              BOGO
-              {bogoCampaignName && (
-                <Badge
-                  variant="outline"
-                  className="border-primaryColor/20 bg-primaryColor/5 text-xs text-primaryColor"
-                >
-                  {bogoCampaignName}
-                </Badge>
-              )}
-            </span>
-            <span>-{formatCurrencyEnglish(bogoDiscount)}</span>
-          </div>
-        )}
+        {/* One row per campaign — multiple BOGO deals can apply at once */}
+        {bogoUsages
+          .filter((usage) => usage.discount > 0)
+          .map((usage) => (
+            <div
+              key={usage.campaignId}
+              className="flex justify-between text-sm text-green-600 dark:text-green-400"
+            >
+              <span>
+                BOGO Discount
+                {usage.label ? ` (${usage.label})` : ""}
+                :
+              </span>
+              <span>-{formatCurrencyEnglish(usage.discount)}</span>
+            </div>
+          ))}
 
         {appliedCoupon && (
           <div className="flex justify-between text-sm text-green-600 dark:text-green-400">

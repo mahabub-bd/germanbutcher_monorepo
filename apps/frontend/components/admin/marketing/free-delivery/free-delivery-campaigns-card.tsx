@@ -126,6 +126,11 @@ export function FreeDeliveryCampaignsCard() {
   const [errors, setErrors] = useState<FormErrors>({});
   // Category-first product picker (products/all endpoint)
   const [pickerProducts, setPickerProducts] = useState<MinimalProduct[]>([]);
+  /** The last server fetch for the selected category (subcategories
+   * included by the backend, so this is the list to display). */
+  const [pickerCategoryProducts, setPickerCategoryProducts] = useState<
+    MinimalProduct[]
+  >([]);
   const [pickerCategoryId, setPickerCategoryId] = useState("");
 
   /** Pseudo-category showing only the products picked for this campaign. */
@@ -134,9 +139,7 @@ export function FreeDeliveryCampaignsCard() {
     pickerCategoryId === SELECTED_KEY
       ? pickerProducts.filter((p) => form.productIds.includes(p.id))
       : pickerCategoryId
-        ? pickerProducts.filter(
-          (p) => p.categoryId === Number(pickerCategoryId)
-        )
+        ? pickerCategoryProducts
         : [];
   const [isLoadingPickerProducts, setIsLoadingPickerProducts] = useState(false);
   const [productSearch, setProductSearch] = useState("");
@@ -178,6 +181,12 @@ export function FreeDeliveryCampaignsCard() {
           `products/all?category=${pickerCategoryId}&isActive=true`
         );
         if (Array.isArray(fetched)) {
+          // The backend already scopes this to the category (subcategories
+          // included) — display it as-is; an exact categoryId filter would
+          // drop subcategory products and make the list look empty.
+          setPickerCategoryProducts(
+            [...fetched].sort((a, b) => a.name.localeCompare(b.name))
+          );
           // Merge by id so selections survive switching between categories
           setPickerProducts((prev) => {
             const byId = new Map(prev.map((p) => [p.id, p]));

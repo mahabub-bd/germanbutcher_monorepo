@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatRound } from "@/lib/utils";
 import { FALLBACK_IMAGE } from "@/utils/image-fallback";
 import { PAYMENT_STATUS_CONFIG } from "@/utils/payment-status-config";
 import { getDiscountedPrice } from "@/utils/product-utils";
@@ -370,7 +370,7 @@ export default function PaymentStatusPage({
               </InfoCell>
               <InfoCell icon={Wallet} label="Amount Paid" withDivider>
                 <span className={accent.text}>
-                  {formatCurrencyEnglish(order.paidAmount)}
+                  {formatRound(order.paidAmount)}
                 </span>
               </InfoCell>
             </div>
@@ -396,7 +396,17 @@ export default function PaymentStatusPage({
                 {items.map((item: OrderItem) => {
                   // Charge-time snapshot — reflects product discount AND flash sale
                   const unitPrice = getItemUnitPrice(item);
-                  const hasDiscount = getItemUnitDiscount(item) > 0;
+                  // BOGO free units are blended into unitDiscount (saving ÷
+                  // qty), shrinking item.totalPrice below unitPrice × qty.
+                  // Genuine product/flash discounts keep them equal — detect
+                  // the BOGO case so it isn't shown as a per-unit "OFF"
+                  // badge (the free units are itemized in the summary).
+                  const bogoPooled =
+                    Math.abs(
+                      unitPrice * item.quantity - Number(item.totalPrice ?? 0),
+                    ) > 0.01;
+                  const hasDiscount =
+                    getItemUnitDiscount(item) > 0 && !bogoPooled;
 
                   return (
                     <div
@@ -420,10 +430,10 @@ export default function PaymentStatusPage({
                               Qty: {item.quantity} ×{" "}
                               {hasDiscount ? (
                                 <span className="line-through">
-                                  {formatCurrencyEnglish(item.product.sellingPrice)}
+                                  {formatRound(item.product.sellingPrice)}
                                 </span>
                               ) : (
-                                formatCurrencyEnglish(item.product.sellingPrice)
+                                formatRound(item.product.sellingPrice)
                               )}
                             </span>
                             {hasDiscount && (
@@ -435,7 +445,7 @@ export default function PaymentStatusPage({
                                 ) : item.product.discountType === "percentage" ? (
                                   `${Number.parseFloat(String(item.product.discountValue))}% OFF`
                                 ) : (
-                                  `${formatCurrencyEnglish(getItemUnitDiscount(item))} OFF`
+                                  `${formatRound(getItemUnitDiscount(item))} OFF`
                                 )}
                               </span>
                             )}
@@ -443,7 +453,7 @@ export default function PaymentStatusPage({
                         </div>
                       </div>
                       <span className="text-sm font-bold text-gray-900 whitespace-nowrap">
-                        {formatCurrencyEnglish(unitPrice * item.quantity)}
+                        {formatRound(unitPrice * item.quantity)}
                       </span>
                     </div>
                   );
@@ -457,7 +467,7 @@ export default function PaymentStatusPage({
                     Subtotal ({totalQuantity} items)
                   </span>
                   <span className="font-semibold text-gray-900">
-                    {formatCurrencyEnglish(orderSummary.originalSubtotal)}
+                    {formatRound(orderSummary.originalSubtotal)}
                   </span>
                 </div>
 
@@ -472,7 +482,7 @@ export default function PaymentStatusPage({
                         Product Discounts
                       </span>
                       <span className="font-semibold text-green-600">
-                        -{formatCurrencyEnglish(
+                        -{formatRound(
                           orderSummary.productDiscountTotal -
                           orderSummary.bogoDiscountTotal
                         )}
@@ -487,10 +497,10 @@ export default function PaymentStatusPage({
                   >
                     <span className="flex items-center gap-2 text-gray-600">
                       <Tag className="size-4 text-gray-400" />
-                      BOGO — {usage.campaignName} ({usage.freeUnits} free)
+                      {usage.campaignName} ({usage.freeUnits} free)
                     </span>
                     <span className="font-semibold text-green-600">
-                      -{formatCurrencyEnglish(usage.discount)}
+                      -{formatRound(usage.discount)}
                     </span>
                   </div>
                 ))}
@@ -502,7 +512,7 @@ export default function PaymentStatusPage({
                       Coupon Discount ({order.coupon.code})
                     </span>
                     <span className="font-semibold text-green-600">
-                      -{formatCurrencyEnglish(orderSummary.couponDiscount)}
+                      -{formatRound(orderSummary.couponDiscount)}
                     </span>
                   </div>
                 )}
@@ -511,12 +521,15 @@ export default function PaymentStatusPage({
                   <span className="flex items-center gap-2 text-gray-600">
                     <Truck className="size-4 text-gray-400" />
                     Shipping
+                    {order.shippingMethod?.name
+                      ? ` (${order.shippingMethod.name})`
+                      : ""}
                   </span>
                   {orderSummary.shippingCost === 0 ? (
                     <span className="font-bold text-green-600">FREE</span>
                   ) : (
                     <span className="font-semibold text-gray-900">
-                      {formatCurrencyEnglish(orderSummary.shippingCost)}
+                      {formatRound(orderSummary.shippingCost)}
                     </span>
                   )}
                 </div>
@@ -529,7 +542,7 @@ export default function PaymentStatusPage({
                     Total Paid
                   </span>
                   <span className={`text-lg font-extrabold ${accent.text}`}>
-                    {formatCurrencyEnglish(orderSummary.total)}
+                    {formatRound(orderSummary.total)}
                   </span>
                 </div>
               </div>

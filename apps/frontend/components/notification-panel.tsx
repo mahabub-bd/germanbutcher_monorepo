@@ -11,7 +11,6 @@ import {
   Bell,
   Check,
   CheckCircle2,
-  Clock,
   Copy,
   CreditCard,
   Hash,
@@ -25,53 +24,45 @@ import Link from "next/link";
 import { useState } from "react";
 
 /**
- * Per-event visual identity: a colored accent (unread dot) and a matching icon
- * tile. Row surfaces stay solid (`bg-card`) per the notification styling
- * convention — unread is signalled by the dot/icon, never a row tint.
+ * Per-event visual identity: a matching colored icon tile. Row surfaces stay
+ * solid (`bg-card`) per the notification styling convention — unread is
+ * signalled by the colored tile + bold title, never a row tint.
  */
 const EVENT_META = {
   newOrder: {
     label: "New Order",
-    accent: "bg-blue-500",
     tile: "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400",
     Icon: Bell,
   },
   orderConfirmation: {
     label: "Order Confirmed",
-    accent: "bg-green-500",
     tile: "bg-green-50 text-green-600 dark:bg-green-950/40 dark:text-green-400",
     Icon: CheckCircle2,
   },
   orderStatusUpdate: {
     label: "Order Status Update",
-    accent: "bg-amber-500",
-    tile:
-      "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400",
+    tile: "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400",
     Icon: Truck,
   },
   paymentStatusUpdate: {
     label: "Payment Update",
-    accent: "bg-purple-500",
     tile:
       "bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400",
     Icon: CreditCard,
   },
   newMessage: {
     label: "New Message",
-    accent: "bg-cyan-500",
     tile: "bg-cyan-50 text-cyan-600 dark:bg-cyan-950/40 dark:text-cyan-400",
     Icon: Mail,
   },
   broadcast: {
     label: "System Notification",
-    accent: "bg-orange-500",
     tile:
       "bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400",
     Icon: Megaphone,
   },
   notification: {
     label: "Notification",
-    accent: "bg-gray-500",
     tile: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
     Icon: Bell,
   },
@@ -189,97 +180,86 @@ export function NotificationPanel() {
                       markNotificationRead(notification.id)
                     }
                     className={cn(
-                      "group flex items-start gap-2.5 px-3 py-2 transition-colors hover:bg-muted/40 md:items-center",
+                      "group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/40",
                       isUnread && "cursor-pointer"
                     )}
                   >
-                    {/* Event icon + unread dot */}
-                    <div className="relative mt-0.5 shrink-0 md:mt-0">
-                      <div
-                        className={cn(
-                          "flex size-8 items-center justify-center rounded-full",
-                          meta.tile
-                        )}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      {isUnread && (
-                        <span
-                          className={cn(
-                            "absolute right-0 top-0 size-2 rounded-full ring-2 ring-card",
-                            meta.accent
-                          )}
-                        />
+                    {/* Event icon — colored when unread, muted when read */}
+                    <div
+                      className={cn(
+                        "flex size-9 shrink-0 items-center justify-center rounded-full",
+                        isUnread
+                          ? meta.tile
+                          : "bg-muted text-muted-foreground"
                       )}
+                    >
+                      <Icon className="size-4" />
                     </div>
 
-                    {/* Content: stacked on mobile, single line on desktop */}
-                    <div className="flex min-w-0 flex-1 flex-col gap-1 md:flex-row md:items-center md:gap-2.5">
-                      <h4
-                        title={titleText}
-                        className={cn(
-                          "truncate text-sm md:w-40 md:shrink-0",
-                          isUnread
-                            ? "font-semibold text-foreground"
-                            : "font-medium text-muted-foreground"
-                        )}
-                      >
-                        {titleText}
-                      </h4>
+                    <div className="min-w-0 flex-1">
+                      {/* Line 1: title + order chip + time */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <h4
+                            title={titleText}
+                            className={cn(
+                              "truncate text-sm",
+                              isUnread
+                                ? "font-semibold text-foreground"
+                                : "font-medium text-muted-foreground"
+                            )}
+                          >
+                            {titleText}
+                          </h4>
 
-                      <p
-                        title={message}
-                        className="line-clamp-2 text-xs text-muted-foreground md:line-clamp-none md:min-w-0 md:flex-1 md:truncate md:text-sm"
-                      >
-                        {message}
-                      </p>
+                          {showOrderChip && (
+                            <div className="inline-flex shrink-0 items-center gap-1 rounded-md border bg-muted/40 px-1.5 py-0.5">
+                              <Hash className="size-3 text-muted-foreground" />
+                              <Link
+                                href={`/admin/order/${notification.data.orderId}/view`}
+                                className="text-xs font-semibold hover:underline"
+                              >
+                                {notification.data.orderNo}
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (notification.data.orderNo) {
+                                    copyOrderNo(
+                                      notification.data.orderNo,
+                                      index
+                                    );
+                                  }
+                                }}
+                                className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                                aria-label="Copy order number"
+                              >
+                                {copiedIndex === index ? (
+                                  <Check className="size-3 text-green-500" />
+                                ) : (
+                                  <Copy className="size-3" />
+                                )}
+                              </button>
+                            </div>
+                          )}
+                        </div>
 
-                      {/* Meta: wraps under the text on mobile, dissolves into
-                          the single line on desktop (md:contents). */}
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 md:contents">
-                        {showOrderChip && (
-                          <div className="inline-flex shrink-0 items-center gap-1 rounded-lg border bg-muted/40 px-1.5 py-0.5">
-                            <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-                            <Link
-                              href={`/admin/order/${notification.data.orderId}/view`}
-                              className="text-xs font-semibold hover:underline"
-                            >
-                              {notification.data.orderNo}
-                            </Link>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (notification.data.orderNo) {
-                                  copyOrderNo(notification.data.orderNo, index);
-                                }
-                              }}
-                              className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                              aria-label="Copy order number"
-                            >
-                              {copiedIndex === index ? (
-                                <Check className="h-3.5 w-3.5 text-green-500" />
-                              ) : (
-                                <Copy className="h-3.5 w-3.5" />
-                              )}
-                            </button>
-                          </div>
-                        )}
-
-                        {notification.data.totalValue !== undefined && (
-                          <span className="shrink-0 text-xs font-bold tabular-nums text-red-600 dark:text-red-400 md:w-24 md:text-right">
-                            ৳{notification.data.totalValue.toLocaleString()}
-                          </span>
-                        )}
-
-                        <span className="flex shrink-0 items-center gap-1 truncate text-xs text-muted-foreground md:w-28 md:justify-end">
-                          <Clock className="h-3.5 w-3.5 shrink-0" />
+                        <span className="shrink-0 text-xs text-muted-foreground">
                           {formatDistanceToNow(
                             new Date(notification.timestamp),
                             { addSuffix: true }
                           )}
                         </span>
                       </div>
+
+                      {/* Line 2: message, max two lines */}
+                      <p
+                        title={message}
+                        className="mt-0.5 line-clamp-2 text-xs text-muted-foreground"
+                      >
+                        {message}
+                      </p>
                     </div>
 
                     {/* Dismiss */}
@@ -290,10 +270,10 @@ export function NotificationPanel() {
                         e.stopPropagation();
                         removeNotification(index);
                       }}
-                      className="h-7 w-7 shrink-0 rounded-full bg-transparent p-0 text-muted-foreground hover:bg-destructive/15 hover:text-destructive"
+                      className="h-7 w-7 shrink-0 rounded-full bg-transparent p-0 text-muted-foreground hover:bg-destructive/15 hover:text-destructive md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:focus:opacity-100"
                       aria-label="Dismiss notification"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="size-4" />
                     </Button>
                   </div>
                 );

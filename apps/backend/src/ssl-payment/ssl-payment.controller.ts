@@ -92,7 +92,7 @@ export class SslPaymentController {
       console.error('Payment success handling failed:', error);
       // Redirect to error page on failure
       return {
-        url: `${process.env.FRONTEND_URL}/payment/error/${orderId}`,
+        url: `${process.env.FRONTEND_URL}/payment/failed/${orderId}`,
         statusCode: 302,
       };
     }
@@ -127,7 +127,7 @@ export class SslPaymentController {
     } catch (error) {
       console.error('Payment success handling failed:', error);
       return {
-        url: `${process.env.FRONTEND_URL}/payment/error/${orderId}`,
+        url: `${process.env.FRONTEND_URL}/payment/failed/${orderId}`,
         statusCode: 302,
       };
     }
@@ -162,7 +162,7 @@ export class SslPaymentController {
     } catch (error) {
       console.error('Payment failure handling failed:', error);
       return {
-        url: `${process.env.FRONTEND_URL}/payment/error/${orderId}`,
+        url: `${process.env.FRONTEND_URL}/payment/failed/${orderId}`,
         statusCode: 302,
       };
     }
