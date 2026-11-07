@@ -462,7 +462,7 @@ export default function TopCustomersReport({
                           <a
                             href={`mailto:${customer.email}`}
                             onClick={(event) => event.stopPropagation()}
-                            className="block max-w-48 truncate text-sm text-blue-600 hover:underline dark:text-blue-400"
+                            className="block  text-sm"
                             title={customer.email}
                           >
                             {customer.email}

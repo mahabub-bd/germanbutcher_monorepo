@@ -25,10 +25,9 @@ import { fetchAnalyticsDashboard } from "@/utils/analytics-utils";
 import type { AnalyticsDashboardData, AnalyticsPeriod } from "@/utils/types";
 import {
   AlertTriangle,
-  BarChart3,
   CalendarRange,
   Clock3,
-  RefreshCw,
+  RefreshCw
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -132,11 +131,7 @@ export default function AnalyticsPage() {
         className="mb-4"
         title="Analytics Dashboard"
         description="Monitor API traffic, visitor behaviour, and response health"
-        titleIcon={
-          <span className="flex size-9 items-center justify-center rounded-xl bg-primaryColor/10 text-primaryColor ring-1 ring-primaryColor/15">
-            <BarChart3 className="size-5" />
-          </span>
-        }
+
       >
         <div className="flex flex-wrap items-center gap-2">
           {lastUpdated && (
