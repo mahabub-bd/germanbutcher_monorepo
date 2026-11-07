@@ -17,8 +17,11 @@ COPY apps/backend/package.json apps/backend/package.json
 # Cache-mounted pnpm store survives layer invalidation, so re-downloads only
 # happen when the lockfile itself changes. Only backend deps are installed —
 # the frontend toolchain (Next, eslint, …) is not needed to build/run the API.
+# --prefer-offline reuses cached metadata from the store; the registry is hit
+# only for packages not already cached (safe with --frozen-lockfile, which
+# pins every version).
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --filter germanbutcher-backend...
+    pnpm install --frozen-lockfile --prefer-offline --filter germanbutcher-backend...
 
 # Stage 2: Builder
 FROM deps AS builder
