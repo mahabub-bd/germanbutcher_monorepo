@@ -141,7 +141,7 @@ export function StatisticsView() {
             "sales-point-shops/statistics"
           ),
           fetchProtectedData<PaymentMethodShare[]>(
-            "orders/reports/payment-methods"
+            "orders/reports/payment-method-share"
           ),
           fetchProtectedData<TodaySnapshot>("orders/reports/today"),
           fetchProtectedData<PaymentDue>("orders/reports/payment-due"),

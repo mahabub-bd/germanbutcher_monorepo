@@ -132,6 +132,32 @@ export class CouponService {
     await this.couponRepository.delete(id);
   }
 
+  /**
+   * Single source of truth for "is this coupon usable right now": active,
+   * inside its validity window, and under its total usage cap. Operates on an
+   * already-loaded entity so callers that fetched the coupon by id (e.g.
+   * order creation) can re-check it without a second lookup. Throws 400 with
+   * a customer-ready message so the client can drop the coupon and retry.
+   * NOTE: validateCoupon below intentionally keeps its 410-GONE expiry
+   * status for the public check endpoint — don't route it through here.
+   */
+  assertUsable(coupon: Coupon): void {
+    const code = coupon.code;
+    const now = new Date();
+    if (!coupon.isActive) {
+      throw new BadRequestException(`Coupon ${code} is no longer active`);
+    }
+    if (now < new Date(coupon.validFrom)) {
+      throw new BadRequestException(`Coupon ${code} is not yet valid`);
+    }
+    if (now > new Date(coupon.validUntil)) {
+      throw new BadRequestException(`Coupon ${code} has expired`);
+    }
+    if (coupon.maxUsage != null && coupon.timesUsed >= coupon.maxUsage) {
+      throw new BadRequestException(`Coupon ${code} usage limit exceeded`);
+    }
+  }
+
   async validateCoupon(
     code: string,
   ): Promise<{ valid: boolean; message: string }> {

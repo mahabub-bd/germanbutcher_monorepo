@@ -40,7 +40,8 @@ export class ContactMessageController {
   constructor(private readonly contactMessageService: ContactMessageService) {}
 
   @Post()
-  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 messages per minute to prevent spam
+  // Requests come from the browser, so this limit is per real customer IP.
+  @Throttle({ short: { limit: 3, ttl: 60000 } }) // 3 messages per minute to prevent spam
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Create a new contact message' })
@@ -152,7 +153,7 @@ export class ContactMessageController {
   }
 
   @Post(':id/replies')
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 replies per minute to prevent spam
+  @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 replies per minute to prevent spam
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('token')
   @UseGuards(JwtAuthGuard)

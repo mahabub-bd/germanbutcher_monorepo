@@ -1161,7 +1161,10 @@ export class OrderController {
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @ModulePermissions('/admin/analytics/payment-transactions')
-  @Get('reports/payment-methods')
+  // Was also declared as GET reports/payment-methods above; that first
+  // declaration won the route and this handler was unreachable. Moved to
+  // its own path so both endpoints work.
+  @Get('reports/payment-method-share')
   @ApiOperation({
     summary: 'Get revenue share per payment method',
     description:

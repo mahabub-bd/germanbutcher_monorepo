@@ -36,7 +36,13 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
+  // Runs through a Next.js server action, so the backend sees one shared IP
+  // for all visitors — these limits are site-wide, not per customer.
+  @Throttle({
+    short: { limit: 60, ttl: 60000 }, // 60 registrations per minute (campaign peaks)
+    medium: { limit: 200, ttl: 300000 }, // 200 per 5 minutes
+    long: { limit: 600, ttl: 3600000 }, // 600 per hour
+  })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Register new user',
@@ -79,7 +85,13 @@ export class AuthController {
   }
 
   @Post('login')
-  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
+  // Same shared-IP caveat as mobile-login — login also runs through a Next.js
+  // server action, so these limits are site-wide, not per customer.
+  @Throttle({
+    short: { limit: 120, ttl: 60000 }, // 120 logins per minute (campaign peaks)
+    medium: { limit: 400, ttl: 300000 }, // 400 per 5 minutes
+    long: { limit: 1200, ttl: 3600000 }, // 1200 per hour
+  })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'User login',
