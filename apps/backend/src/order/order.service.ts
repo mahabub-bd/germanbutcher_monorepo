@@ -32,7 +32,12 @@ import { OrderPaymentService } from 'src/order-payment/order-payment.service';
 import { Product } from 'src/product/entities/product.entity';
 import { ShippingMethod } from 'src/shipping-methods/entities/shipping-method.entity';
 import { User } from 'src/user/entities/user.entity';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import {
+  LessThan,
+  MoreThan,
+  Repository,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { CancelOrderDto } from './dto/cancel-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItem } from './entities/order-item.entity';
@@ -104,15 +109,21 @@ export class OrderService {
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
     const currentYear = new Date().getFullYear();
 
-    // Order numbers are `YYYY-NNNN` (no prefix since the 2026-11 rename).
-    // The lookup matches both the current format and legacy `ORD-YYYY-NNNN`
-    // rows, and sorts by the 4-digit numeric tail so the max is correct
-    // even while both formats coexist mid-backfill.
+    // Order numbers are `YYYY-NNNNNN` (6-digit sequence since the 2026-11
+    // migration; rows from before keep 4-digit tails — both are unique and
+    // the lookup below sorts by the zero-padded numeric tail, so mixed
+    // widths are safe). Stripping to the last `-` segment and padding it to
+    // a fixed width gives a plain numeric max: `RIGHT(orderNo, 4)` would
+    // truncate longer tails (`RIGHT('2026-10000', 4)` = '0000') and
+    // regenerate the same number, hitting the unique constraint.
     const lastOrder = await this.orderRepository
       .createQueryBuilder('order')
       .select('order.orderNo', 'orderNo')
       .where('order.orderNo LIKE :pattern', { pattern: `%${currentYear}-%` })
-      .orderBy('RIGHT(order.orderNo, 4)', 'DESC')
+      .orderBy(
+        "lpad(REGEXP_REPLACE(order.orderNo, '^.*-', ''), 10, '0')::bigint",
+        'DESC',
+      )
       .getRawOne();
 
     let lastNumber = 0;
@@ -120,7 +131,7 @@ export class OrderService {
       lastNumber = parseInt(lastOrder.orderNo.split('-').pop(), 10) || 0;
     }
 
-    const orderNo = `${currentYear}-${(lastNumber + 1).toString().padStart(4, '0')}`;
+    const orderNo = `${currentYear}-${(lastNumber + 1).toString().padStart(6, '0')}`;
 
     const {
       items,
@@ -773,42 +784,65 @@ export class OrderService {
     return completeOrder;
   }
 
+  /** Relations for the full order-detail payload (view page, PDF, etc.). */
+  private static readonly DETAIL_RELATIONS = [
+    'user',
+    'user.profilePhoto',
+    'address',
+    'shippingMethod',
+    'paymentMethod',
+    'payments',
+    'payments.paymentMethod',
+    'items',
+    'items.product',
+    'items.product.attachment',
+    'items.product.unit',
+    'items.product.supplier',
+    'coupon',
+    'statusTracks',
+    'statusTracks.updatedBy',
+    'notes',
+    'notes.createdBy',
+    'deliveryMan',
+  ];
+
   async getOrderById(id: number): Promise<Order | null> {
+    return this.findOrderDetail({ id }, `Order with ID ${id} not found`);
+  }
+
+  /** Accepts a numeric PK or an orderNo (`2026-002365`) — the admin routes
+   * address orders by their human-readable number. */
+  async getOrderByIdOrNo(idOrNo: string): Promise<Order | null> {
+    if (/^\d+$/.test(idOrNo)) {
+      return this.getOrderById(Number(idOrNo));
+    }
+    const orderNo = decodeURIComponent(idOrNo);
+    return this.findOrderDetail(
+      { orderNo },
+      `Order with number ${orderNo} not found`,
+    );
+  }
+
+  private async findOrderDetail(
+    where: { id: number } | { orderNo: string },
+    notFoundMessage: string,
+  ): Promise<Order | null> {
     const order = await this.orderRepository.findOne({
-      where: { id },
-      relations: [
-        'user',
-        'user.profilePhoto',
-        'address',
-        'shippingMethod',
-        'paymentMethod',
-        'payments',
-        'payments.paymentMethod',
-        'items',
-        'items.product',
-        'items.product.attachment',
-        'items.product.unit',
-        'items.product.supplier',
-        'coupon',
-        'statusTracks',
-        'statusTracks.updatedBy',
-        'notes',
-        'notes.createdBy',
-        'deliveryMan',
-      ],
+      where,
+      relations: OrderService.DETAIL_RELATIONS,
     });
 
     if (!order) {
-      throw new NotFoundException(`Order with ID ${id} not found`);
+      throw new NotFoundException(notFoundMessage);
     }
 
     // Attach BOGO usage for the confirmation display — plain prop on the
     // returned object, never persisted. Failure must not break the fetch.
     try {
       (order as Order & { bogoUsage?: unknown }).bogoUsage =
-        await this.bogoUsageLogService.findByOrder(id);
+        await this.bogoUsageLogService.findByOrder(order.id);
     } catch (error) {
-      this.logger.warn(`Failed to load BOGO usage for order ${id}: ${error}`);
+      this.logger.warn(`Failed to load BOGO usage for order ${order.id}: ${error}`);
     }
 
     return order;
@@ -1069,25 +1103,48 @@ export class OrderService {
     };
   }
 
-  async getNeighborOrderIds(
-    id: number,
-  ): Promise<{ prevId: number | null; nextId: number | null }> {
+  /** Prev/next neighbors addressed by numeric PK or orderNo. Returns both
+   * ids and orderNos so the admin UI can build orderNo URLs while older
+   * clients keep working with the id fields. */
+  async getNeighborOrders(
+    idOrNo: string,
+  ): Promise<{
+    prevId: number | null;
+    nextId: number | null;
+    prevNo: string | null;
+    nextNo: string | null;
+  }> {
+    const id = /^\d+$/.test(idOrNo)
+      ? Number(idOrNo)
+      : (
+          await this.orderRepository.findOne({
+            where: { orderNo: decodeURIComponent(idOrNo) },
+            select: { id: true },
+          })
+        )?.id;
+
+    if (!id) {
+      throw new NotFoundException(`Order ${idOrNo} not found`);
+    }
+
     const [prev, next] = await Promise.all([
-      this.orderRepository
-        .createQueryBuilder('order')
-        .select('MAX(order.id)', 'prevId')
-        .where('order.id < :id', { id })
-        .getRawOne(),
-      this.orderRepository
-        .createQueryBuilder('order')
-        .select('MIN(order.id)', 'nextId')
-        .where('order.id > :id', { id })
-        .getRawOne(),
+      this.orderRepository.findOne({
+        where: { id: LessThan(id) },
+        order: { id: 'DESC' },
+        select: { id: true, orderNo: true },
+      }),
+      this.orderRepository.findOne({
+        where: { id: MoreThan(id) },
+        order: { id: 'ASC' },
+        select: { id: true, orderNo: true },
+      }),
     ]);
 
     return {
-      prevId: prev?.prevId ? Number(prev.prevId) : null,
-      nextId: next?.nextId ? Number(next.nextId) : null,
+      prevId: prev?.id ?? null,
+      nextId: next?.id ?? null,
+      prevNo: prev?.orderNo ?? null,
+      nextNo: next?.orderNo ?? null,
     };
   }
 
@@ -1497,6 +1554,8 @@ export class OrderService {
     dateRangePreset?: string,
     orderStatus?: OrderStatus,
     paymentStatus?: PaymentStatus,
+    shippingMethodId?: number,
+    paymentMethodId?: number,
     page = 1,
     limit = 50,
   ) {
@@ -1538,6 +1597,14 @@ export class OrderService {
     if (paymentStatus) {
       params.push(paymentStatus);
       conditions.push(`"paymentStatus" = $${params.length}`);
+    }
+    if (shippingMethodId) {
+      params.push(shippingMethodId);
+      conditions.push(`"shippingMethodId" = $${params.length}`);
+    }
+    if (paymentMethodId) {
+      params.push(paymentMethodId);
+      conditions.push(`"paymentMethodId" = $${params.length}`);
     }
     const whereClause = conditions.length
       ? `WHERE ${conditions.join(' AND ')}`
@@ -1585,6 +1652,18 @@ export class OrderService {
     // Apply payment status filter
     if (paymentStatus) {
       query.andWhere('order.paymentStatus = :paymentStatus', { paymentStatus });
+    }
+
+    // Apply shipping/payment method filters
+    if (shippingMethodId) {
+      query.andWhere('order.shippingMethodId = :shippingMethodId', {
+        shippingMethodId,
+      });
+    }
+    if (paymentMethodId) {
+      query.andWhere('order.paymentMethodId = :paymentMethodId', {
+        paymentMethodId,
+      });
     }
 
     const orders = await query.getMany();

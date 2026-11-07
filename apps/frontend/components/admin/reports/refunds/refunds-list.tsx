@@ -301,7 +301,7 @@ export default function RefundsList({
                       <TableCell className="py-2.5 pl-4">
                         <div className="flex min-w-0 items-center gap-2">
                           <Link
-                            href={`/admin/order/${o.id}/view`}
+                            href={`/admin/order/${o.orderNo}/view`}
                             className="shrink-0 text-sm font-semibold text-foreground hover:text-primaryColor hover:underline"
                           >
                             {o.orderNo}
@@ -429,7 +429,7 @@ export default function RefundsList({
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <Link
-                        href={`/admin/order/${o.id}/view`}
+                        href={`/admin/order/${o.orderNo}/view`}
                         className="text-sm font-semibold hover:text-primaryColor hover:underline"
                       >
                         {o.orderNo}

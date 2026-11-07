@@ -128,7 +128,7 @@ function OrderPaymentsListPageContent() {
       </section>
 
       <AddPaymentModal
-        orderId={Number(orderId)}
+        orderId={order.id}
         open={showAddPaymentModal}
         onOpenChange={setShowAddPaymentModal}
         onUpdated={fetchOrderData}

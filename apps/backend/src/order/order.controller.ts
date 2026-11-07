@@ -181,13 +181,17 @@ export class OrderController {
   }
   @UseGuards(JwtAuthGuard)
   @Get(':id')
-  @ApiOperation({ summary: 'Get a single order by ID' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiOperation({
+    summary: 'Get a single order by ID or order number',
+    description:
+      'Numeric segment = order id; anything else = orderNo (e.g. 2026-002365).',
+  })
+  @ApiParam({ name: 'id', type: String })
   async findOne(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') idOrNo: string,
     @Req() req: Request,
   ): Promise<ApiResponseDto<Order>> {
-    const data = await this.orderService.getOrderById(id);
+    const data = await this.orderService.getOrderByIdOrNo(idOrNo);
     this.assertCanRead(req.user as { userId: number; role?: string }, data.user?.id);
     return {
       message: 'Order retrieved successfully',
@@ -197,14 +201,21 @@ export class OrderController {
   }
   @UseGuards(JwtAuthGuard)
   @Get(':id/neighbors')
-  @ApiOperation({ summary: 'Get previous and next order IDs' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiOperation({
+    summary: 'Get previous and next orders (ids and order numbers)',
+  })
+  @ApiParam({ name: 'id', type: String })
   async findNeighbors(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') idOrNo: string,
   ): Promise<
-    ApiResponseDto<{ prevId: number | null; nextId: number | null }>
+    ApiResponseDto<{
+      prevId: number | null;
+      nextId: number | null;
+      prevNo: string | null;
+      nextNo: string | null;
+    }>
   > {
-    const data = await this.orderService.getNeighborOrderIds(id);
+    const data = await this.orderService.getNeighborOrders(idOrNo);
     return {
       message: 'Neighbor orders retrieved successfully',
       statusCode: HttpStatus.OK,
@@ -339,7 +350,7 @@ export class OrderController {
   @ApiOperation({
     summary: 'Get full order report within a specific date range',
     description:
-      'Returns a paginated page of orders plus summary (total orders, total value, discount, and paid amount — computed in SQL over the full filtered range). Supports custom date range or presets (today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year). Can filter by order status.',
+      'Returns a paginated page of orders plus summary (total orders, total value, discount, and paid amount — computed in SQL over the full filtered range). Supports custom date range or presets (today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year). Can filter by order status, payment status, shipping method and payment method.',
   })
   @ApiQuery({
     name: 'fromDate',
@@ -372,6 +383,18 @@ export class OrderController {
     description: 'Filter by payment status',
   })
   @ApiQuery({
+    name: 'shippingMethodId',
+    required: false,
+    type: Number,
+    description: 'Filter by shipping method id',
+  })
+  @ApiQuery({
+    name: 'paymentMethodId',
+    required: false,
+    type: Number,
+    description: 'Filter by payment method id',
+  })
+  @ApiQuery({
     name: 'page',
     required: false,
     example: 1,
@@ -389,6 +412,8 @@ export class OrderController {
     @Query('preset') preset?: DateRangePreset,
     @Query('orderStatus') orderStatus?: OrderStatus,
     @Query('paymentStatus') paymentStatus?: PaymentStatus,
+    @Query('shippingMethodId') shippingMethodId?: string,
+    @Query('paymentMethodId') paymentMethodId?: string,
     @Query('page') page = '1',
     @Query('limit') limit = '50',
   ): Promise<ApiResponseDto<any>> {
@@ -400,6 +425,8 @@ export class OrderController {
       preset,
       orderStatus,
       paymentStatus,
+      parseInt(shippingMethodId, 10) || undefined,
+      parseInt(paymentMethodId, 10) || undefined,
       safePage,
       safeLimit,
     );

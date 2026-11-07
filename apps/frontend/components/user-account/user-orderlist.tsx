@@ -138,7 +138,9 @@ const OrderTable = ({ orders }: MyOrderProps) => {
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  const detailHref = (id: number) => `/user/${userId}/order/${id}`;
+  // Detail URLs carry the human-readable orderNo; the backend endpoint
+  // accepts orderNo or numeric id
+  const detailHref = (orderNo: string) => `/user/${userId}/order/${orderNo}`;
 
   const handleReorder = async (order: Order) => {
     setReorderingId(order.id);
@@ -205,7 +207,7 @@ const OrderTable = ({ orders }: MyOrderProps) => {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <Link
-                      href={detailHref(order.id)}
+                      href={detailHref(order.orderNo)}
                       className="font-medium text-gray-900 hover:text-primaryColor"
                     >
                       {order.orderNo}
@@ -277,7 +279,7 @@ const OrderTable = ({ orders }: MyOrderProps) => {
                       <TableRow key={order.id} className="hover:bg-gray-50">
                         <TableCell className="whitespace-nowrap">
                           <Link
-                            href={detailHref(order.id)}
+                            href={detailHref(order.orderNo)}
                             className="font-medium text-gray-900 transition-colors hover:text-primaryColor"
                           >
                             {order.orderNo}

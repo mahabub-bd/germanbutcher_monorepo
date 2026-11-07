@@ -258,7 +258,7 @@ export function CouponUsageLogList({
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href={`/admin/order/${log.order.id}/view`}>
+          <Link href={`/admin/order/${log.order.orderNo}/view`}>
             <Package className="mr-2 h-4 w-4" /> View Order
           </Link>
         </DropdownMenuItem>
@@ -553,7 +553,7 @@ export function CouponUsageLogList({
 
                       <TableCell>
                         <Link
-                          href={`/admin/order/${log.order.id}/view`}
+                          href={`/admin/order/${log.order.orderNo}/view`}
                           className="block truncate font-mono text-sm text-foreground hover:text-primaryColor hover:underline"
                           title={log.order.orderNo}
                         >

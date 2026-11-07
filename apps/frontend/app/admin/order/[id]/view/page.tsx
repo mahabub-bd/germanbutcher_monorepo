@@ -12,6 +12,8 @@ import { AdminPageContainer } from "@/components/admin/admin-page-container";
 interface OrderNeighbors {
   prevId: number | null;
   nextId: number | null;
+  prevNo?: string | null;
+  nextNo?: string | null;
 }
 
 function OrderPageContent() {
@@ -38,11 +40,13 @@ function OrderPageContent() {
     return qs ? `${from}?${qs}` : from;
   };
 
-  // Prev/next navigation keeps the list context so Back still works
-  // after stepping through orders.
-  const buildOrderUrl = (id: number) => {
+  // Prev/next navigation keeps the list context so Back still works after
+  // stepping through orders. URLs carry the human-readable orderNo when the
+  // backend provides it; the backend also accepts numeric ids.
+  const buildOrderUrl = (segment: number | string) => {
     const qs = searchParams.toString();
-    return qs ? `/admin/order/${id}/view?${qs}` : `/admin/order/${id}/view`;
+    const base = `/admin/order/${segment}/view`;
+    return qs ? `${base}?${qs}` : base;
   };
 
   const fetchOrder = async () => {
@@ -86,18 +90,18 @@ function OrderPageContent() {
     );
   }
 
-  const prevId = neighbors?.prevId;
-  const nextId = neighbors?.nextId;
+  const prevSegment = neighbors?.prevNo ?? neighbors?.prevId;
+  const nextSegment = neighbors?.nextNo ?? neighbors?.nextId;
 
   return (
     <OrderView
       order={order}
       onBack={() => router.push(buildListUrl())}
       onPrevOrder={
-        prevId ? () => router.push(buildOrderUrl(prevId)) : undefined
+        prevSegment != null ? () => router.push(buildOrderUrl(prevSegment)) : undefined
       }
       onNextOrder={
-        nextId ? () => router.push(buildOrderUrl(nextId)) : undefined
+        nextSegment != null ? () => router.push(buildOrderUrl(nextSegment)) : undefined
       }
     />
   );

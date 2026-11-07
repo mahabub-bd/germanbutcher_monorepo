@@ -457,7 +457,7 @@ export function MarketingUsageLogList({
                           <Link
                             href={
                               log.order.id
-                                ? `/admin/order/${log.order.id}/view`
+                                ? `/admin/order/${log.order.orderNo}/view`
                                 : "/admin/orders"
                             }
                             className="font-mono text-sm text-foreground hover:text-primaryColor hover:underline"
@@ -506,7 +506,7 @@ export function MarketingUsageLogList({
                         <Link
                           href={
                             log.order.id
-                              ? `/admin/order/${log.order.id}/view`
+                              ? `/admin/order/${log.order.orderNo}/view`
                               : "/admin/orders"
                           }
                           className="font-mono text-sm font-semibold hover:text-primaryColor hover:underline"
