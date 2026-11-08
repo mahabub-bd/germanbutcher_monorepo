@@ -149,6 +149,19 @@ export default function LongPendingList({
     bare(o.totalValue),
   ]);
 
+  // Delivered list gets its own Excel export from the header actions.
+  const deliveredExportRows = deliveredOrders.map((o) => [
+    o.orderNo,
+    o.customerName,
+    o.mobileNumber ?? "",
+    o.deliveryMan,
+    o.shippingMethod ?? "",
+    formatDateTime(o.orderDate),
+    formatDateTime(o.deliveredAt),
+    durationLabel(o.hours),
+    bare(o.totalValue),
+  ]);
+
   const pdfSummary = [
     { label: "Long pending (>", value: `${summary?.totalLongPending ?? 0} orders` },
     { label: "Delivered in range", value: String(summary?.totalDelivered ?? 0) },
@@ -184,6 +197,31 @@ export default function LongPendingList({
               summary={pdfSummary}
               fileName="long-pending-report"
             />
+            {deliveredExportRows.length > 0 && (
+              <ReportExcelButton
+                title="Delivered Orders"
+                subtitle={rangeLabel}
+                headers={[
+                  "Order",
+                  "Customer",
+                  "Mobile",
+                  "Delivery Man",
+                  "Method",
+                  "Placed",
+                  "Delivered",
+                  "Took",
+                  "Value",
+                ]}
+                rows={deliveredExportRows}
+                summary={[
+                  {
+                    label: "Delivered in range",
+                    value: String(summary?.totalDelivered ?? 0),
+                  },
+                ]}
+                fileName="delivered-orders"
+              />
+            )}
             <LazyPdfDownloadLink
               document={
                 <ReportTablePDF
