@@ -838,7 +838,7 @@ export class OrderController {
   @ApiOperation({
     summary: 'Delivered orders vs a placement-to-delivery time threshold',
     description:
-      'Per-delivery-man delivered/late counts, average and worst delivery hours, plus the 50 slowest late orders. Late means delivered more than thresholdHours (default 24) after the order was placed.',
+      'Per-delivery-man delivered/late counts, average and worst delivery hours, the 50 slowest late orders, the 50 oldest still-undelivered orders waiting more than thresholdHours (default 24), and the 50 most recent delivered orders in the range.',
   })
   @ApiQuery({
     name: 'fromDate',
@@ -878,57 +878,6 @@ export class OrderController {
     );
     return {
       message: 'Late delivery report retrieved successfully',
-      statusCode: HttpStatus.OK,
-      data,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard, PermissionGuard)
-  @ModulePermissions('/admin/reports/long-pending')
-  @Get('reports/long-pending')
-  @ApiOperation({
-    summary: 'Undelivered orders waiting longer than a time threshold',
-    description:
-      'Orders placed in the range that are still pending/processing/on hold/shipped and have waited more than thresholdHours (default 24) since placement. Oldest first, capped at 50 rows, with per-status counts.',
-  })
-  @ApiQuery({
-    name: 'fromDate',
-    required: false,
-    example: '2025-11-01',
-    description: 'Start date (inclusive) - use with toDate for custom range',
-  })
-  @ApiQuery({
-    name: 'toDate',
-    required: false,
-    example: '2025-11-10',
-    description: 'End date (inclusive) - use with fromDate for custom range',
-  })
-  @ApiQuery({
-    name: 'preset',
-    required: false,
-    enum: DateRangePreset,
-    description: 'Date range preset - use instead of fromDate/toDate',
-  })
-  @ApiQuery({
-    name: 'thresholdHours',
-    required: false,
-    example: '24',
-    description: 'How long an order may wait before it counts as long pending',
-  })
-  async getLongPendingReport(
-    @Query('fromDate') fromDate?: string,
-    @Query('toDate') toDate?: string,
-    @Query('preset') preset?: DateRangePreset,
-    @Query('thresholdHours') thresholdHours?: string,
-  ): Promise<ApiResponseDto<any>> {
-    const data = await this.orderService.getLongPendingReport(
-      fromDate,
-      toDate,
-      preset,
-      thresholdHours,
-    );
-    return {
-      message: 'Long pending report retrieved successfully',
       statusCode: HttpStatus.OK,
       data,
     };

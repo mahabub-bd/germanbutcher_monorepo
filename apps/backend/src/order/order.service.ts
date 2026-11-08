@@ -2968,6 +2968,52 @@ export class OrderService {
       worstHours: parseFloat(row.worst_hours) || 0,
     }));
 
+    // Long-pending list: orders placed in the range that are still open
+    // (pending / processing / on hold / shipped) and have waited longer
+    // than thresholdHours since placement. Oldest first, capped at 50.
+    const pendingRows: Record<string, any>[] = await this.orderRepository.query(
+      `SELECT o.id, o."orderNo", o."orderStatus", o."totalValue",
+              o."createdAt" AS order_date,
+              EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0 AS hours,
+              c.name AS customer_name, c."mobileNumber",
+              sm.name AS shipping_method_name,
+              COALESCE(dm.name, 'Unassigned') AS delivery_man_name
+       FROM "order" o
+       LEFT JOIN "user" c ON o."userId" = c.id
+       LEFT JOIN shipping_method sm ON sm.id = o."shippingMethodId"
+       LEFT JOIN delivery_man dm ON o."deliveryManId" = dm.id
+       WHERE o."orderStatus" NOT IN ('delivered', 'cancelled')
+         AND o."createdAt" >= COALESCE($1::timestamptz, '1900-01-01'::timestamptz)
+         AND o."createdAt" <= COALESCE($2::timestamptz, '2999-01-01'::timestamptz)
+         AND EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0 > $3
+       ORDER BY o."createdAt" ASC
+       LIMIT 50`,
+      [from ?? null, to ?? null, thresholdHours],
+    );
+
+    // Full delivered list for the range (the slowest list above only has
+    // the late ones). Newest first, capped at 50.
+    const deliveredRows: Record<string, any>[] = await this.orderRepository.query(
+      `SELECT o.id, o."orderNo", o."totalValue",
+              o."createdAt" AS order_date, o."deliveredAt",
+              EXTRACT(EPOCH FROM (o."deliveredAt" - o."createdAt")) / 3600.0 AS hours,
+              c.name AS customer_name, c."mobileNumber",
+              sm.name AS shipping_method_name,
+              COALESCE(dm.name, 'Unassigned') AS delivery_man_name
+       FROM "order" o
+       LEFT JOIN "user" c ON o."userId" = c.id
+       LEFT JOIN shipping_method sm ON sm.id = o."shippingMethodId"
+       LEFT JOIN delivery_man dm ON o."deliveryManId" = dm.id
+       WHERE o."orderStatus" = 'delivered'
+         AND o."deliveredAt" IS NOT NULL
+         AND o."deliveredAt" >= COALESCE($1::timestamptz, '1900-01-01'::timestamptz)
+         AND o."deliveredAt" <= COALESCE($2::timestamptz, '2999-01-01'::timestamptz)
+         AND COALESCE(sm.name, '') <> 'Gulshan Store Collection'
+       ORDER BY o."deliveredAt" DESC
+       LIMIT 50`,
+      [from ?? null, to ?? null],
+    );
+
     const lateOrders = slowRows.map((row) => ({
       orderId: parseInt(row.order_id, 10),
       orderNo: row.orderNo,
@@ -2999,147 +3045,6 @@ export class OrderService {
       lateMenCount: deliveryMen.filter((d) => d.late > 0).length,
     };
 
-    return { summary, deliveryMen, lateOrders };
-  }
-
-  /**
-   * Long-pending report: orders placed in the range that are still not
-   * delivered (pending / processing / on hold / shipped) and have been
-   * waiting longer than thresholdHours (default 24) since placement,
-   * alongside the delivered orders in the range. Oldest first, capped at
-   * 50 rows per list, with per-status counts so nothing drops out of the
-   * totals.
-   */
-  async getLongPendingReport(
-    fromDate?: string,
-    toDate?: string,
-    dateRangePreset?: string,
-    thresholdHoursParam?: string,
-  ) {
-    let from = this.parseReportDate(fromDate);
-    let to = this.parseReportDate(toDate, true);
-
-    if (dateRangePreset) {
-      const presetRange = this.getDateRangeFromPreset(dateRangePreset);
-      if (!presetRange) {
-        throw new Error(
-          `Invalid date range preset: "${dateRangePreset}". Valid values are: today, this_week, last_week, this_month, last_month, last_3_months, last_6_months, last_year, this_year.`,
-        );
-      }
-      from = presetRange.from;
-      to = presetRange.to;
-    }
-
-    const thresholdHours = (() => {
-      const parsed = parseFloat(thresholdHoursParam ?? '');
-      return Number.isFinite(parsed) && parsed > 0 ? parsed : 24;
-    })();
-
-    const params: unknown[] = [];
-    const conditions: string[] = [
-      // Still open — delivered and cancelled orders are not waiting on anyone.
-      `o."orderStatus" NOT IN ('delivered', 'cancelled')`,
-      `EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0 > $${params.length + 1}`,
-    ];
-    params.push(thresholdHours);
-    if (from) {
-      params.push(from);
-      conditions.push(`o."createdAt" >= $${params.length}`);
-    }
-    if (to) {
-      params.push(to);
-      conditions.push(`o."createdAt" <= $${params.length}`);
-    }
-    const whereClause = `WHERE ${conditions.join(' AND ')}`;
-    // Snapshot before the delivered-list query below appends its own
-    // from/to params — the pending queries must keep seeing $1..$3 only.
-    const pendingParams = [...params];
-    const hoursExpr = `EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0`;
-
-    const listRows: Record<string, any>[] = await this.orderRepository.query(
-      `SELECT o.id, o."orderNo", o."orderStatus", o."totalValue",
-              o."createdAt" AS order_date, ${hoursExpr} AS hours,
-              c.name AS customer_name, c."mobileNumber",
-              sm.name AS shipping_method_name,
-              COALESCE(dm.name, 'Unassigned') AS delivery_man_name
-       FROM "order" o
-       LEFT JOIN "user" c ON o."userId" = c.id
-       LEFT JOIN shipping_method sm ON sm.id = o."shippingMethodId"
-       LEFT JOIN delivery_man dm ON o."deliveryManId" = dm.id
-       ${whereClause}
-       ORDER BY o."createdAt" ASC
-       LIMIT $${pendingParams.length + 1}`,
-      [...pendingParams, 50],
-    );
-
-    const statusRows: Record<string, any>[] = await this.orderRepository.query(
-      `SELECT o."orderStatus", COUNT(o.id) AS count
-       FROM "order" o
-       ${whereClause}
-       GROUP BY o."orderStatus"`,
-      pendingParams,
-    );
-
-    // Delivered orders in the same placement range, for the second list.
-    const deliveredConditions = [
-      `o."orderStatus" = 'delivered'`,
-      `o."deliveredAt" IS NOT NULL`,
-    ];
-    if (from) {
-      params.push(from);
-      deliveredConditions.push(`o."deliveredAt" >= $${params.length}`);
-    }
-    if (to) {
-      params.push(to);
-      deliveredConditions.push(`o."deliveredAt" <= $${params.length}`);
-    }
-    const deliveredWhere = `WHERE ${deliveredConditions.join(' AND ')}`;
-    const deliveredRows: Record<string, any>[] = await this.orderRepository.query(
-      `SELECT o.id, o."orderNo", o."totalValue",
-              o."createdAt" AS order_date, o."deliveredAt",
-              EXTRACT(EPOCH FROM (o."deliveredAt" - o."createdAt")) / 3600.0 AS hours,
-              c.name AS customer_name, c."mobileNumber",
-              sm.name AS shipping_method_name,
-              COALESCE(dm.name, 'Unassigned') AS delivery_man_name
-       FROM "order" o
-       LEFT JOIN "user" c ON o."userId" = c.id
-       LEFT JOIN shipping_method sm ON sm.id = o."shippingMethodId"
-       LEFT JOIN delivery_man dm ON o."deliveryManId" = dm.id
-       ${deliveredWhere}
-       ORDER BY o."deliveredAt" DESC
-       LIMIT $${params.length + 1}`,
-      [...params, 50],
-    );
-
-    const summaryRow: Record<string, any> | undefined =
-      await this.orderRepository.query(
-        `SELECT COUNT(o.id) AS count,
-                COALESCE(MAX(${hoursExpr}), 0) AS worst_hours,
-                COALESCE(AVG(${hoursExpr}), 0) AS avg_hours,
-                COALESCE(SUM(o."totalValue"), 0) AS total_value
-         FROM "order" o
-         ${whereClause}`,
-        pendingParams,
-      );
-
-    const orders = listRows.map((row) => ({
-      orderId: parseInt(row.id, 10),
-      orderNo: row.orderNo,
-      status: row.orderStatus,
-      customerName: row.customer_name ?? 'Unknown',
-      mobileNumber: row.mobileNumber ?? null,
-      deliveryMan: row.delivery_man_name,
-      shippingMethod: row.shipping_method_name ?? null,
-      totalValue: parseFloat(row.totalValue) || 0,
-      orderDate: row.order_date,
-      hours: Math.round((parseFloat(row.hours) || 0) * 10) / 10,
-    }));
-
-    const byStatus = statusRows.map((row) => ({
-      status: row.orderStatus,
-      count: parseInt(row.count, 10) || 0,
-    }));
-
     const deliveredOrders = deliveredRows.map((row) => ({
       orderId: parseInt(row.id, 10),
       orderNo: row.orderNo,
@@ -3153,17 +3058,20 @@ export class OrderService {
       hours: Math.round((parseFloat(row.hours) || 0) * 10) / 10,
     }));
 
-    const summary = {
-      totalLongPending: parseInt(summaryRow?.count, 10) || 0,
-      worstHours: Math.round((parseFloat(summaryRow?.worst_hours) || 0) * 10) / 10,
-      avgHours: Math.round((parseFloat(summaryRow?.avg_hours) || 0) * 10) / 10,
-      totalValue: parseFloat(summaryRow?.total_value) || 0,
-      totalDelivered: deliveredOrders.length,
-      thresholdHours,
-      byStatus,
-    };
+    const pendingOrders = pendingRows.map((row) => ({
+      orderId: parseInt(row.id, 10),
+      orderNo: row.orderNo,
+      status: row.orderStatus,
+      customerName: row.customer_name ?? 'Unknown',
+      mobileNumber: row.mobileNumber ?? null,
+      deliveryMan: row.delivery_man_name,
+      shippingMethod: row.shipping_method_name ?? null,
+      totalValue: parseFloat(row.totalValue) || 0,
+      orderDate: row.order_date,
+      hours: Math.round((parseFloat(row.hours) || 0) * 10) / 10,
+    }));
 
-    return { summary, orders, deliveredOrders };
+    return { summary, deliveryMen, lateOrders, pendingOrders, deliveredOrders };
   }
 
   /**

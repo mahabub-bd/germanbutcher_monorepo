@@ -64,6 +64,30 @@ export default async function LateDeliveryReportPage({
       deliveredAt: string;
       hours: number;
     }[];
+    pendingOrders: {
+      orderId: number;
+      orderNo: string;
+      status: string;
+      customerName: string;
+      mobileNumber: string;
+      deliveryMan: string;
+      shippingMethod: string | null;
+      totalValue: number;
+      orderDate: string;
+      hours: number;
+    }[];
+    deliveredOrders: {
+      orderId: number;
+      orderNo: string;
+      customerName: string;
+      mobileNumber: string;
+      deliveryMan: string;
+      shippingMethod: string | null;
+      totalValue: number;
+      orderDate: string;
+      deliveredAt: string;
+      hours: number;
+    }[];
   } | null = null;
 
   try {
@@ -93,6 +117,8 @@ export default async function LateDeliveryReportPage({
         summary={reportData?.summary ?? null}
         deliveryMen={reportData?.deliveryMen ?? []}
         lateOrders={reportData?.lateOrders ?? []}
+        pendingOrders={reportData?.pendingOrders ?? []}
+        deliveredOrders={reportData?.deliveredOrders ?? []}
       />
     </AdminPageContainer>
   );
