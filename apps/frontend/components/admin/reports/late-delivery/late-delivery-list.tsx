@@ -58,6 +58,32 @@ interface LateOrderRow {
   hours: number;
 }
 
+interface PendingOrderRow {
+  orderId: number;
+  orderNo: string;
+  status: string;
+  customerName: string;
+  mobileNumber: string | null;
+  deliveryMan: string;
+  shippingMethod: string | null;
+  totalValue: number;
+  orderDate: string;
+  hours: number;
+}
+
+interface DeliveredOrderRow {
+  orderId: number;
+  orderNo: string;
+  customerName: string;
+  mobileNumber: string | null;
+  deliveryMan: string;
+  shippingMethod: string | null;
+  totalValue: number;
+  orderDate: string;
+  deliveredAt: string;
+  hours: number;
+}
+
 interface Summary {
   totalDelivered: number;
   totalLate: number;
@@ -76,6 +102,8 @@ interface LateDeliveryListProps {
   summary: Summary | null;
   deliveryMen: DeliveryManRow[];
   lateOrders: LateOrderRow[];
+  pendingOrders: PendingOrderRow[];
+  deliveredOrders: DeliveredOrderRow[];
 }
 
 /** Whole amounts only — report values never need decimal places. */
@@ -110,6 +138,8 @@ export default function LateDeliveryList({
   summary,
   deliveryMen,
   lateOrders,
+  pendingOrders,
+  deliveredOrders,
 }: LateDeliveryListProps) {
   const router = useRouter();
   const settings = useBusinessSettings();
@@ -155,6 +185,30 @@ export default function LateDeliveryList({
     hours1(dm.worstHours),
   ]);
 
+  const pendingExportRows = pendingOrders.map((o) => [
+    o.orderNo,
+    o.status,
+    o.customerName,
+    o.mobileNumber ?? "",
+    o.deliveryMan,
+    o.shippingMethod ?? "",
+    formatDateTime(o.orderDate),
+    durationLabel(o.hours),
+    bare(o.totalValue),
+  ]);
+
+  const deliveredExportRows = deliveredOrders.map((o) => [
+    o.orderNo,
+    o.customerName,
+    o.mobileNumber ?? "",
+    o.deliveryMan,
+    o.shippingMethod ?? "",
+    formatDateTime(o.orderDate),
+    formatDateTime(o.deliveredAt),
+    durationLabel(o.hours),
+    bare(o.totalValue),
+  ]);
+
   const pdfSummary = [
     { label: "Total Delivered", value: String(summary?.totalDelivered ?? 0) },
     { label: "Total Late", value: String(summary?.totalLate ?? 0) },
@@ -186,6 +240,56 @@ export default function LateDeliveryList({
               summary={pdfSummary}
               fileName="late-delivery-report"
             />
+            {pendingExportRows.length > 0 && (
+              <ReportExcelButton
+                title="Long Pending Orders"
+                subtitle={rangeLabel}
+                headers={[
+                  "Order",
+                  "Status",
+                  "Customer",
+                  "Mobile",
+                  "Delivery Man",
+                  "Method",
+                  "Placed",
+                  "Waiting",
+                  "Value",
+                ]}
+                rows={pendingExportRows}
+                summary={[
+                  {
+                    label: `Undelivered over ${summary?.thresholdHours ?? 24}h`,
+                    value: `${pendingOrders.length} orders`,
+                  },
+                ]}
+                fileName="long-pending-orders"
+              />
+            )}
+            {deliveredExportRows.length > 0 && (
+              <ReportExcelButton
+                title="Delivered Orders"
+                subtitle={rangeLabel}
+                headers={[
+                  "Order",
+                  "Customer",
+                  "Mobile",
+                  "Delivery Man",
+                  "Method",
+                  "Placed",
+                  "Delivered",
+                  "Took",
+                  "Value",
+                ]}
+                rows={deliveredExportRows}
+                summary={[
+                  {
+                    label: "Delivered in range",
+                    value: `${deliveredOrders.length} orders`,
+                  },
+                ]}
+                fileName="delivered-orders"
+              />
+            )}
             <LazyPdfDownloadLink
               document={
                 <ReportTablePDF
@@ -534,6 +638,228 @@ export default function LateDeliveryList({
                       {order.deliveryMan || "Unassigned"} ·{" "}
                       {order.shippingMethod || "—"} ·{" "}
                       {bare(order.totalValue)}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Long pending — undelivered past the threshold */}
+          {pendingOrders.length > 0 && (
+            <div className="mt-6 overflow-hidden rounded-xl border bg-card shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+                <div>
+                  <h3 className="text-sm font-semibold">Long pending orders</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Undelivered more than {summary?.thresholdHours ?? 24}h after
+                    placement · oldest first
+                  </p>
+                </div>
+                <PillBadge tone="red" className="font-medium tabular-nums">
+                  {pendingOrders.length} order{pendingOrders.length === 1 ? "" : "s"}
+                </PillBadge>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <Table className="report-table">
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="pl-4">Order</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Delivery Man</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Placed</TableHead>
+                      <TableHead className="text-right">Waiting</TableHead>
+                      <TableHead className="pr-4 text-right">Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingOrders.map((order) => (
+                      <TableRow key={order.orderId}>
+                        <TableCell className="py-2 pl-4">
+                          <Link
+                            href={`/admin/order/${order.orderNo}/view`}
+                            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                          >
+                            {order.orderNo}
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                          <PillBadge className="capitalize">
+                            {order.status.replace("_", " ")}
+                          </PillBadge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{order.customerName}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">
+                            {order.deliveryMan || "Unassigned"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {order.shippingMethod || "—"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                            {formatDateTime(order.orderDate)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">
+                            {durationLabel(order.hours)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="pr-4 text-right">
+                          <span className="text-sm font-semibold tabular-nums">
+                            {bare(order.totalValue)}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="divide-y md:hidden">
+                {pendingOrders.map((order) => (
+                  <article key={order.orderId} className="space-y-2 p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <Link
+                          href={`/admin/order/${order.orderNo}/view`}
+                          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                        >
+                          {order.orderNo}
+                        </Link>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {order.customerName}
+                        </p>
+                      </div>
+                      <PillBadge tone="red" className="shrink-0 tabular-nums">
+                        {durationLabel(order.hours)}
+                      </PillBadge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {order.status.replace("_", " ")} ·{" "}
+                      {order.deliveryMan || "Unassigned"} · {bare(order.totalValue)}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* All delivered orders in range */}
+          {deliveredOrders.length > 0 && (
+            <div className="mt-6 overflow-hidden rounded-xl border bg-card shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+                <div>
+                  <h3 className="text-sm font-semibold">Delivered orders</h3>
+                  <p className="text-xs text-muted-foreground">
+                    All delivered in range · newest first
+                  </p>
+                </div>
+                <PillBadge tone="emerald" className="font-medium tabular-nums">
+                  {deliveredOrders.length} order
+                  {deliveredOrders.length === 1 ? "" : "s"}
+                </PillBadge>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <Table className="report-table">
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="pl-4">Order</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Delivery Man</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Placed</TableHead>
+                      <TableHead>Delivered</TableHead>
+                      <TableHead className="text-right">Took</TableHead>
+                      <TableHead className="pr-4 text-right">Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {deliveredOrders.map((order) => (
+                      <TableRow key={order.orderId}>
+                        <TableCell className="py-2 pl-4">
+                          <Link
+                            href={`/admin/order/${order.orderNo}/view`}
+                            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                          >
+                            {order.orderNo}
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{order.customerName}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">
+                            {order.deliveryMan || "Unassigned"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {order.shippingMethod || "—"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                            {formatDateTime(order.orderDate)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                            {formatDateTime(order.deliveredAt)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-sm font-semibold tabular-nums">
+                            {durationLabel(order.hours)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="pr-4 text-right">
+                          <span className="text-sm font-semibold tabular-nums">
+                            {bare(order.totalValue)}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="divide-y md:hidden">
+                {deliveredOrders.map((order) => (
+                  <article key={order.orderId} className="space-y-2 p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <Link
+                          href={`/admin/order/${order.orderNo}/view`}
+                          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                        >
+                          {order.orderNo}
+                        </Link>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {order.customerName}
+                        </p>
+                      </div>
+                      <PillBadge tone="emerald" className="shrink-0 tabular-nums">
+                        {durationLabel(order.hours)}
+                      </PillBadge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {order.deliveryMan || "Unassigned"} ·{" "}
+                      {order.shippingMethod || "—"} · {bare(order.totalValue)}
                     </p>
                   </article>
                 ))}
