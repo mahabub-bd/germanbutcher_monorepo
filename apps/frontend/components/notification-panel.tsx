@@ -96,7 +96,7 @@ export function NotificationPanel() {
 
   return (
     <Card className="mx-auto flex min-h-0 w-full flex-1 flex-col gap-0 border-0 bg-card py-0 shadow-lg">
-      <CardHeader className="shrink-0 space-y-0 border-b px-4 py-3">
+      <CardHeader className="shrink-0 space-y-0 border-b px-2 py-3 md:px-4">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-base font-semibold">
             <span className="rounded-xl bg-red-50 p-2 dark:bg-red-950/40">
@@ -171,6 +171,37 @@ export function NotificationPanel() {
                 const message = notification.data.message;
                 const titleText = notification.data.title || meta.label;
 
+                // Order chip (order # + copy button) — rendered inline with the
+                // title on desktop and on its own line on mobile.
+                const orderChip = (
+                  <>
+                    <Hash className="size-3 text-muted-foreground" />
+                    <Link
+                      href={`/admin/order/${notification.data.orderNo}/view`}
+                      className="text-xs font-semibold hover:underline"
+                    >
+                      {notification.data.orderNo}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (notification.data.orderNo) {
+                          copyOrderNo(notification.data.orderNo, index);
+                        }
+                      }}
+                      className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                      aria-label="Copy order number"
+                    >
+                      {copiedIndex === index ? (
+                        <Check className="size-3 text-green-500" />
+                      ) : (
+                        <Copy className="size-3" />
+                      )}
+                    </button>
+                  </>
+                );
+
                 return (
                   <div
                     key={index}
@@ -180,7 +211,7 @@ export function NotificationPanel() {
                       markNotificationRead(notification.id)
                     }
                     className={cn(
-                      "group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/40",
+                      "group flex items-start gap-2 px-2 py-3 transition-colors hover:bg-muted/40 md:gap-3 md:px-4",
                       isUnread && "cursor-pointer"
                     )}
                   >
@@ -197,53 +228,30 @@ export function NotificationPanel() {
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      {/* Line 1: title + order chip + time */}
+                      {/* Mobile (<= md): fixed 3-line item —
+                          1. title + time
+                          2. order chip
+                          3. message
+                        Desktop: chip stays inline in the title row. */}
+                      {/* Line 1: title + time */}
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <h4
-                            title={titleText}
-                            className={cn(
-                              "truncate text-sm",
-                              isUnread
-                                ? "font-semibold text-foreground"
-                                : "font-medium text-muted-foreground"
-                            )}
-                          >
-                            {titleText}
-                          </h4>
-
-                          {showOrderChip && (
-                            <div className="inline-flex shrink-0 items-center gap-1 rounded-md border bg-muted/40 px-1.5 py-0.5">
-                              <Hash className="size-3 text-muted-foreground" />
-                              <Link
-                                href={`/admin/order/${notification.data.orderNo}/view`}
-                                className="text-xs font-semibold hover:underline"
-                              >
-                                {notification.data.orderNo}
-                              </Link>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (notification.data.orderNo) {
-                                    copyOrderNo(
-                                      notification.data.orderNo,
-                                      index
-                                    );
-                                  }
-                                }}
-                                className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                                aria-label="Copy order number"
-                              >
-                                {copiedIndex === index ? (
-                                  <Check className="size-3 text-green-500" />
-                                ) : (
-                                  <Copy className="size-3" />
-                                )}
-                              </button>
-                            </div>
+                        <h4
+                          title={titleText}
+                          className={cn(
+                            "truncate text-sm",
+                            isUnread
+                              ? "font-semibold text-foreground"
+                              : "font-medium text-muted-foreground"
                           )}
-                        </div>
+                        >
+                          {titleText}
+                        </h4>
+
+                        {showOrderChip && (
+                          <div className="hidden shrink-0 items-center gap-1 rounded-md border bg-muted/40 px-1.5 py-0.5 md:inline-flex">
+                            {orderChip}
+                          </div>
+                        )}
 
                         <span className="shrink-0 text-xs text-muted-foreground">
                           {formatDistanceToNow(
@@ -252,6 +260,11 @@ export function NotificationPanel() {
                           )}
                         </span>
                       </div>
+
+                      {/* Line 2 (mobile only): order chip on its own line */}
+                      {showOrderChip && (
+                        <div className="mt-1 flex md:hidden">{orderChip}</div>
+                      )}
 
                       {/* Line 2: message, max two lines */}
                       <p
