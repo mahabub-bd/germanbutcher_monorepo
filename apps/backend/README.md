@@ -43,7 +43,6 @@ src/
 ├── common/            enums, DTOs, decorators, guards, utils (Dhaka time, SWR cache)
 ├── config/            S3 / mail / app configuration
 └── <feature>/         controller, service, dto/, entities/  (one folder per domain)
-scripts/               one-off SQL / JS operational scripts
 test/                  e2e harness
 database.dbml          schema snapshot — stale, entities are the source of truth
 ```
@@ -74,5 +73,12 @@ pnpm format        # Prettier
 ## Database
 
 Development uses `synchronize`; production does not. There are no migrations — schema
-changes ship as reviewed scripts in `scripts/`. Read
-[`docs/05-database.md`](../../docs/05-database.md#2-schema-change-policy) first.
+changes ship as reviewed SQL scripts (the historical `scripts/` folder now lives in git
+history). Read [`docs/05-database.md`](../../docs/05-database.md#2-schema-change-policy) first.
+
+---
+
+Maintainer: Mahabub Hossain — contact@mahabub.bd · 01711852202
+
+Product: German Butcher — House 56/B, Road 132, Gulshan 1, Dhaka · +8809666791991 ·
+support@germanbutcherbd.com

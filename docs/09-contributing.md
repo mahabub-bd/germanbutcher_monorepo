@@ -100,7 +100,8 @@ the server.
 **Schema change**
 
 - [ ] Entity updated, module registered with `forFeature`
-- [ ] Production path is additive; script added under `scripts/`
+- [ ] Production path is additive; SQL script written and archived with the release
+      (see [05 §2](05-database.md#2-schema-change-policy))
 - [ ] `database.dbml` refreshed (or explicitly noted as out of date)
 - [ ] [05 Database](05-database.md) updated for new invariants
 
@@ -133,17 +134,20 @@ Ordered roughly by risk. Each item is verifiable in the repository; none is hypo
 
 | # | Item | Evidence | Suggested fix |
 | --- | --- | --- | --- |
-| 1 | Order creation is not transactional | `order.service.ts#create` saves each product, writes stock movements, then saves the order | Wrap in `dataSource.transaction`; move usage logs after commit |
+| 1 | Order creation is not transactional | `order.service.ts#create` saves each product, writes stock movements, then saves the order; coupon re-validation runs **after** the stock loop, so a rejected coupon leaves stock decremented with no order | Wrap in `dataSource.transaction`; move validation before any writes and usage logs after commit |
 | 2 | Test suite is scaffolding | 68 spec files with a single `toBeDefined()` assertion | Start with pricing + permission tests |
-| 3 | No migrations | No `migrations/` directory; `synchronize` is the only schema tool | Introduce TypeORM migrations before the next breaking change |
+| 3 | No migrations | No `migrations/` directory; `synchronize` is the only schema tool, and the historical one-off scripts exist only in git history | Introduce TypeORM migrations before the next breaking change, and restore the operational SQL under `scripts/` |
 | 4 | Manual payment-status endpoint ignores `paidAmount` | `updatePaymentStatus` updates only `paymentStatus` | Recompute from the ledger, or block manual edits when payments exist |
 | 5 | Socket auth is trust-based | `notification.gateway.ts#handleConnection` reads `userId`/`isAdmin` from the query string | Verify a JWT in the handshake and derive rooms from it |
 | 6 | Empty CORS list means "allow all" | `main.ts`: `origin: corsOrigins.length > 0 ? corsOrigins : true` | Fail closed in production when the list is empty |
 | 7 | Stale schema snapshot | `database.dbml` misses `on_hold`, refund statuses, item price snapshots, CRM tables | Regenerate from a real database |
 | 8 | Role-name spelling drift | `actions/auth.ts` accepts `modaretor`; `proxy.ts` accepts `moderator` | Standardise on one name and migrate roles |
 | 9 | Mixed column naming | `attachment.gallery_id`, `address.user_id`, `category.isMainCategory` → `is_main_menu` | Documented in [05 §7](05-database.md#7-naming-inconsistencies-you-will-hit); rename only with a scripted migration |
-| 13 | Unused dependency | `@reduxjs/toolkit` in `apps/frontend/package.json`, no store anywhere | Remove, or adopt deliberately |
-| 14 | Unused env keys | `API_PREFIX`, `MAX_FILE_SIZE`, `ALLOWED_MIME_TYPES`, `OTP_DEV_MODE`, `OTP_DEV_CODE`, `SMS_RETRY_ATTEMPTS` | Remove from `.env` and docs, or wire them up |
+| 10 | Throttling is in-memory and per instance | `ThrottlerModule` uses the default storage; no Redis; all buckets are keyed by IP, which is shared behind the Next server actions | Add a shared storage (Redis) or keys per user/session before scaling out |
+| 11 | Guest-cart merge is not idempotent | `hooks/use-cart.ts` re-POSTs the whole local cart on every retry after a partial failure | Add a server-side merge endpoint (or upsert semantics) so retries cannot double-add |
+| 12 | Operational SQL is only in git history | The working tree has no `apps/backend/scripts/`; `git log -- apps/backend/scripts` is the only way to find the repad/backfill scripts | Restore the scripts under `scripts/` or a `migrations/` folder |
+| 13 | Unused dependency | `@aws-sdk/s3-request-presigner` is installed but no code calls `getSignedUrl` | Remove it (uploads use `PutObjectCommand` server-side) |
+| 14 | Unused env keys | `API_PREFIX`, `MAX_FILE_SIZE`, `ALLOWED_MIME_TYPES`, `OTP_DEV_MODE`, `OTP_DEV_CODE`, `SMS_RETRY_ATTEMPTS`, plus the vestigial `bcrypt` entry in `allowBuilds` | Remove from `.env` / `pnpm-workspace.yaml` and docs, or wire them up |
 | 15 | No CI | No `.github/workflows`, no other pipeline config | Add lint + build + backend tests on PR |
 | 16 | Backend TypeScript is loose | `strictNullChecks: false`, `noImplicitAny: false` | Tighten per-directory, starting with `common/` and `order/` |
 | 17 | Public debug endpoint leaks infrastructure | `GET /v1` returns the database host | Return `{ status: 'ok' }` instead |
@@ -154,9 +158,9 @@ Ordered roughly by risk. Each item is verifiable in the repository; none is hypo
 
 Product decisions that look like bugs but are intentional:
 
-- Guest carts are not merged at login.
 - Coupon usage is capped globally, not per customer.
 - Product detail pages bypass the Next.js data cache so deactivation is immediate.
+- BOGO free units are blended into the line discount rather than added as cart lines.
 
 ---
 
@@ -185,3 +189,7 @@ Product decisions that look like bugs but are intentional:
   for the next reader.
 - Prefer specifics (file paths, status codes, defaults) over narrative. Every rule in these
   documents should be checkable against the code in under a minute.
+
+---
+
+_Last verified against the code: 8 November 2026 (commit `70b9f60`)._

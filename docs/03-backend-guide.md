@@ -76,7 +76,7 @@ Conventions worth copying:
 | --- | --- |
 | `coupon` | Fixed/percentage coupons with validity window, usage caps, exclusions, max discount |
 | `coupon-usage-log` | One row per redeemed coupon |
-| `bogo-campaigns` | Buy-X-get-Y campaigns |
+| `bogo-campaigns` | Buy-X-get-Y campaigns with per-order and per-customer free-unit caps |
 | `bogo-usage-log` | BOGO redemptions |
 | `flash-sale-campaigns` | Time-boxed campaign pricing that overrides product discounts |
 | `flash-sale-usage-log` | Flash-sale redemptions with discount amounts |
@@ -270,6 +270,16 @@ file** by `MaxFileSizeValidator`. The service streams to S3 and stores `fileName
 3. `order-payment` writes the ledger row; `order.paymentStatus` and `paidAmount` are
    derived from it.
 
+Ledger details that matter operationally:
+
+- Payment and refund numbers are `YYYY-NNNNNN` (6-digit tail since the Nov 2026 migration;
+  pre-migration rows keep 4-digit tails), drawn from **one shared sequence** across both
+  types because they share a table and column.
+- Inserts retry up to three times on a Postgres unique violation (`23505`), because
+  SSLCommerz can fire the browser redirect and the IPN callback at the same instant.
+- Recording a payment also **syncs `order.paymentMethod`** to the method the money actually
+  arrived through, so a manual cash entry fixes an abandoned online method.
+
 `order-payment-method` rows are the customer-facing options; `payment-method` rows belong to
 procurement. Do not mix them.
 
@@ -312,7 +322,12 @@ Then:
 6. Add the admin page under `apps/frontend/app/admin/...` and a sidebar entry only if the
    menu row is seeded.
 7. If the table is new and you are not in production, let `synchronize` create it. In
-   production write an idempotent SQL script under `scripts/` and run it deliberately
-   (see [05](05-database.md#2-schema-change-policy)).
+   production write an idempotent SQL script and run it deliberately (the historical home
+   for those scripts, `apps/backend/scripts/`, is now in git history only — see
+   [05](05-database.md#2-schema-change-policy)).
 8. Add a service spec that asserts real behaviour — the generated "should be defined"
    stub adds no value.
+
+---
+
+_Last verified against the code: 8 November 2026 (commit `70b9f60`)._

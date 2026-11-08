@@ -48,7 +48,6 @@ and a 22-screen reporting suite.
 apps/
 ├── backend/     NestJS API — 50 feature modules, 51 controllers, ~350 routes
 │   ├── src/     modules, common/ (guards, decorators, enums, utils), config/
-│   ├── scripts/ one-off SQL / JS operational scripts
 │   └── test/    e2e harness
 └── frontend/    Next.js app — 191 pages, 7 layouts
     ├── app/     (main) storefront · admin · auth · api
@@ -137,7 +136,8 @@ pnpm docker:logs
 - Set `NODE_ENV=production`, a real `CORS_ORIGINS` allow-list, JWT secrets, S3 credentials
   and the SSLCommerz live flag. Never leave `TEMP_DB_SYNC` on.
 - `synchronize` is disabled in production; schema changes are applied with reviewed SQL
-  scripts from `apps/backend/scripts/`.
+  scripts (historical scripts live in git history — see
+  [05 Database](docs/05-database.md#2-schema-change-policy)).
 - Swagger is off in production unless `SWAGGER_ENABLED=true`.
 - Socket.IO rooms, throttling counters and in-process caches are per instance — read the
   scaling caveats in [02 Architecture](docs/02-architecture.md#8-caching-layers) before
@@ -145,8 +145,15 @@ pnpm docker:logs
 
 ---
 
+## Contact
+
+**Company:** German Butcher — House 56/B, Road 132, Gulshan 1, Dhaka
+
+- Customer support: +8809666791991 · support@germanbutcherbd.com
+- Developer: Mahabub Hossain — contact@mahabub.bd · 01711852202
+
+---
+
 ## License
 
 Proprietary — all rights reserved.
-
-**Author:** Mahabub Hossain

@@ -39,8 +39,10 @@ the database.
 8. **Account** — order history and tracking, addresses, reviews, wishlist, notifications,
    support/contact.
 
-Guest carts are **not merged** into the server cart at login. If the cart contents matter,
-the customer must add them again after signing in.
+Guest carts **are merged** at login: each local item is POSTed to `cart/items`, a stored
+coupon is re-applied, local storage is cleared, and `/`, `/cart` and `/checkout` are
+revalidated. A failed merge keeps the guest cart and surfaces a retry toast (see
+[06 §8](06-frontend-guide.md#8-client-state)).
 
 ---
 
@@ -56,8 +58,8 @@ operations is deliberate:
 | 3 | Flash sale | If an active campaign matches the product (directly or via its category), the campaign price **replaces** the product discount — no stacking |
 | 4 | Product discount | Otherwise, if `now` is inside `discountStartDate…discountEndDate`: `fixed` subtracts the value, `percentage` takes `value%`; price floored at 0 |
 | 5 | Line totals | `totalValue += price × qty`, `totalDiscount += unitDiscount × qty`; stock is decremented, `saleCount` incremented, and an `order_sale` stock movement written |
-| 6 | BOGO | For each campaign (lowest id first): pool eligible units across lines, every `buy+get` units make the `get` cheapest units free; capped by `maxGroupsPerOrder`; campaign totals are written back into the line prices |
-| 7 | Coupon | Only inside its validity window; excluded products are removed from the eligible base; `fixed` subtracts the value, `percentage` takes `value%` of the **post-BOGO** eligible total, capped by `maxDiscountAmount`; total floored at 0 |
+| 6 | BOGO | For each campaign (lowest id first): pool eligible units across lines, every `buy+get` units make the `get` cheapest units free; capped by `maxGroupsPerOrder` and by the customer's remaining `maxFreePerUser` lifetime allowance (summed from the usage log); campaign totals are written back into the line prices |
+| 7 | Coupon | `assertUsable` **fails the order** (400) if the coupon is inactive, outside its window, or at its usage cap; otherwise excluded products are removed from the eligible base, `fixed` subtracts the value, `percentage` takes `value%` of the **post-BOGO** eligible total, capped by `maxDiscountAmount`; total floored at 0 |
 | 8 | Free delivery | Evaluated against the **payable subtotal after steps 4–7**, total quantity, matching products/categories, user history and Dhaka-time window; if matched and the shipping method is not excluded, shipping is 0 |
 | 9 | Shipping minimum | `shippingMethod.minOrderAmount` is checked against the post-discount subtotal (skipped for pickup); failure is a 400 |
 | 10 | Grand total | `totalValue += chargedShipping`, both totals rounded to 2 decimals |
@@ -102,6 +104,8 @@ pending ──► processing ──► shipped ──► delivered
 
 - `PATCH /orders/:id/order-status` writes an `order_status_track` row; `deliveredAt` is set
   when entering `delivered`, and cleared if the status leaves it.
+- Order numbers are `YYYY-NNNNNN` (6-digit tail since Nov 2026; legacy rows keep 4-digit
+  tails). Detail and neighbour routes accept either the numeric id or the order number.
 - Cancellation is only allowed from `pending`, `processing` or `on_hold`. Shipped and
   delivered orders must go through returns/support.
 - Cancelling restores stock with an `order_cancel` movement, decrements `saleCount`, stamps
@@ -122,6 +126,10 @@ pending ──► processing ──► shipped ──► delivered
 - `order_payment` is the ledger; every create/delete recomputes `order.paidAmount` and
   derives `paymentStatus` (`unpaid → partial → paid`, refunds → `partial_refund` /
   `refund_complete`).
+- Payment and refund rows share one `YYYY-NNNNNN` sequence, and inserts retry on a unique
+  violation because SSLCommerz can fire the redirect and the IPN together.
+- Recording a payment also syncs `order.paymentMethod` to the method the money arrived
+  through — a manual cash entry corrects an abandoned online method.
 - **Manual `PATCH /orders/:id/payment-status` changes only the status field — it does not
   touch `paidAmount`.** Use the payment ledger for reconciliation; use the manual endpoint
   only to correct a wrongly-labelled status.
@@ -138,8 +146,8 @@ pending ──► processing ──► shipped ──► delivered
 | Delivery man | Attached to orders; drives performance reports (assigned vs delivered, late deliveries) |
 | Free delivery | Waives the method cost only when the method is not excluded and the campaign matches |
 
-Counters and reports read `deliveredAt` / `cancelledAt`, not `updatedAt` — backfill scripts
-exist precisely because those stamps were added later.
+Counters and reports read `deliveredAt` / `cancelledAt`, not `updatedAt` — the backfill
+scripts in git history exist precisely because those stamps were added later.
 
 ---
 
@@ -155,7 +163,9 @@ Fields: `code` (unique), `discountType` (`percentage`/`fixed`), `value`,
 
 Validation responses: inactive → 400, expired → **410 Gone**, not yet valid → 400, usage cap
 exceeded → 400. Exclusions apply per product; a percentage coupon's base is the eligible
-line total after BOGO.
+line total after BOGO. Order creation re-checks the coupon (`assertUsable`) and **fails the
+order** with 400 instead of silently charging full price; the check-then-increment sequence
+can still overshoot `maxUsage` under concurrent checkouts.
 
 ### BOGO (buy X get Y)
 
@@ -165,10 +175,19 @@ Fields: `buyQuantity`, `getQuantity`, `maxGroupsPerOrder` (0 = unlimited), `maxF
 
 Rules: units pool across eligible lines (not per line), the cheapest units become free,
 campaigns are processed in id order and a unit can only feed one campaign, and every
-campaign that freed a unit gets its own usage-log row. The cart shows the granted free
-items as read-only rows under the regular items (auto-added by the campaign); they carry
-no separate cart entry — the discount line already accounts for them, and order creation
-re-checks every cap authoritatively.
+campaign that freed a unit gets its own usage-log row. Both caps are authoritative:
+`maxGroupsPerOrder` is enforced in the cart and again at order creation, while
+`maxFreePerUser` is clamped against `SUM(freeUnits)` for that customer from the usage log.
+The cart shows the granted free items as read-only rows under the regular items (auto-added
+by the campaign); they carry no separate cart entry — the discount line already accounts
+for them.
+
+`POST /bogo-campaigns/preview` runs the same calculation for the current cart without
+persisting anything. Adding more units than `maxGroupsPerOrder` allows is rejected by the
+cart itself (`Per-order limit reached: at most N × product with the active BOGO deal`), so a
+stale storefront cannot push the deal past its ceiling. Order detail responses attach a
+`bogoUsage` property (campaign, free lines) so the confirmation page and invoice can itemise
+the free units.
 
 ### Flash sales
 
@@ -262,7 +281,8 @@ All report screens share date filters (`ReportDateFilters`) and export to PDF
 
 - **Business settings** (singleton): logo, contact details, social links, storefront copy
   and **maintenance mode** with an optional schedule. The public `GET` feeds header, footer,
-  invoices and the maintenance takeover page.
+  invoices and the maintenance takeover page. The company's public contacts are listed in
+  [the docs index](README.md#contacts) and are configured here rather than hard-coded.
 - **Banners**: position (`top|middle|bottom|sidebar`), type (`main|promotional|featured`),
   display order, target URL, image.
 - **Recipes, testimonials, clients, sales points/partners/shops**: marketing content managed
@@ -299,8 +319,9 @@ The admin header shows a live unread count and plays a sound for new-order alert
   `ActivityInterceptor`, retained 90 days, purged nightly at 02:00.
 - **Online users**: live visitor counter for the dashboard.
 - **Analytics**: request volume, response times, top endpoints/pages, devices, traffic
-  sources, conversion, peak hours — fed by the interceptor and purged after the retention
-  window.
+  sources (by landing-page `document.referrer`, with Facebook redirector hosts bucketed as
+  `facebook.com`), conversion, peak hours — fed by the interceptor and purged after the
+  retention window.
 
 ---
 
@@ -308,8 +329,8 @@ The admin header shows a live unread count and plays a sound for new-order alert
 
 | Situation | Actual behaviour |
 | --- | --- |
-| Guest adds items, then signs in | Guest cart is dropped; server cart is shown. No merge |
-| Coupon expires/lapses while a cart is open | Order creation **re-validates** the coupon (`CouponService.assertUsable`) and fails with 400 — the customer removes the coupon and retries. The cart-level check endpoint still returns 410 Gone for expiry |
+| Guest adds items, then signs in | The guest cart is merged into the server cart (items POSTed, coupon re-applied). A partial failure keeps the local cart and can double-add items on retry |
+| Coupon expires/lapses while a cart is open | Order creation **re-validates** the coupon (`CouponService.assertUsable`) and fails with 400 — the customer removes the coupon and retries. The cart-level check endpoint still returns 410 Gone for expiry. **The failed attempt has already decremented stock** (validation runs after the item loop, and there is no transaction), so repeated retries can drain inventory — see [09](09-contributing.md#6-known-technical-debt) item 1 |
 | Product deactivated while in a cart | Order creation rejects it ("no longer available"); detail pages 404 immediately |
 | Product price edited after an order | Order history is unchanged (line-level price snapshots) |
 | Manual payment-status change | `paidAmount` is untouched; reports based on the ledger disagree until reconciled |
@@ -318,3 +339,7 @@ The admin header shows a live unread count and plays a sound for new-order alert
 | Pickup method + minimum order | Minimum is not enforced for pickup |
 | Coupon/campaign cap reached during checkout | Order creation re-checks the coupon cap (`assertUsable`), but `timesUsed` increments after the order is written — a concurrent burst can still overshoot |
 | Admin screen missing from sidebar | No `menu` row or no `menu_permission` for that role |
+
+---
+
+_Last verified against the code: 8 November 2026 (commit `70b9f60`)._
