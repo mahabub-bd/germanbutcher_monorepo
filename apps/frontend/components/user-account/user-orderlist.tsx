@@ -198,17 +198,17 @@ const OrderTable = ({ orders }: MyOrderProps) => {
       ) : (
         <>
           {/* Mobile: one compact card per order */}
-          <div className="space-y-3 md:hidden">
+          <div className="space-y-2.5 md:hidden">
             {sortedOrders.map((order) => (
               <div
                 key={order.id}
-                className="rounded-xl border border-gray-200 bg-white p-4 shadow-xs"
+                className="rounded-xl border border-gray-200 bg-white p-3 shadow-xs"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <Link
                       href={detailHref(order.orderNo)}
-                      className="font-medium text-gray-900 hover:text-primaryColor"
+                      className="text-sm font-medium text-gray-900 hover:text-primaryColor"
                     >
                       {order.orderNo}
                     </Link>
@@ -219,9 +219,9 @@ const OrderTable = ({ orders }: MyOrderProps) => {
                   <OrderStatusBadge status={order.orderStatus} />
                 </div>
 
-                <div className="mt-3 flex items-center justify-between gap-2">
+                <div className="mt-2.5 flex items-center justify-between gap-2">
                   <span className="text-xs text-muted-foreground">Total</span>
-                  <span className="font-semibold text-gray-900">
+                  <span className="text-sm font-semibold text-gray-900">
                     ৳{formatCurrencyEnglish(order.totalValue || 0)}
                   </span>
                 </div>
@@ -235,12 +235,12 @@ const OrderTable = ({ orders }: MyOrderProps) => {
                 </div>
 
                 {shouldShowPayNow(order) && (
-                  <div className="mt-3">
+                  <div className="mt-2.5">
                     <PayNow order={order} />
                   </div>
                 )}
 
-                <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="mt-2.5 grid grid-cols-2 gap-2">
                   <OrderRowButton
                     spinning={reorderingId === order.id}
                     icon={Repeat}

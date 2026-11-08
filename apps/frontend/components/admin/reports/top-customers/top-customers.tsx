@@ -62,6 +62,7 @@ export interface TopCustomer {
   name: string;
   email: string;
   mobileNumber: string;
+  gender: string | null;
   isVerified: boolean;
   /** Area from the customer's default saved address (null if none). */
   area: string | null;
@@ -226,6 +227,7 @@ export default function TopCustomersReport({
                 "Rank",
                 "Customer Name",
                 "Mobile",
+                "Gender",
                 "Email",
                 "Area",
                 "Orders",
@@ -236,6 +238,7 @@ export default function TopCustomersReport({
                 index + 1,
                 customer.name,
                 customer.mobileNumber,
+                customer.gender || "-",
                 customer.email || "-",
                 customer.area || "-",
                 customer.statistics.totalOrders,
@@ -403,6 +406,7 @@ export default function TopCustomersReport({
                     <TableHead className="pl-4">#</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Mobile</TableHead>
+                    <TableHead>Gender</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Area</TableHead>
                     <TableHead className="text-right">Orders</TableHead>
@@ -454,6 +458,16 @@ export default function TopCustomersReport({
                           <span className="text-sm text-muted-foreground">
                             No mobile
                           </span>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        {customer.gender ? (
+                          <span className="text-sm capitalize text-muted-foreground">
+                            {customer.gender}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
                         )}
                       </TableCell>
 
@@ -539,7 +553,7 @@ export default function TopCustomersReport({
                     <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Total
                     </TableCell>
-                    <TableCell colSpan={4} />
+                    <TableCell colSpan={5} />
                     <TableCell className="text-right">
                       <span className="text-sm font-bold tabular-nums">
                         {totalOrders.toLocaleString("en-US")}

@@ -2,11 +2,7 @@
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { BrandController } from 'src/brand/brand.controller';
-import { BrandService } from 'src/brand/brand.service';
 import { Brand } from 'src/brand/entities/brand.entity';
-import { CategoryController } from 'src/category/category.controller';
-import { CategoryService } from 'src/category/category.service';
 import { Category } from 'src/category/entities/category.entity';
 
 import { FlashSaleCampaignsModule } from 'src/flash-sale-campaigns/flash-sale-campaigns.module';
@@ -46,19 +42,15 @@ import { ProductService } from './product.service';
     ProductHistoryModule,
     StockMovementModule,
   ],
-  controllers: [ProductController, CategoryController, BrandController],
+  controllers: [ProductController],
   providers: [
     ProductService,
-    CategoryService,
-    BrandService,
     AttachmentService,
     UnitsService,
     SuppliersService,
   ],
   exports: [
     ProductService,
-    CategoryService,
-    BrandService,
     AttachmentService,
     UnitsService,
     SuppliersService,

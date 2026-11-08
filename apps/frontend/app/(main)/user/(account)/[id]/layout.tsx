@@ -191,7 +191,7 @@ const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="font-castor text-lg leading-tight font-semibold text-gray-900 truncate">
+                      <p className=" text-lg leading-tight font-semibold text-gray-900 truncate">
                         {user?.name || "User"}
                       </p>
                       <p className="mt-0.5 text-xs font-medium tracking-wide text-gray-500 uppercase truncate">
@@ -237,7 +237,7 @@ const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="font-castor text-base leading-tight font-semibold text-gray-900 truncate">
+                    <p className="text-base leading-tight font-semibold text-gray-900 truncate">
                       {user?.name || "User"}
                     </p>
                     <p className="mt-0.5 text-[11px] font-medium tracking-wide text-gray-500 uppercase truncate">

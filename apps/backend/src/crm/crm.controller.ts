@@ -15,7 +15,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ModulePermissions } from 'src/auth/decorators/module-permissions.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
@@ -41,7 +46,9 @@ export class CrmController {
   }
 
   @Get('segment-rules')
-  @ApiOperation({ summary: 'Effective CRM segment rules (Business Settings or defaults)' })
+  @ApiOperation({
+    summary: 'Effective CRM segment rules (Business Settings or defaults)',
+  })
   async getSegmentRules() {
     const rules = await this.crmService.getSegmentRules();
     return {
@@ -118,6 +125,7 @@ export class CrmController {
       'Name',
       'Email',
       'Mobile',
+      'Gender',
       'Area',
       'Orders',
       'Total Spent',
@@ -134,6 +142,7 @@ export class CrmController {
           customer.name,
           customer.email,
           customer.mobileNumber,
+          customer.gender,
           customer.area,
           customer.rfm.orderCount,
           customer.rfm.totalSpent,

@@ -66,21 +66,22 @@ export default function OrderView({ order, onBack }: OrderViewProps) {
           )
         }
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <Button
               size="sm"
               onClick={handleGeneratePDF}
               disabled={isGeneratingPDF}
+              title="Download Invoice"
             >
               {isGeneratingPDF ? (
                 <>
-                  <Loader2 className="size-4 mr-2 animate-spin" />
-                  Generating...
+                  <Loader2 className="size-3.5 sm:size-4 mr-1.5 sm:mr-2 animate-spin" />
+                  <span className="text-xs sm:text-sm">Generating...</span>
                 </>
               ) : (
                 <>
-                  <Download className="size-4 mr-2" />
-                  Download
+                  <Download className="size-3.5 sm:size-4 mr-1.5 sm:mr-2" />
+                  <span className="text-xs sm:text-sm">Download</span>
                 </>
               )}
             </Button>
@@ -89,16 +90,17 @@ export default function OrderView({ order, onBack }: OrderViewProps) {
               size="sm"
               onClick={handleReorder}
               disabled={isReordering || order.items.length === 0}
+              title="Buy Again"
             >
               {isReordering ? (
                 <>
-                  <Loader2 className="size-4 mr-2 animate-spin" />
-                  Adding...
+                  <Loader2 className="size-3.5 sm:size-4 mr-1.5 sm:mr-2 animate-spin" />
+                  <span className="text-xs sm:text-sm">Adding...</span>
                 </>
               ) : (
                 <>
-                  <Repeat className="size-4 mr-2" />
-                  Buy Again
+                  <Repeat className="size-3.5 sm:size-4 mr-1.5 sm:mr-2" />
+                  <span className="text-xs sm:text-sm">Buy Again</span>
                 </>
               )}
             </Button>

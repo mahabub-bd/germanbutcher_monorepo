@@ -105,11 +105,13 @@ export default function MyAddress({
           title="Manage Addresses"
           action={
             <Button
-              className="px-3 py-1.5 text-xs sm:px-5 sm:py-2.5 sm:text-sm font-semibold text-white rounded-lg transition-colors flex items-center gap-1.5 sm:gap-2 h-auto"
+              size="sm"
+              className="rounded-lg font-semibold sm:h-9 sm:px-5 sm:text-sm"
               onClick={handleAddAddress}
+              title="Add New Address"
             >
-              <Plus className="w-4 h-4" />
-              Add New
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="text-xs sm:text-sm">Add New</span>
             </Button>
           }
         />
@@ -146,11 +148,13 @@ export default function MyAddress({
         title="Manage Addresses"
         action={
           <Button
-            className="px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-colors flex items-center gap-2 h-auto"
+            size="sm"
+            className="rounded-lg font-semibold sm:h-9 sm:px-5 sm:text-sm"
             onClick={handleAddAddress}
+            title="Add New Address"
           >
-            <Plus className="w-4 h-4" />
-            Add New
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="text-xs sm:text-sm">Add New</span>
           </Button>
         }
       />

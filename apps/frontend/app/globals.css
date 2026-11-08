@@ -220,13 +220,12 @@
     color: transparent;
   }
 
-  /* Report tables run a touch larger than the rest of the admin UI: the dense
-     numeric columns read better at 15px than at the 14px text-sm baseline.
-     Retuning the scale variable keeps every text-sm inside the table — the
-     table root, cells and inline spans — in step. */
+  /* Report tables match the admin UI's 14px text-sm baseline. Retuning the
+     scale variable keeps every text-sm inside the table — the table root,
+     cells and inline spans — in step. */
   .report-table {
-    --text-sm: 0.9375rem;
-    --text-sm--line-height: 1.375rem;
+    --text-sm: 0.875rem;
+    --text-sm--line-height: 1.25rem;
   }
 }
 /* Underline active class setup */

@@ -20,5 +20,6 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "types": ["jest"]
-  }
+  },
+  "exclude": ["vitest.config.mts", "tests"]
 }

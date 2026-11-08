@@ -62,11 +62,12 @@ const MySupport = ({
         action={
           messages.length > 0 ? (
             <Button
+              size="sm"
               onClick={() => setIsCreateOpen(true)}
-              className="rounded-lg px-5 py-2.5 font-semibold h-auto"
+              className="rounded-lg font-semibold sm:h-9 sm:px-5 sm:text-sm"
             >
-              <Plus className="h-4 w-4" />
-              New Message
+              <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="text-xs sm:text-sm">New Message</span>
             </Button>
           ) : undefined
         }

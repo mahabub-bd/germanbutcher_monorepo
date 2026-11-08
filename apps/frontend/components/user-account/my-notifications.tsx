@@ -90,10 +90,12 @@ const MyNotifications = ({
         action={
           <Button
             variant="outline"
+            size="sm"
+            className="sm:h-9 sm:px-4"
             onClick={handleMarkAllRead}
             disabled={markingAll || unreadCount === 0}
           >
-            Mark all read
+            <span className="text-xs sm:text-sm">Mark all read</span>
           </Button>
         }
       />
