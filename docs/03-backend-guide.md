@@ -1,6 +1,6 @@
 # 03 — Backend guide
 
-`apps/backend` is a NestJS 11 application: one PostgreSQL database through TypeORM, one
+`apps/backend` is a NestJS 12 application: one PostgreSQL database through TypeORM, one
 controller per resource, no CQRS, no microservices, no message broker. Everything is
 request/response except the notification gateway and two cron jobs.
 
@@ -146,6 +146,21 @@ Non-negotiables for new endpoints:
 4. Pass `req.user` into the service for `createdBy`/`updatedBy` audit columns.
 5. Public storefront routes simply omit guards; there is no `@Public()` decorator in
    practice (the `'isPublic'` flag is honoured by `JwtAuthGuard` but rarely set).
+6. **Give client-actionable failures an `errorCode`**. Nest 12's `HttpException` options
+   support it and the default filter copies it into the body:
+
+   ```ts
+   throw new BadRequestException('Coupon has expired', {
+     errorCode: 'COUPON_EXPIRED',
+   });
+   ```
+
+   Coupon validation already uses this (`COUPON_NOT_ACTIVE`, `COUPON_EXPIRED`,
+   `COUPON_NOT_YET_VALID`, `COUPON_USAGE_LIMIT_EXCEEDED`, `COUPON_MIN_ORDER_NOT_MET`, …).
+   Clients can branch on `errorCode` instead of matching message text.
+7. **Logging**: `new Logger('Context')`; in Nest 12 a trailing object is stored as structured
+   parameters instead of being stringified, so `logger.log('Order created', { orderNo })`
+   stays searchable.
 
 ---
 
@@ -330,4 +345,4 @@ Then:
 
 ---
 
-_Last verified against the code: 8 November 2026 (commit `70b9f60`)._
+_Last verified against the code: 8 November 2026 (NestJS 12 working tree)._

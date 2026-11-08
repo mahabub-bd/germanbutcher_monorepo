@@ -342,4 +342,4 @@ images: { remotePatterns: [<2 S3 hosts>], minimumCacheTTL: 31d, qualities: [70,7
 
 ---
 
-_Last verified against the code: 8 November 2026 (commit `70b9f60`)._
+_Last verified against the code: 8 November 2026 (NestJS 12 working tree)._

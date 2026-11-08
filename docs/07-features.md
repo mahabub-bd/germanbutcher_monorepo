@@ -161,11 +161,13 @@ Fields: `code` (unique), `discountType` (`percentage`/`fixed`), `value`,
 `maxDiscountAmount`, `validFrom`/`validUntil`, `isActive`, `maxUsage` (`null` = unlimited),
 `timesUsed`, excluded products.
 
-Validation responses: inactive → 400, expired → **410 Gone**, not yet valid → 400, usage cap
-exceeded → 400. Exclusions apply per product; a percentage coupon's base is the eligible
-line total after BOGO. Order creation re-checks the coupon (`assertUsable`) and **fails the
-order** with 400 instead of silently charging full price; the check-then-increment sequence
-can still overshoot `maxUsage` under concurrent checkouts.
+Validation responses: inactive → 400 (`COUPON_NOT_ACTIVE`), expired → **410 Gone**
+(`COUPON_EXPIRED`), not yet valid → 400 (`COUPON_NOT_YET_VALID`), usage cap exceeded → 400
+(`COUPON_USAGE_LIMIT_EXCEEDED`); the eligible-amount rule adds `COUPON_MIN_ORDER_NOT_MET`.
+Exclusions apply per product; a percentage coupon's base is the eligible line total after
+BOGO. Order creation re-checks the coupon (`assertUsable`) and **fails the order** with 400
+instead of silently charging full price; the check-then-increment sequence can still
+overshoot `maxUsage` under concurrent checkouts.
 
 ### BOGO (buy X get Y)
 
@@ -246,7 +248,7 @@ Segments are computed from purchase behaviour and mapped to the enum
 | --- | --- | --- |
 | Customer list + filters | `GET /crm/customers` | Segment, spend, recency, search |
 | Customer 360 | `GET /crm/customers/:id` | Orders, spend, segment, activity timeline |
-| Export | `GET /crm/customers/export` | CSV/Excel payload for the report export button |
+| Export | `GET /crm/customers/export` | CSV/Excel payload for the report export button; includes Gender |
 | Activities / tasks | `GET/POST/PATCH/DELETE /crm/activities` | Types: `note`, `task`, `call`, `email`; status `open`/`completed`. The admin "Tasks" screen is the same endpoint filtered to `task` |
 | Campaigns | `POST/GET /crm/campaigns`, `POST /crm/campaigns/:id/send` | Channels `sms`/`email`; statuses `draft → sending → sent`/`failed`; recipients preview before send |
 | Dashboard | `GET /crm/dashboard` | Segment distribution, activity load, campaign outcomes |
@@ -342,4 +344,4 @@ The admin header shows a live unread count and plays a sound for new-order alert
 
 ---
 
-_Last verified against the code: 8 November 2026 (commit `70b9f60`)._
+_Last verified against the code: 8 November 2026 (NestJS 12 working tree)._

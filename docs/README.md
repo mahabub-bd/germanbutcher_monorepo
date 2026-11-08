@@ -38,7 +38,7 @@ pages).
 | --- | --- |
 | Repository layout | pnpm workspace, `apps/*`, no shared package yet |
 | Frontend | Next.js `16.4.3`, React `19.3`, Tailwind CSS v4, Radix UI, TypeScript 6 |
-| Backend | NestJS `11.1`, TypeORM `0.3.28`, TypeScript 6 |
+| Backend | NestJS `12.4`, Express `5.3`, TypeORM `0.3.28`, TypeScript 6 |
 | Database | PostgreSQL (external; no migrations directory — see [05](05-database.md)) |
 | Dev ports | API `3000` (`/v1`), storefront `3002` |
 | API prefix / versioning | Global prefix `v1`, URI versioning enabled |
@@ -49,6 +49,7 @@ pages).
 | Payments | SSLCommerz (hosted checkout + IPN) plus cash-on-delivery style methods |
 | Mail / SMS | ZeptoMail / HTTP SMS gateway used for OTP and order notifications |
 | Container images | Node 24 Alpine, pnpm 11 via corepack, non-root user, multi-stage |
+| Testing / lint | Vitest 5 (API; specs are scaffolding) + oxlint/ESLint; Next ESLint only |
 
 ### Size of the codebase
 
@@ -80,17 +81,18 @@ pages).
 
 ## How these documents were produced
 
-Everything here was read out of the repository at the time of writing (8 November 2026,
-commit `70b9f60`): module wiring in `app.module.ts`, `main.ts` bootstrap order, guard and
-decorator implementations, entity definitions, the order-pricing pipeline in
-`order.service.ts`, `next.config.js`, `proxy.ts`, both Dockerfiles and
+Everything here was read out of the repository at the time of writing (8 November 2026;
+NestJS 12 upgrade in the working tree): module wiring in `app.module.ts`, `main.ts`
+bootstrap order, guard and decorator implementations, entity definitions, the order-pricing
+pipeline in `order.service.ts`, `next.config.js`, `proxy.ts`, both Dockerfiles and
 `docker-compose.yml`. Each document carries a "last verified" line at the bottom.
 
 Where the code and an older document disagreed, the code wins. Two examples that are
 corrected here relative to the original root README:
 
-- The backend reads `.env.local` in development and `.env.production` in production —
-  **not** `.env`.
+- Configuration precedence is `real environment > .env > .env.local | .env.production`:
+  `dotenv/config` loads `.env` first and `ConfigModule` does not override it, which the
+  original README's "`.env` is not read" advice did not describe.
 - Global client state is React Context (`CartProvider`, `NotificationProvider`,
   `SearchProvider`); the unused Redux Toolkit dependency the README implied was removed in
   the November 2026 cleanup.
@@ -118,8 +120,9 @@ code, deployment and infrastructure. See
 
 | Date | Change |
 | --- | --- |
+| 8 Nov 2026 | NestJS 12 upgrade: bootstrap route options (`specificity`, conflict warnings), Observe agent hook, native `errorCode` on exceptions, dotenv-loaded `.env`, Vitest + oxlint as primary tooling |
 | 8 Nov 2026 | Added company and maintainer contacts (README, docs index, deployment escalation) |
 | 8 Nov 2026 | Re-verified after the payment / BOGO / numbering fixes: `YYYY-NNNNNN` order and payment numbers (id **or** order number in routes), BOGO `maxFreePerUser` + cart ceiling + preview, coupon re-validation at order creation, guest-cart merge on login, `/payment/failed` redirects, analytics referrer attribution, dependency cleanup (Redux, framer-motion, input-otp, bcrypt→bcryptjs), `apps/backend/scripts/` removed from the tree |
 | 7 Nov 2026 | Initial documentation set |
 
-_Last verified against the code: 8 November 2026 (commit `70b9f60`)._
+_Last verified against the code: 8 November 2026 (NestJS 12 working tree)._

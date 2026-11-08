@@ -9,7 +9,7 @@ against a PostgreSQL database, and covers the local traps that cost the most tim
 
 | Requirement | Why | Notes |
 | --- | --- | --- |
-| **Node.js ≥ 20** | Next 16 / Nest 11 | Docker images use Node **24**; use 24 locally to match production |
+| **Node.js ≥ 20** | Next 16 / Nest 12 | Docker images use Node **24**; use 24 locally to match production |
 | **pnpm 11** | Workspace + lockfile | `corepack enable && corepack prepare pnpm@11 --activate` |
 | **PostgreSQL** | Primary datastore | Any reachable instance; the repo has no migrations, see [05](05-database.md) |
 | **Docker** (optional) | Containerised run | Only needed for `pnpm docker:*` |
@@ -46,22 +46,33 @@ each image only pulls the dependencies it needs.
 
 ### 3.1 How the backend loads configuration
 
-`ConfigModule.forRoot()` in `apps/backend/src/app.module.ts` is configured with:
+Two loaders run, in this order:
 
-```ts
-envFilePath: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.local'
+1. `main.ts` imports **`dotenv/config`**, which reads **`apps/backend/.env`** into
+   `process.env` at process start (resolved from the working directory, i.e. `apps/backend`).
+2. `ConfigModule.forRoot()` then loads **`.env.production`** when `NODE_ENV=production`,
+   otherwise **`.env.local`**.
+
+Neither loader overwrites variables that already exist in `process.env` (no `override: true`
+anywhere), so precedence is:
+
+```
+real environment (shell / container)  >  .env  >  .env.local | .env.production
 ```
 
 Consequences you must plan for:
 
-1. In development the backend reads **`apps/backend/.env.local`**.
-   A file named `.env` is **ignored** by the application (the local
-   `apps/backend/.env` is only read by `docker-compose`, which injects it as real
-   process environment).
-2. In production it reads **`apps/backend/.env.production`** — or, more commonly, gets
-   variables injected by the container/orchestrator, in which case no file is needed.
-3. A missing env file does not crash the process; it just leaves variables undefined and
-   you fail later at the database or JWT step.
+1. `.env` is **no longer ignored**. A key defined in both `.env` and `.env.local` takes the
+   `.env` value.
+2. Use `.env` for shared/base values. Put a machine-specific override in `.env.local` only
+   if `.env` does not define that key — or remove the key from `.env`.
+3. `.env` also decides which file step 2 loads, because it can set `NODE_ENV`. Make sure it
+   says `development` for local work; if it says `production`, `synchronize` is off,
+   Swagger may be hidden, OTP stays real, and a fresh database never gets its tables.
+4. In production, `.env` is not in the image (`.dockerignore`); variables come from
+   `env_file`/the orchestrator, and `.env.production` is optional.
+5. A missing env file does not crash the process; it leaves variables undefined and you fail
+   later at the database or JWT step.
 
 Practical local setup:
 
@@ -70,10 +81,8 @@ cd apps/backend
 cp .env .env.local        # only if you already have a .env
 ```
 
-A fresh clone has no `.env` — create `.env.local` and fill it from the reference below.
-After copying, set **`NODE_ENV=development`** in `.env.local`. If it stays `production`,
-`synchronize` is off, Swagger may be hidden, OTP stays real, and a fresh database never gets
-its tables.
+A fresh clone has no `.env` — create `.env` (and, optionally, `.env.local` for keys it does
+not define) from the reference below.
 
 ### 3.2 Backend variables
 
@@ -161,6 +170,19 @@ Transactional mail is best-effort: order creation does not fail when the mail ca
 
 `SWAGGER_ENABLED` (`true` forces docs on in production), `SWAGGER_TITLE`,
 `SWAGGER_DESCRIPTION`, `SWAGGER_VERSION`, `SWAGGER_FAVICON`, `SWAGGER_CUSTOM_CSS_URL`.
+
+#### Observability (Nest 12 Observe agent)
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `OBSERVE_APP_KEY` | Optional | Observe agent key; without both keys the agent sends nothing and warns at startup |
+| `OBSERVE_APP_SECRET` | Optional | Observe agent secret |
+| `OBSERVE_SERVICE_VERSION` | Optional | Release/commit label attached to telemetry |
+| `OBSERVE_ENDPOINT` | Optional | Collector base URL (defaults to the hosted Observe API) |
+
+`serviceId` is a code option (`ObserveModule.forRoot`), not an env var in this agent version.
+
+See [02 §3.2](02-architecture.md#32-observability-agent-nest-12) for what is wired and what is not.
 
 #### Analytics buffer
 
@@ -253,9 +275,12 @@ permissions) must be populated with SQL or by restoring a known-good database du
 | `pnpm build` | Build both apps |
 | `pnpm build:backend` / `build:frontend` | Build one app |
 | `pnpm start` | Start both apps (`nest start` for the API, `next start` for the site) |
-| `pnpm --filter germanbutcher-backend test` | Jest unit tests |
-| `pnpm --filter germanbutcher-backend test:e2e` | E2E tests (`test/`) |
-| `pnpm --filter germanbutcher-backend lint` | ESLint with `--fix` |
+| `pnpm --filter germanbutcher-backend test` | Vitest unit tests |
+| `pnpm --filter germanbutcher-backend test:cov` | Vitest with coverage |
+| `pnpm --filter germanbutcher-backend test:jest` | Legacy Jest runner (kept for compatibility) |
+| `pnpm --filter germanbutcher-backend test:e2e` | E2E tests (`test/`, Jest config) |
+| `pnpm --filter germanbutcher-backend lint` | `oxlint src` (fast pass) |
+| `pnpm --filter germanbutcher-backend lint:eslint` | ESLint flat config with `--fix` |
 | `pnpm --filter germanbutcher-frontend lint` | `next lint` |
 | `pnpm docker:up` | Build + start both containers |
 
@@ -269,7 +294,7 @@ Frontend has **no test runner configured** — no Jest/Vitest/Playwright depende
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
 | `ECONNREFUSED` on boot, or 8 s timeouts | Database unreachable | Check `DATABASE_*`; the pool fails fast at 8 s by design |
-| Env changes have no effect | Editing `apps/backend/.env` in development | Edit `.env.local` (or `.env.production` when `NODE_ENV=production`) |
+| Env changes have no effect | The key is set in a higher-precedence source | Remember `real env > .env > .env.local \| .env.production`; edit/remove it in `.env`, or override it in the shell |
 | Every API call returns 401 and the UI bounces to sign-in | `auth_token` cookie expired/cleared; `resolveAuthToken()` caches it per page load | Sign in again. Server code clears cookies on a 401 |
 | Data looks stale after an admin edit | Next.js Data Cache: `fetchData` uses `revalidate` (60 s, 300 s for products) and tags | Trigger `revalidatePath`/`revalidateTag` from the action, or hard-refresh; product **detail** pages are explicitly `no-store` |
 | Product detail page 404s after deactivation | Expected — detail fetches bypass the Next cache | — |
@@ -279,6 +304,7 @@ Frontend has **no test runner configured** — no Jest/Vitest/Playwright depende
 | Ports already in use | Old processes | `netstat -ano \| findstr :3000` then `taskkill /PID <pid> /F` (Windows) |
 | Swagger UI missing | `NODE_ENV=production` and `SWAGGER_ENABLED` unset | Set `SWAGGER_ENABLED=true` temporarily, or read `/docs` from a non-prod environment |
 | `pnpm install` skips a native build | Build scripts not approved | Keep `allowBuilds` in `pnpm-workspace.yaml`; reinstall (`sharp` is the one that bites) |
+| Specs fail on Jest-only APIs under Vitest | `tests/vitest-setup.mts` only maps `jest` to `vi` (the 359 `jest.fn()` call sites); `spyOn`/`useFakeTimers` are not shimmed | Use `vi.*`, or run `pnpm test:jest` |
 
 ---
 
@@ -293,4 +319,4 @@ Frontend has **no test runner configured** — no Jest/Vitest/Playwright depende
 
 ---
 
-_Last verified against the code: 8 November 2026 (commit `70b9f60`)._
+_Last verified against the code: 8 November 2026 (NestJS 12 working tree)._

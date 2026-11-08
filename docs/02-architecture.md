@@ -20,7 +20,7 @@ and the backend owns every invariant.
                                  │  fetch JSON, Bearer <access token>
                                  ▼
                  ┌────────────────────────────────────────────┐
-                 │  NestJS 11  (apps/backend, :3000)          │
+                 │  NestJS 12  (apps/backend, :3000)          │
                  │  global prefix /v1, URI versioning         │
                  │  Swagger UI  /docs                         │
                  └───┬──────────┬──────────┬──────────┬───────┘
@@ -88,24 +88,28 @@ against the Nest API.
 `src/main.ts` runs these steps in order; the order matters when debugging headers, CORS or
 payload limits:
 
-1. `NestFactory.create<NestExpressApplication>(AppModule)`
-2. **Body parsers** raised to `2mb` for JSON and urlencoded — the Express default of 100 kB
+1. `import 'dotenv/config'` (module import) loads **`.env`** into `process.env` before the
+   application is created.
+2. `NestFactory.create<NestExpressApplication>(AppModule, { … })` with the Nest 12 route
+   options and the Observe instrument — see §3.1 and §3.2.
+3. **Body parsers** raised to `2mb` for JSON and urlencoded — the Express default of 100 kB
    rejects large checkout payloads.
-3. `compression()` — JSON product lists compress heavily over the WAN.
-4. `helmet()` — security headers.
-5. `enableShutdownHooks()` — lets `AnalyticsService.onModuleDestroy` flush the buffer on
+4. `compression()` — JSON product lists compress heavily over the WAN.
+5. `helmet()` — security headers.
+6. `enableShutdownHooks()` — lets `AnalyticsService.onModuleDestroy` flush the buffer on
    SIGTERM/SIGINT.
-6. `trust proxy = 1` — client IPs come from `X-Forwarded-For` behind Nginx/ELB/Cloudflare.
-7. Global prefix `v1`, then URI versioning.
-8. **Swagger** — enabled unless `NODE_ENV=production`, unless `SWAGGER_ENABLED=true`.
-9. **CORS** — `CORS_ORIGINS` allow-list; if the list is empty, every origin is accepted
-   (`origin: true`) with credentials.
-10. **Global `ValidationPipe`** — `whitelist: true`, `transform: true`,
+7. `trust proxy = 1` — client IPs come from `X-Forwarded-For` behind Nginx/ELB/Cloudflare.
+8. Global prefix `v1`, then URI versioning.
+9. **Swagger** — enabled unless `NODE_ENV=production`, unless `SWAGGER_ENABLED=true`.
+10. **CORS** — `CORS_ORIGINS` allow-list; if the list is empty, every origin is accepted
+    (`origin: true`) with credentials.
+11. **Global `ValidationPipe`** — `whitelist: true`, `transform: true`,
     `enableImplicitConversion: true`.
-11. **Global interceptors** — `ClassSerializerInterceptor` (drops every `@Exclude()` field,
+12. **Global interceptors** — `ClassSerializerInterceptor` (drops every `@Exclude()` field,
     including `User.password` and `otp`, even in nested eager relations) and
     `AnalyticsInterceptor`.
-12. `app.listen(PORT)`.
+13. `app.listen(PORT)`, then a structured `Logger` banner (Nest 12 nests trailing object
+    params instead of stringifying them).
 
 `AppModule` additionally registers three global providers:
 
@@ -118,6 +122,39 @@ payload limits:
 Throttling is configured with three in-memory buckets: **3000 / min**, **10 000 / 5 min**,
 **50 000 / h**. Several high-traffic controllers opt out at class level with
 `@SkipThrottle()` (for example `ProductController`).
+
+### 3.1 Route registration (Nest 12)
+
+`NestFactory.create` is called with:
+
+```ts
+routeConflictPolicy: { duplicate: 'warn', shadow: 'warn' },
+routeResolutionStrategy: 'specificity',
+```
+
+- `duplicate` — two handlers with the same method + path + host + version. `warn` logs it at
+  startup; the default (`off`) registers both silently and the first one wins.
+- `shadow` — patterns that can match the same request (`/orders/reports/today` vs
+  `/orders/:id`). `warn` surfaces the overlap in the boot log; the default is `off`.
+- `specificity` registers literal segments before parametric/wildcard ones on Express, so
+  static report paths win over `:id` regardless of declaration order. Nest's default is
+  `declaration`.
+
+Watch the boot log when adding routes: a `duplicate` warning is a real bug; a `shadow`
+warning is often benign under `specificity`, but confirm the more specific handler is the
+one you meant to answer.
+
+### 3.2 Observability agent (Nest 12)
+
+`src/observe.ts` calls `createObserveModule()` and exports `ObserveModule` and
+`ObserveInstrument`. `main.ts` passes `instrument: ObserveInstrument` to
+`NestFactory.create`; `.env` supplies `OBSERVE_APP_KEY` / `OBSERVE_APP_SECRET` (optional —
+with neither set the agent sends nothing and warns once).
+
+**Gap:** the agent's canonical wiring also imports `ObserveModule.forRoot(…)` into
+`AppModule`. This repo exports it but does not import it, so treat traces and runtime
+metrics as not guaranteed until that line exists — see
+[09](09-contributing.md#6-known-technical-debt).
 
 ---
 
@@ -144,8 +181,10 @@ HTTP request
   └─ AnalyticsInterceptor        → buffers a usage row (unless @SkipAnalytics)
 ```
 
-Error responses are Nest's standard exception payload; the API does **not** wrap errors in
-the success envelope. See [04 API reference](04-api-reference.md#4-errors).
+Error responses are Nest's standard exception payload, plus an optional `errorCode` when the
+thrown exception sets one (Nest 12's default filter copies it into the body). The API does
+**not** wrap errors in the success envelope. See
+[04 API reference](04-api-reference.md#4-errors).
 
 ---
 
@@ -312,4 +351,4 @@ gateway trusts `userId` from the handshake query (no token verification in
 
 ---
 
-_Last verified against the code: 8 November 2026 (commit `70b9f60`)._
+_Last verified against the code: 8 November 2026 (NestJS 12 working tree)._

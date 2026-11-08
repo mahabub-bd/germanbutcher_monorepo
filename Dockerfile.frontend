@@ -1,22 +1,15 @@
-
 # Base stage - minimal Alpine with Node.js only
 FROM node:24-alpine AS base
 
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Build stage with tools for compiling native modules
-FROM base AS build-tools
+# pnpm via corepack, pinned on purpose: "pnpm@11" floats to the latest 11.x,
+# and pnpm 11 is exactly what introduced the lockfile supply-chain pass that
+# was costing ~7 min per install. Pinning makes build time reproducible.
+RUN corepack enable && corepack prepare pnpm@11.28.11 --activate
 
-# Install build tools only for this stage
-RUN apk add --no-cache libc6-compat python3 make g++ \
-    && rm -rf /var/cache/apk/*
-
-# Install pnpm via corepack (ships with Node — no npm round-trip; build
-# scripts approved in pnpm-workspace.yaml)
-RUN corepack enable && corepack prepare pnpm@11 --activate
-
-FROM build-tools AS deps
+FROM base AS deps
 
 # Copy workspace root manifest, lockfile and workspace config
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -28,6 +21,15 @@ COPY apps/backend/package.json apps/backend/package.json
 
 # Cache-mounted pnpm store survives layer invalidation; only frontend deps
 # are installed — the backend toolchain is not needed to build the frontend.
+#
+# No gcc/python3/make layer any more: in the 2026-11-08 build nothing compiled
+# from source — sharp@0.34.5, unrs-resolver and @parcel/watcher all installed
+# prebuilt linuxmusl-x64 binaries, and bcrypt (the only real native build) is a
+# backend-only dep that --filter never installs. That layer cost 99.6s and 302MB
+# per cold build. If a dependency ever does need to compile, put back before
+# this RUN:
+#   USER root
+#   RUN apk add --no-cache python3 make g++
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --filter germanbutcher-frontend...
 
@@ -50,8 +52,10 @@ ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 ENV NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
 
 # Build the application. The .next/cache mount keeps the webpack and
-# TypeScript incremental caches across builds — without it every deploy
-# recompiles from scratch (~3.5 min compile + 100 s type check).
+# TypeScript incremental caches across builds, but it only pays off when the
+# source files and the NEXT_PUBLIC_* values above are unchanged — a changed
+# build-arg invalidates the whole webpack cache (that is why the compile step
+# still reads 2.7min on some deploys).
 RUN --mount=type=cache,target=/app/apps/frontend/.next/cache \
     pnpm --filter germanbutcher-frontend run build
 

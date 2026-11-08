@@ -32,7 +32,7 @@ and a 22-screen reporting suite.
 | Layer | Technology |
 | --- | --- |
 | Storefront & admin | Next.js `16.4.3` (App Router, RSC, Server Actions), React `19.3`, Tailwind CSS v4, Radix UI |
-| API | NestJS `11.1`, TypeORM `0.3.28`, PostgreSQL |
+| API | NestJS `12.4`, Express `5.3`, TypeORM `0.3.28`, PostgreSQL |
 | Auth | JWT access tokens in httpOnly cookies; menu-level RBAC on the admin |
 | Real-time | Socket.IO namespace `/notifications` |
 | Media | AWS S3 (server-side uploads, 5 MB cap) |
@@ -67,9 +67,9 @@ docs/            engineering documentation
 ```bash
 pnpm install
 
-# Backend — development reads .env.local, NOT .env
-# create apps/backend/.env.local with DATABASE_*, JWT_* and NODE_ENV=development
-# (copy an existing .env only if you already have one)
+# Backend — dotenv loads .env, then ConfigModule adds .env.local (dev)
+# or .env.production (prod) without overriding it. Put DATABASE_*, JWT_*
+# and NODE_ENV=development in apps/backend/.env
 
 # Frontend
 # apps/frontend/.env.local
@@ -102,9 +102,11 @@ permissions).
 | `pnpm build` / `pnpm build:frontend` / `pnpm build:backend` | Production builds |
 | `pnpm start` | Start both apps (`nest start` for the API, `next start` for the site) |
 | `pnpm docker:up` / `docker:build` / `docker:down` / `docker:logs` | Container lifecycle |
-| `pnpm --filter germanbutcher-backend test` | Jest unit tests (currently scaffolding) |
+| `pnpm --filter germanbutcher-backend test` | Vitest unit tests (currently scaffolding) |
+| `pnpm --filter germanbutcher-backend test:jest` | Legacy Jest runner |
 | `pnpm --filter germanbutcher-backend test:e2e` | E2E tests |
-| `pnpm --filter germanbutcher-backend lint` | ESLint with `--fix` |
+| `pnpm --filter germanbutcher-backend lint` | oxlint |
+| `pnpm --filter germanbutcher-backend lint:eslint` | ESLint with `--fix` |
 | `pnpm --filter germanbutcher-frontend lint` | Next.js lint |
 
 The frontend has no test runner configured.
