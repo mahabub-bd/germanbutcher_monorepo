@@ -51,6 +51,13 @@ interface StatusCardProps {
   };
 }
 
+/**
+ * Single-row layout at every breakpoint:
+ *   icon + title + value + badge on one line.
+ * The title never breaks mid-word — it truncates with an ellipsis
+ * (full name shown on hover) when the column is too narrow, while
+ * the value and badge stay fully visible (shrink-0).
+ */
 export function StatusCard({
   className,
   title,
@@ -66,7 +73,7 @@ export function StatusCard({
     <Link
       href={href}
       className={cn(
-        "flex flex-col sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start 2xl:flex-row 2xl:items-center gap-2 sm:gap-2 p-2.5 sm:p-2 2xl:py-4 2xl:px-2 rounded-lg transition border relative overflow-hidden",
+        "flex flex-row items-center gap-1.5 sm:gap-2 px-2.5 py-3 sm:py-2.5 rounded-lg transition border relative overflow-hidden",
         "border-gray-200 dark:border-gray-700",
         "hover:shadow-sm active:scale-[0.98] sm:hover:scale-[1.02]",
         "w-full",
@@ -74,20 +81,22 @@ export function StatusCard({
         className
       )}
     >
-      {/* Left Section */}
-      <div className="flex items-center gap-2 sm:gap-2 lg:gap-1.5 relative z-10 w-full sm:w-auto lg:w-full 2xl:w-auto min-w-0">
-        <div className="p-1.5 lg:p-1 rounded-md bg-white/50 dark:bg-black/20 shrink-0">
-          <Icon className={cn("w-3.5 h-3.5 lg:w-3 lg:h-3 2xl:w-4 2xl:h-4 shrink-0", color)} />
-        </div>
-        {/* Wrap instead of truncate so narrow 7-column layouts show the full title */}
-        <h4 className="min-w-0 text-xs sm:text-xs lg:text-[11px] 2xl:text-base font-medium text-gray-800 dark:text-gray-200 leading-snug wrap-break-word">
-          {title}
-        </h4>
+      {/* Icon */}
+      <div className="p-1.5 rounded-md bg-white/50 dark:bg-black/20 shrink-0">
+        <Icon className={cn("w-3.5 h-3.5 shrink-0", color)} />
       </div>
 
-      {/* Right Section */}
-      <div className="flex items-center justify-between sm:justify-end lg:justify-between 2xl:justify-end gap-1 sm:gap-2 relative z-10 w-full sm:w-auto lg:w-full 2xl:w-auto">
-        <span className="text-sm sm:text-base lg:text-sm 2xl:text-base font-bold text-gray-900 dark:text-white whitespace-nowrap drop-shadow-sm">
+      {/* Title — truncates instead of wrapping */}
+      <h4
+        className="min-w-0 flex-1 text-xs font-medium text-gray-800 dark:text-gray-200 leading-snug truncate"
+        title={title}
+      >
+        {title}
+      </h4>
+
+      {/* Value + badge — never squeezed */}
+      <div className="flex items-center gap-1.5 shrink-0 relative z-10">
+        <span className="text-sm sm:text-base font-bold text-gray-900 dark:text-white whitespace-nowrap drop-shadow-sm">
           {value}
         </span>
 
