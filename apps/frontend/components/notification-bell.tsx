@@ -61,7 +61,7 @@ export function NotificationBell({
         <SheetContent
           side="bottom"
           showClose={false}
-          className="h-[85dvh] rounded-t-2xl p-0 bg-transparent shadow-none border-0"
+          className="h-[85dvh] rounded-t-sm p-0 bg-transparent shadow-none border-0"
           onClickCapture={(e) => {
             // Close when a link inside the panel ("View all", an order
             // number) is followed.
@@ -70,7 +70,7 @@ export function NotificationBell({
         >
           <SheetTitle className="sr-only">Notifications</SheetTitle>
           <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-muted" />
-          <div className="flex min-h-0 flex-1 flex-col px-1 pb-1">
+          <div className="flex min-h-0 flex-1 flex-col pb-1 [&>div]:rounded-none">
             <NotificationPanel />
           </div>
         </SheetContent>

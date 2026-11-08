@@ -74,7 +74,7 @@ function MobileSidebar({ navItems }: MobileSidebarProps) {
         role="tablist"
         aria-label="Account sections"
         onScroll={updateMetrics}
-        className="scrollbar-none flex w-full snap-x items-center gap-1.5 overflow-x-auto overscroll-x-contain pb-2.5 pt-1.5 [-webkit-overflow-scrolling:touch] [scroll-behavior:smooth]"
+        className="scrollbar-none flex w-full snap-x items-center gap-1.5 overflow-x-auto overscroll-x-contain pb-2.5 pt-1.5 [-webkit-overflow-scrolling:touch] scroll-smooth"
       >
         {navItems.map((item, idx) => {
           const active = isActive(item.href);
@@ -88,7 +88,7 @@ function MobileSidebar({ navItems }: MobileSidebarProps) {
               aria-selected={active}
               aria-current={active ? "page" : undefined}
               className={`
-                flex shrink-0 snap-center items-center gap-1.5 rounded-lg px-2.5
+                flex shrink-0 snap-center items-center gap-1.5 rounded-md px-3
                 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors
                 duration-200 focus-visible:outline-none focus-visible:ring-2
                 focus-visible:ring-primaryColor/50 focus-visible:ring-offset-1

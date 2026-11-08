@@ -32,7 +32,7 @@ const SocialLinks = () => (
 const MenuSectionTitle = ({ title }: { title: string }) => (
   <p className="font-semibold text-base sm:text-lg text-white uppercase tracking-wide">
     {title}
-    <span className="block w-9 h-0.5 mt-2 bg-[#deb149] rounded-full" />
+    <span className="block w-9 h-0.5 mt-2 bg-secondColor rounded-full" />
   </p>
 );
 
@@ -49,7 +49,7 @@ const MenuLink = ({ href, children }: MenuLinkProps) => (
                py-1 text-sm sm:text-base font-medium"
   >
     <ChevronRight
-      className="w-3.5 h-3.5 text-[#deb149] shrink-0
+      className="w-3.5 h-3.5 text-secondColor shrink-0
                  transition-transform duration-300 group-hover:translate-x-1"
     />
     <span className="whitespace-nowrap">{children}</span>
@@ -87,8 +87,8 @@ const ContactItem = ({
   href?: string;
 }) => (
   <div className="flex items-start sm:items-center space-x-3 sm:space-x-4">
-    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full border border-[#deb149]/60 bg-white/5 flex items-center justify-center shrink-0">
-      <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-[#deb149]" />
+    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full border border-secondColor/60 bg-white/5 flex items-center justify-center shrink-0">
+      <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-secondColor" />
     </div>
     <div className="flex-1 min-w-0">
       <p className="text-white/70 text-xs sm:text-sm font-medium">{label}</p>
@@ -97,8 +97,8 @@ const ContactItem = ({
           href={href}
           prefetch={true}
           className="text-white font-medium text-sm sm:text-base
-                     hover:text-[#deb149] transition-colors duration-300
-                     focus:outline-none focus:text-[#deb149]"
+                     hover:text-secondColoror transition-colors duration-300
+                     focus:outline-none focus:text-secondColor"
         >
           {value}
         </Link>
@@ -113,22 +113,22 @@ const ContactItem = ({
 
 // Secure payment panel shown at the bottom of the footer.
 const SecurePaymentPanel = () => (
-  <div className="relative z-10 mt-10 lg:mt-14 rounded-2xl bg-black/40 border border-[#deb149]/30 backdrop-blur-sm p-4 sm:p-6 lg:p-8">
+  <div className="relative z-10 mt-10 lg:mt-14 rounded-2xl bg-black/40 border border-secondColor/30 backdrop-blur-sm p-4 sm:p-6 lg:p-8">
     {/* Header */}
     <div className="flex items-center justify-center gap-3">
-      <span className="hidden sm:block h-px flex-1 max-w-40 bg-gradient-to-r from-transparent to-[#deb149]/60" />
-      <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7 text-[#deb149] shrink-0" />
-      <h3 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#f5d78e] via-[#deb149] to-[#c9a227] whitespace-nowrap">
+      <span className="hidden sm:block h-px flex-1 max-w-40 bg-linear-to-r from-transparent to-secondColor/60" />
+      <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7 text-secondColor shrink-0" />
+      <h3 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#f5d78e] via-secondColor to-[#c9a227] whitespace-nowrap">
         Secure Online Payment
       </h3>
-      <span className="hidden sm:block h-px flex-1 max-w-40 bg-gradient-to-l from-transparent to-[#deb149]/60" />
+      <span className="hidden sm:block h-px flex-1 max-w-40 bg-linear-to-l from-transparent to-secondColor/60" />
     </div>
     <p className="text-center text-white/70 text-xs sm:text-sm mt-2">
       Pay with your preferred method. 100% secure &amp; trusted.
     </p>
 
     {/* Payment methods card */}
-    <div className="mt-5 sm:mt-6 bg-white rounded-xl overflow-hidden">
+    <div className="mt-5 sm:mt-6 bg-white rounded-sm overflow-hidden">
       <Image
         src={OnlinePayment}
         alt="Online Payment Methods"
@@ -198,7 +198,7 @@ export default function Footer({
                 title={`${settings.businessName || "Business"} Logo`}
                 width={110}
                 height={110}
-                className="w-[90px] h-[90px] sm:w-[110px] sm:h-[110px] object-contain drop-shadow-lg"
+                className="w-22.5 h-22.5 sm:w-27.5 sm:h-27.5 object-contain drop-shadow-lg"
                 priority
               />
             )}

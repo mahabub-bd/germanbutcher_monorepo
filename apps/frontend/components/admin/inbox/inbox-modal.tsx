@@ -148,7 +148,7 @@ export function InboxModal({
       ) : (
         <ul className="divide-y">
           {messages.map((message) => (
-            <li key={message.id} className="px-4 py-3">
+            <li key={message.id} className="px-2 py-3 md:px-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -193,16 +193,16 @@ export function InboxModal({
         <SheetContent
           side="bottom"
           showClose={false}
-          className="h-[85dvh] rounded-t-2xl p-0 bg-transparent shadow-none border-0"
+          className="h-[85dvh] rounded-t-sm p-0 bg-transparent shadow-none border-0"
           onClickCapture={(e) => {
             if ((e.target as HTMLElement).closest("a")) setOpen(false);
           }}
         >
           <SheetTitle className="sr-only">Inbox</SheetTitle>
           <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-muted" />
-          <div className="min-h-0 flex-1 mt-2 px-3 pb-3">
+          <div className="min-h-0 flex-1 mt-2 pb-1 [&>div]:rounded-none">
             <div className="bg-white rounded-md shadow-md overflow-hidden h-full flex flex-col">
-              <div className="flex items-center gap-2 px-4 py-3 border-b">
+              <div className="flex items-center gap-2 px-2 py-3 border-b md:px-4">
                 <span className="text-base font-semibold">Inbox</span>
                 {unreadCount > 0 && (
                   <Badge variant="destructive" className="rounded-full px-1.5">

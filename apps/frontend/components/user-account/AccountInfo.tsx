@@ -753,9 +753,14 @@ export default function AccountInfo({ user }: AccountInfoProps) {
                   className="sm:h-9 sm:px-4"
                   onClick={() => setPasswordOpen(true)}
                   title="Change Password"
+                  aria-label="Change Password"
                 >
                   <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="text-xs sm:text-sm">Change Password</span>
+                  {/* Icon-only on mobile — the full label would crowd out
+                      the "Personal Details" title at ~400px */}
+                  <span className="hidden text-xs sm:inline sm:text-sm">
+                    Change Password
+                  </span>
                 </Button>
                 <Button
                   type="button"

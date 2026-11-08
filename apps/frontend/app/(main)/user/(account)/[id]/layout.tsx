@@ -174,7 +174,7 @@ const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
           {/* Desktop Sidebar */}
           <div className="col-span-12">
             <div className="hidden lg:block sticky top-8">
-              <div className="shadow-md rounded-lg overflow-hidden">
+              <div className="shadow-md rounded-md overflow-hidden">
                 {/* User Profile Header */}
                 <div className="px-4 py-4 border-b border-gray-100">
                   <div className="flex items-center gap-3.5">
@@ -222,7 +222,7 @@ const UserProfileLayout: React.FC<UserProfileLayoutProps> = async ({
 
             {/* Mobile Sidebar */}
             <div className="lg:hidden mb-4">
-              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="bg-white rounded-md shadow-md overflow-hidden">
                 <div className="flex items-center gap-3 px-3.5 py-3 border-b border-gray-100">
                   {user?.profilePhoto?.url ? (
                     // eslint-disable-next-line @next/next/no-img-element

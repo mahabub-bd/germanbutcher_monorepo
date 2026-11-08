@@ -65,8 +65,8 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems }) => {
                 aria-selected={active}
                 aria-current={active ? "page" : undefined}
                 className={`
-                  flex shrink-0 snap-center items-center gap-1.5 rounded-lg
-                  px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap
+                  flex shrink-0 snap-center items-center gap-1.5 rounded-md
+                  px-3 py-1.5 text-xs font-semibold whitespace-nowrap
                   transition-colors duration-200 focus-visible:outline-none
                   focus-visible:ring-2 focus-visible:ring-primaryColor/50
                   focus-visible:ring-offset-1 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm
