@@ -1,18 +1,39 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Supplier } from './entities/supplier.entity';
 import { SuppliersService } from './supplier.service';
 
-describe('SupplierService', () => {
-  let service: SuppliersService;
+const createMock = () => ({});
+
+const createMockRepository = () => ({
+  create: jest.fn(),
+  save: jest.fn(),
+  find: jest.fn(),
+  findOne: jest.fn(),
+  findOneBy: jest.fn(),
+  findAndCount: jest.fn(),
+  count: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  softDelete: jest.fn(),
+  merge: jest.fn((...args) => Object.assign({}, ...args)),
+});
+
+describe('SuppliersService', () => {
+  let target: SuppliersService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [SuppliersService],
+      providers: [
+        SuppliersService,
+      { provide: getRepositoryToken(Supplier), useValue: createMockRepository() },
+      ],
     }).compile();
 
-    service = module.get<SuppliersService>(SuppliersService);
+    target = module.get<SuppliersService>(SuppliersService);
   });
 
   it('should be defined', () => {
-    expect(service).toBeDefined();
+    expect(target).toBeDefined();
   });
 });

@@ -1,41 +1,45 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
-import { Attachment } from '../attachment/entities/attachment.entity';
+import { Banner, BannerPosition, BannerType } from './entities/banner.entity';
+import { Attachment } from 'src/attachment/entities/attachment.entity';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { DataSource, In, Repository } from 'typeorm';
 import { BannerService } from './banner.service';
-import { Banner } from './entities/banner.entity';
+
+const createMock = () => ({});
+
+const createMockRepository = () => ({
+  create: jest.fn(),
+  save: jest.fn(),
+  find: jest.fn(),
+  findOne: jest.fn(),
+  findOneBy: jest.fn(),
+  findAndCount: jest.fn(),
+  count: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  softDelete: jest.fn(),
+  merge: jest.fn((...args) => Object.assign({}, ...args)),
+});
 
 describe('BannerService', () => {
-  let service: BannerService;
+  let target: BannerService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BannerService,
-        {
-          provide: getRepositoryToken(Banner),
-          useValue: {},
-        },
-        {
-          provide: getRepositoryToken(Attachment),
-          useValue: {},
-        },
-        {
-          provide: CACHE_MANAGER,
-          useValue: { del: jest.fn() },
-        },
-        {
-          provide: DataSource,
-          useValue: {},
-        },
+      { provide: getRepositoryToken(Banner), useValue: createMockRepository() },
+      { provide: getRepositoryToken(Attachment), useValue: createMockRepository() },
+      { provide: CACHE_MANAGER, useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn() } },
+      { provide: DataSource, useValue: createMock() },
       ],
     }).compile();
 
-    service = module.get<BannerService>(BannerService);
+    target = module.get<BannerService>(BannerService);
   });
 
   it('should be defined', () => {
-    expect(service).toBeDefined();
+    expect(target).toBeDefined();
   });
 });

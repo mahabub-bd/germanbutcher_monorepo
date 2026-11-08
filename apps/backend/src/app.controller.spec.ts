@@ -8,15 +8,20 @@ describe('AppController', () => {
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [AppService],
+      providers: [
+        {
+          provide: AppService,
+          useValue: { getDatabaseHost: jest.fn().mockReturnValue('test-db-host') },
+        },
+      ],
     }).compile();
 
     appController = app.get<AppController>(AppController);
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return the database host from AppService', () => {
+      expect(appController.getHello()).toBe('test-db-host');
     });
   });
 });

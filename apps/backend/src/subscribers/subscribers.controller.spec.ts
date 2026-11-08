@@ -1,20 +1,32 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SubscribersController } from './subscribers.controller';
 import { SubscribersService } from './subscribers.service';
+import { SubscribersController } from './subscribers.controller';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
+
+
+const createMock = () => ({});
+
 
 describe('SubscribersController', () => {
-  let controller: SubscribersController;
+  let target: SubscribersController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SubscribersController],
-      providers: [SubscribersService],
-    }).compile();
+      providers: [
+        SubscribersController,
+      { provide: SubscribersService, useValue: createMock() },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
+      .overrideGuard(PermissionGuard).useValue({ canActivate: () => true })
+      .compile();
 
-    controller = module.get<SubscribersController>(SubscribersController);
+    target = module.get<SubscribersController>(SubscribersController);
   });
 
   it('should be defined', () => {
-    expect(controller).toBeDefined();
+    expect(target).toBeDefined();
   });
 });

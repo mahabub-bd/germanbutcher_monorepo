@@ -1,20 +1,30 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { WishlistController } from './wishlist.controller';
 import { WishlistService } from './wishlist.service';
+import { WishlistController } from './wishlist.controller';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+
+
+const createMock = () => ({});
+
 
 describe('WishlistController', () => {
-  let controller: WishlistController;
+  let target: WishlistController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [WishlistController],
-      providers: [WishlistService],
-    }).compile();
+      providers: [
+        WishlistController,
+      { provide: WishlistService, useValue: createMock() },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
+      .compile();
 
-    controller = module.get<WishlistController>(WishlistController);
+    target = module.get<WishlistController>(WishlistController);
   });
 
   it('should be defined', () => {
-    expect(controller).toBeDefined();
+    expect(target).toBeDefined();
   });
 });

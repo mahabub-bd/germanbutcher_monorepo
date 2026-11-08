@@ -1,20 +1,32 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { GalleryController } from './gallery.controller';
 import { GalleryService } from './gallery.service';
+import { GalleryController } from './gallery.controller';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
+
+
+const createMock = () => ({});
+
 
 describe('GalleryController', () => {
-  let controller: GalleryController;
+  let target: GalleryController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [GalleryController],
-      providers: [GalleryService],
-    }).compile();
+      providers: [
+        GalleryController,
+      { provide: GalleryService, useValue: createMock() },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
+      .overrideGuard(PermissionGuard).useValue({ canActivate: () => true })
+      .compile();
 
-    controller = module.get<GalleryController>(GalleryController);
+    target = module.get<GalleryController>(GalleryController);
   });
 
   it('should be defined', () => {
-    expect(controller).toBeDefined();
+    expect(target).toBeDefined();
   });
 });

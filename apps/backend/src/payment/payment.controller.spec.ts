@@ -1,20 +1,32 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
+import { PaymentController } from './payment.controller';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
+
+
+const createMock = () => ({});
+
 
 describe('PaymentController', () => {
-  let controller: PaymentController;
+  let target: PaymentController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PaymentController],
-      providers: [PaymentService],
-    }).compile();
+      providers: [
+        PaymentController,
+      { provide: PaymentService, useValue: createMock() },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
+      .overrideGuard(PermissionGuard).useValue({ canActivate: () => true })
+      .compile();
 
-    controller = module.get<PaymentController>(PaymentController);
+    target = module.get<PaymentController>(PaymentController);
   });
 
   it('should be defined', () => {
-    expect(controller).toBeDefined();
+    expect(target).toBeDefined();
   });
 });
