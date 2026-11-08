@@ -55,7 +55,7 @@ export function generateContactResponseHTML(
                   <!-- Original Message -->
                   <div style="margin-bottom: 28px;">
                     <div style="font-size: 13px; font-weight: bold; color: #8B0000; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #e5e7eb; text-transform: uppercase; letter-spacing: 0.5px;">Your Message</div>
-                    <div style="background-color: #f8fafc; border-left: 4px solid #8B0000; padding: 18px; border-radius: 6px;">
+                    <div style="background-color: #f8fafc; padding: 18px; border-radius: 6px;">
                       <p style="font-size: 13px; color: #475569; margin: 0; line-height: 1.6; font-style: italic;">
                         "${data.originalMessage}"
                       </p>

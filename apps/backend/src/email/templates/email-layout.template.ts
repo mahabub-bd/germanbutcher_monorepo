@@ -22,7 +22,16 @@ export const EMAIL_RESPONSIVE_STYLES = `
         .em-content { padding: 24px 16px !important; }
         .em-half { display: block !important; width: 100% !important; padding: 0 0 16px 0 !important; }
         .em-summary { width: 100% !important; display: block !important; }
+        .em-summary-spacer { display: none !important; }
         .em-items th, .em-items td { padding: 8px !important; }
+
+        /* Order items table -> stacked cards. Scoped to .em-order-items so
+           other templates using .em-items on plain cells are unaffected. */
+        .em-order-items th { display: none !important; }
+        .em-order-items tr { display: block !important; padding: 10px 0 !important; border-bottom: 1px solid #e5e7eb !important; }
+        .em-order-items td { display: block !important; width: auto !important; text-align: left !important; padding: 3px 12px !important; background-color: transparent !important; white-space: normal !important; }
+        .em-order-items td table td { display: inline-block !important; padding: 0 !important; vertical-align: middle !important; }
+        .em-label { display: inline-block !important; font-size: 10px !important; font-weight: bold !important; color: #64748b !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; margin-right: 6px !important; }
       }
     </style>`;
 
