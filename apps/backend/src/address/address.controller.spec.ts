@@ -1,21 +1,32 @@
 import { Test, TestingModule } from '@nestjs/testing';
-
-import { AddressesController } from './address.controller';
 import { AddressesService } from './address.service';
+import { AddressesController } from './address.controller';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { AdminGuard } from 'src/auth/guards/admin.guard';
 
-describe('AddressController', () => {
-  let controller: AddressesController;
+
+const createMock = () => ({});
+
+
+describe('AddressesController', () => {
+  let target: AddressesController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AddressesController],
-      providers: [AddressesService],
-    }).compile();
+      providers: [
+        AddressesController,
+      { provide: AddressesService, useValue: createMock() },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
+      .overrideGuard(AdminGuard).useValue({ canActivate: () => true })
+      .compile();
 
-    controller = module.get<AddressesController>(AddressesController);
+    target = module.get<AddressesController>(AddressesController);
   });
 
   it('should be defined', () => {
-    expect(controller).toBeDefined();
+    expect(target).toBeDefined();
   });
 });

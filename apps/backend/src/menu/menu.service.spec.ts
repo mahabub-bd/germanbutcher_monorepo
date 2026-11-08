@@ -1,18 +1,40 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Menu } from './entities/menu.entity';
 import { MenuService } from './menu.service';
 
+const createMock = () => ({});
+
+const createMockRepository = () => ({
+  create: jest.fn(),
+  save: jest.fn(),
+  find: jest.fn(),
+  findOne: jest.fn(),
+  findOneBy: jest.fn(),
+  findAndCount: jest.fn(),
+  count: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  softDelete: jest.fn(),
+  merge: jest.fn((...args) => Object.assign({}, ...args)),
+});
+
 describe('MenuService', () => {
-  let service: MenuService;
+  let target: MenuService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MenuService],
+      providers: [
+        MenuService,
+      { provide: getRepositoryToken(Menu), useValue: createMockRepository() },
+      { provide: getRepositoryToken(Menu), useValue: createMockRepository() },
+      ],
     }).compile();
 
-    service = module.get<MenuService>(MenuService);
+    target = module.get<MenuService>(MenuService);
   });
 
   it('should be defined', () => {
-    expect(service).toBeDefined();
+    expect(target).toBeDefined();
   });
 });

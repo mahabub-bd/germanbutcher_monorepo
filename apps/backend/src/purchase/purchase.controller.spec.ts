@@ -1,20 +1,32 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PurchasesController } from './purchase.controller';
 import { PurchasesService } from './purchase.service';
+import { PurchasesController } from './purchase.controller';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 
-describe('PurchaseController', () => {
-  let controller: PurchasesController;
+
+const createMock = () => ({});
+
+
+describe('PurchasesController', () => {
+  let target: PurchasesController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PurchasesController],
-      providers: [PurchasesService],
-    }).compile();
+      providers: [
+        PurchasesController,
+      { provide: PurchasesService, useValue: createMock() },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
+      .overrideGuard(PermissionGuard).useValue({ canActivate: () => true })
+      .compile();
 
-    controller = module.get<PurchasesController>(PurchasesController);
+    target = module.get<PurchasesController>(PurchasesController);
   });
 
   it('should be defined', () => {
-    expect(controller).toBeDefined();
+    expect(target).toBeDefined();
   });
 });

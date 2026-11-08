@@ -53,7 +53,10 @@ export class SslPaymentService {
     const baseUrl = this.configService.get<string>('BASE_URL');
     const ipnUrl = this.configService.get<string>('PAYMENT_IPN_URL');
 
-    const tranId = `${orderData.id}${Date.now()}`;
+    // Use the human-readable order number (e.g. 2026-002392) as the tran_id
+    // prefix instead of the internal primary id, falling back to the id.
+    // Random suffix keeps each attempt unique for SSLCommerz.
+    const tranId = `${orderData.orderNo || orderData.id}${Math.random().toString(36).slice(2, 10)}`;
 
     const data = {
       total_amount: orderData.totalValue || 100,

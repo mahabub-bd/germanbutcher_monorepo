@@ -1,20 +1,32 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { RolesService, type RoleWithUserCount } from './roles.service';
 import { RolesController } from './roles.controller';
-import { RolesService } from './roles.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { AdminGuard } from 'src/auth/guards/admin.guard';
+
+
+const createMock = () => ({});
+
 
 describe('RolesController', () => {
-  let controller: RolesController;
+  let target: RolesController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RolesController],
-      providers: [RolesService],
-    }).compile();
+      providers: [
+        RolesController,
+      { provide: RolesService, useValue: createMock() },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
+      .overrideGuard(AdminGuard).useValue({ canActivate: () => true })
+      .compile();
 
-    controller = module.get<RolesController>(RolesController);
+    target = module.get<RolesController>(RolesController);
   });
 
   it('should be defined', () => {
-    expect(controller).toBeDefined();
+    expect(target).toBeDefined();
   });
 });
