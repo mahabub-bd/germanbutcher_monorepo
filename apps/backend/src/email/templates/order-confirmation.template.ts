@@ -69,13 +69,13 @@ export function generateOrderConfirmationHTML(
             </tr>
           </table>
         </td>
-        <td style="padding: 12px; text-align: center; color: #374151; background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">${item.quantity}</td>
+        <td style="padding: 12px; text-align: center; color: #374151; background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};"><span class="em-label">Qty:</span>${item.quantity}</td>
         <td style="padding: 12px; text-align: right; color: #374151; background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'}; white-space: nowrap;">
-          ${(item.unitDiscount ?? 0) > 0
+          <span class="em-label">Unit Price:</span>${(item.unitDiscount ?? 0) > 0
             ? `<span style="text-decoration: line-through; color: #9ca3af; margin-right: 6px;">৳${(item.price + Number(item.unitDiscount)).toFixed(2)}</span>৳${item.price.toFixed(2)}`
             : `৳${item.price.toFixed(2)}`}
         </td>
-        <td style="padding: 12px; text-align: right; font-weight: bold; color: #374151; background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">৳${(item.quantity * item.price).toFixed(2)}</td>
+        <td style="padding: 12px; text-align: right; font-weight: bold; color: #374151; background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};"><span class="em-label">Total:</span>৳${(item.quantity * item.price).toFixed(2)}</td>
       </tr>
     `,
     )
@@ -87,7 +87,7 @@ export function generateOrderConfirmationHTML(
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 28px;">
       <tr>
         <td class="em-half" width="48%" style="vertical-align: top; padding-right: 2%;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-left: 4px solid #8B0000; border-radius: 6px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-radius: 6px;">
             <tr>
               <td style="padding: 18px;">
                 <div style="font-size: 12px; font-weight: bold; color: #8B0000; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Customer Information</div>
@@ -108,7 +108,7 @@ export function generateOrderConfirmationHTML(
           </table>
         </td>
         <td class="em-half" width="48%" style="vertical-align: top; padding-left: 2%;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-left: 4px solid #8B0000; border-radius: 6px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-radius: 6px;">
             <tr>
               <td style="padding: 18px;">
                 <div style="font-size: 12px; font-weight: bold; color: #8B0000; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Shipping Address</div>
@@ -163,7 +163,7 @@ export function generateOrderConfirmationHTML(
                   <!-- Order Items -->
                   <div style="margin-bottom: 24px;">
                     <div style="font-size: 13px; font-weight: bold; color: #8B0000; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #e5e7eb; text-transform: uppercase; letter-spacing: 0.5px;">Order Items</div>
-                    <table class="em-items" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #d1d5db; border-collapse: collapse;">
+                    <table class="em-items em-order-items" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #d1d5db; border-collapse: collapse;">
                       <thead>
                         <tr style="background-color: #8B0000;">
                           <th style="padding: 12px; text-align: left; font-size: 11px; font-weight: bold; color: #ffffff; text-transform: uppercase;">Product Details</th>
@@ -181,7 +181,7 @@ export function generateOrderConfirmationHTML(
                   <!-- Order Summary -->
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
-                      <td width="45%"></td>
+                      <td class="em-summary-spacer" width="45%"></td>
                       <td class="em-summary" width="55%">
                         <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
                           <tr>
@@ -196,7 +196,7 @@ export function generateOrderConfirmationHTML(
                                     .map(
                                       (usage) => `
                                 <tr>
-                                  <td style="padding: 6px 0; font-size: 12px; color: #16a34a;">BOGO — ${usage.campaignName} (${usage.freeUnits} free):</td>
+                                  <td style="padding: 6px 0; font-size: 12px; color: #16a34a;">${usage.campaignName} (${usage.freeUnits} free):</td>
                                   <td style="padding: 6px 0; font-size: 12px; color: #16a34a; text-align: right; font-weight: 500;">-৳${usage.discountAmount.toFixed(2)}</td>
                                 </tr>
                                 `,

@@ -546,6 +546,7 @@ export function CustomerList({
                     <TableHead className="pl-4">Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Mobile</TableHead>
+                    <TableHead>Gender</TableHead>
                     <TableHead>Area</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Joined</TableHead>
@@ -597,6 +598,16 @@ export function CustomerList({
                             >
                               {customer.mobileNumber}
                             </a>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          {customer.gender ? (
+                            <span className="text-sm capitalize text-muted-foreground">
+                              {customer.gender}
+                            </span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}

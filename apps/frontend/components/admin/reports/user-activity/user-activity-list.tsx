@@ -390,18 +390,19 @@ export function UserActivityList({
 
   const renderTableView = () => (
     <div className="hidden overflow-x-auto lg:block lg:pl-3 lg:pr-3">
-      <Table className="report-table table-fixed min-w-225 lg:min-w-0 [&_td]:px-1.5 [&_td]:py-2.5 [&_td]:wrap-break-word [&_td]:align-middle [&_th]:px-1.5 [&_th]:py-2 [&_th]:align-middle [&_th]:text-xs">
+      <Table className="report-table table-fixed min-w-225 lg:min-w-0 [&_td]:px-1.5 [&_td]:py-2.5 [&_td]:wrap-break-word [&_td]:align-middle [&_th]:px-1.5 [&_th]:py-2 [&_th]:align-middle">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            {/* Fixed layout: Entity, Status, Message and IP are compact now;
-                the freed width goes to Date & Time, Action and User. */}
+            {/* Fixed layout: Entity, Status, Message and IP are compact so
+                Date & Time, Endpoint and User get the freed width. */}
             <TableHead className="w-[4%]">ID</TableHead>
-            <TableHead className="w-[13%]">Date & Time</TableHead>
-            <TableHead className="w-[19%]">Action</TableHead>
-            <TableHead className="w-[9%]">Entity</TableHead>
+            <TableHead className="w-[12%]">Date & Time</TableHead>
+            <TableHead className="w-[7%]">Action</TableHead>
+            <TableHead className="w-[18%]">Endpoint</TableHead>
+            <TableHead className="w-[8%]">Entity</TableHead>
             <TableHead className="w-[7%]">Status</TableHead>
-            <TableHead className="w-[24%]">Message</TableHead>
-            <TableHead className="w-[10%]">IP Address</TableHead>
+            <TableHead className="w-[21%]">Message</TableHead>
+            <TableHead className="w-[9%]">IP Address</TableHead>
             <TableHead className="w-[14%]">User</TableHead>
           </TableRow>
         </TableHeader>
@@ -413,48 +414,40 @@ export function UserActivityList({
                 <TableCell>
                   <Link
                     href={`/admin/audit-log/${activity.id}`}
-                    className="font-mono text-xs font-medium text-primary whitespace-nowrap hover:underline"
+                    className="font-mono text-sm font-medium text-primary whitespace-nowrap hover:underline"
                     title="Open event details"
                   >
-                    #{activity.id}
+                    {activity.id}
                   </Link>
                 </TableCell>
 
                 <TableCell>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-medium whitespace-nowrap">
-                      {formatDate(activity.createdAt)}
-                    </span>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  <span className="text-sm whitespace-nowrap">
+                    {formatDate(activity.createdAt)}{" "}
+                    <span className="text-muted-foreground">
                       {formatTime(activity.createdAt)}
                     </span>
-                  </div>
+                  </span>
                 </TableCell>
 
                 <TableCell>
-                  <div className="flex flex-col items-start gap-1">
-                    <MethodPill method={method} />
-                    <Link
-                      href={`/admin/audit-log/${activity.id}`}
-                      className="max-w-44 truncate text-xs text-muted-foreground font-mono hover:text-primary hover:underline"
-                      title={`Open details for ${activity.action}`}
-                    >
-                      {path}
-                    </Link>
-                  </div>
+                  <MethodPill method={method} />
                 </TableCell>
 
                 <TableCell>
-                  <div className="flex flex-col">
-                    <span className="font-medium text-xs capitalize truncate" title={activity.entityType}>
-                      {activity.entityType}
-                    </span>
-                    {activity.entityId && (
-                      <span className="text-xs text-muted-foreground">
-                        ID: {activity.entityId}
-                      </span>
-                    )}
-                  </div>
+                  <Link
+                    href={`/admin/audit-log/${activity.id}`}
+                    className="block max-w-52 truncate text-sm text-muted-foreground font-mono hover:text-primary hover:underline"
+                    title={`Open details for ${activity.action}`}
+                  >
+                    {path}
+                  </Link>
+                </TableCell>
+
+                <TableCell>
+                  <span className="font-medium text-sm capitalize truncate" title={activity.entityType}>
+                    {activity.entityType}
+                  </span>
                 </TableCell>
 
                 <TableCell>
@@ -463,7 +456,7 @@ export function UserActivityList({
 
                 <TableCell className="max-w-xs">
                   <span
-                    className={`text-xs ${expandedMessages.has(activity.id)
+                    className={`text-sm ${expandedMessages.has(activity.id)
                       ? "block whitespace-normal wrap-break-word"
                       : "line-clamp-2 cursor-pointer wrap-break-word"
                       }`}
@@ -478,7 +471,7 @@ export function UserActivityList({
                   </span>
                 </TableCell>
 
-                <TableCell className="font-mono text-xs text-muted-foreground">
+                <TableCell className="font-mono text-sm text-muted-foreground">
                   {activity.ipAddress || "unknown"}
                 </TableCell>
 
@@ -487,13 +480,17 @@ export function UserActivityList({
                     <div className="h-8 w-8 shrink-0 rounded-full border bg-muted flex items-center justify-center">
                       <User className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <div className="flex flex-col">
-                      <span className="font-medium text-xs">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate font-medium text-sm">
                         {activity.user?.name || "Unknown User"}
                       </span>
-                      <span className="text-xs text-muted-foreground capitalize">
-                        {activity.userType}
-                      </span>
+                      <PillBadge
+                        tone={activity.userType === "admin" ? "violet" : "blue"}
+                        className="shrink-0"
+                        title={activity.userType}
+                      >
+                        {activity.userType === "admin" ? "A" : "C"}
+                      </PillBadge>
                     </div>
                   </div>
                 </TableCell>
@@ -523,7 +520,7 @@ export function UserActivityList({
                     className="font-mono text-xs font-semibold text-primary hover:underline"
                     title="Open event details"
                   >
-                    #{activity.id}
+                    {activity.id}
                   </Link>
                   <MethodPill method={method} />
                   <StatusPill status={activity.status} />

@@ -62,14 +62,14 @@ function DisplayField({
   locked?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2 min-h-12 px-4 py-3 bg-gray-50 rounded-lg border">
-      <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 shrink-0">
-        <span className="p-1.5 rounded-lg bg-primaryColor/10">
-          <Icon className="w-4 h-4 text-primaryColor" />
+    <div className="flex items-center gap-2 min-h-10 sm:min-h-12 px-3 py-2 sm:px-4 sm:py-3 bg-gray-50 rounded-lg border">
+      <label className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-gray-900 shrink-0">
+        <span className="p-1 sm:p-1.5 rounded-lg bg-primaryColor/10">
+          <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primaryColor" />
         </span>
         {label}
       </label>
-      <p className="ml-auto min-w-0 flex-1 truncate text-right text-sm text-gray-800 font-medium">
+      <p className="ml-auto min-w-0 flex-1 truncate text-right text-xs sm:text-sm text-gray-800 font-medium">
         {value || "Not provided"}
       </p>
       {locked && (
@@ -92,8 +92,8 @@ function ProfilePhotoSection({ user }: { user: User }) {
   };
 
   return (
-    <div className="flex items-center gap-4 p-3 md:px-0 rounded-lg border bg-gray-50/50">
-      <Avatar className="h-20 w-20 border-2 border-white bg-white shadow-sm">
+    <div className="flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3 md:px-0 rounded-lg border bg-gray-50/50">
+      <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-white bg-white shadow-sm">
         {user.profilePhoto?.url ? (
           <AvatarImage
             src={user.profilePhoto.url}
@@ -108,10 +108,8 @@ function ProfilePhotoSection({ user }: { user: User }) {
       </Avatar>
 
       <div className="flex-1">
-        <p className="text-sm font-semibold text-gray-900">Profile Photo</p>
-        <p className="text-xs text-gray-500 mt-0.5">
-          JPG, PNG or WEBP. Max 5MB. Use Edit to change your photo.
-        </p>
+        <p className="text-xs sm:text-sm font-semibold text-gray-900">Profile Photo</p>
+
       </div>
     </div>
   );
@@ -236,9 +234,7 @@ function EditDetailsModal({
       const response = await patchData(`users/${user.id}`, {
         name: trimmedName,
         email: trimmedEmail,
-        // Send a value only when the field changed: new value when set,
-        // null to clear, omitted (undefined) when untouched. The backend
-        // @IsOptional validators let null through as "clear".
+
         gender:
           gender !== (user.gender || "") ? gender || null : undefined,
         dateOfBirth:
@@ -255,9 +251,7 @@ function EditDetailsModal({
 
       if (response?.statusCode === 200) {
         toast.success(response?.message || "Profile updated successfully");
-        // Server action: marks the profile route stale, so Next re-renders it
-        // with the fresh data in the action response — router.refresh() alone
-        // has been unreliable here (UI stayed stale until a manual reload).
+
         await serverRevalidate(`/user/${user.id}/profile`);
         onOpenChange(false);
         onSaved();
@@ -481,23 +475,31 @@ function EditDetailsModal({
           )}
         </div>
 
-        <DialogFooter className="gap-3 sm:gap-2">
+        <DialogFooter className="flex-row justify-end gap-2">
           <Button
             type="button"
             variant="outline"
+            size="sm"
+            className="sm:h-9 sm:px-4"
             onClick={() => onOpenChange(false)}
             disabled={saving}
           >
-            Cancel
+            <span className="text-xs sm:text-sm">Cancel</span>
           </Button>
-          <Button type="button" onClick={handleSave} disabled={saving}>
+          <Button
+            type="button"
+            size="sm"
+            className="sm:h-9 sm:px-4"
+            onClick={handleSave}
+            disabled={saving}
+          >
             {saving ? (
               <>
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                Saving...
+                <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                <span className="text-xs sm:text-sm">Saving...</span>
               </>
             ) : (
-              "Save Changes"
+              <span className="text-xs sm:text-sm">Save Changes</span>
             )}
           </Button>
         </DialogFooter>
@@ -600,8 +602,7 @@ function ChangePasswordModal({
 
       if (response?.statusCode === 200) {
         toast.success("Password changed successfully — please sign in again");
-        // All sessions/endpoints are tied to the old credentials, so sign the
-        // user out and send them to the login page.
+
         try {
           await logout();
         } catch (logoutErr) {
@@ -692,23 +693,31 @@ function ChangePasswordModal({
           )}
         </div>
 
-        <DialogFooter className="gap-3 sm:gap-2">
+        <DialogFooter className="flex-row justify-end gap-2">
           <Button
             type="button"
             variant="outline"
+            size="sm"
+            className="sm:h-9 sm:px-4"
             onClick={() => handleOpenChange(false)}
             disabled={saving}
           >
-            Cancel
+            <span className="text-xs sm:text-sm">Cancel</span>
           </Button>
-          <Button type="button" onClick={handleSave} disabled={saving}>
+          <Button
+            type="button"
+            size="sm"
+            className="sm:h-9 sm:px-4"
+            onClick={handleSave}
+            disabled={saving}
+          >
             {saving ? (
               <>
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                Saving...
+                <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                <span className="text-xs sm:text-sm">Saving...</span>
               </>
             ) : (
-              "Change Password"
+              <span className="text-xs sm:text-sm">Change Password</span>
             )}
           </Button>
         </DialogFooter>
@@ -729,36 +738,43 @@ export default function AccountInfo({ user }: AccountInfoProps) {
 
   return (
     <div className="space-y-4">
-      {/* Profile Photo Section */}
-      <ProfilePhotoSection user={user} />
-
+     
       {/* Personal Details Card */}
       <div className="overflow-hidden">
         <div className="pb-2">
           <AccountPageHeader
             title="Personal Details"
             action={
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
+                  className="sm:h-9 sm:px-4"
                   onClick={() => setPasswordOpen(true)}
+                  title="Change Password"
                 >
-                  <Shield className="w-4 h-4" />
-                  Change Password
+                  <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="text-xs sm:text-sm">Change Password</span>
                 </Button>
-                <Button type="button" onClick={() => setEditOpen(true)}>
-                  <Edit3 className="w-4 h-4" />
-                  Edit
+                <Button
+                  type="button"
+                  size="sm"
+                  className="sm:h-9 sm:px-4"
+                  onClick={() => setEditOpen(true)}
+                  title="Edit"
+                >
+                  <Edit3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="text-xs sm:text-sm">Edit</span>
                 </Button>
               </div>
             }
           />
         </div>
 
-        <div className="py-4 space-y-6">
+        <div className="py-3 sm:py-4 space-y-4 sm:space-y-6">
           {/* Details Grid */}
-          <div className="grid md:grid-cols-3 grid-cols-1 gap-4">
+          <div className="grid md:grid-cols-3 grid-cols-1 gap-2.5 sm:gap-4">
             <DisplayField label="Full Name" icon={UserIcon} value={user.name} />
             <DisplayField
               label="Contact Number"
@@ -780,40 +796,40 @@ export default function AccountInfo({ user }: AccountInfoProps) {
           </div>
 
           {/* Account Status Section — label and value on one line */}
-          <div className="pt-6 border-t">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                <span className="p-2 rounded-lg bg-green-100 shrink-0">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
+          <div className="pt-4 sm:pt-6 border-t">
+            <div className="grid grid-cols-1 gap-2.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-green-50 rounded-lg">
+                <span className="p-1.5 sm:p-2 rounded-lg bg-green-100 shrink-0">
+                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600" />
                 </span>
-                <p className="text-sm font-medium text-gray-900 shrink-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-900 shrink-0">
                   Account Status
                 </p>
-                <p className="ml-auto text-sm text-green-600 font-medium truncate text-right">
+                <p className="ml-auto text-xs sm:text-sm text-green-600 font-medium truncate text-right">
                   {user.isVerified ? "Verified" : "Pending Verification"}
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                <span className="p-2 rounded-lg bg-blue-100 shrink-0">
-                  <UserIcon className="w-4 h-4 text-blue-600" />
+              <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-blue-50 rounded-lg">
+                <span className="p-1.5 sm:p-2 rounded-lg bg-blue-100 shrink-0">
+                  <UserIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
                 </span>
-                <p className="text-sm font-medium text-gray-900 shrink-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-900 shrink-0">
                   Member Since
                 </p>
-                <p className="ml-auto text-sm text-gray-600 truncate text-right">
+                <p className="ml-auto text-xs sm:text-sm text-gray-600 truncate text-right">
                   {formatDateTime(user.createdAt)}
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg sm:col-span-2 lg:col-span-1">
-                <span className="p-2 rounded-lg bg-purple-100 shrink-0">
-                  <Shield className="w-4 h-4 text-purple-600" />
+              <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-purple-50 rounded-lg sm:col-span-2 lg:col-span-1">
+                <span className="p-1.5 sm:p-2 rounded-lg bg-purple-100 shrink-0">
+                  <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600" />
                 </span>
-                <p className="text-sm font-medium text-gray-900 shrink-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-900 shrink-0">
                   Last Updated
                 </p>
-                <p className="ml-auto text-sm text-gray-600 truncate text-right">
+                <p className="ml-auto text-xs sm:text-sm text-gray-600 truncate text-right">
                   {formatDateTime(user.updatedAt)}
                 </p>
               </div>

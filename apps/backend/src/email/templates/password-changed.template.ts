@@ -58,7 +58,7 @@ export function generatePasswordChangedHTML(
                     our support team immediately — your account may be at risk.
                   </p>
 
-                  <div style="background-color: #fef2f2; border-left: 4px solid #8B0000; border-radius: 6px; padding: 14px 16px; margin-bottom: 20px;">
+                  <div style="background-color: #fef2f2; border-radius: 6px; padding: 14px 16px; margin-bottom: 20px;">
                     <p style="color: #7f1d1d; font-size: 13px; margin: 0;">
                       Security tip: never share your password with anyone.
                       German Butcher will never ask for it by email or phone.

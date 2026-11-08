@@ -468,6 +468,7 @@ export function UserList({
                       <TableHead className="pl-4">Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Mobile</TableHead>
+                      <TableHead>Gender</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Last Login</TableHead>
@@ -516,6 +517,16 @@ export function UserList({
                             >
                               {user.mobileNumber}
                             </a>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          {user.gender ? (
+                            <span className="text-sm capitalize text-muted-foreground">
+                              {user.gender}
+                            </span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}

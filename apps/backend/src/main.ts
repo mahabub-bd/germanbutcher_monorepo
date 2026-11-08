@@ -1,5 +1,6 @@
 import {
   ClassSerializerInterceptor,
+  Logger,
   ValidationPipe,
   VersioningType,
 } from '@nestjs/common';
@@ -8,13 +9,19 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import compression from 'compression';
+import 'dotenv/config';
 import helmet from 'helmet';
 import { AnalyticsService } from './analytics/analytics.service';
 import { AnalyticsInterceptor } from './analytics/interceptors/analytics.interceptor';
 import { AppModule } from './app.module';
+import { ObserveInstrument } from './observe';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    routeConflictPolicy: { duplicate: 'warn', shadow: 'warn' },
+    routeResolutionStrategy: 'specificity',
+    instrument: ObserveInstrument,
+  });
   const configService = app.get(ConfigService);
 
   // Increase body size limit (Express default is 100kb, which rejects large
@@ -45,32 +52,44 @@ async function bootstrap() {
     configService.get('SWAGGER_ENABLED', 'false') === 'true';
 
   if (swaggerEnabled) {
-  // Swagger configuration from env
-  const config = new DocumentBuilder()
-    .setTitle(configService.get('SWAGGER_TITLE', 'German Butcher Ecommerce'))
-    .setDescription(
-      configService.get('SWAGGER_DESCRIPTION', 'API documentation for German Butcher E-commerce Application'),
-    )
-    .setVersion(configService.get('SWAGGER_VERSION', '1.0'))
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'Authorization',
-        description: 'Enter JWT token in format: Bearer <token>',
-        in: 'header',
-      },
-      'token', // must match @ApiBearerAuth('token')
-    )
-    .build();
+    // Swagger configuration from env
+    const config = new DocumentBuilder()
+      .setTitle(configService.get('SWAGGER_TITLE', 'German Butcher Ecommerce'))
+      .setDescription(
+        configService.get(
+          'SWAGGER_DESCRIPTION',
+          'API documentation for German Butcher E-commerce Application',
+        ),
+      )
+      .setVersion(configService.get('SWAGGER_VERSION', '1.0'))
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'Authorization',
+          description: 'Enter JWT token in format: Bearer <token>',
+          in: 'header',
+        },
+        'token', // must match @ApiBearerAuth('token')
+      )
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document, {
-    customSiteTitle: configService.get('SWAGGER_TITLE', 'German Butcher API Docs'),
-    customfavIcon: configService.get('SWAGGER_FAVICON', 'https://germanbutcherbd.com/favicon.ico'),
-    customCssUrl: configService.get('SWAGGER_CUSTOM_CSS_URL', 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css'),
-    customCss: `
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document, {
+      customSiteTitle: configService.get(
+        'SWAGGER_TITLE',
+        'German Butcher API Docs',
+      ),
+      customfavIcon: configService.get(
+        'SWAGGER_FAVICON',
+        'https://germanbutcherbd.com/favicon.ico',
+      ),
+      customCssUrl: configService.get(
+        'SWAGGER_CUSTOM_CSS_URL',
+        'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css',
+      ),
+      customCss: `
       .topbar { background-color: #d32f2f; }
       .topbar-wrapper span { color: white !important; font-weight: bold; }
       .swagger-ui .info h1 { color: #d32f2f; }
@@ -78,12 +97,12 @@ async function bootstrap() {
       .swagger-ui .opblock.opblock-get { border-color: #388e3c; }
       .swagger-ui .opblock.opblock-post { border-color: #1976d2; }
     `,
-    swaggerOptions: {
-      persistAuthorization: true, // ✅ keeps token after refresh
-      docExpansion: 'none',
-      displayRequestDuration: true,
-    },
-  });
+      swaggerOptions: {
+        persistAuthorization: true, // ✅ keeps token after refresh
+        docExpansion: 'none',
+        displayRequestDuration: true,
+      },
+    });
   }
 
   // Allow CORS from env
@@ -130,20 +149,24 @@ async function bootstrap() {
   const nodeEnv = configService.get('NODE_ENV', 'development');
   const apiUrl = configService.get('API_URL', `http://localhost:${port}`);
 
-  console.log('');
-  console.log('🚀 German Butcher API is running');
-  console.log(`   Environment: ${nodeEnv}`);
-  console.log(`   Port: ${port}`);
+  // NestJS 12 structured logging: trailing object params become part of the
+  // log entry (nested under `params` in JSON mode) instead of stringified text.
+  const logger = new Logger('Bootstrap');
+  logger.log('German Butcher API is running', {
+    environment: nodeEnv,
+    port,
+    security: ['helmet', 'rate-limiting', 'compression'],
+  });
   if (nodeEnv === 'production') {
-    console.log(`   API: ${apiUrl}`);
-    if (swaggerEnabled) {
-      console.log(`   Docs: ${apiUrl}/docs`);
-    }
+    logger.log('Production endpoints', {
+      api: apiUrl,
+      docs: swaggerEnabled ? `${apiUrl}/docs` : undefined,
+    });
   } else {
-    console.log(`   Local: http://localhost:${port}`);
-    console.log(`   Docs: http://localhost:${port}/docs`);
+    logger.log('Local endpoints', {
+      local: `http://localhost:${port}`,
+      docs: `http://localhost:${port}/docs`,
+    });
   }
-  console.log('🔒 Security features enabled: Helmet, Rate Limiting');
-  console.log('');
 }
 bootstrap();

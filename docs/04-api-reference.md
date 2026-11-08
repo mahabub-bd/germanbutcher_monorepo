@@ -113,6 +113,22 @@ Errors are **not** wrapped in the success envelope. They use Nest's default exce
 }
 ```
 
+Nest 12 adds an optional **`errorCode`** when the exception supplies one; the default filter
+copies it into the body alongside `message`:
+
+```json
+{
+  "statusCode": 400,
+  "message": "Coupon has expired",
+  "errorCode": "COUPON_EXPIRED"
+}
+```
+
+Coupon endpoints currently emit: `COUPON_NOT_ACTIVE`, `COUPON_EXPIRED`,
+`COUPON_NOT_YET_VALID`, `COUPON_USAGE_LIMIT_EXCEEDED`, `COUPON_MIN_ORDER_NOT_MET`,
+`COUPON_VALIDATE_FAILED`, `COUPON_APPLY_FAILED`. Branch on `errorCode` in clients instead of
+matching message text; other endpoints do not set one yet.
+
 | Status | When |
 | --- | --- |
 | 400 | DTO validation failed (`message` is a `string[]`), business rule violated (out of stock, inactive product, minimum order amount) |
@@ -268,6 +284,11 @@ Order report endpoints: `dashboard`, `date-range`, `daily-summary`, `refunds`,
 `category-sales`. The `date-range` report also filters by `orderStatus`, `paymentStatus`,
 `shippingMethodId` and `paymentMethodId`.
 
+These literal report paths are registered ahead of `/orders/:id` because the app boots with
+`routeResolutionStrategy: 'specificity'` (Nest 12). Under the default declaration order they
+would be shadowed by the `:id` route — see
+[02 §3.1](02-architecture.md#31-route-registration-nest-12).
+
 ### User & access
 
 | Path | Purpose |
@@ -329,4 +350,4 @@ httpOnly cookie, and clear cookies on a 401.
 
 ---
 
-_Last verified against the code: 8 November 2026 (commit `70b9f60`)._
+_Last verified against the code: 8 November 2026 (NestJS 12 working tree)._

@@ -64,9 +64,8 @@ pnpm docker:logs
 | `backend` | `3000:3000` | `./apps/backend/.env` | `wget --spider http://localhost:3000/v1` every 30 s |
 
 Both run with `restart: unless-stopped` on a private bridge network. `env_file` injects
-variables as real process environment, which is why a file named `.env` works for Compose
-even though the Nest `ConfigModule` would ignore it when choosing its own env file (see
-[01 §3.1](01-getting-started.md#31-how-the-backend-loads-configuration)).
+variables as real process environment, which takes precedence over both `.env` and
+`.env.local` (see [01 §3.1](01-getting-started.md#31-how-the-backend-loads-configuration)).
 
 The healthcheck on `:3000/v1` proves the process is up and can reach the database (the route
 returns the configured DB host), but it is not a deep readiness check — it does not exercise
@@ -79,6 +78,7 @@ a write path or S3.
 **Backend**
 
 - [ ] `NODE_ENV=production`
+- [ ] `OBSERVE_APP_KEY` / `OBSERVE_APP_SECRET` (optional; omit to disable telemetry)
 - [ ] `DATABASE_HOST/PORT/NAME/USER/PASSWORD` pointing at the managed instance
 - [ ] `DATABASE_POOL_MAX` sized to the plan (default 30 per replica)
 - [ ] `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` — long, random, different from each other
@@ -162,8 +162,8 @@ the deploy, not during an incident.
 ## 7. Monitoring and logging
 
 - Both apps log to stdout; collect with your platform's log driver.
-- Backend prints a startup banner with environment, port, API/docs URLs and "security
-  features enabled".
+- Backend emits a structured startup log (environment, port, endpoints) through
+  `Logger('Bootstrap')` — Nest 12 keeps the trailing object as searchable parameters.
 - Swagger is the fastest way to verify a deploy: `/docs` should list the current tags.
 - Signals worth alerting on:
   - 5xx rate on `/v1/*`
@@ -171,7 +171,10 @@ the deploy, not during an incident.
   - `stock_movements` insert failures
   - analytics buffer drops (log line when the cap is hit)
   - database connection saturation (pool max, 8 s connect timeout)
-- There is no APM/tracing integration; request timings live in the `analytics` table.
+- Observability: the Nest 12 `@nestjs/observe` agent is instrumented at bootstrap
+  (`ObserveInstrument`) and reads `OBSERVE_APP_KEY` / `OBSERVE_APP_SECRET`. It is not yet
+  fully wired — `ObserveModule.forRoot(…)` is missing from `AppModule` — so do not rely on
+  its traces/metrics for paging yet. Request timings still live in the `analytics` table.
 
 ---
 
@@ -218,4 +221,4 @@ outage should reach both at once.
 
 ---
 
-_Last verified against the code: 8 November 2026 (commit `70b9f60`)._
+_Last verified against the code: 8 November 2026 (NestJS 12 working tree)._

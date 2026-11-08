@@ -21,12 +21,7 @@ import { Order } from 'src/order/entities/order.entity';
 import { ProductReview } from 'src/product-review/entities/product-review.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Wishlist } from 'src/wishlist/entities/wishlist.entity';
-import {
-  In,
-  LessThan,
-  MoreThanOrEqual,
-  Repository,
-} from 'typeorm';
+import { In, LessThan, MoreThanOrEqual, Repository } from 'typeorm';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { CrmCustomersQueryDto } from './dto/crm-customers-query.dto';
@@ -127,7 +122,7 @@ export class CrmService {
     private productReviewRepository: Repository<ProductReview>,
     @InjectRepository(ContactMessage)
     private contactMessageRepository: Repository<ContactMessage>,
-  ) { }
+  ) {}
 
   /**
    * Effective CRM segment rules: values saved in Business Settings, falling
@@ -186,6 +181,7 @@ export class CrmService {
       .addSelect('user.name', 'name')
       .addSelect('user.email', 'email')
       .addSelect('user.mobileNumber', 'mobileNumber')
+      .addSelect('user.gender', 'gender')
       .addSelect('user.isVerified', 'isVerified')
       .addSelect('user.createdAt', 'createdAt')
       .addSelect('user.lastLoginAt', 'lastLoginAt')
@@ -215,6 +211,7 @@ export class CrmService {
       name: row.name,
       email: row.email,
       mobileNumber: row.mobileNumber,
+      gender: row.gender ?? null,
       area: null as string | null,
       isVerified: row.isVerified,
       createdAt: row.createdAt,
@@ -236,7 +233,10 @@ export class CrmService {
     }
 
     const dir = sortOrder === 'ASC' ? 1 : -1;
-    const comparePrimary = (a: (typeof customers)[number], b: (typeof customers)[number]) => {
+    const comparePrimary = (
+      a: (typeof customers)[number],
+      b: (typeof customers)[number],
+    ) => {
       switch (sortBy) {
         case 'name':
           return (a.name ?? '').localeCompare(b.name ?? '');
@@ -329,14 +329,13 @@ export class CrmService {
   async getCampaigns(query: { page?: number; limit?: number }) {
     const page = Math.max(1, query.page || 1);
     const limit = Math.min(100, Math.max(1, query.limit || 10));
-    const [data, total] =
-      await this.crmCampaignRepository.findAndCount({
-        where: {},
-        order: { createdAt: 'DESC' },
-        skip: (page - 1) * limit,
-        take: limit,
-        relations: ['createdBy'],
-      });
+    const [data, total] = await this.crmCampaignRepository.findAndCount({
+      where: {},
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+      relations: ['createdBy'],
+    });
     return {
       message: 'CRM campaigns retrieved successfully',
       statusCode: 200,
@@ -564,7 +563,10 @@ export class CrmService {
         .leftJoin('user.orders', 'orders', "orders.orderStatus = 'delivered'")
         .select('COUNT(DISTINCT "orders"."id")', 'order_count')
         .addSelect('COALESCE(SUM("orders"."totalValue"), 0)', 'total_spent')
-        .addSelect('COALESCE(AVG("orders"."totalValue"), 0)', 'average_order_value')
+        .addSelect(
+          'COALESCE(AVG("orders"."totalValue"), 0)',
+          'average_order_value',
+        )
         .addSelect('MAX("orders"."createdAt")', 'last_order_at')
         .addSelect(SEGMENT_CASE, 'segment')
         .where('user.id = :id', { id })
@@ -669,9 +671,7 @@ export class CrmService {
         openStatus: CrmActivityStatus.OPEN,
       }).andWhere('activity.dueDate < NOW()');
     }
-    qb.orderBy('activity.createdAt', 'DESC')
-      .offset(skip)
-      .limit(limit);
+    qb.orderBy('activity.createdAt', 'DESC').offset(skip).limit(limit);
 
     const [data, total] = await qb.getManyAndCount();
 
@@ -707,9 +707,7 @@ export class CrmService {
     if (status) {
       qb.andWhere('activity.status = :status', { status });
     }
-    qb.orderBy('activity.createdAt', 'DESC')
-      .offset(skip)
-      .limit(limit);
+    qb.orderBy('activity.createdAt', 'DESC').offset(skip).limit(limit);
 
     const [data, total] = await qb.getManyAndCount();
 
@@ -861,10 +859,9 @@ export class CrmService {
         .createQueryBuilder('user')
         .innerJoin('user.role', 'role')
         .where('role.id = :roleId', { roleId: CUSTOMER_ROLE_ID })
-        .andWhere(
-          'user.createdAt >= NOW() - MAKE_INTERVAL(days => :newDays)',
-          { newDays: segmentRules.newDays },
-        )
+        .andWhere('user.createdAt >= NOW() - MAKE_INTERVAL(days => :newDays)', {
+          newDays: segmentRules.newDays,
+        })
         .getCount(),
 
       this.crmActivityRepository.count({

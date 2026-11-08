@@ -3,6 +3,10 @@
 import type React from "react";
 
 import { SegmentBadge } from "@/components/admin/crm/segment-badge";
+import {
+  ReportExcelButton,
+  type ReportExportData,
+} from "@/components/admin/reports/download-excel-button";
 import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { TableSearch } from "@/components/common/table-search";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +29,6 @@ import {
 } from "@/utils/api-utils";
 import {
   Crown,
-  FileSpreadsheet,
   Heart,
   MapPin,
   Moon,
@@ -80,6 +83,7 @@ interface CrmCustomer {
   name: string;
   email: string;
   mobileNumber: string | null;
+  gender: string | null;
   isVerified: boolean;
   createdAt: string;
   lastLoginAt: string | null;
@@ -321,65 +325,32 @@ export function CrmCustomerList({
     setCurrentPage(1);
   };
 
-  const [isExporting, setIsExporting] = useState(false);
-  const handleExportCsv = async () => {
-    setIsExporting(true);
-    try {
-      const token = await resolveAuthToken();
-      const params = new URLSearchParams();
-      if (searchQuery) params.set("search", searchQuery);
-      if (segment !== "all") params.set("segment", segment);
-      const response = await fetch(
-        `${apiUrl}/crm/customers/export?${params.toString()}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!response.ok) throw new Error(`Export failed: ${response.status}`);
+  // Lazy export — the shared ReportExcelButton fetches the full filtered
+  // row set at click time via this callback.
+  const handleExportRows = useCallback(async (): Promise<ReportExportData> => {
+    const token = await resolveAuthToken();
+    const params = new URLSearchParams();
+    if (searchQuery) params.set("search", searchQuery);
+    if (segment !== "all") params.set("segment", segment);
+    const response = await fetch(
+      `${apiUrl}/crm/customers/export?${params.toString()}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!response.ok) throw new Error(`Export failed: ${response.status}`);
 
-      // Backend streams fully-quoted CSV — parse it, then wrap in a real
-      // .xlsx so the download opens cleanly in Excel.
-      const csv = await response.text();
-      const records = parseQuotedCsv(csv);
-      if (records.length === 0) throw new Error("Empty export");
+    // Backend streams fully-quoted CSV — parse it and drop the header row
+    // (the shared button renders its own styled header).
+    const csv = await response.text();
+    const records = parseQuotedCsv(csv);
+    if (records.length < 2) throw new Error("Empty export");
 
-      const ExcelJS = await import("exceljs");
-      const workbook = new ExcelJS.Workbook();
-      const sheet = workbook.addWorksheet("Customers");
-      for (const record of records) {
-        sheet.addRow(
-          record.map((value) =>
-            value !== "" && !Number.isNaN(Number(value)) ? Number(value) : value
-          )
-        );
-      }
-      const headerRow = sheet.getRow(1);
-      headerRow.font = { bold: true };
-      headerRow.height = 20;
-      for (let i = 0; i < records[0].length; i++) {
-        sheet.getColumn(i + 1).width = Math.min(
-          45,
-          Math.max(
-            8,
-            ...records.map((record) => (record[i] ?? "").length + 2)
-          )
-        );
-      }
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `crm-customers-${new Date().toISOString().slice(0, 10)}.xlsx`;
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast.error("Failed to export customers.");
-    } finally {
-      setIsExporting(false);
-    }
-  };
+    const rows = records.slice(1).map((record) =>
+      record.map((value) =>
+        value !== "" && !Number.isNaN(Number(value)) ? Number(value) : value
+      )
+    );
+    return { rows };
+  }, [searchQuery, segment]);
 
   // Header rule list — mirrors SEGMENT_CASE in crm.service.ts (same order,
   // so the precedence reads top-down) using the live Business Settings
@@ -422,16 +393,25 @@ export function CrmCustomerList({
                   Area-wise
                 </Link>
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8"
-                disabled={isExporting}
-                onClick={handleExportCsv}
-              >
-                <FileSpreadsheet className="h-4 w-4 mr-1 text-emerald-600" />
-                {isExporting ? "Exporting..." : "Export Excel"}
-              </Button>
+              <ReportExcelButton
+                title="CRM Customers"
+                headers={[
+                  "ID",
+                  "Name",
+                  "Email",
+                  "Mobile",
+                  "Gender",
+                  "Area",
+                  "Orders",
+                  "Total Spent",
+                  "Avg Order",
+                  "Last Order",
+                  "Segment",
+                  "Joined",
+                ]}
+                getRows={handleExportRows}
+                fileName="crm-customers"
+              />
             </div>
           </div>
 
@@ -495,6 +475,7 @@ export function CrmCustomerList({
                 <TableRow>
                   <TableHead>Customer</TableHead>
                   <TableHead>Mobile</TableHead>
+                  <TableHead>Gender</TableHead>
                   <TableHead>Area</TableHead>
                   <TableHead className="text-center">Orders</TableHead>
                   <TableHead className="text-right">Total Spent</TableHead>
@@ -541,6 +522,15 @@ export function CrmCustomerList({
                         >
                           {customer.mobileNumber}
                         </Link>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {customer.gender ? (
+                        <span className="text-sm capitalize text-muted-foreground">
+                          {customer.gender}
+                        </span>
                       ) : (
                         <span className="text-sm text-muted-foreground">—</span>
                       )}

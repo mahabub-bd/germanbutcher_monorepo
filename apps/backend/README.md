@@ -1,6 +1,6 @@
 # `germanbutcher-backend`
 
-NestJS 11 API for the German Butcher platform: PostgreSQL through TypeORM, JWT auth with
+NestJS 12 API for the German Butcher platform: PostgreSQL through TypeORM, JWT auth with
 menu-level RBAC, S3 uploads, SSLCommerz payments, Socket.IO notifications, analytics
 ingestion and the reporting surface used by the admin.
 
@@ -26,9 +26,10 @@ pnpm start:dev
 
 ## Configuration
 
-`ConfigModule` loads **`.env.local`** when `NODE_ENV` is not `production`, and
-**`.env.production`** otherwise. A plain `.env` is not read by the app (it exists for
-`docker-compose`, which injects it as process environment).
+`main.ts` imports `dotenv/config`, so **`.env`** is loaded first; `ConfigModule` then loads
+**`.env.local`** (or **`.env.production`** when `NODE_ENV=production`) without overriding
+values that already exist. Precedence: real environment > `.env` > `.env.local` /
+`.env.production`.
 
 Required at minimum: `DATABASE_*`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`. See
 [`docs/01-getting-started.md`](../../docs/01-getting-started.md#32-backend-variables) for the
@@ -38,12 +39,14 @@ complete, verified variable list.
 
 ```
 src/
-├── main.ts            bootstrap: helmet, compression, CORS, validation, Swagger
+├── main.ts            bootstrap: dotenv, Nest 12 route options, helmet, CORS, Swagger
 ├── app.module.ts      TypeORM, throttler, 50 feature modules, global interceptors
+├── observe.ts         Nest 12 Observe agent (module + instrument)
 ├── common/            enums, DTOs, decorators, guards, utils (Dhaka time, SWR cache)
 ├── config/            S3 / mail / app configuration
 └── <feature>/         controller, service, dto/, entities/  (one folder per domain)
-test/                  e2e harness
+test/                  e2e harness (Jest config)
+vitest.config.mts      unit-test runner config (with tests/vitest-setup.mts)
 database.dbml          schema snapshot — stale, entities are the source of truth
 ```
 
@@ -54,6 +57,8 @@ Module catalog and conventions: [`docs/03-backend-guide.md`](../../docs/03-backe
 - Admin endpoints need **both** `JwtAuthGuard` and `PermissionGuard`, plus
   `@ModulePermissions('<menu url>')` where the URL exists in the `menu` table.
 - Responses use `{ message, statusCode, data }`; lists add `total/page/limit/totalPages`.
+- Client-actionable failures carry `errorCode` in the exception options; Nest 12 adds it to
+  the JSON error body.
 - Money is `decimal(10,2)`; the pg driver returns strings — convert with `Number()` and
   round to 2 decimals.
 - The order pricing pipeline (`src/order/order.service.ts#create`) has a fixed operation
@@ -63,10 +68,12 @@ Module catalog and conventions: [`docs/03-backend-guide.md`](../../docs/03-backe
 ## Test and lint
 
 ```bash
-pnpm test          # Jest (specs are currently CLI-generated stubs)
-pnpm test:e2e
-pnpm test:cov
-pnpm lint          # ESLint --fix
+pnpm test          # Vitest (specs are currently scaffolding)
+pnpm test:cov      # Vitest + coverage
+pnpm test:jest     # legacy Jest runner
+pnpm test:e2e      # e2e (Jest config)
+pnpm lint          # oxlint
+pnpm lint:eslint   # ESLint flat config --fix
 pnpm format        # Prettier
 ```
 

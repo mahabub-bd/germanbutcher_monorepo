@@ -87,6 +87,10 @@ export function ReportExcelButton({
         const resolved = await getRows();
         exportRows = resolved.rows;
         exportSummary = resolved.summary ?? summary;
+      } catch {
+        // Fetch/parse failed — the caller surfaces the toast; abort without
+        // downloading an empty file.
+        return;
       } finally {
         setIsPreparing(false);
       }
@@ -217,14 +221,15 @@ export function ReportExcelButton({
   return (
     <Button
       variant="outline"
+      size="sm"
       onClick={handleDownload}
       disabled={isPreparing}
-      className="shrink-0 gap-1.5 px-3 text-sm"
+      className="shrink-0 gap-1.5 px-2.5 text-xs sm:h-9 sm:px-4 sm:text-sm"
     >
       {isPreparing ? (
-        <Loader2 className="size-4 animate-spin text-emerald-600" />
+        <Loader2 className="size-3.5 sm:size-4 animate-spin text-emerald-600" />
       ) : (
-        <FileSpreadsheet className="size-4 text-emerald-600" />
+        <FileSpreadsheet className="size-3.5 sm:size-4 text-emerald-600" />
       )}
       {isPreparing ? "Preparing…" : "Excel"}
     </Button>

@@ -21,7 +21,7 @@ function Badge({ children, color = "default" }: BadgeProps) {
   return (
     <div
       className={cn(
-        "flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] sm:text-[12px] font-medium whitespace-nowrap",
+        "flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] sm:text-[12px] lg:text-[13px] font-medium lg:font-semibold whitespace-nowrap",
         colorClasses[color]
       )}
     >
@@ -83,12 +83,12 @@ export function StatusCard({
     >
       {/* Icon */}
       <div className="p-1.5 rounded-md bg-white/50 dark:bg-black/20 shrink-0">
-        <Icon className={cn("w-3.5 h-3.5 shrink-0", color)} />
+        <Icon className={cn("w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0", color)} />
       </div>
 
       {/* Title — truncates instead of wrapping */}
       <h4
-        className="min-w-0 flex-1 text-xs font-medium text-gray-800 dark:text-gray-200 leading-snug truncate"
+        className="min-w-0 flex-1 text-xs lg:text-sm font-medium lg:font-semibold text-gray-800 dark:text-gray-200 leading-snug truncate"
         title={title}
       >
         {title}
@@ -96,7 +96,7 @@ export function StatusCard({
 
       {/* Value + badge — never squeezed */}
       <div className="flex items-center gap-1.5 shrink-0 relative z-10">
-        <span className="text-sm sm:text-base font-bold text-gray-900 dark:text-white whitespace-nowrap drop-shadow-sm">
+        <span className="text-sm sm:text-base lg:text-lg font-bold lg:font-extrabold text-gray-900 dark:text-white whitespace-nowrap drop-shadow-sm">
           {value}
         </span>
 

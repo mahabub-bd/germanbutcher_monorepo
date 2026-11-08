@@ -54,13 +54,23 @@ export class CouponService {
   }
 
   async getAllCoupons(): Promise<Coupon[]> {
-    return this.couponRepository.find({ relations: ['excludedItems', 'excludedItems.attachment', 'excludedItems.category'] });
+    return this.couponRepository.find({
+      relations: [
+        'excludedItems',
+        'excludedItems.attachment',
+        'excludedItems.category',
+      ],
+    });
   }
 
   async getCouponByCode(code: string): Promise<Coupon> {
     const coupon = await this.couponRepository.findOne({
       where: { code },
-      relations: ['excludedItems', 'excludedItems.attachment', 'excludedItems.category'],
+      relations: [
+        'excludedItems',
+        'excludedItems.attachment',
+        'excludedItems.category',
+      ],
     });
     if (!coupon) {
       throw new NotFoundException('Coupon not found');
@@ -71,7 +81,11 @@ export class CouponService {
   private async getCouponWithRelations(id: string): Promise<Coupon> {
     const coupon = await this.couponRepository.findOne({
       where: { id },
-      relations: ['excludedItems', 'excludedItems.attachment', 'excludedItems.category'],
+      relations: [
+        'excludedItems',
+        'excludedItems.attachment',
+        'excludedItems.category',
+      ],
     });
     if (!coupon) {
       throw new NotFoundException('Coupon not found');
@@ -165,27 +179,33 @@ export class CouponService {
       const coupon = await this.getCouponByCode(code);
 
       if (!coupon.isActive) {
-        throw new BadRequestException('Coupon is not active');
+        throw new BadRequestException('Coupon is not active', {
+          errorCode: 'COUPON_NOT_ACTIVE',
+        });
       }
 
       const now = new Date();
 
       // Check if coupon has expired
       if (now > coupon.validUntil) {
-        throw new HttpException(
-          'Coupon has expired',
-          HttpStatus.GONE, // 410 Gone - more appropriate for expired resources
-        );
+        throw new HttpException('Coupon has expired', HttpStatus.GONE, {
+          // 410 Gone - more appropriate for expired resources
+          errorCode: 'COUPON_EXPIRED',
+        });
       }
 
       // Check if coupon is not yet valid
       if (now < coupon.validFrom) {
-        throw new BadRequestException('Coupon is not yet valid');
+        throw new BadRequestException('Coupon is not yet valid', {
+          errorCode: 'COUPON_NOT_YET_VALID',
+        });
       }
 
       // Check usage limits
       if (coupon.maxUsage !== null && coupon.timesUsed >= coupon.maxUsage) {
-        throw new BadRequestException('Coupon usage limit exceeded');
+        throw new BadRequestException('Coupon usage limit exceeded', {
+          errorCode: 'COUPON_USAGE_LIMIT_EXCEEDED',
+        });
       }
 
       return { valid: true, message: 'Coupon is valid' };
@@ -199,6 +219,9 @@ export class CouponService {
       throw new HttpException(
         'Failed to validate coupon',
         HttpStatus.INTERNAL_SERVER_ERROR,
+        {
+          errorCode: 'COUPON_VALIDATE_FAILED',
+        },
       );
     }
   }
@@ -257,7 +280,9 @@ export class CouponService {
 
         // If we have cart items, get excluded product info
         if (cartItems && coupon.excludedItems.length > 0) {
-          const cartProductIdsFromItems = cartItems.map((item) => item.productId);
+          const cartProductIdsFromItems = cartItems.map(
+            (item) => item.productId,
+          );
           const excludedInCart = cartProductIdsFromItems.filter((id) =>
             excludedProductIds.includes(id),
           );
@@ -282,6 +307,7 @@ export class CouponService {
       ) {
         throw new BadRequestException(
           `Minimum eligible order amount is ${coupon.minOrderAmount}. Your eligible: ${eligibleAmount.toFixed(0)}`,
+          { errorCode: 'COUPON_MIN_ORDER_NOT_MET' },
         );
       }
 
@@ -315,7 +341,8 @@ export class CouponService {
         discountValue,
         couponId: coupon.id,
         eligibleAmount,
-        excludedProducts: excludedProductsList.length > 0 ? excludedProductsList : undefined,
+        excludedProducts:
+          excludedProductsList.length > 0 ? excludedProductsList : undefined,
       };
     } catch (error) {
       // Re-throw HTTP exceptions
@@ -327,6 +354,9 @@ export class CouponService {
       throw new HttpException(
         'Failed to apply coupon',
         HttpStatus.INTERNAL_SERVER_ERROR,
+        {
+          errorCode: 'COUPON_APPLY_FAILED',
+        },
       );
     }
   }

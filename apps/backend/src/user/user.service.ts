@@ -147,6 +147,8 @@ export class UserService {
         'user.lastLoginAt',
         'user.createdAt',
         'user.updatedAt',
+        // Optional profile fields
+        'user.gender',
         'role.id',
         'role.rolename',
         'role.isActive',
@@ -280,6 +282,8 @@ export class UserService {
         'user.lastLoginAt',
         'user.createdAt',
         'user.updatedAt',
+        // Optional profile fields
+        'user.gender',
         'role.id',
         'role.rolename',
         'role.isActive',
@@ -473,6 +477,7 @@ export class UserService {
       .addSelect('user.name', 'name')
       .addSelect('user.email', 'email')
       .addSelect('user.mobileNumber', 'mobileNumber')
+      .addSelect('user.gender', 'gender')
       .addSelect('user.isVerified', 'isVerified')
       .addSelect('user.createdAt', 'createdAt')
       .addSelect('user.lastLoginAt', 'lastLoginAt')
@@ -494,6 +499,7 @@ export class UserService {
       .addGroupBy('user.name')
       .addGroupBy('user.email')
       .addGroupBy('user.mobileNumber')
+      .addGroupBy('user.gender')
       .addGroupBy('user.isVerified')
       .addGroupBy('user.createdAt')
       .addGroupBy('user.lastLoginAt')
@@ -532,6 +538,7 @@ export class UserService {
       name: row.name,
       email: row.email,
       mobileNumber: row.mobileNumber,
+      gender: row.gender ?? null,
       isVerified: row.isVerified,
       area: areaByUser.get(row.id) ?? null,
       createdAt: row.createdAt,
@@ -551,9 +558,8 @@ export class UserService {
       },
     }));
 
-    const timeFilterText = timeFilter !== 'all_time'
-      ? ` for ${timeFilter.replace(/_/g, ' ')}`
-      : '';
+    const timeFilterText =
+      timeFilter !== 'all_time' ? ` for ${timeFilter.replace(/_/g, ' ')}` : '';
 
     return {
       message: `Top customers retrieved successfully${timeFilterText}`,
@@ -926,14 +932,16 @@ export class UserService {
     // Per-number cooldown: block resends within 60s of the last OTP send.
     // otpExpiresAt = lastSentAt + validity, so derive lastSentAt from it.
     const lastSentAt = user.otpExpiresAt
-      ? new Date(user.otpExpiresAt).getTime() - this.otpService.getOtpValidityMs()
+      ? new Date(user.otpExpiresAt).getTime() -
+        this.otpService.getOtpValidityMs()
       : 0;
     if (Date.now() - lastSentAt < 60 * 1000) {
       this.logger.warn(
         `[PASSWORD-RESET] Resend blocked by 60s cooldown for ${mobileNumber} (IP: ${clientIp ?? 'unknown'})`,
       );
       return {
-        message: 'A reset code was already sent. Please wait a minute before requesting again.',
+        message:
+          'A reset code was already sent. Please wait a minute before requesting again.',
         statusCode: HttpStatus.TOO_MANY_REQUESTS,
       };
     }

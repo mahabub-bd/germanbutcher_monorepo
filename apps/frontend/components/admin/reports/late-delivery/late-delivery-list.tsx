@@ -209,6 +209,17 @@ export default function LateDeliveryList({
     bare(o.totalValue),
   ]);
 
+  const lateExportRows = lateOrders.map((o) => [
+    o.orderNo,
+    o.customerName,
+    o.deliveryMan || "Unassigned",
+    o.shippingMethod ?? "",
+    formatDateTime(o.orderDate),
+    formatDateTime(o.deliveredAt),
+    durationLabel(o.hours),
+    bare(o.totalValue),
+  ]);
+
   const pdfSummary = [
     { label: "Total Delivered", value: String(summary?.totalDelivered ?? 0) },
     { label: "Total Late", value: String(summary?.totalLate ?? 0) },
@@ -226,70 +237,6 @@ export default function LateDeliveryList({
       >
         {mounted && hasData && (
           <>
-            <ReportExcelButton
-              title="Late Delivery Report"
-              subtitle={rangeLabel}
-              headers={[
-                "Delivery Man",
-                "Delivered",
-                "Late",
-                "Avg Hours",
-                "Worst Hours",
-              ]}
-              rows={exportRows}
-              summary={pdfSummary}
-              fileName="late-delivery-report"
-            />
-            {pendingExportRows.length > 0 && (
-              <ReportExcelButton
-                title="Long Pending Orders"
-                subtitle={rangeLabel}
-                headers={[
-                  "Order",
-                  "Status",
-                  "Customer",
-                  "Mobile",
-                  "Delivery Man",
-                  "Method",
-                  "Placed",
-                  "Waiting",
-                  "Value",
-                ]}
-                rows={pendingExportRows}
-                summary={[
-                  {
-                    label: `Undelivered over ${summary?.thresholdHours ?? 24}h`,
-                    value: `${pendingOrders.length} orders`,
-                  },
-                ]}
-                fileName="long-pending-orders"
-              />
-            )}
-            {deliveredExportRows.length > 0 && (
-              <ReportExcelButton
-                title="Delivered Orders"
-                subtitle={rangeLabel}
-                headers={[
-                  "Order",
-                  "Customer",
-                  "Mobile",
-                  "Delivery Man",
-                  "Method",
-                  "Placed",
-                  "Delivered",
-                  "Took",
-                  "Value",
-                ]}
-                rows={deliveredExportRows}
-                summary={[
-                  {
-                    label: "Delivered in range",
-                    value: `${deliveredOrders.length} orders`,
-                  },
-                ]}
-                fileName="delivered-orders"
-              />
-            )}
             <LazyPdfDownloadLink
               document={
                 <ReportTablePDF
@@ -394,9 +341,27 @@ export default function LateDeliveryList({
                   Hours after ordering · thresholds: by shipping method
                 </p>
               </div>
-              <PillBadge className="font-medium tabular-nums">
-                {deliveryMen.length} man{deliveryMen.length === 1 ? "" : ""}
-              </PillBadge>
+              <div className="flex items-center gap-2">
+                <PillBadge className="font-medium tabular-nums">
+                  {deliveryMen.length} man{deliveryMen.length === 1 ? "" : ""}
+                </PillBadge>
+                {mounted && (
+                  <ReportExcelButton
+                    title="Late Delivery Report"
+                    subtitle={rangeLabel}
+                    headers={[
+                      "Delivery Man",
+                      "Delivered",
+                      "Late",
+                      "Avg Hours",
+                      "Worst Hours",
+                    ]}
+                    rows={exportRows}
+                    summary={pdfSummary}
+                    fileName="late-delivery-report"
+                  />
+                )}
+              </div>
             </div>
 
             {/* Desktop table */}
@@ -542,9 +507,35 @@ export default function LateDeliveryList({
                     Delivered after the method's delivery timeline
                   </p>
                 </div>
-                <PillBadge tone="red" className="font-medium tabular-nums">
-                  {lateOrders.length} order{lateOrders.length === 1 ? "" : "s"}
-                </PillBadge>
+                <div className="flex items-center gap-2">
+                  <PillBadge tone="red" className="font-medium tabular-nums">
+                    {lateOrders.length} order{lateOrders.length === 1 ? "" : "s"}
+                  </PillBadge>
+                  {mounted && lateExportRows.length > 0 && (
+                    <ReportExcelButton
+                      title="Slowest Deliveries"
+                      subtitle={rangeLabel}
+                      headers={[
+                        "Order",
+                        "Customer",
+                        "Delivery Man",
+                        "Method",
+                        "Placed",
+                        "Delivered",
+                        "Took",
+                        "Value",
+                      ]}
+                      rows={lateExportRows}
+                      summary={[
+                        {
+                          label: "Late deliveries in range",
+                          value: `${lateOrders.length} orders`,
+                        },
+                      ]}
+                      fileName="slowest-deliveries"
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Desktop table */}
@@ -656,9 +647,36 @@ export default function LateDeliveryList({
                     placement · oldest first
                   </p>
                 </div>
-                <PillBadge tone="red" className="font-medium tabular-nums">
-                  {pendingOrders.length} order{pendingOrders.length === 1 ? "" : "s"}
-                </PillBadge>
+                <div className="flex items-center gap-2">
+                  <PillBadge tone="red" className="font-medium tabular-nums">
+                    {pendingOrders.length} order{pendingOrders.length === 1 ? "" : "s"}
+                  </PillBadge>
+                  {mounted && pendingExportRows.length > 0 && (
+                    <ReportExcelButton
+                      title="Long Pending Orders"
+                      subtitle={rangeLabel}
+                      headers={[
+                        "Order",
+                        "Status",
+                        "Customer",
+                        "Mobile",
+                        "Delivery Man",
+                        "Method",
+                        "Placed",
+                        "Waiting",
+                        "Value",
+                      ]}
+                      rows={pendingExportRows}
+                      summary={[
+                        {
+                          label: `Undelivered over ${summary?.thresholdHours ?? 24}h`,
+                          value: `${pendingOrders.length} orders`,
+                        },
+                      ]}
+                      fileName="long-pending-orders"
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Desktop table */}
@@ -766,10 +784,37 @@ export default function LateDeliveryList({
                     All delivered in range · newest first
                   </p>
                 </div>
-                <PillBadge tone="emerald" className="font-medium tabular-nums">
-                  {deliveredOrders.length} order
-                  {deliveredOrders.length === 1 ? "" : "s"}
-                </PillBadge>
+                <div className="flex items-center gap-2">
+                  <PillBadge tone="emerald" className="font-medium tabular-nums">
+                    {deliveredOrders.length} order
+                    {deliveredOrders.length === 1 ? "" : "s"}
+                  </PillBadge>
+                  {mounted && deliveredExportRows.length > 0 && (
+                    <ReportExcelButton
+                      title="Delivered Orders"
+                      subtitle={rangeLabel}
+                      headers={[
+                        "Order",
+                        "Customer",
+                        "Mobile",
+                        "Delivery Man",
+                        "Method",
+                        "Placed",
+                        "Delivered",
+                        "Took",
+                        "Value",
+                      ]}
+                      rows={deliveredExportRows}
+                      summary={[
+                        {
+                          label: "Delivered in range",
+                          value: `${deliveredOrders.length} orders`,
+                        },
+                      ]}
+                      fileName="delivered-orders"
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Desktop table */}

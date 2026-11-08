@@ -138,7 +138,7 @@ export const generateNewOrderAlertHTML = (data: NewOrderAlertData) => {
       ${data.bogo!
         .map(
           (usage) => `
-      <div style="padding: 8px 12px; background-color: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 4px; margin-bottom: 6px; font-size: 12px; color: #333333;">
+      <div style="padding: 8px 12px; background-color: #f0fdf4; border-radius: 4px; margin-bottom: 6px; font-size: 12px; color: #333333;">
         <strong>${usage.campaignName}</strong> — ${usage.freeUnits} free unit${usage.freeUnits !== 1 ? 's' : ''} given, discount <strong style="color: #16a34a;">৳${usage.discountAmount.toFixed(2)}</strong>
       </div>
       `,

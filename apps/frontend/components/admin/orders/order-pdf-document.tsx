@@ -100,8 +100,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fafafa",
     padding: 9,
     borderRadius: 3,
-    borderLeftWidth: 2,
-    borderLeftColor: "#8B0000",
   },
   cardTitle: {
     fontSize: 9,

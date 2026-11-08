@@ -54,7 +54,7 @@ export function generatePasswordResetOtpHTML(
                   </p>
 
                   <div style="text-align: center; margin-bottom: 20px;">
-                    <span style="display: inline-block; background-color: #fafafa; border: 1px solid #e5e7eb; border-left: 4px solid #8B0000; border-radius: 6px; padding: 14px 28px; font-size: 26px; font-weight: bold; letter-spacing: 6px; color: #1f2937;">
+                    <span style="display: inline-block; background-color: #fafafa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 28px; font-size: 26px; font-weight: bold; letter-spacing: 6px; color: #1f2937;">
                       ${data.otp}
                     </span>
                   </div>
