@@ -513,7 +513,7 @@ export function CrmDashboard() {
                       </div>
                     </div>
 
-                    <div className="grid shrink-0 grid-cols-3 gap-2">
+                    <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
                       {[
                         {
                           label: "Lifetime spend",
@@ -523,6 +523,10 @@ export function CrmDashboard() {
                         {
                           label: "Orders",
                           value: formatCount(customer.rfm.orderCount),
+                        },
+                        {
+                          label: "Avg / order",
+                          value: formatMoney(customer.rfm.averageOrderValue),
                         },
                         {
                           label: "Last order",
@@ -901,11 +905,12 @@ export function CrmDashboard() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <span
-                            className="text-sm font-semibold tabular-nums"
-                            title={`Avg per order ${formatMoney(customer.rfm.averageOrderValue)}`}
-                          >
+                          <span className="block text-sm font-semibold tabular-nums">
                             {formatMoney(customer.rfm.totalSpent)}
+                          </span>
+                          <span className="block text-[11px] text-muted-foreground tabular-nums">
+                            {formatMoney(customer.rfm.averageOrderValue)} avg /
+                            order
                           </span>
                         </TableCell>
                         <TableCell className="pr-3 text-right">
@@ -930,11 +935,12 @@ export function CrmDashboard() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <span
-                          className="text-sm font-bold tabular-nums"
-                          title={`Avg order ${formatMoney(vipOrders > 0 ? vipSpend / vipOrders : 0)}`}
-                        >
+                        <span className="block text-sm font-bold tabular-nums">
                           {formatMoney(vipSpend)}
+                        </span>
+                        <span className="block text-[11px] text-muted-foreground tabular-nums">
+                          {formatMoney(vipOrders > 0 ? vipSpend / vipOrders : 0)}{" "}
+                          avg / order
                         </span>
                       </TableCell>
                       <TableCell className="pr-3 text-right">
@@ -982,7 +988,7 @@ export function CrmDashboard() {
                       <SegmentBadge segment={customer.segment} />
                     </div>
 
-                    <div className="mt-3 grid grid-cols-3 gap-2">
+                    <div className="mt-3 grid grid-cols-2 gap-2">
                       {[
                         {
                           label: "Orders",
@@ -991,6 +997,10 @@ export function CrmDashboard() {
                         {
                           label: "Total spent",
                           value: formatMoney(customer.rfm.totalSpent),
+                        },
+                        {
+                          label: "Avg / order",
+                          value: formatMoney(customer.rfm.averageOrderValue),
                         },
                         {
                           label: "Last order",
