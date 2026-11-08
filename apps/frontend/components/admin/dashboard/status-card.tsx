@@ -51,6 +51,14 @@ interface StatusCardProps {
   };
 }
 
+/**
+ * Two-row layout at every breakpoint:
+ *   row 1 — icon + title (title keeps full width, so long single-word
+ *           labels like "Cancelled" never break mid-word)
+ *   row 2 — value + optional percentage badge
+ * The title truncates with an ellipsis rather than wrapping, so the
+ * cards stay uniform even in very narrow grid columns.
+ */
 export function StatusCard({
   className,
   title,
@@ -66,7 +74,7 @@ export function StatusCard({
     <Link
       href={href}
       className={cn(
-        "flex flex-col sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start 2xl:flex-row 2xl:items-center gap-2 sm:gap-2 p-2.5 sm:p-2 2xl:py-4 2xl:px-2 rounded-lg transition border relative overflow-hidden",
+        "flex flex-col justify-between gap-2 p-2.5 sm:p-3 rounded-lg transition border relative overflow-hidden",
         "border-gray-200 dark:border-gray-700",
         "hover:shadow-sm active:scale-[0.98] sm:hover:scale-[1.02]",
         "w-full",
@@ -74,20 +82,22 @@ export function StatusCard({
         className
       )}
     >
-      {/* Left Section */}
-      <div className="flex items-center gap-2 sm:gap-2 lg:gap-1.5 relative z-10 w-full sm:w-auto lg:w-full 2xl:w-auto min-w-0">
-        <div className="p-1.5 lg:p-1 rounded-md bg-white/50 dark:bg-black/20 shrink-0">
-          <Icon className={cn("w-3.5 h-3.5 lg:w-3 lg:h-3 2xl:w-4 2xl:h-4 shrink-0", color)} />
+      {/* Row 1 — icon + title */}
+      <div className="flex items-center gap-2 relative z-10 min-w-0 w-full">
+        <div className="p-1.5 rounded-md bg-white/50 dark:bg-black/20 shrink-0">
+          <Icon className={cn("w-3.5 h-3.5 shrink-0", color)} />
         </div>
-        {/* Wrap instead of truncate so narrow 7-column layouts show the full title */}
-        <h4 className="min-w-0 text-xs sm:text-xs lg:text-[11px] 2xl:text-base font-medium text-gray-800 dark:text-gray-200 leading-snug wrap-break-word">
+        <h4
+          className="min-w-0 flex-1 text-xs font-medium text-gray-800 dark:text-gray-200 leading-snug truncate"
+          title={title}
+        >
           {title}
         </h4>
       </div>
 
-      {/* Right Section */}
-      <div className="flex items-center justify-between sm:justify-end lg:justify-between 2xl:justify-end gap-1 sm:gap-2 relative z-10 w-full sm:w-auto lg:w-full 2xl:w-auto">
-        <span className="text-sm sm:text-base lg:text-sm 2xl:text-base font-bold text-gray-900 dark:text-white whitespace-nowrap drop-shadow-sm">
+      {/* Row 2 — value + badge */}
+      <div className="flex items-center justify-between gap-2 relative z-10 w-full">
+        <span className="text-sm sm:text-base font-bold text-gray-900 dark:text-white whitespace-nowrap drop-shadow-sm">
           {value}
         </span>
 

@@ -1,5 +1,4 @@
 "use client";
-
 import {
   Ban,
   CheckCircle2,
@@ -10,7 +9,6 @@ import {
   Truck,
 } from "lucide-react";
 import { StatusCard } from "./status-card";
-
 interface OrderStatsGridProps {
   data: {
     totalOrders: number;
@@ -24,26 +22,22 @@ interface OrderStatsGridProps {
     shippedValue: number;
     deliveredValue: number;
     cancelledValue: number;
-  onHold: number;
-  onHoldValue: number;
+    onHold: number;
+    onHoldValue: number;
   };
 }
-
 export function OrderStatsGrid({ data }: OrderStatsGridProps) {
   const getOrderUrl = (status?: string) => {
     if (!status) return "/admin/orders?page=1&limit=10";
     return `/admin/orders/${status}?page=1&limit=10&orderStatus=${status}`;
   };
-
   // Percentage of total orders, safe against a zero-order day.
   const percentOf = (count: number) =>
     data.totalOrders > 0 ? (count / data.totalOrders) * 100 : 0;
-
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-2 lg:grid-cols-7 2xl:gap-3">
+    <div className="grid grid-cols-2 gap-2 lg:grid-cols-7 2xl:gap-3">
       {/* All Orders */}
       <StatusCard
-        className="lg:gap-1 lg:px-2 lg:py-2"
         title="All Orders"
         value={data.totalOrders}
         icon={ListChecks}
@@ -52,10 +46,8 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
         href={getOrderUrl()}
         progress={{ percent: 100, barClass: "bg-sky-500" }}
       />
-
       {/* Delivered */}
       <StatusCard
-        className="lg:gap-1 lg:px-2 lg:py-2"
         title="Delivered"
         value={data.delivered}
         icon={CheckCircle2}
@@ -71,10 +63,8 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
           color: "success",
         }}
       />
-
       {/* Pending */}
       <StatusCard
-        className="lg:gap-1 lg:px-2 lg:py-2"
         title="Pending"
         value={data.pending}
         icon={Clock}
@@ -90,10 +80,8 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
           color: "warning",
         }}
       />
-
       {/* Processing */}
       <StatusCard
-        className="lg:gap-1 lg:px-2 lg:py-2"
         title="Processing"
         value={data.processing}
         icon={Loader2}
@@ -111,7 +99,6 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
       />
       {/* On Hold */}
       <StatusCard
-        className="lg:gap-1 lg:px-2 lg:py-2"
         title="On Hold"
         value={data.onHold}
         icon={PauseCircle}
@@ -127,10 +114,8 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
           color: "warning",
         }}
       />
-
       {/* Shipped */}
       <StatusCard
-        className="lg:gap-1 lg:px-2 lg:py-2"
         title="Shipped"
         value={data.shipped}
         icon={Truck}
@@ -146,10 +131,8 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
           color: "info",
         }}
       />
-
       {/* Cancelled */}
       <StatusCard
-        className="lg:gap-1 lg:px-2 lg:py-2"
         title="Cancelled"
         value={data.cancelled}
         icon={Ban}
