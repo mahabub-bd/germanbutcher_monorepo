@@ -1,10 +1,8 @@
-
 # Stage 1: Dependencies
 FROM node:24-alpine AS deps
 WORKDIR /app
 
-# corepack ships with Node — no npm round-trip to install pnpm
-RUN corepack enable && corepack prepare pnpm@11 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.11 --activate
 
 # Copy workspace root manifest, lockfile and workspace config
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -14,12 +12,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/frontend/package.json apps/frontend/package.json
 COPY apps/backend/package.json apps/backend/package.json
 
-# Cache-mounted pnpm store survives layer invalidation, so re-downloads only
-# happen when the lockfile itself changes. Only backend deps are installed —
-# the frontend toolchain (Next, eslint, …) is not needed to build/run the API.
-# --prefer-offline reuses cached metadata from the store; the registry is hit
-# only for packages not already cached (safe with --frozen-lockfile, which
-# pins every version).
+
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline --filter germanbutcher-backend...
 
@@ -31,12 +24,11 @@ COPY apps/backend ./apps/backend
 
 # Set environment for build
 ENV NODE_ENV=production
+RUN mkdir -p /app/apps/backend/public
 
 # Build the application
 RUN pnpm --filter germanbutcher-backend build
-
-# Ensure public directory exists (even if empty) for the COPY command
-RUN mkdir -p /app/apps/backend/public
+RUN pnpm --filter germanbutcher-backend deploy --prod /prod/backend
 
 # Stage 3: Production Runner
 FROM node:24-alpine AS runner
@@ -49,18 +41,11 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 
-# Copy the full workspace layout: pnpm keeps each package's dependencies in the
-# package's own node_modules (symlinks into the root .pnpm store), so the runtime
-# must mirror it for module resolution to work from apps/backend/dist
-COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/node_modules ./apps/backend/node_modules
+COPY --from=builder --chown=nestjs:nodejs /prod/backend/node_modules ./apps/backend/node_modules
+COPY --from=builder --chown=nestjs:nodejs /prod/backend/package.json ./apps/backend/package.json
 COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/dist ./apps/backend/dist
-COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/package.json ./apps/backend/package.json
 COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/public ./apps/backend/public
-
 WORKDIR /app/apps/backend
 USER nestjs
-
 EXPOSE 3000
-
 CMD ["node", "dist/main"]
