@@ -35,7 +35,7 @@ export function OrderStatsGrid({ data }: OrderStatsGridProps) {
   const percentOf = (count: number) =>
     data.totalOrders > 0 ? (count / data.totalOrders) * 100 : 0;
   return (
-    <div className="grid grid-cols-2 gap-2 lg:grid-cols-7 2xl:gap-3">
+    <div className="grid grid-cols-2 gap-2 md:grid-cols-4 2xl:grid-cols-7 2xl:gap-3">
       {/* All Orders */}
       <StatusCard
         title="All Orders"
