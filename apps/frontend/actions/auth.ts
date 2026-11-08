@@ -284,8 +284,11 @@ export async function getUser() {
     if (parsedValue.id && parsedValue.profilePhoto === undefined) {
       try {
         const token = cookieStore.get("auth_token")?.value;
+        // Prefer the internal API URL (no public DNS dependency) when set
         const apiUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/v1";
+          process.env.API_INTERNAL_URL ||
+          process.env.NEXT_PUBLIC_API_URL ||
+          "http://localhost:3000/v1";
         const res = await fetch(`${apiUrl}/users/${parsedValue.id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           cache: "no-store",

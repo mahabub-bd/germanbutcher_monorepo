@@ -10,6 +10,21 @@ export type ApiResponse<T = unknown> = {
 
 export const apiUrl = process.env.NEXT_PUBLIC_API_URL as string;
 
+/**
+ * Server-side fetches (SSR, server actions, route handlers) run on the
+ * host and must not depend on public DNS: an EAI_AGAIN hiccup from the
+ * resolver takes down every SSR page that calls the API. When
+ * API_INTERNAL_URL is set (e.g. http://127.0.0.1:3000/v1 or the Docker
+ * service name), server-side calls go straight to the API over the
+ * local network; the browser keeps using NEXT_PUBLIC_API_URL.
+ */
+function getApiBaseUrl(): string {
+  if (typeof window === "undefined" && process.env.API_INTERNAL_URL) {
+    return process.env.API_INTERNAL_URL;
+  }
+  return apiUrl;
+}
+
 
 let cachedAuthToken: string | null = null;
 let tokenFetch: Promise<string | null> | null = null;
@@ -81,7 +96,7 @@ export async function fetchData<T>(endpoint: string): Promise<T> {
     }
   }
 
-  const url = `${apiUrl}/${endpoint}`;
+  const url = `${getApiBaseUrl()}/${endpoint}`;
 
   try {
 
@@ -142,7 +157,7 @@ export async function fetchProtectedData<T>(
   endpoint: string,
   options?: { revalidate?: number }
 ): Promise<T> {
-  const url = `${apiUrl}/${endpoint}`;
+  const url = `${getApiBaseUrl()}/${endpoint}`;
   const token = await resolveAuthToken();
 
   const init: RequestInit & { next?: Record<string, unknown> } = {
@@ -192,7 +207,7 @@ export async function fetchDataPagination<T>(
   endpoint: string,
   options?: { revalidate?: number }
 ): Promise<T> {
-  const url = `${apiUrl}/${endpoint}`;
+  const url = `${getApiBaseUrl()}/${endpoint}`;
   const token = await resolveAuthToken();
   try {
     const response = await fetch(url, {
@@ -230,7 +245,7 @@ export async function fetchDataPagination<T>(
 
 
 export async function fetchPublicData<T>(endpoint: string): Promise<T> {
-  const url = `${apiUrl}/${endpoint}`;
+  const url = `${getApiBaseUrl()}/${endpoint}`;
 
   try {
     const response = await fetch(url, {
@@ -267,7 +282,7 @@ export async function postData<T = unknown>(
   endpoint: string,
   values?: unknown
 ): Promise<ApiResponse<T>> {
-  const url = `${apiUrl}/${endpoint}`;
+  const url = `${getApiBaseUrl()}/${endpoint}`;
   const token = await resolveAuthToken(); // Get the token just like in fetchProtectedData
 
   try {
@@ -310,7 +325,7 @@ export async function logoutPost(
   endpoint: string,
   token: string
 ): Promise<void> {
-  const url = `${apiUrl}/${endpoint}`;
+  const url = `${getApiBaseUrl()}/${endpoint}`;
 
   try {
     const response = await fetch(url, {
@@ -345,7 +360,7 @@ export async function formPostData<T = unknown>(
   endpoint: string,
   formData?: FormData | Record<string, unknown>
 ): Promise<ApiResponse<T>> {
-  const url = `${apiUrl}/${endpoint}`;
+  const url = `${getApiBaseUrl()}/${endpoint}`;
   const token = await resolveAuthToken();
   const headers: HeadersInit = {};
 
@@ -397,7 +412,7 @@ export async function patchData<T = unknown>(
     noAuth?: boolean;
   }
 ): Promise<ApiResponse<T>> {
-  const url = `${apiUrl}/${endpoint}`;
+  const url = `${getApiBaseUrl()}/${endpoint}`;
   const token = await resolveAuthToken();
 
   try {
@@ -445,7 +460,7 @@ export async function putData<T = unknown>(
     headers?: Record<string, string>;
   }
 ): Promise<ApiResponse<T>> {
-  const url = `${apiUrl}/${endpoint}`;
+  const url = `${getApiBaseUrl()}/${endpoint}`;
   const token = await resolveAuthToken();
 
   try {
@@ -484,7 +499,7 @@ export async function deleteData(
   endpoint: string,
   id?: string | number
 ): Promise<void> {
-  const url = `${apiUrl}/${endpoint}/${id}`;
+  const url = `${getApiBaseUrl()}/${endpoint}/${id}`;
   const token = await resolveAuthToken();
   try {
     const response = await fetch(url, {
