@@ -33,8 +33,9 @@ never point a development `.env.local` at a database you care about.
 
 **Production:** `synchronize` is off. Options, in order of preference:
 
-1. Write an idempotent SQL script under `apps/backend/scripts/`, review it, run it during a
-   maintenance window, then deploy the code that reads the new column.
+1. Write an idempotent SQL script, review it, run it during a maintenance window, then
+   deploy the code that reads the new column. (The historical home for these scripts,
+   `apps/backend/scripts/`, is no longer in the tree — see the note after these rules.)
 2. Set `TEMP_DB_SYNC=true` for a single boot **only** for additive changes, then remove the
    variable immediately. This is a break-glass tool: TypeORM may drop or rewrite things
    you did not intend, and it holds locks while it does.
@@ -45,12 +46,14 @@ Rules that keep this survivable:
 - Additive-first: add nullable columns, backfill, then make them `NOT NULL` in a later
   release.
 - Never rename a column in one step in production — add, dual-write, migrate reads, drop.
-- Keep every script in `scripts/` even after it has run; they document history.
+- Keep every script you run, even after it has run; they document history.
 - Update `database.dbml` in the same pull request (it is a snapshot, see §8).
 
-The existing scripts (`rename-order-payment-status.sql`, `backfill-delivered-at.sql`,
-`product-history-table.sql`, `add-crm-segments.sql`, …) are the precedent to follow, not a
-guarantee of ordering or idempotency.
+The one-off scripts from earlier operations are preserved in git history under
+`apps/backend/scripts/` (`git log -- apps/backend/scripts`): `rename-order-payment-status.sql`,
+`backfill-delivered-at.sql`, `product-history-table.sql`, `add-crm-segments.sql`, the 4→6
+digit repadding, and others. They are the precedent to follow, not a guarantee of ordering
+or idempotency.
 
 ---
 
@@ -131,7 +134,7 @@ Key cardinalities to remember:
 - `PaymentStatus` (database values): `unpaid | partial | paid | failed | refunded |
   need_refund | refund_complete | partial_refund`. The TypeScript enum member
   `PaymentStatus.PENDING` maps to the **`unpaid`** string — this rename is why
-  `scripts/rename-order-payment-status.sql` exists.
+  `rename-order-payment-status.sql` existed (now in git history).
 - `deliveredAt` / `cancelledAt` are maintained alongside the status: set when the order
   enters that state, cleared when it leaves. Reports use these timestamps, not `updatedAt`.
 
@@ -170,9 +173,9 @@ bypass the Next.js cache so the 404 is immediate.
 | `menu_permission` | `roleId` + `menuId` + `canView/canCreate/canEdit/canDelete` |
 | `product` | `slug` + `productSku` unique, `stock`, `sellingPrice`, `purchasePrice`, discount window fields, `totalValueBySalePrice` / `totalValueByPurchasePrice` rollups |
 | `category` | Self-referencing tree (`parentId`), `slug`, `is_main_menu` |
-| `order` | `orderNo` unique, status + payment status indexed, `shippingCost`, `paidAmount`, `deliveryMan` |
+| `order` | `orderNo` unique, format `YYYY-NNNNNN` (legacy rows keep 4-digit tails), status + payment status indexed, `shippingCost`, `paidAmount`, `deliveryMan` |
 | `order_item` | `productId`, `quantity`, price snapshots |
-| `order_payment` | `paymentNumber` unique, `amount`, `paymentDate`, `sslPaymentId`, `paymentMethodId` |
+| `order_payment` | `paymentNumber` unique, `YYYY-NNNNNN` (legacy 4-digit tails), one sequence shared by payments and refunds, `amount`, `paymentDate`, `sslPaymentId`, `paymentMethodId` |
 | `coupon` | `code` unique, `discountType`, `value`, `maxDiscountAmount`, validity window, `timesUsed`/`maxUsage`, excluded items relation |
 | `shipping_method` | `name` unique, `cost`, `deliveryTime`, `isPickup`, `minOrderAmount`, `isExcludedFromFreeDelivery` |
 | `purchase` / `purchase_item` | Procurement; `purchaseNumber` unique, `paymentStatus` (`due`…), `amountPaid` |
@@ -262,3 +265,7 @@ and "the menu item disappeared" reports.
 - `synchronize` in development can destroy data; keep local databases disposable.
 - Restores must preserve sequence values — use `pg_restore`, not hand-inserted rows, or new
   inserts will collide on primary keys.
+
+---
+
+_Last verified against the code: 8 November 2026 (commit `70b9f60`)._

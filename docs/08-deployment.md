@@ -11,7 +11,7 @@ built from multi-stage Dockerfiles that assume the **repository root** as build 
 | --- | --- | --- |
 | Base | `node:24-alpine` | `node:24-alpine` + `libc6-compat` |
 | Package manager | pnpm 11 via corepack | pnpm 11 via corepack |
-| Install | `pnpm install --frozen-lockfile --filter germanbutcher-backend...` | `…--filter germanbutcher-frontend...` |
+| Install | `pnpm install --frozen-lockfile --prefer-offline --filter germanbutcher-backend...` | `…--filter germanbutcher-frontend...` |
 | Build | `pnpm --filter germanbutcher-backend build` (`nest build`) | `next build --webpack` with `.next/cache` mounted |
 | Runtime | `node dist/main` from `/app/apps/backend` | `node apps/frontend/server.js` (standalone output) |
 | User | `nestjs` (uid 1001) | `nextjs` (uid 1001) |
@@ -115,8 +115,8 @@ a write path or S3.
 There is no migration runner. Sequence for a schema change:
 
 1. Take a backup (`pg_dump -Fc`).
-2. Apply an idempotent SQL script from `apps/backend/scripts/` (or a new one) during a quiet
-   window.
+2. Apply an idempotent SQL script during a quiet window (the historical home,
+   `apps/backend/scripts/`, is now in git history only).
 3. Deploy backend code that uses the new shape.
 4. Deploy frontend code if the API contract changed.
 5. Remove any temporary `TEMP_DB_SYNC` flag.
@@ -201,3 +201,21 @@ the deploy, not during an incident.
 | Lost analytics/audit data | Acceptable by design (retention windows); restore only if compliance requires it |
 | Lost media | S3 versioning/replication must be enabled outside this repository — the app does not back up objects |
 | Compromised JWT secret | Rotate `JWT_ACCESS_SECRET`; all sessions invalidate immediately (users must sign in again) |
+
+---
+
+## 10. Contacts
+
+| Topic | Contact |
+| --- | --- |
+| Company | German Butcher — House 56/B, Road 132, Gulshan 1, Dhaka |
+| Customer support (orders, delivery, refunds) | +8809666791991 · support@germanbutcherbd.com |
+| Code, deployment, infrastructure | Mahabub Hossain — contact@mahabub.bd · 01711852202 |
+
+Recommended routing: support triages customer reports; anything involving a deploy, the
+database, payment gateway credentials or the S3 bucket goes to the developer. A live payment
+outage should reach both at once.
+
+---
+
+_Last verified against the code: 8 November 2026 (commit `70b9f60`)._

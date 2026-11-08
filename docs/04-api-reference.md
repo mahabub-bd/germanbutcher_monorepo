@@ -119,13 +119,14 @@ Errors are **not** wrapped in the success envelope. They use Nest's default exce
 | 401 | Missing/invalid/expired access token (`JwtAuthGuard` normalizes it) |
 | 403 | Role mismatch, missing menu permission, inactive role, unknown `@ModulePermissions` path |
 | 404 | Entity not found |
-| 429 | Throttler limit exceeded (3000/min, 10 000/5 min, 50 000/h per client) |
+| 410 | Expired coupon at the cart-level validation endpoint (`validateCoupon` keeps 410 for expiry; order creation fails with 400) |
+| 429 | Throttler limit exceeded (default 3000/min, 10 000/5 min, 50 000/h per client IP) |
 | 500 | Unhandled exception |
 
 **Rate limiting is not per shopper.** Login, register and OTP calls are made from the
 Next.js server (server actions), so the API sees one shared source IP for every visitor;
 their `@Throttle({ short, medium, long })` buckets are site-wide and sized for campaign
-peaks (login and mobile-login: 120/min, 400/5 min, 1200/h; verify-otp: 1200/h plus retry
+peaks (login and mobile-login: 120/min, 400/5 min, 1200/h; verify-otp: 1500/h plus retry
 headroom; register: 60/min, 200/5 min, 600/h). `mobile-login` sends a paid SMS per call,
 so its limit is also the SMS-drain guard — don't loosen it further without checking the
 gateway bill. Overrides must use those bucket names — a `default` key matches nothing and
@@ -242,13 +243,15 @@ intent. Remember that an admin route also needs a matching `menu` row — see
 Lifecycle: `PENDING → PROCESSING → SHIPPED → DELIVERED`, with `ON_HOLD` and `CANCELLED` as
 branches. Money: `paymentStatus ∈ {unpaid, partial, paid, failed, refunded, need_refund,
 refund_complete, partial_refund}` (`PaymentStatus.PENDING` serializes as `unpaid`).
+Order numbers are `YYYY-NNNNNN` (6-digit tail since Nov 2026; older rows keep 4-digit tails),
+and admin routes accept either the numeric id or the order number.
 
 | Path | Purpose |
 | --- | --- |
 | `GET /orders` | Admin list with filters |
 | `POST /orders` | Create order — runs the pricing pipeline ([07](07-features.md#3-checkout-pricing-pipeline)) |
-| `GET /orders/:id` / `/orders/user/:userId` | Detail / customer history |
-| `GET /orders/:id/neighbors` | Previous/next order in the current filtered list |
+| `GET /orders/:id` / `/orders/user/:userId` | Detail (`:id` = numeric id **or** order number) / customer history |
+| `GET /orders/:id/neighbors` | Previous/next order (ids and order numbers) in the current filtered list |
 | `PATCH /orders/:id/order-status` | Advance status (writes a status track) |
 | `PATCH /orders/:id/payment-status` | Manual payment reconciliation |
 | `PATCH /orders/:id/assign-delivery-man` | Dispatch |
@@ -262,7 +265,8 @@ Order report endpoints: `dashboard`, `date-range`, `daily-summary`, `refunds`,
 `discount-impact`, `late-delivery`, `delivery-performance-summary`,
 `area-wise-orders`, `statistics`, `monthly`, `monthly/years`,
 `last-30-days-delivered`, `today`, `payment-due`, `customer-type`,
-`category-sales`.
+`category-sales`. The `date-range` report also filters by `orderStatus`, `paymentStatus`,
+`shippingMethodId` and `paymentMethodId`.
 
 ### User & access
 
@@ -322,3 +326,7 @@ All helpers live in `apps/frontend/utils/api-utils.ts`; use them instead of raw 
 `path` is relative to `/v1` (`fetchData("products")` → `/v1/products`).
 `fetchProtectedData` and friends attach `Authorization` automatically by resolving the
 httpOnly cookie, and clear cookies on a 401.
+
+---
+
+_Last verified against the code: 8 November 2026 (commit `70b9f60`)._

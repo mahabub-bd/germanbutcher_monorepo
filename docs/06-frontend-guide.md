@@ -15,7 +15,7 @@ serialisable data to a smaller number of client components.
 | Styling | Tailwind CSS v4 + `tailwind-merge` + `cva` | Tokens in `app/globals.css` |
 | Primitives | Radix UI (19 packages) + local `components/ui` | shadcn-style, edited in place |
 | Icons | `lucide-react`, `react-icons` | `IconRenderer` maps menu icons |
-| Motion | `framer-motion`, `embla-carousel-autoplay` | |
+| Motion | `embla-carousel-react` + `embla-carousel-autoplay` for carousels | |
 | Charts | `recharts` (`components/ui/chart.tsx`) | Admin analytics/reports |
 | Search UI | `cmdk` | Command-palette search modal |
 | Toasts | `sonner` (`<Toaster richColors />`) | |
@@ -27,9 +27,9 @@ serialisable data to a smaller number of client components.
 | Realtime | `socket.io-client` | Notifications only |
 | Dev server | Turbopack (`next dev --turbopack -p 3002`) | Production build uses webpack |
 
-**Redux Toolkit is a dependency but is not used.** All shared client state is React
-Context. Do not add a Redux store without a deliberate decision — see
-[09](09-contributing.md#6-known-technical-debt).
+**No global state library.** All shared client state is React Context (the unused Redux
+Toolkit dependency was removed in November 2026). Do not reintroduce a store without a
+deliberate decision — see [09](09-contributing.md#6-known-technical-debt).
 
 ---
 
@@ -46,7 +46,7 @@ apps/frontend/
 │   └── globals.css
 ├── actions/               # "use server" functions: auth, jwt utils, revalidate
 ├── components/
-│   ├── ui/                # 50 primitives (button, dialog, table, chart…)
+│   ├── ui/                # 49 primitives (button, dialog, table, chart…)
 │   ├── admin/             # back-office widgets grouped by domain
 │   ├── homepage/ header/ footer/ products/ cart/ checkout/ payment/
 │   ├── user-account/ auth/ recipe/ faqs/ common/ icons/ …
@@ -99,7 +99,7 @@ and mobile + OTP.
 | Area | Paths |
 | --- | --- |
 | Dashboard | `/admin/dashboard`, `/admin/dashboard/orders` |
-| Orders | `/admin/orders/{pending,processing,on-hold,shipped,delivered,cancelled}`, `/admin/order/[id]/{view,edit,payments}` |
+| Orders | `/admin/orders/{pending,processing,on-hold,shipped,delivered,cancelled}`, `/admin/order/[id]/{view,edit,payments}` — `[id]` is the human-readable order number (`2026-002365`); the API also accepts the numeric id |
 | Catalog | `/admin/products/{products-list,add,[id]/view,[id]/edit,inventory,history,stock-movements,[id]/stock-movements}`, `/admin/products/units…` |
 | Merchandising | `/admin/categories`, `/admin/brand`, `/admin/banner`, `/admin/recipe`, `/admin/testimonial`, `/admin/client` |
 | Marketing | `/admin/marketing/{coupon,coupons,discounts,bogo,flash-sales,free-delivery}` + `*-usage-logs` |
@@ -231,9 +231,11 @@ Two details that cause confusing bugs:
 | `NotificationProvider` | unread count, live notifications | Socket.IO + API; sound via `lib/notification-sound.ts` |
 | `SearchProvider` | modal open/closed, query | in-memory |
 
-Guest → user transition: on login the layout supplies the server cart and local state is
-dropped (`setLocalCart(null)`). There is **no merge** of a guest cart into the server cart —
-a deliberate simplification worth knowing when a customer reports "my cart emptied".
+Guest → user transition: `useCart` **merges** the guest cart on login — it POSTs each local
+item to `cart/items`, re-applies the stored coupon, clears `user-cart` / `user-coupon`, then
+revalidates `/`, `/cart` and `/checkout` and shows a "Cart synced" toast. If any POST fails,
+the local cart is kept and the user is asked to retry; because the retry re-posts the whole
+local cart, a partial failure can double-add the items that already succeeded.
 
 ---
 
@@ -335,5 +337,9 @@ images: { remotePatterns: [<2 S3 hosts>], minimumCacheTTL: 31d, qualities: [70,7
 | Product page keeps working after deactivation | It should not; detail fetches are `no-store`. If it does, check for a custom fetch that reintroduced caching |
 | Admin page renders but sidebar lacks the entry | No `menu` row / permission for the role |
 | Socket notifications dead on a new dev port | Gateway CORS is hard-coded to specific origins |
-| Cart appears empty after login | Guest carts are not merged into server carts by design |
+| Cart contents duplicate after login | A partially failed merge re-posts the whole local cart on the next login — see §8 |
 | Hydration warning in the console | A client component read `localStorage`/`window` during render — move it into `useEffect` (see `useCart`'s `isMounted`) |
+
+---
+
+_Last verified against the code: 8 November 2026 (commit `70b9f60`)._

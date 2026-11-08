@@ -80,11 +80,11 @@ pages).
 
 ## How these documents were produced
 
-Everything here was read out of the repository at the time of writing (November 2026):
-module wiring in `app.module.ts`, `main.ts` bootstrap order, guard and decorator
-implementations, entity definitions, the order-pricing pipeline in
+Everything here was read out of the repository at the time of writing (8 November 2026,
+commit `70b9f60`): module wiring in `app.module.ts`, `main.ts` bootstrap order, guard and
+decorator implementations, entity definitions, the order-pricing pipeline in
 `order.service.ts`, `next.config.js`, `proxy.ts`, both Dockerfiles and
-`docker-compose.yml`.
+`docker-compose.yml`. Each document carries a "last verified" line at the bottom.
 
 Where the code and an older document disagreed, the code wins. Two examples that are
 corrected here relative to the original root README:
@@ -92,7 +92,34 @@ corrected here relative to the original root README:
 - The backend reads `.env.local` in development and `.env.production` in production —
   **not** `.env`.
 - Global client state is React Context (`CartProvider`, `NotificationProvider`,
-  `SearchProvider`); Redux Toolkit is installed but not used anywhere in the source.
+  `SearchProvider`); the unused Redux Toolkit dependency the README implied was removed in
+  the November 2026 cleanup.
 
 If you change a contract (route prefix, response envelope, cookie name, env key, queue or
 cache behaviour), update the matching document in the same pull request.
+
+---
+
+## Contacts
+
+| Role | Contact |
+| --- | --- |
+| Company | German Butcher — House 56/B, Road 132, Gulshan 1, Dhaka |
+| Customer support | +8809666791991 · support@germanbutcherbd.com |
+| Developer / maintainer | Mahabub Hossain — contact@mahabub.bd · 01711852202 |
+
+Support handles customer-facing issues (orders, delivery, refunds); the developer handles
+code, deployment and infrastructure. See
+[08 §10](08-deployment.md#10-contacts) for escalation during incidents.
+
+---
+
+## Document change log
+
+| Date | Change |
+| --- | --- |
+| 8 Nov 2026 | Added company and maintainer contacts (README, docs index, deployment escalation) |
+| 8 Nov 2026 | Re-verified after the payment / BOGO / numbering fixes: `YYYY-NNNNNN` order and payment numbers (id **or** order number in routes), BOGO `maxFreePerUser` + cart ceiling + preview, coupon re-validation at order creation, guest-cart merge on login, `/payment/failed` redirects, analytics referrer attribution, dependency cleanup (Redux, framer-motion, input-otp, bcrypt→bcryptjs), `apps/backend/scripts/` removed from the tree |
+| 7 Nov 2026 | Initial documentation set |
+
+_Last verified against the code: 8 November 2026 (commit `70b9f60`)._

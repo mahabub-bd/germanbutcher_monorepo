@@ -71,8 +71,9 @@ Route inventory, layout/provider chain and admin screen patterns:
   screen also needs a `menu` row, or nobody can see it.
 - List state lives in the URL (`page`, `limit`, `search`, `sort`) via
   `utils/admin-search-params.ts`.
-- Guest carts live in `localStorage` (`user-cart`, `user-coupon`) and are not merged into the
-  server cart on login.
+- Guest carts live in `localStorage` (`user-cart`, `user-coupon`) and are **merged** into the
+  server cart on login (`useCart`: POST each item, re-apply the coupon, clear storage,
+  revalidate). A failed merge keeps the local cart and retries on the next login.
 
 ## Lint and build
 
@@ -84,3 +85,10 @@ pnpm start     # next start -p 3002
 
 There is no test runner configured in this app — see
 [`docs/09-contributing.md`](../../docs/09-contributing.md#3-testing).
+
+---
+
+Maintainer: Mahabub Hossain — contact@mahabub.bd · 01711852202
+
+Product: German Butcher — House 56/B, Road 132, Gulshan 1, Dhaka · +8809666791991 ·
+support@germanbutcherbd.com

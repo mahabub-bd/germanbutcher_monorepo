@@ -55,7 +55,6 @@ germanbutcher_monorepo/
 │   │   │   ├── config/                 # S3 / mail / app configuration
 │   │   │   ├── interceptor/             # request activity interceptor
 │   │   │   └── <feature>/               # ~50 feature modules: controller, service, dto/, entities/
-│   │   ├── scripts/                    # one-off SQL and JS operational scripts
 │   │   ├── test/                       # e2e harness
 │   │   └── database.dbml               # schema snapshot (see 05)
 │   │
@@ -164,8 +163,8 @@ the success envelope. See [04 API reference](04-api-reference.md#4-errors).
 
 | Guard | Behaviour | Usage |
 | --- | --- | --- |
-| `JwtAuthGuard` | Passport `jwt`; honours a `'isPublic'` metadata flag; returns a uniform 401 `Invalid or expired token` | 210 routes |
-| `OptionalJwtAuthGuard` | Populates `request.user` when a token is present, never rejects | 3 routes (public endpoints that personalize) |
+| `JwtAuthGuard` | Passport `jwt`; honours a `'isPublic'` metadata flag; returns a uniform 401 `Invalid or expired token` | 214 routes |
+| `OptionalJwtAuthGuard` | Populates `request.user` when a token is present, never rejects | 4 routes (public endpoints that personalize) |
 | `AdminGuard` | `role === 'admin' \|\| 'superadmin'` | 12 routes |
 | `RolesGuard` | Compares `request.user.role` against `@Roles(...)` | 1 route |
 | `PermissionGuard` | Opt-in; see below | 152 routes |
@@ -249,12 +248,17 @@ request ─► AnalyticsInterceptor ─► in-memory buffer ─► bulk INSERT (
                                         └─ cap 1000 rows: oldest dropped if the DB stalls
 ```
 
-- `@SkipAnalytics()` excludes noisy or sensitive handlers.
+- `@SkipAnalytics()` excludes noisy or sensitive handlers. `ActivityInterceptor` also skips
+  a fixed path list: `/v1/online-users/heartbeat`, `/v1/free-delivery-campaigns/check` and
+  `/v1/bogo-campaigns/preview`.
 - A daily cron purges rows older than `ANALYTICS_RETENTION_DAYS` (default 90, `0` disables).
 - The dashboard endpoint serves a cached payload: 5 min for the period-dependent view,
   10 min for fixed-window widgets (7 d / 30 d panels), with single-flight de-duplication.
 - `POST /v1/analytics/track` is the public page-view beacon; it only accepts product-page
-  paths (regex enforced server-side) to keep cardinality bounded.
+  paths (regex enforced server-side) to keep cardinality bounded. It accepts an optional
+  `referrer` (the landing page's `document.referrer`) because the request's own Referer
+  header is always the storefront itself; traffic-source reporting buckets Facebook's
+  redirector domains (`l./lm./m./web.facebook.com`, `fb.me`) under `facebook.com`.
 - `AnalyticsService.onModuleDestroy` flushes on shutdown — which is why
   `enableShutdownHooks()` is on. A `SIGKILL` loses up to 3 s of rows.
 
@@ -305,3 +309,7 @@ beacon is unauthenticated by design and stores request IPs in clear text; the So
 gateway trusts `userId` from the handshake query (no token verification in
 `handleConnection`); and there is no CSP header on the storefront. See
 [09](09-contributing.md#6-known-technical-debt).
+
+---
+
+_Last verified against the code: 8 November 2026 (commit `70b9f60`)._

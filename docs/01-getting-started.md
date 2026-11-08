@@ -16,10 +16,11 @@ against a PostgreSQL database, and covers the local traps that cost the most tim
 | **AWS S3 credentials** (optional) | Image/product media | Uploads fail without them; text-only work is fine |
 | **SSLCommerz sandbox** (optional) | Hosted payments | Checkout by cash-style methods works without it |
 
-`pnpm-workspace.yaml` approves native build scripts for `bcrypt`, `sharp`,
-`unrs-resolver` and `@scarf/scarf`. If you install with a package manager that ignores
-that file, those post-install builds must be approved manually or `bcrypt` will fail at
-login time.
+`pnpm-workspace.yaml` approves native build scripts for `sharp` and `unrs-resolver` (plus
+`@scarf/scarf` telemetry). Password hashing moved to **`bcryptjs`**, which is pure
+JavaScript and needs no native build — the `bcrypt` entry in `allowBuilds` is now vestigial.
+If you install with a package manager that ignores that file, approve the remaining builds
+manually or `sharp` (image processing) and `unrs-resolver` will fail to install.
 
 ---
 
@@ -196,22 +197,14 @@ the single most common "nothing loads" symptom after a fresh clone.
 3. Start the API. With `NODE_ENV` unset/`development`, TypeORM `synchronize` is **on**, so
    the schema is created from the entities on first boot.
 
-There are no migration files. Schema evolution in production is a deliberate, manual
-process — read [05 Database](05-database.md#2-schema-change-policy) before touching entities.
-
-Optional one-off scripts in `apps/backend/scripts/`:
-
-| Script | What it does |
-| --- | --- |
-| `seed-locations.js` | Seeds division/city/area rows |
-| `seed-coverage-tables.js` | Seeds delivery-coverage rows |
-| `add-crm-segments.sql` | Adds CRM segment support |
-| `backfill-*.sql` | Backfills `deliveredAt` / `cancelledAt` timestamps |
-| `rename-order-payment-status.sql` | Migrates legacy payment-status values |
-| `gen-debug-token.js` | Mints a JWT for local API poking |
-
-Treat these as operational history, not as an ordered migration suite: they were written
-as needed and are not idempotent in every case.
+There are no migration files or migration tooling in the tree. Schema evolution in
+production is a deliberate, manual process — read
+[05 Database](05-database.md#2-schema-change-policy) before touching entities. Earlier one-off
+SQL/JS scripts are preserved in git history under `apps/backend/scripts/`
+(`git log -- apps/backend/scripts`): location/coverage seeds, `deliveredAt`/`cancelledAt`
+backfills, the payment-status rename, the four- to six-digit order/payment repadding, and a
+debug-token generator. Treat them as operational history, not an ordered migration suite:
+they were written as needed and are not idempotent in every case.
 
 ---
 
@@ -285,7 +278,7 @@ Frontend has **no test runner configured** — no Jest/Vitest/Playwright depende
 | Socket notifications never arrive | `NEXT_PUBLIC_SOCKET_URL` missing, or origin not in the gateway CORS list | Set the env var; gateway allows the production domains plus `localhost:3000/3001` |
 | Ports already in use | Old processes | `netstat -ano \| findstr :3000` then `taskkill /PID <pid> /F` (Windows) |
 | Swagger UI missing | `NODE_ENV=production` and `SWAGGER_ENABLED` unset | Set `SWAGGER_ENABLED=true` temporarily, or read `/docs` from a non-prod environment |
-| `pnpm install` skips `bcrypt` build | Build scripts not approved | Keep `allowBuilds` in `pnpm-workspace.yaml`; reinstall |
+| `pnpm install` skips a native build | Build scripts not approved | Keep `allowBuilds` in `pnpm-workspace.yaml`; reinstall (`sharp` is the one that bites) |
 
 ---
 
@@ -297,3 +290,7 @@ Frontend has **no test runner configured** — no Jest/Vitest/Playwright depende
    [06 Frontend](06-frontend-guide.md).
 3. [07 Features](07-features.md#3-checkout-pricing-pipeline) — the order-pricing rules are
    the highest-risk part of the domain.
+
+---
+
+_Last verified against the code: 8 November 2026 (commit `70b9f60`)._
