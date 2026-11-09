@@ -15,6 +15,7 @@ interface Customer {
   name: string;
   email: string;
   mobileNumber: string;
+  area?: string | null;
   registrationDate: string;
   orderCount: number;
   totalOrderAmount: number;
@@ -195,6 +196,7 @@ export function CustomerListPDF({
           <Text style={styles.tableHeaderText}>Customer Name</Text>
           <Text style={styles.headerTextEmail}>Email</Text>
           <Text style={styles.tableHeaderText}>Mobile</Text>
+          <Text style={styles.tableHeaderText}>Area</Text>
           <Text style={styles.tableHeaderText}>Registration Date</Text>
           <Text style={styles.headerTextOrderCount}>Order Count</Text>
           <Text style={styles.headerTextRight}>Total Order Amount</Text>
@@ -209,6 +211,7 @@ export function CustomerListPDF({
             <Text style={styles.cell}>{customer.name}</Text>
             <Text style={styles.cellEmail}>{customer.email}</Text>
             <Text style={styles.cell}>{customer.mobileNumber}</Text>
+            <Text style={styles.cell}>{customer.area || "-"}</Text>
             <Text style={styles.cell}>{formatDate(customer.registrationDate)}</Text>
             <Text style={styles.cellOrderCount}>{customer.orderCount}</Text>
             <Text style={styles.cellRight}>

@@ -18,7 +18,11 @@ import { ObserveInstrument } from './observe';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    routeConflictPolicy: { duplicate: 'warn', shadow: 'warn' },
+    // Duplicate routes (same handler registered twice) are a real bug -> warn.
+    // Shadow warnings (:param overlapping a literal route) are informational
+    // only — routes already resolve correctly under 'specificity' — so they
+    // are silenced to keep boot logs readable.
+    routeConflictPolicy: { duplicate: 'warn', shadow: 'off' },
     routeResolutionStrategy: 'specificity',
     instrument: ObserveInstrument,
   });

@@ -581,6 +581,7 @@ export class UserService {
       .createQueryBuilder('user')
       .leftJoin('user.role', 'role')
       .leftJoin('user.orders', 'orders')
+      .leftJoin('user.addresses', 'addresses')
       .select([
         'user.id',
         'user.name',
@@ -590,6 +591,9 @@ export class UserService {
         'orders.id',
         'orders.orderNo',
         'orders.totalValue',
+        'addresses.id',
+        'addresses.area',
+        'addresses.isDefault',
       ])
       .where('role.id = :roleId', { roleId: 3 }) // Filter for customers only
       .orderBy('user.id', 'DESC');
@@ -614,10 +618,16 @@ export class UserService {
         0,
       );
 
+      // Area of the customer's default address (first address as fallback)
+      const addresses = user.addresses || [];
+      const area =
+        addresses.find((a) => a.isDefault)?.area ?? addresses[0]?.area ?? null;
+
       return {
         name: user.name,
         email: user.email,
         mobileNumber: user.mobileNumber,
+        area,
         registrationDate: user.createdAt,
         orderCount,
         totalOrderAmount: Math.round(totalOrderAmount * 100) / 100,

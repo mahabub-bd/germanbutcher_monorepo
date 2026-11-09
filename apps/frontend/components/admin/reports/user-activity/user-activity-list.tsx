@@ -396,14 +396,14 @@ export function UserActivityList({
             {/* Fixed layout: Entity, Status, Message and IP are compact so
                 Date & Time, Endpoint and User get the freed width. */}
             <TableHead className="w-[4%]">ID</TableHead>
-            <TableHead className="w-[12%]">Date & Time</TableHead>
+            <TableHead className="w-[10%]">Date & Time</TableHead>
             <TableHead className="w-[7%]">Action</TableHead>
-            <TableHead className="w-[18%]">Endpoint</TableHead>
-            <TableHead className="w-[8%]">Entity</TableHead>
-            <TableHead className="w-[7%]">Status</TableHead>
-            <TableHead className="w-[21%]">Message</TableHead>
-            <TableHead className="w-[9%]">IP Address</TableHead>
-            <TableHead className="w-[14%]">User</TableHead>
+            <TableHead className="w-[12%]">Endpoint</TableHead>
+            <TableHead className="w-[5%]">Entity</TableHead>
+            <TableHead className="w-[5%]">Status</TableHead>
+            <TableHead className="w-[33%]">Message</TableHead>
+            <TableHead className="w-[7%]">IP Address</TableHead>
+            <TableHead className="w-[15%]">User</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
