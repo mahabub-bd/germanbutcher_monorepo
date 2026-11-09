@@ -10,6 +10,7 @@ import {
   type ReportFilterParams,
 } from "@/components/admin/reports/report-date-filters";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -27,7 +28,8 @@ import {
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
-import { CheckCircle, CreditCard, Eye, Layers } from "lucide-react";
+import { getPaymentMethodColor, getPaymentMethodIcon } from "@/utils/order-helper";
+import { CheckCircle, CreditCard, Layers } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -253,7 +255,6 @@ export default function OrderPaymentList({
               <TableHead className="text-xs">
                 Created By
               </TableHead>
-              <TableHead className="text-right text-xs">Action</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -261,7 +262,7 @@ export default function OrderPaymentList({
             {payments.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={7}
                   className="text-center py-8 text-muted-foreground"
                 >
                   No payments found
@@ -275,22 +276,31 @@ export default function OrderPaymentList({
                   <TableCell>
                     {formatCurrencyEnglish(parseFloat(p.amount))}
                   </TableCell>
-                  <TableCell>{p.paymentMethod.name}</TableCell>
                   <TableCell>
-                    {p.order.orderNo}
+                    <Badge
+                      variant="outline"
+                      title={p.paymentMethod?.name || undefined}
+                      className={`capitalize ${getPaymentMethodColor(p.paymentMethod?.name)}`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {getPaymentMethodIcon(p.paymentMethod?.name || "")}
+                        {p.paymentMethod?.name || "N/A"}
+                      </span>
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/admin/order/${p.order.orderNo}/view`}
+                      className="font-medium hover:text-blue-600 hover:underline dark:hover:text-blue-400"
+                    >
+                      {p.order.orderNo}
+                    </Link>
                   </TableCell>
                   <TableCell className="whitespace-nowrap font-mono text-xs">
                     {p.sslPaymentId || "—"}
                   </TableCell>
                   <TableCell>
                     {p.createdBy ? p.createdBy.name : "System"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/admin/order/${p.order.orderNo}/payments`}>
-                        <Eye className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))
