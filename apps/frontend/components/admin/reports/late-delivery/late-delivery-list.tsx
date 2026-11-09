@@ -82,6 +82,10 @@ interface DeliveredOrderRow {
   orderDate: string;
   deliveredAt: string;
   hours: number;
+  /** Promised timeline in hours for the order's shipping method. */
+  threshold?: number;
+  /** True when the delivery ran over the method's timeline. */
+  late?: boolean;
 }
 
 interface Summary {
@@ -502,145 +506,6 @@ export default function LateDeliveryList({
             </div>
           </div>
 
-          {/* Slowest deliveries */}
-          {lateOrders.length > 0 && (
-            <div className="mt-6 overflow-hidden rounded-xl border bg-card shadow-xs">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
-                <div>
-                  <h3 className="text-sm font-semibold">Slowest deliveries</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Delivered after the method's delivery timeline
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <PillBadge tone="red" className="font-medium tabular-nums">
-                    {lateOrders.length} order{lateOrders.length === 1 ? "" : "s"}
-                  </PillBadge>
-                  {mounted && lateExportRows.length > 0 && (
-                    <ReportExcelButton
-                      title="Slowest Deliveries"
-                      subtitle={rangeLabel}
-                      headers={[
-                        "Order",
-                        "Customer",
-                        "Delivery Man",
-                        "Method",
-                        "Placed",
-                        "Delivered",
-                        "Took",
-                        "Value",
-                      ]}
-                      rows={lateExportRows}
-                      summary={[
-                        {
-                          label: "Late deliveries in range",
-                          value: `${lateOrders.length} orders`,
-                        },
-                      ]}
-                      fileName="slowest-deliveries"
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* Desktop table */}
-              <div className="hidden md:block">
-                <Table className="report-table">
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="pl-4">Order</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Delivery Man</TableHead>
-                      <TableHead>Method</TableHead>
-                      <TableHead>Placed</TableHead>
-                      <TableHead>Delivered</TableHead>
-                      <TableHead className="text-right">Hours</TableHead>
-                      <TableHead className="pr-4 text-right">Value</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {lateOrders.map((order) => (
-                      <TableRow key={order.orderId}>
-                        <TableCell className="py-2 pl-4">
-                          <Link
-                            href={`/admin/order/${order.orderNo}/view`}
-                            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                          >
-                            {order.orderNo}
-                          </Link>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">
-                            {order.customerName}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">
-                            {order.deliveryMan || "Unassigned"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {order.shippingMethod || "—"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
-                            {formatDateTime(order.orderDate)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
-                            {formatDateTime(order.deliveredAt)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">
-                            {durationLabel(order.hours)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="pr-4 text-right">
-                          <span className="text-sm font-semibold tabular-nums">
-                            {bare(order.totalValue)}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Mobile cards */}
-              <div className="divide-y md:hidden">
-                {lateOrders.map((order) => (
-                  <article key={order.orderId} className="space-y-2 p-3.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <Link
-                          href={`/admin/order/${order.orderNo}/view`}
-                          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                        >
-                          {order.orderNo}
-                        </Link>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {order.customerName}
-                        </p>
-                      </div>
-                      <PillBadge tone="red" className="shrink-0 tabular-nums">
-                        {durationLabel(order.hours)}
-                      </PillBadge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {order.deliveryMan || "Unassigned"} ·{" "}
-                      {order.shippingMethod || "—"} ·{" "}
-                      {bare(order.totalValue)}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Long pending — undelivered past the threshold */}
           {pendingOrders.length > 0 && (
             <div className="mt-6 overflow-hidden rounded-xl border bg-card shadow-xs">
@@ -872,7 +737,13 @@ export default function LateDeliveryList({
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className="text-sm font-semibold tabular-nums">
+                          <span
+                            className={
+                              order.late
+                                ? "text-sm font-semibold tabular-nums text-red-600 dark:text-red-400"
+                                : "text-sm font-semibold tabular-nums"
+                            }
+                          >
                             {durationLabel(order.hours)}
                           </span>
                         </TableCell>
@@ -903,7 +774,10 @@ export default function LateDeliveryList({
                           {order.customerName}
                         </p>
                       </div>
-                      <PillBadge tone="emerald" className="shrink-0 tabular-nums">
+                      <PillBadge
+                        tone={order.late ? "red" : "emerald"}
+                        className="shrink-0 tabular-nums"
+                      >
                         {durationLabel(order.hours)}
                       </PillBadge>
                     </div>
