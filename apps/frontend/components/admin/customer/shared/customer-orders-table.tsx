@@ -71,8 +71,10 @@ export function CustomerOrdersTable({
 
     return (
         <div className="overflow-x-auto rounded-lg border bg-card">
+            {/* w-max lets the table take its natural content width so rows
+                never squeeze or wrap on phones — the wrapper scrolls instead. */}
             <Table
-                className={`${showMethodColumns ? "min-w-280" : "min-w-240"} xl:min-w-0 report-table text-sm [&_th]:h-9 [&_th]:text-sm [&_td]:py-1.5 [&_td]:text-sm`}
+                className={`${showMethodColumns ? "min-w-280" : "min-w-240"} w-max xl:w-full xl:min-w-0 report-table text-sm [&_th]:h-9 [&_th]:text-sm [&_td]:py-1.5 [&_td]:text-sm`}
             >
                 <TableHeader>
                     <TableRow>
