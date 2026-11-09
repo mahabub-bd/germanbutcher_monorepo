@@ -549,7 +549,7 @@ export default function OrderReportList({
                 "Status",
                 "Payment",
                 "Payment Method",
-                "Payment History",
+                "SSL Transaction ID",
                 "Elapsed Time",
                 "Total",
                 "Discount",
