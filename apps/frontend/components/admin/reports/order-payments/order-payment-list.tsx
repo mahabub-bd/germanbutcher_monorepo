@@ -114,7 +114,7 @@ export default function OrderPaymentList({
             <ReportExcelButton
               title="Payment Transactions"
               subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
-              headers={["#", "Payment No", "Date", "Amount", "Method", "Order No"]}
+              headers={["#", "Payment No", "Date", "Amount", "Method", "Order No", "Payment History"]}
               rows={payments.map((p, i) => [
                 i + 1,
                 p.paymentNumber,
@@ -122,6 +122,7 @@ export default function OrderPaymentList({
                 parseFloat(p.amount),
                 p.paymentMethod.name,
                 p.order.orderNo,
+                p.sslPaymentId || "",
               ])}
               summary={[
                 { label: "Total Payments", value: String(payments.length) },
@@ -248,6 +249,7 @@ export default function OrderPaymentList({
               <TableHead className="text-xs">
                 Order
               </TableHead>
+              <TableHead className="text-xs">Payment History</TableHead>
               <TableHead className="text-xs">
                 Created By
               </TableHead>
@@ -259,7 +261,7 @@ export default function OrderPaymentList({
             {payments.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="text-center py-8 text-muted-foreground"
                 >
                   No payments found
@@ -276,6 +278,9 @@ export default function OrderPaymentList({
                   <TableCell>{p.paymentMethod.name}</TableCell>
                   <TableCell>
                     {p.order.orderNo}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap font-mono text-xs">
+                    {p.sslPaymentId || "—"}
                   </TableCell>
                   <TableCell>
                     {p.createdBy ? p.createdBy.name : "System"}
