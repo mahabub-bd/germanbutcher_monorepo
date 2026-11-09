@@ -51,7 +51,7 @@ export function AuditLogTable({ logs, emptyMessage }: AuditLogTableProps) {
         <>
             {/* Desktop table */}
             <div className="hidden overflow-x-auto rounded-lg border bg-card md:block">
-                <Table className="min-w-220 report-table text-xs [&_th]:text-xs [&_td]:text-xs">
+                <Table className="min-w-220 report-table text-sm [&_th]:text-sm [&_td]:text-sm">
                     <TableHeader>
                         <TableRow className="hover:bg-transparent">
                             <TableHead className="pl-4">Method</TableHead>
@@ -79,33 +79,33 @@ export function AuditLogTable({ logs, emptyMessage }: AuditLogTableProps) {
                                     </TableCell>
                                     <TableCell className="py-2">
                                         <span
-                                            className="block max-w-56 truncate font-mono text-xs text-muted-foreground"
+                                            className="block max-w-56 truncate font-mono text-sm text-muted-foreground"
                                             title={log.action}
                                         >
                                             {path || log.action}
                                         </span>
                                     </TableCell>
                                     <TableCell>
-                                        <span className="whitespace-nowrap text-xs font-medium capitalize">
+                                        <span className="whitespace-nowrap text-sm font-medium capitalize">
                                             {log.entityType}
                                             {log.entityId ? ` #${log.entityId}` : ""}
                                         </span>
                                     </TableCell>
                                     <TableCell>
                                         <span
-                                            className="block max-w-md truncate text-xs text-muted-foreground"
+                                            className="block max-w-md truncate text-sm text-muted-foreground"
                                             title={log.message || undefined}
                                         >
                                             {log.message || "—"}
                                         </span>
                                     </TableCell>
                                     <TableCell>
-                                        <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                                        <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
                                             {formatDateTime(log.createdAt)}
                                         </span>
                                     </TableCell>
                                     <TableCell className="pr-4 text-right">
-                                        <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                                        <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
                                             {log.ipAddress || "—"}
                                         </span>
                                     </TableCell>
