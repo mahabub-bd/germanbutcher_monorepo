@@ -185,14 +185,6 @@ export default function DiscountImpactList({
     "Flash Sale",
   ];
 
-  /** "3 uses" helper — nothing rendered when there are no uses. */
-  const uses = (count: number) =>
-    count > 0 ? (
-      <span className="block text-[10px] font-normal text-muted-foreground">
-        {count} use{count === 1 ? "" : "s"}
-      </span>
-    ) : null;
-
   return (
     <div className="w-full">
       <PageHeader
@@ -361,19 +353,16 @@ export default function DiscountImpactList({
                         <span className="text-sm font-semibold tabular-nums">
                           {bare(day.couponAmount)}
                         </span>
-                        {uses(day.couponUses)}
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="text-sm font-semibold tabular-nums">
                           {bare(day.bogoAmount)}
                         </span>
-                        {uses(day.bogoUses)}
                       </TableCell>
                       <TableCell className="pr-4 text-right">
                         <span className="text-sm font-semibold tabular-nums">
                           {bare(day.flashAmount)}
                         </span>
-                        {uses(day.flashUses)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -407,19 +396,16 @@ export default function DiscountImpactList({
                       <span className="text-sm font-bold tabular-nums">
                         {bare(totals.couponAmount)}
                       </span>
-                      {uses(totals.couponUses)}
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="text-sm font-bold tabular-nums">
                         {bare(totals.bogoAmount)}
                       </span>
-                      {uses(totals.bogoUses)}
                     </TableCell>
                     <TableCell className="pr-4 text-right">
                       <span className="text-sm font-bold tabular-nums">
                         {bare(totals.flashAmount)}
                       </span>
-                      {uses(totals.flashUses)}
                     </TableCell>
                   </TableRow>
                 </TableFooter>

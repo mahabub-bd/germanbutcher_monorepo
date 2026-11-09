@@ -35,6 +35,7 @@ export interface Customer {
   name: string;
   email: string;
   mobileNumber: string;
+  area?: string | null;
   registrationDate: string;
   orderCount: number;
   totalOrderAmount: number;
@@ -128,6 +129,7 @@ export default function CustomerListReport({
     c.name,
     c.email || "—",
     c.mobileNumber,
+    c.area || "—",
     formatDate(c.registrationDate),
     c.orderCount,
     c.totalOrderAmount,
@@ -163,6 +165,7 @@ export default function CustomerListReport({
                 "Customer Name",
                 "Email",
                 "Mobile",
+                "Area",
                 "Registration Date",
                 "Order Count",
                 "Total Order Amount",
@@ -279,6 +282,7 @@ export default function CustomerListReport({
                     <TableHead>Customer</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Mobile</TableHead>
+                    <TableHead>Area</TableHead>
                     <TableHead>Registration</TableHead>
                     <TableHead className="text-right">Orders</TableHead>
                     <TableHead className="pr-4 text-right">
@@ -316,7 +320,7 @@ export default function CustomerListReport({
                         {customer.email ? (
                           <Link
                             href={`mailto:${customer.email}`}
-                            className="block  truncate text-sm text-blue-600 hover:underline dark:text-blue-400"
+                            className="block truncate text-sm text-foreground hover:text-primaryColor hover:underline"
                             title={customer.email}
                           >
                             {customer.email}
@@ -332,13 +336,28 @@ export default function CustomerListReport({
                         {customer.mobileNumber ? (
                           <a
                             href={`tel:${customer.mobileNumber}`}
-                            className="text-sm whitespace-nowrap text-blue-600 hover:underline dark:text-blue-400"
+                            className="text-sm whitespace-nowrap text-foreground hover:text-primaryColor hover:underline"
                           >
                             {customer.mobileNumber}
                           </a>
                         ) : (
                           <span className="text-sm text-muted-foreground">
                             No mobile
+                          </span>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        {customer.area ? (
+                          <span
+                            className="block max-w-40 truncate text-sm text-muted-foreground"
+                            title={customer.area}
+                          >
+                            {customer.area}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            —
                           </span>
                         )}
                       </TableCell>
@@ -372,7 +391,7 @@ export default function CustomerListReport({
                     <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Total
                     </TableCell>
-                    <TableCell colSpan={4} />
+                    <TableCell colSpan={5} />
                     <TableCell className="text-right">
                       <span className="text-sm font-bold tabular-nums">
                         {totalOrders.toLocaleString("en-US")}
@@ -422,10 +441,15 @@ export default function CustomerListReport({
                   </div>
 
                   <div className="space-y-1">
+                    {customer.area && (
+                      <p className="text-[11px] text-muted-foreground">
+                        📍 {customer.area}
+                      </p>
+                    )}
                     {customer.email && (
                       <a
                         href={`mailto:${customer.email}`}
-                        className="flex min-w-0 items-center gap-1.5 text-[11px] text-blue-600 hover:underline dark:text-blue-400"
+                        className="flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground hover:text-primaryColor hover:underline"
                       >
                         <Mail className="size-3 shrink-0" />
                         <span className="truncate">{customer.email}</span>
@@ -434,7 +458,7 @@ export default function CustomerListReport({
                     {customer.mobileNumber && (
                       <a
                         href={`tel:${customer.mobileNumber}`}
-                        className="flex items-center gap-1.5 text-[11px] text-blue-600 hover:underline dark:text-blue-400"
+                        className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-primaryColor hover:underline"
                       >
                         <Phone className="size-3 shrink-0" />
                         {customer.mobileNumber}

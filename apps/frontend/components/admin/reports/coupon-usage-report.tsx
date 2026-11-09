@@ -425,25 +425,24 @@ export function CouponUsageReport({
                 {rows.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell className="py-2.5 pl-4">
-                      <PillBadge tone="violet">{row.couponCode}</PillBadge>
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        {formatDateTime(row.createdAt)}
-                      </p>
+                      {/* One line: coupon code + date, both at 14px */}
+                      <div className="flex items-center gap-2 whitespace-nowrap">
+                        <PillBadge tone="violet" className="shrink-0">
+                          {row.couponCode}
+                        </PillBadge>
+                        <span className="truncate text-sm text-muted-foreground">
+                          {formatDateTime(row.createdAt)}
+                        </span>
+                      </div>
                     </TableCell>
 
                     <TableCell>
-                      <p className="text-sm font-medium">
+                      <p
+                        className="truncate text-sm font-medium"
+                        title={row.user?.email || undefined}
+                      >
                         {row.user?.name || "N/A"}
                       </p>
-                      {row.user?.email ? (
-                        <p className="truncate text-[11px] text-muted-foreground">
-                          {row.user.email}
-                        </p>
-                      ) : (
-                        <p className="text-[11px] text-muted-foreground">
-                          No email
-                        </p>
-                      )}
                     </TableCell>
 
                     <TableCell>
