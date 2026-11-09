@@ -12,29 +12,27 @@ interface Props {
   searchParams: Promise<ResolvedSearchParams>;
 }
 
+const asString = (v: string | string[] | undefined) =>
+  typeof v === "string" ? v : undefined;
+
 export default async function LateDeliveryReportPage({
   searchParams,
 }: Props) {
   const resolvedParams = await searchParams;
 
-  const fromDate =
-    typeof resolvedParams.fromDate === "string"
-      ? resolvedParams.fromDate
-      : undefined;
-  const toDate =
-    typeof resolvedParams.toDate === "string" ? resolvedParams.toDate : undefined;
-  const thresholdHours =
-    typeof resolvedParams.thresholdHours === "string"
-      ? resolvedParams.thresholdHours
-      : undefined;
+  const fromDate = asString(resolvedParams.fromDate);
+  const toDate = asString(resolvedParams.toDate);
+  const thresholdHours = asString(resolvedParams.thresholdHours);
   // Only fall back to a preset when the URL has no explicit date range,
   // otherwise manual fromDate/toDate would be ignored below.
   const preset =
-    typeof resolvedParams.preset === "string"
-      ? resolvedParams.preset
-      : fromDate || toDate
-        ? undefined
-        : "this_month";
+    asString(resolvedParams.preset) ?? (fromDate || toDate ? undefined : "this_month");
+
+  // Independent pagination for the two order lists.
+  const pendingPage = asString(resolvedParams.pendingPage) ?? "1";
+  const pendingLimit = asString(resolvedParams.pendingLimit) ?? "25";
+  const deliveredPage = asString(resolvedParams.deliveredPage) ?? "1";
+  const deliveredLimit = asString(resolvedParams.deliveredLimit) ?? "25";
 
   let reportData: {
     summary: {
@@ -44,6 +42,9 @@ export default async function LateDeliveryReportPage({
       onTimeRate: number;
       thresholdHours: number;
       lateMenCount: number;
+      pendingTotal: number;
+      pendingValue: number;
+      deliveredTotal: number;
     };
     deliveryMen: {
       id: number | null;
@@ -87,7 +88,11 @@ export default async function LateDeliveryReportPage({
       orderDate: string;
       deliveredAt: string;
       hours: number;
+      threshold?: number;
+      late?: boolean;
     }[];
+    pending: { page: number; limit: number; total: number };
+    delivered: { page: number; limit: number; total: number };
   } | null = null;
 
   try {
@@ -98,10 +103,12 @@ export default async function LateDeliveryReportPage({
       if (toDate) queryParams.append("toDate", toDate);
     }
     if (thresholdHours) queryParams.append("thresholdHours", thresholdHours);
+    queryParams.append("pendingPage", pendingPage);
+    queryParams.append("pendingLimit", pendingLimit);
+    queryParams.append("deliveredPage", deliveredPage);
+    queryParams.append("deliveredLimit", deliveredLimit);
 
-    const endpoint = `orders/reports/late-delivery${
-      queryParams.toString() ? `?${queryParams.toString()}` : ""
-    }`;
+    const endpoint = `orders/reports/late-delivery?${queryParams.toString()}`;
 
     reportData = await fetchProtectedData(endpoint);
   } catch (error) {
@@ -119,6 +126,12 @@ export default async function LateDeliveryReportPage({
         lateOrders={reportData?.lateOrders ?? []}
         pendingOrders={reportData?.pendingOrders ?? []}
         deliveredOrders={reportData?.deliveredOrders ?? []}
+        pendingPage={reportData?.pending?.page ?? 1}
+        pendingLimit={reportData?.pending?.limit ?? Number(pendingLimit)}
+        pendingTotal={reportData?.pending?.total ?? 0}
+        deliveredPage={reportData?.delivered?.page ?? 1}
+        deliveredLimit={reportData?.delivered?.limit ?? Number(deliveredLimit)}
+        deliveredTotal={reportData?.delivered?.total ?? 0}
       />
     </AdminPageContainer>
   );

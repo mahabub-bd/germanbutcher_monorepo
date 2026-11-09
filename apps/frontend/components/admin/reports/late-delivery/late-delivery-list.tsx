@@ -13,6 +13,7 @@ import {
 } from "@/components/admin/reports/report-date-filters";
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import { PillBadge } from "@/components/common/pill-badge";
+import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -97,6 +98,9 @@ interface Summary {
   /** Per-method timelines ("Inside Dhaka 48h · Outside Dhaka 5 days · Express 6h"). */
   thresholdNote?: string;
   lateMenCount: number;
+  pendingTotal?: number;
+  pendingValue?: number;
+  deliveredTotal?: number;
 }
 
 interface LateDeliveryListProps {
@@ -108,6 +112,12 @@ interface LateDeliveryListProps {
   lateOrders: LateOrderRow[];
   pendingOrders: PendingOrderRow[];
   deliveredOrders: DeliveredOrderRow[];
+  pendingPage: number;
+  pendingLimit: number;
+  pendingTotal: number;
+  deliveredPage: number;
+  deliveredLimit: number;
+  deliveredTotal: number;
 }
 
 /** Whole amounts only — report values never need decimal places. */
@@ -144,6 +154,12 @@ export default function LateDeliveryList({
   lateOrders,
   pendingOrders,
   deliveredOrders,
+  pendingPage,
+  pendingLimit,
+  pendingTotal,
+  deliveredPage,
+  deliveredLimit,
+  deliveredTotal,
 }: LateDeliveryListProps) {
   const router = useRouter();
   const settings = useBusinessSettings();
@@ -176,6 +192,17 @@ export default function LateDeliveryList({
   const deliveredByTimeTaken = [...deliveredOrders].sort(
     (a, b) => b.hours - a.hours
   );
+
+  /** URL for a given list page, preserving every other query param. */
+  const listPageUrl = (list: "pending" | "delivered", page: number) => {
+    const qs = new URLSearchParams(window.location.search);
+    qs.set(`${list}Page`, String(page));
+    qs.set(`${list}Limit`, String(list === "pending" ? pendingLimit : deliveredLimit));
+    return `?${qs.toString()}`;
+  };
+
+  const pendingPageCount = Math.max(1, Math.ceil(pendingTotal / pendingLimit));
+  const deliveredPageCount = Math.max(1, Math.ceil(deliveredTotal / deliveredLimit));
 
   // Column sums for the delivery-men footer.
   const totals = deliveryMen.reduce(
@@ -519,7 +546,7 @@ export default function LateDeliveryList({
                 </div>
                 <div className="flex items-center gap-2">
                   <PillBadge tone="red" className="font-medium tabular-nums">
-                    {pendingOrders.length} order{pendingOrders.length === 1 ? "" : "s"}
+                    {pendingTotal} order{pendingTotal === 1 ? "" : "s"}
                   </PillBadge>
                   {mounted && pendingExportRows.length > 0 && (
                     <ReportExcelButton
@@ -641,6 +668,19 @@ export default function LateDeliveryList({
                   </article>
                 ))}
               </div>
+
+              {/* Pagination — shared footer */}
+              <ListPaginationFooter
+                variant="inset"
+                currentPage={pendingPage}
+                limit={pendingLimit}
+                totalItems={pendingTotal}
+                totalPages={pendingPageCount}
+                entityLabel="order"
+                onPageChange={(page) =>
+                  startTransition(() => router.push(listPageUrl("pending", page)))
+                }
+              />
             </div>
           )}
 
@@ -656,8 +696,8 @@ export default function LateDeliveryList({
                 </div>
                 <div className="flex items-center gap-2">
                   <PillBadge tone="emerald" className="font-medium tabular-nums">
-                    {deliveredOrders.length} order
-                    {deliveredOrders.length === 1 ? "" : "s"}
+                    {deliveredTotal} order
+                    {deliveredTotal === 1 ? "" : "s"}
                   </PillBadge>
                   {mounted && deliveredExportRows.length > 0 && (
                     <ReportExcelButton
@@ -788,6 +828,19 @@ export default function LateDeliveryList({
                   </article>
                 ))}
               </div>
+
+              {/* Pagination — shared footer */}
+              <ListPaginationFooter
+                variant="inset"
+                currentPage={deliveredPage}
+                limit={deliveredLimit}
+                totalItems={deliveredTotal}
+                totalPages={deliveredPageCount}
+                entityLabel="order"
+                onPageChange={(page) =>
+                  startTransition(() => router.push(listPageUrl("delivered", page)))
+                }
+              />
             </div>
           )}
         </>

@@ -112,6 +112,8 @@ export interface Order {
   shippingAddress: ShippingAddress;
   shippingMethod: string;
   paymentMethod: string;
+  /** Latest SSLCommerz transaction id — Excel export column only. */
+  sslPaymentId?: string | null;
 }
 interface OrderReportProps {
   orders: Order[];
@@ -409,6 +411,7 @@ export default function OrderReportList({
         o.orderStatus,
         getPaymentStatusLabel(o.paymentStatus),
         o.paymentMethod || "N/A",
+        o.sslPaymentId || "",
         o.cancelledAt
           ? formatOrderElapsedTime(o.orderDate, o.cancelledAt)
           : o.deliveredAt
@@ -546,6 +549,7 @@ export default function OrderReportList({
                 "Status",
                 "Payment",
                 "Payment Method",
+                "Payment History",
                 "Elapsed Time",
                 "Total",
                 "Discount",

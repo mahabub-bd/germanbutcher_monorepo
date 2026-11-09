@@ -864,17 +864,49 @@ export class OrderController {
     example: '24',
     description: 'On-time threshold in hours from placement to delivery',
   })
+  @ApiQuery({
+    name: 'pendingPage',
+    required: false,
+    example: '1',
+    description: 'Page number for the long-pending list (default 1)',
+  })
+  @ApiQuery({
+    name: 'pendingLimit',
+    required: false,
+    example: '25',
+    description: 'Rows per page for the long-pending list (default/max 25/200)',
+  })
+  @ApiQuery({
+    name: 'deliveredPage',
+    required: false,
+    example: '1',
+    description: 'Page number for the delivered list (default 1)',
+  })
+  @ApiQuery({
+    name: 'deliveredLimit',
+    required: false,
+    example: '25',
+    description: 'Rows per page for the delivered list (default/max 25/200)',
+  })
   async getLateDeliveryReport(
     @Query('fromDate') fromDate?: string,
     @Query('toDate') toDate?: string,
     @Query('preset') preset?: DateRangePreset,
     @Query('thresholdHours') thresholdHours?: string,
+    @Query('pendingPage') pendingPage?: string,
+    @Query('pendingLimit') pendingLimit?: string,
+    @Query('deliveredPage') deliveredPage?: string,
+    @Query('deliveredLimit') deliveredLimit?: string,
   ): Promise<ApiResponseDto<any>> {
     const data = await this.orderService.getLateDeliveryReport(
       fromDate,
       toDate,
       preset,
       thresholdHours,
+      pendingPage,
+      pendingLimit,
+      deliveredPage,
+      deliveredLimit,
     );
     return {
       message: 'Late delivery report retrieved successfully',
