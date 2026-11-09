@@ -2991,12 +2991,19 @@ export class OrderService {
       [from ?? null, to ?? null, thresholdHours],
     );
 
-    // Full delivered list for the range (the slowest list above only has
-    // the late ones). Newest first, capped at 50.
+    // Full delivered list for the range. Longest time taken first, capped
+    // at 50. Each row carries its method's promised timeline so the UI can
+    // flag deliveries that ran over it.
     const deliveredRows: Record<string, any>[] = await this.orderRepository.query(
       `SELECT o.id, o."orderNo", o."totalValue",
               o."createdAt" AS order_date, o."deliveredAt",
               EXTRACT(EPOCH FROM (o."deliveredAt" - o."createdAt")) / 3600.0 AS hours,
+              CASE
+                WHEN sm.name ILIKE '%express%' THEN 6
+                WHEN sm.name ILIKE '%outside%' THEN 120
+                WHEN sm.name ILIKE '%inside%' THEN 48
+                ELSE $3
+              END AS threshold,
               c.name AS customer_name, c."mobileNumber",
               sm.name AS shipping_method_name,
               COALESCE(dm.name, 'Unassigned') AS delivery_man_name
@@ -3009,9 +3016,9 @@ export class OrderService {
          AND o."deliveredAt" >= COALESCE($1::timestamptz, '1900-01-01'::timestamptz)
          AND o."deliveredAt" <= COALESCE($2::timestamptz, '2999-01-01'::timestamptz)
          AND COALESCE(sm.name, '') <> 'Gulshan Store Collection'
-       ORDER BY o."deliveredAt" DESC
+       ORDER BY EXTRACT(EPOCH FROM (o."deliveredAt" - o."createdAt")) DESC
        LIMIT 50`,
-      [from ?? null, to ?? null],
+      [from ?? null, to ?? null, thresholdHours],
     );
 
     const lateOrders = slowRows.map((row) => ({
@@ -3056,6 +3063,9 @@ export class OrderService {
       orderDate: row.order_date,
       deliveredAt: row.deliveredAt,
       hours: Math.round((parseFloat(row.hours) || 0) * 10) / 10,
+      threshold: parseFloat(row.threshold) || 0,
+      late:
+        (parseFloat(row.hours) || 0) > (parseFloat(row.threshold) || 0),
     }));
 
     const pendingOrders = pendingRows.map((row) => ({
