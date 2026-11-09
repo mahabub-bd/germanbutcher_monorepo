@@ -1675,6 +1675,7 @@ export class OrderService {
       .leftJoinAndSelect('order.address', 'address')
       .leftJoinAndSelect('order.shippingMethod', 'shippingMethod')
       .leftJoinAndSelect('order.paymentMethod', 'paymentMethod')
+      .leftJoinAndSelect('order.payments', 'payments')
       .orderBy('order.id', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
@@ -1741,6 +1742,12 @@ export class OrderService {
         : null,
       shippingMethod: order.shippingMethod?.name || null,
       paymentMethod: order.paymentMethod?.name || null,
+      // Latest SSLCommerz transaction id on the order (Excel export column).
+      sslPaymentId:
+        [...(order.payments ?? [])]
+          .filter((p) => p.sslPaymentId)
+          .sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+          .pop()?.sslPaymentId ?? null,
     }));
 
     // --- Return report ---
@@ -2904,6 +2911,10 @@ export class OrderService {
     toDate?: string,
     dateRangePreset?: string,
     thresholdHoursParam?: string,
+    pendingPageParam?: string,
+    pendingLimitParam?: string,
+    deliveredPageParam?: string,
+    deliveredLimitParam?: string,
   ) {
     let from = this.parseReportDate(fromDate);
     let to = this.parseReportDate(toDate, true);
@@ -3014,7 +3025,26 @@ export class OrderService {
 
     // Long-pending list: orders placed in the range that are still open
     // (pending / processing / on hold / shipped) and have waited longer
-    // than thresholdHours since placement. Oldest first, capped at 50.
+    // than thresholdHours since placement. Oldest first, paginated.
+    const pendingPage = Math.max(1, parseInt(pendingPageParam ?? '1', 10) || 1);
+    const pendingLimit = Math.min(
+      200,
+      Math.max(1, parseInt(pendingLimitParam ?? '25', 10) || 25),
+    );
+
+    // Count first so the UI can page and show true totals.
+    const pendingCountRows: Record<string, any>[] = await this.orderRepository.query(
+      `SELECT COUNT(o.id) AS count, COALESCE(SUM(o."totalValue"), 0) AS total_value
+       FROM "order" o
+       WHERE o."orderStatus" NOT IN ('delivered', 'cancelled')
+         AND o."createdAt" >= COALESCE($1::timestamptz, '1900-01-01'::timestamptz)
+         AND o."createdAt" <= COALESCE($2::timestamptz, '2999-01-01'::timestamptz)
+         AND EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0 > $3`,
+      [from ?? null, to ?? null, thresholdHours],
+    );
+    const pendingTotal = parseInt(pendingCountRows[0]?.count, 10) || 0;
+    const pendingValue = parseFloat(pendingCountRows[0]?.total_value) || 0;
+
     const pendingRows: Record<string, any>[] = await this.orderRepository.query(
       `SELECT o.id, o."orderNo", o."orderStatus", o."totalValue",
               o."createdAt" AS order_date,
@@ -3031,13 +3061,38 @@ export class OrderService {
          AND o."createdAt" <= COALESCE($2::timestamptz, '2999-01-01'::timestamptz)
          AND EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0 > $3
        ORDER BY o."createdAt" ASC
-       LIMIT 50`,
-      [from ?? null, to ?? null, thresholdHours],
+       LIMIT $4 OFFSET $5`,
+      [
+        from ?? null,
+        to ?? null,
+        thresholdHours,
+        pendingLimit,
+        (pendingPage - 1) * pendingLimit,
+      ],
     );
 
-    // Full delivered list for the range. Longest time taken first, capped
-    // at 50. Each row carries its method's promised timeline so the UI can
-    // flag deliveries that ran over it.
+    // Full delivered list for the range. Longest time taken first,
+    // paginated. Each row carries its method's promised timeline so the UI
+    // can flag deliveries that ran over it.
+    const deliveredPage = Math.max(1, parseInt(deliveredPageParam ?? '1', 10) || 1);
+    const deliveredLimit = Math.min(
+      200,
+      Math.max(1, parseInt(deliveredLimitParam ?? '25', 10) || 25),
+    );
+
+    const deliveredCountRows: Record<string, any>[] = await this.orderRepository.query(
+      `SELECT COUNT(o.id) AS count, COALESCE(SUM(o."totalValue"), 0) AS total_value
+       FROM "order" o
+       LEFT JOIN shipping_method sm ON sm.id = o."shippingMethodId"
+       WHERE o."orderStatus" = 'delivered'
+         AND o."deliveredAt" IS NOT NULL
+         AND o."deliveredAt" >= COALESCE($1::timestamptz, '1900-01-01'::timestamptz)
+         AND o."deliveredAt" <= COALESCE($2::timestamptz, '2999-01-01'::timestamptz)
+         AND COALESCE(sm.name, '') <> 'Gulshan Store Collection'`,
+      [from ?? null, to ?? null],
+    );
+    const deliveredTotal = parseInt(deliveredCountRows[0]?.count, 10) || 0;
+
     const deliveredRows: Record<string, any>[] = await this.orderRepository.query(
       `SELECT o.id, o."orderNo", o."totalValue",
               o."createdAt" AS order_date, o."deliveredAt",
@@ -3061,8 +3116,14 @@ export class OrderService {
          AND o."deliveredAt" <= COALESCE($2::timestamptz, '2999-01-01'::timestamptz)
          AND COALESCE(sm.name, '') <> 'Gulshan Store Collection'
        ORDER BY EXTRACT(EPOCH FROM (o."deliveredAt" - o."createdAt")) DESC
-       LIMIT 50`,
-      [from ?? null, to ?? null, thresholdHours],
+       LIMIT $4 OFFSET $5`,
+      [
+        from ?? null,
+        to ?? null,
+        thresholdHours,
+        deliveredLimit,
+        (deliveredPage - 1) * deliveredLimit,
+      ],
     );
 
     const lateOrders = slowRows.map((row) => ({
@@ -3094,6 +3155,10 @@ export class OrderService {
        *  the single fallback threshold. */
       thresholdNote: 'Inside Dhaka 48h · Outside Dhaka 5 days · Express 6h',
       lateMenCount: deliveryMen.filter((d) => d.late > 0).length,
+      /** True totals for the two paginated lists below. */
+      pendingTotal,
+      pendingValue,
+      deliveredTotal,
     };
 
     const deliveredOrders = deliveredRows.map((row) => ({
@@ -3125,7 +3190,16 @@ export class OrderService {
       hours: Math.round((parseFloat(row.hours) || 0) * 10) / 10,
     }));
 
-    return { summary, deliveryMen, lateOrders, pendingOrders, deliveredOrders };
+    return {
+      summary,
+      deliveryMen,
+      lateOrders,
+      pendingOrders,
+      deliveredOrders,
+      /** Pagination state echoed back so the UI can render controls. */
+      pending: { page: pendingPage, limit: pendingLimit, total: pendingTotal },
+      delivered: { page: deliveredPage, limit: deliveredLimit, total: deliveredTotal },
+    };
   }
 
   /**
