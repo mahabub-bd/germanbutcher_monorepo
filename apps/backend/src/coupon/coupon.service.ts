@@ -260,8 +260,7 @@ export class CouponService {
             }
           }
         } else if (cartProductIds) {
-          // Fallback: if only product IDs are provided, use totalAmount
-          // This won't be accurate but maintains backward compatibility
+         
           const excludedInCart = cartProductIds.filter((id) =>
             excludedProductIds.includes(id),
           );

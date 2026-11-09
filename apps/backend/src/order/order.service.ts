@@ -784,7 +784,9 @@ export class OrderService {
     return completeOrder;
   }
 
-  /** Relations for the full order-detail payload (view page, PDF, etc.). */
+  /** Relations for the full order-detail payload (view page, PDF, etc.).
+   *  Bulky nested rows the UI never reads (serviceAreas, supplier, audit
+   *  users) are stripped by stripDetailBloat before the response is sent. */
   private static readonly DETAIL_RELATIONS = [
     'user',
     'user.profilePhoto',
@@ -797,7 +799,6 @@ export class OrderService {
     'items.product',
     'items.product.attachment',
     'items.product.unit',
-    'items.product.supplier',
     'coupon',
     'statusTracks',
     'statusTracks.updatedBy',
@@ -805,6 +806,47 @@ export class OrderService {
     'notes.createdBy',
     'deliveryMan',
   ];
+
+  /**
+   * Remove fields the order-detail consumers never render: the ~270-entry
+   * shipping serviceAreas list, nested createdBy/updatedBy user objects on
+   * shipping/payment methods, units and products, and the long product
+   * marketing text. Cuts the payload by an order of magnitude.
+   */
+  private stripDetailBloat(order: Order): Order {
+    if (order.shippingMethod) {
+      const sm = order.shippingMethod as unknown as Record<string, unknown>;
+      delete sm.serviceAreas;
+      delete sm.createdBy;
+      delete sm.updatedBy;
+    }
+
+    const stripMethodAudit = (pm: unknown) => {
+      if (pm) {
+        delete (pm as Record<string, unknown>).createdBy;
+        delete (pm as Record<string, unknown>).updatedBy;
+      }
+    };
+    stripMethodAudit(order.paymentMethod);
+    order.payments?.forEach((p) => stripMethodAudit(p.paymentMethod));
+
+    order.items?.forEach((item) => {
+      const product = item.product as unknown as Record<string, unknown> | undefined;
+      if (!product) return;
+      delete product.description;
+      delete product.productDetails;
+      delete product.totalValueBySalePrice;
+      delete product.totalValueByPurchasePrice;
+      delete product.createdBy;
+      delete product.updatedBy;
+      if (product.unit) {
+        delete (product.unit as Record<string, unknown>).createdBy;
+        delete (product.unit as Record<string, unknown>).updatedBy;
+      }
+    });
+
+    return order;
+  }
 
   async getOrderById(id: number): Promise<Order | null> {
     return this.findOrderDetail({ id }, `Order with ID ${id} not found`);
@@ -835,6 +877,8 @@ export class OrderService {
     if (!order) {
       throw new NotFoundException(notFoundMessage);
     }
+
+    this.stripDetailBloat(order);
 
     // Attach BOGO usage for the confirmation display — plain prop on the
     // returned object, never persisted. Failure must not break the fetch.
