@@ -114,7 +114,7 @@ export default function OrderPaymentList({
             <ReportExcelButton
               title="Payment Transactions"
               subtitle={dateRangeSubtitle(preset, fromDate, toDate)}
-              headers={["#", "Payment No", "Date", "Amount", "Method", "Order No", "Payment History"]}
+              headers={["#", "Payment No", "Date", "Amount", "Method", "Order No", "SSL Transaction ID"]}
               rows={payments.map((p, i) => [
                 i + 1,
                 p.paymentNumber,
@@ -239,7 +239,7 @@ export default function OrderPaymentList({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <Table className="report-table min-w-180">
+        <Table className="report-table min-w-180 text-sm [&_th]:text-sm [&_td]:text-sm">
           <TableHeader>
             <TableRow>
               <TableHead className="text-xs">Payment No</TableHead>
@@ -249,7 +249,7 @@ export default function OrderPaymentList({
               <TableHead className="text-xs">
                 Order
               </TableHead>
-              <TableHead className="text-xs">Payment History</TableHead>
+              <TableHead className="text-xs">SSL Transaction ID</TableHead>
               <TableHead className="text-xs">
                 Created By
               </TableHead>
