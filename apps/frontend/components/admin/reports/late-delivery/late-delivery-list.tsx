@@ -168,6 +168,11 @@ export default function LateDeliveryList({
     "Inside Dhaka 48h · Outside Dhaka 5 days · Express 6h";
   const hasData = deliveryMen.length > 0 || lateOrders.length > 0;
 
+  // Delivered list is ranked by time taken — the slowest deliveries on top.
+  const deliveredByTimeTaken = [...deliveredOrders].sort(
+    (a, b) => b.hours - a.hours
+  );
+
   // Column sums for the delivery-men footer.
   const totals = deliveryMen.reduce(
     (acc, dm) => ({
@@ -197,7 +202,7 @@ export default function LateDeliveryList({
     bare(o.totalValue),
   ]);
 
-  const deliveredExportRows = deliveredOrders.map((o) => [
+  const deliveredExportRows = deliveredByTimeTaken.map((o) => [
     o.orderNo,
     o.customerName,
     o.mobileNumber ?? "",
@@ -781,7 +786,7 @@ export default function LateDeliveryList({
                 <div>
                   <h3 className="text-sm font-semibold">Delivered orders</h3>
                   <p className="text-xs text-muted-foreground">
-                    All delivered in range · newest first
+                    All delivered in range · longest time taken first
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -833,7 +838,7 @@ export default function LateDeliveryList({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {deliveredOrders.map((order) => (
+                    {deliveredByTimeTaken.map((order) => (
                       <TableRow key={order.orderId}>
                         <TableCell className="py-2 pl-4">
                           <Link
@@ -884,7 +889,7 @@ export default function LateDeliveryList({
 
               {/* Mobile cards */}
               <div className="divide-y md:hidden">
-                {deliveredOrders.map((order) => (
+                {deliveredByTimeTaken.map((order) => (
                   <article key={order.orderId} className="space-y-2 p-3.5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
