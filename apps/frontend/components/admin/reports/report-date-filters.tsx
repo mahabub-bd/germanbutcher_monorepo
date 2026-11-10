@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/select";
 import {
   Sheet,
-  SheetClose,
   SheetContent,
   SheetDescription,
   SheetFooter,
@@ -32,7 +31,6 @@ import {
 } from "date-fns";
 import {
   ChevronDown,
-  Filter,
   SlidersHorizontal,
   X,
 } from "lucide-react";
@@ -162,30 +160,34 @@ export function ReportDateFilters({
     setMobileOpen(false);
   };
 
-  const handleStartDate = (date: Date | undefined) => {
-    setStartDate(date);
-    if (!date) return;
-    // Manual edit: the quick-range preset no longer matches the shown dates.
-    setQuickRange("");
-    // Keep the range valid — pull "To" up if "From" moved past it.
-    if (endDate && date > endDate) setEndDate(date);
-  };
-
-  const handleEndDate = (date: Date | undefined) => {
-    setEndDate(date);
-    if (!date) return;
-    setQuickRange("");
-    // Keep the range valid — pull "From" back if "To" moved before it.
-    if (startDate && date < startDate) setStartDate(date);
-  };
-
-  const handleApply = () => {
+  /** Applies the given range immediately — every change (preset, manual
+   *  pick, clear) filters without waiting for a button press. */
+  const applyRange = (from: Date | undefined, to: Date | undefined) => {
     const params: ReportFilterParams = {};
-    if (startDate) params.fromDate = format(startDate, "yyyy-MM-dd");
-    if (endDate) params.toDate = format(endDate, "yyyy-MM-dd");
+    if (from) params.fromDate = format(from, "yyyy-MM-dd");
+    if (to) params.toDate = format(to, "yyyy-MM-dd");
     onApply(params);
     // Applied — fold the panel away again on mobile.
     setMobileOpen(false);
+  };
+
+  const handleStartDate = (date: Date | undefined) => {
+    // Keep the range valid — pull "To" up if "From" moved past it.
+    const nextEnd = date && endDate && date > endDate ? date : endDate;
+    setStartDate(date);
+    setEndDate(nextEnd);
+    // Manual edit: the quick-range preset no longer matches the shown dates.
+    setQuickRange("");
+    applyRange(date, nextEnd);
+  };
+
+  const handleEndDate = (date: Date | undefined) => {
+    // Keep the range valid — pull "From" back if "To" moved before it.
+    const nextStart = date && startDate && date < startDate ? date : startDate;
+    setStartDate(nextStart);
+    setEndDate(date);
+    setQuickRange("");
+    applyRange(nextStart, date);
   };
 
   /** Short human-readable summary of the current selection for the
@@ -218,7 +220,7 @@ export function ReportDateFilters({
   // mobile bottom sheet, so both layouts stay in sync.
   const quickRangeSelect = (
     <Select value={quickRange} onValueChange={handleQuickRange}>
-      <SelectTrigger className="w-full md:w-44">
+      <SelectTrigger className="w-full text-xs md:w-36 2xl:w-44 2xl:text-sm">
         <SelectValue placeholder="Quick Range" />
       </SelectTrigger>
       <SelectContent>
@@ -244,6 +246,7 @@ export function ReportDateFilters({
       placeholder="From Date"
       maxDate={endDate}
       showIcon={false}
+      className="text-xs 2xl:text-sm"
     />
   );
 
@@ -255,6 +258,7 @@ export function ReportDateFilters({
       placeholder="To Date"
       minDate={startDate}
       showIcon={false}
+      className="text-xs 2xl:text-sm"
     />
   );
 
@@ -262,28 +266,21 @@ export function ReportDateFilters({
     <>
       <div className="md:shrink-0">{quickRangeSelect}</div>
       {extra}
-      <div className="md:flex-1 md:max-w-48 md:min-w-0">{fromPicker}</div>
-      <div className="md:flex-1 md:max-w-48 md:min-w-0">{toPicker}</div>
+      <div className="md:w-40 md:shrink-0 2xl:w-48">{fromPicker}</div>
+      <div className="md:w-40 md:shrink-0 2xl:w-48">{toPicker}</div>
     </>
   );
 
-  // Desktop actions; the mobile sheet gets a sticky footer instead.
-  // md:contents lets the pair dissolve into the inline flex row.
+  // Desktop actions: no Filter button — every control applies immediately,
+  // so Clear is the only action. md:contents dissolves it into the row.
   const actions = (
-    <div className="grid grid-cols-2 gap-2.5 md:contents">
-      <Button
-        onClick={handleApply}
-        className="h-9 shrink-0 gap-1.5 px-4 font-medium"
-      >
-        <Filter className="size-4" />
-        Filter
-      </Button>
+    <div className="md:contents">
       <Button
         variant="outline"
         onClick={handleClear}
         disabled={!hasSelection && !onClear}
         className={cn(
-          "h-9 shrink-0 gap-1.5 px-4",
+          "h-9 shrink-0 gap-1.5 px-3 text-xs 2xl:px-4 2xl:text-sm",
           !hasSelection && "text-muted-foreground"
         )}
       >
@@ -298,8 +295,8 @@ export function ReportDateFilters({
   // Card-style filter panel.
   //  - Mobile (< md): a "Filters" button showing the active range summary —
   //    tapping opens a bottom sheet with every control stacked full width
-  //    under a label and a sticky Clear/Filter footer. Applying a preset or
-  //    pressing Filter/Clear closes the sheet.
+  //    under a label and a sticky Clear footer. Every change applies and
+  //    closes the sheet immediately.
   //  - md+: always-open single nowrap row of equally styled controls.
   return (
     <div className={cn("mb-6 rounded-xl border bg-card p-3 shadow-xs", className)}>
@@ -320,8 +317,12 @@ export function ReportDateFilters({
         <ChevronDown className="size-4 shrink-0 -rotate-90 text-muted-foreground" />
       </button>
 
-      {/* Desktop inline row (hidden below md) */}
-      <div className="hidden items-center gap-3 md:flex md:flex-nowrap">
+      {/* Desktop inline row (hidden below md). 12px text + narrower fixed
+          widths below 2xl keep the row compact on laptops; the row stays on
+          one line and scrolls horizontally there instead of overflowing,
+          exactly like the report tables. 2xl restores the original 14px
+          single-line layout that fits without scrolling. */}
+      <div className="hidden items-center gap-2 text-xs md:flex md:flex-nowrap md:overflow-x-auto 2xl:gap-3 2xl:overflow-x-visible 2xl:text-sm">
         {controls}
         {actions}
       </div>
@@ -375,12 +376,6 @@ export function ReportDateFilters({
               <X className="size-4" />
               Clear
             </Button>
-            <SheetClose asChild>
-              <Button className="flex-1 gap-1.5" onClick={handleApply}>
-                <Filter className="size-4" />
-                Filter
-              </Button>
-            </SheetClose>
           </SheetFooter>
         </SheetContent>
       </Sheet>
