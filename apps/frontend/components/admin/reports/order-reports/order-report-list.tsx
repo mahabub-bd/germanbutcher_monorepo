@@ -586,7 +586,7 @@ export default function OrderReportList({
                 pushWithFilter({ orderStatus: value });
               }}
             >
-              <SelectTrigger className="w-full md:w-40 md:shrink-0">
+              <SelectTrigger className="w-full text-xs md:w-36 md:shrink-0 2xl:w-40 2xl:text-sm">
                 <SelectValue placeholder="Order Status" />
               </SelectTrigger>
               <SelectContent>
@@ -605,7 +605,7 @@ export default function OrderReportList({
                 pushWithFilter({ paymentStatus: value });
               }}
             >
-              <SelectTrigger className="w-full md:w-40 md:shrink-0">
+              <SelectTrigger className="w-full text-xs md:w-36 md:shrink-0 2xl:w-40 2xl:text-sm">
                 <SelectValue placeholder="Payment Status" />
               </SelectTrigger>
               <SelectContent>
@@ -624,7 +624,7 @@ export default function OrderReportList({
                 pushWithFilter({ shippingMethodId: value });
               }}
             >
-              <SelectTrigger className="w-full md:w-40 md:shrink-0">
+              <SelectTrigger className="w-full text-xs md:w-36 md:shrink-0 2xl:w-40 2xl:text-sm">
                 <SelectValue placeholder="Shipping Method" />
               </SelectTrigger>
               <SelectContent>
@@ -643,7 +643,7 @@ export default function OrderReportList({
                 pushWithFilter({ paymentMethodId: value });
               }}
             >
-              <SelectTrigger className="w-full md:w-40 md:shrink-0">
+              <SelectTrigger className="w-full text-xs md:w-36 md:shrink-0 2xl:w-40 2xl:text-sm">
                 <SelectValue placeholder="Payment Method" />
               </SelectTrigger>
               <SelectContent>

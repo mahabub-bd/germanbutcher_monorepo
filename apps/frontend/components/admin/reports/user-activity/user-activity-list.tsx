@@ -343,7 +343,7 @@ export function UserActivityList({
     ];
   };
 
-  // Two-line date cell: date on top, time below (Dhaka timezone, matches utils.formatDateTime).
+  // One-line date + time cell (Dhaka timezone, matches utils.formatDateTime).
   const formatDate = (input: string | Date) => {
     const d = input instanceof Date ? input : new Date(input);
     return d.toLocaleDateString("en-US", {
@@ -390,18 +390,17 @@ export function UserActivityList({
 
   const renderTableView = () => (
     <div className="hidden overflow-x-auto lg:block lg:pl-3 lg:pr-3">
-      <Table className="report-table table-fixed min-w-225 lg:min-w-0 [&_td]:px-1.5 [&_td]:py-2.5 [&_td]:wrap-break-word [&_td]:align-middle [&_th]:px-1.5 [&_th]:py-2 [&_th]:align-middle">
+      <Table className="report-table table-fixed min-w-300 2xl:min-w-0 [&_td]:px-1.5 [&_td]:py-2.5 [&_td]:align-middle [&_td]:text-xs 2xl:[&_td]:text-sm [&_th]:px-1.5 [&_th]:py-2 [&_th]:align-middle [&_th]:text-xs 2xl:[&_th]:text-sm">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            {/* Fixed layout: Entity, Status, Message and IP are compact so
-                Date & Time, Endpoint and User get the freed width. */}
+
             <TableHead className="w-[4%]">ID</TableHead>
-            <TableHead className="w-[10%]">Date & Time</TableHead>
-            <TableHead className="w-[7%]">Action</TableHead>
-            <TableHead className="w-[12%]">Endpoint</TableHead>
+            <TableHead className="w-[15%] 2xl:w-[10%]">Date & Time</TableHead>
+            <TableHead className="w-[8%]">Action</TableHead>
+            <TableHead className="w-[12%] 2xl:w-[13%]">Endpoint</TableHead>
             <TableHead className="w-[5%]">Entity</TableHead>
-            <TableHead className="w-[5%]">Status</TableHead>
-            <TableHead className="w-[33%]">Message</TableHead>
+            <TableHead className="w-[8%] 2xl:w-[5%]">Status</TableHead>
+            <TableHead className="w-[26%] 2xl:w-[33%]">Message</TableHead>
             <TableHead className="w-[7%]">IP Address</TableHead>
             <TableHead className="w-[15%]">User</TableHead>
           </TableRow>
@@ -414,7 +413,7 @@ export function UserActivityList({
                 <TableCell>
                   <Link
                     href={`/admin/audit-log/${activity.id}`}
-                    className="font-mono text-sm font-medium text-primary whitespace-nowrap hover:underline"
+                    className="font-mono font-medium text-primary whitespace-nowrap hover:underline"
                     title="Open event details"
                   >
                     {activity.id}
@@ -422,7 +421,7 @@ export function UserActivityList({
                 </TableCell>
 
                 <TableCell>
-                  <span className="text-sm whitespace-nowrap">
+                  <span className="whitespace-nowrap">
                     {formatDate(activity.createdAt)}{" "}
                     <span className="text-muted-foreground">
                       {formatTime(activity.createdAt)}
@@ -437,7 +436,7 @@ export function UserActivityList({
                 <TableCell>
                   <Link
                     href={`/admin/audit-log/${activity.id}`}
-                    className="block max-w-52 truncate text-sm text-muted-foreground font-mono hover:text-primary hover:underline"
+                    className="block max-w-52 truncate text-muted-foreground font-mono hover:text-primary hover:underline"
                     title={`Open details for ${activity.action}`}
                   >
                     {path}
@@ -445,7 +444,7 @@ export function UserActivityList({
                 </TableCell>
 
                 <TableCell>
-                  <span className="font-medium text-sm capitalize truncate" title={activity.entityType}>
+                  <span className="font-medium capitalize whitespace-nowrap" title={activity.entityType}>
                     {activity.entityType}
                   </span>
                 </TableCell>
@@ -456,9 +455,9 @@ export function UserActivityList({
 
                 <TableCell className="max-w-xs">
                   <span
-                    className={`text-sm ${expandedMessages.has(activity.id)
+                    className={`${expandedMessages.has(activity.id)
                       ? "block whitespace-normal wrap-break-word"
-                      : "line-clamp-2 cursor-pointer wrap-break-word"
+                      : "block cursor-pointer truncate"
                       }`}
                     title={
                       expandedMessages.has(activity.id)
@@ -471,7 +470,7 @@ export function UserActivityList({
                   </span>
                 </TableCell>
 
-                <TableCell className="font-mono text-sm text-muted-foreground">
+                <TableCell className="font-mono whitespace-nowrap text-muted-foreground">
                   {activity.ipAddress || "unknown"}
                 </TableCell>
 
@@ -481,7 +480,7 @@ export function UserActivityList({
                       <User className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="flex min-w-0 items-center gap-1.5">
-                      <span className="truncate font-medium text-sm">
+                      <span className="truncate font-medium">
                         {activity.user?.name || "Unknown User"}
                       </span>
                       <PillBadge
@@ -502,10 +501,7 @@ export function UserActivityList({
     </div>
   );
 
-  /**
-   * Below lg the eight columns cannot fit a phone, so each event becomes a
-   * compact card instead of forcing horizontal scroll.
-   */
+
   const renderCardView = () => (
     <div className="divide-y lg:hidden">
       {activities.map((activity: UserActivity) => {
@@ -587,8 +583,7 @@ export function UserActivityList({
       >
       </PageHeader>
 
-      {/* Quick log switch: All / Admin / Customer — same userType filter as the Actor dropdown.
-          Pill-tab convention: each tab has its own hue + icon (tinted when inactive, solid when active). */}
+
       <div className="mb-4 flex items-center gap-1.5 overflow-x-auto pb-1 sm:gap-2">
         {[
           {
