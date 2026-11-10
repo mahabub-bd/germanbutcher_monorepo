@@ -37,7 +37,8 @@ interface PaymentRecord {
   amount: string;
   paymentDate: string;
   sslPaymentId: string | null;
-  order: OrderSummary;
+  /** Null for orphaned payments whose order no longer exists. */
+  order: OrderSummary | null;
   paymentMethod: PaymentMethod;
   createdBy: UserInfo | null;
   updatedBy: UserInfo | null;
@@ -229,7 +230,9 @@ export function PaymentReportPDF({ payments, orderId, settings }: Props) {
             <Text style={[styles.cell, { flex: 1 }]}>
               {p.paymentMethod.name}
             </Text>
-            <Text style={[styles.cell, { flex: 1 }]}>{p.order.orderNo}</Text>
+            <Text style={[styles.cell, { flex: 1 }]}>
+              {p.order?.orderNo || "—"}
+            </Text>
           </View>
         ))}
 
