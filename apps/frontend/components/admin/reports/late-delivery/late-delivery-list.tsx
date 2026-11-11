@@ -70,6 +70,8 @@ interface PendingOrderRow {
   totalValue: number;
   orderDate: string;
   hours: number;
+  /** Promised timeline in hours for the order's shipping method. */
+  threshold?: number;
 }
 
 interface DeliveredOrderRow {
@@ -143,6 +145,17 @@ const durationLabel = (value: number) => {
   const [d, r] = rem === 24 ? [days + 1, 0] : [days, rem];
   const dayPart = `${d} Day${d === 1 ? "" : "s"}`;
   return r > 0 ? `${dayPart} ${r} Hour${r === 1 ? "" : "s"}` : dayPart;
+};
+
+/** Compact promised timeline for the order's shipping method ("6h", "2 days") —
+ *  shown beside "Took" so the late flag has visible context. */
+const timelineLabel = (hours?: number) => {
+  const h = Number(hours || 0);
+  if (!h) return "—";
+  const days = Math.round(h / 24);
+  return h < 24
+    ? `${hours1(h)}h`
+    : `${days} day${days === 1 ? "" : "s"}`;
 };
 
 export default function LateDeliveryList({
@@ -229,6 +242,7 @@ export default function LateDeliveryList({
     o.deliveryMan,
     o.shippingMethod ?? "",
     formatDateTime(o.orderDate),
+    timelineLabel(o.threshold),
     durationLabel(o.hours),
     bare(o.totalValue),
   ]);
@@ -242,6 +256,7 @@ export default function LateDeliveryList({
     formatDateTime(o.orderDate),
     formatDateTime(o.deliveredAt),
     durationLabel(o.hours),
+    timelineLabel(o.threshold),
     bare(o.totalValue),
   ]);
 
@@ -540,8 +555,8 @@ export default function LateDeliveryList({
                 <div>
                   <h3 className="text-sm font-semibold">Long pending orders</h3>
                   <p className="text-xs text-muted-foreground">
-                    Undelivered more than {summary?.thresholdHours ?? 24}h after
-                    placement · oldest first
+                    Undelivered past the method timeline ({thresholdNote}) ·
+                    oldest first
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -560,13 +575,14 @@ export default function LateDeliveryList({
                         "Delivery Man",
                         "Method",
                         "Placed",
+                        "Timeline",
                         "Waiting",
                         "Value",
                       ]}
                       rows={pendingExportRows}
                       summary={[
                         {
-                          label: `Undelivered over ${summary?.thresholdHours ?? 24}h`,
+                          label: "Undelivered past the method timeline",
                           value: `${pendingOrders.length} orders`,
                         },
                       ]}
@@ -587,6 +603,7 @@ export default function LateDeliveryList({
                       <TableHead>Delivery Man</TableHead>
                       <TableHead>Method</TableHead>
                       <TableHead>Placed</TableHead>
+                      <TableHead className="text-right">Timeline</TableHead>
                       <TableHead className="text-right">Waiting</TableHead>
                       <TableHead className="pr-4 text-right">Value</TableHead>
                     </TableRow>
@@ -623,6 +640,11 @@ export default function LateDeliveryList({
                         <TableCell>
                           <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
                             {formatDateTime(order.orderDate)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                            {timelineLabel(order.threshold)}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
@@ -663,7 +685,9 @@ export default function LateDeliveryList({
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {order.status.replace("_", " ")} ·{" "}
-                      {order.deliveryMan || "Unassigned"} · {bare(order.totalValue)}
+                      {order.deliveryMan || "Unassigned"} ·{" "}
+                      {durationLabel(order.hours)} of{" "}
+                      {timelineLabel(order.threshold)} · {bare(order.totalValue)}
                     </p>
                   </article>
                 ))}
@@ -712,6 +736,7 @@ export default function LateDeliveryList({
                         "Placed",
                         "Delivered",
                         "Took",
+                        "Timeline",
                         "Value",
                       ]}
                       rows={deliveredExportRows}
@@ -738,6 +763,7 @@ export default function LateDeliveryList({
                       <TableHead>Method</TableHead>
                       <TableHead>Placed</TableHead>
                       <TableHead>Delivered</TableHead>
+                      <TableHead className="text-right">Timeline</TableHead>
                       <TableHead className="text-right">Took</TableHead>
                       <TableHead className="pr-4 text-right">Value</TableHead>
                     </TableRow>
@@ -777,11 +803,21 @@ export default function LateDeliveryList({
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
+                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                            {timelineLabel(order.threshold)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
                           <span
                             className={
                               order.late
                                 ? "text-sm font-semibold tabular-nums text-red-600 dark:text-red-400"
                                 : "text-sm font-semibold tabular-nums"
+                            }
+                            title={
+                              order.late
+                                ? `Late: took ${durationLabel(order.hours)} against a ${timelineLabel(order.threshold)} timeline`
+                                : `On time: within the ${timelineLabel(order.threshold)} timeline`
                             }
                           >
                             {durationLabel(order.hours)}
@@ -823,7 +859,9 @@ export default function LateDeliveryList({
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {order.deliveryMan || "Unassigned"} ·{" "}
-                      {order.shippingMethod || "—"} · {bare(order.totalValue)}
+                      {order.shippingMethod || "—"} · took{" "}
+                      {durationLabel(order.hours)} of{" "}
+                      {timelineLabel(order.threshold)} · {bare(order.totalValue)}
                     </p>
                   </article>
                 ))}

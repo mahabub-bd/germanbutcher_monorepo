@@ -3027,21 +3027,33 @@ export class OrderService {
 
     // Long-pending list: orders placed in the range that are still open
     // (pending / processing / on hold / shipped) and have waited longer
-    // than thresholdHours since placement. Oldest first, paginated.
+    // than their shipping method's promised timeline since placement
+    // (fallback thresholdHours). Oldest first, paginated.
     const pendingPage = Math.max(1, parseInt(pendingPageParam ?? '1', 10) || 1);
     const pendingLimit = Math.min(
       200,
       Math.max(1, parseInt(pendingLimitParam ?? '25', 10) || 25),
     );
 
+    // Same per-method timelines as the delivered/late logic above — an
+    // Inside Dhaka order only turns "long pending" after 48h, not the flat
+    // fallback. $3 is the fallback threshold for unnamed methods.
+    const pendingThresholdExpr = `CASE
+           WHEN sm.name ILIKE '%express%' THEN 6
+           WHEN sm.name ILIKE '%outside%' THEN 120
+           WHEN sm.name ILIKE '%inside%' THEN 48
+           ELSE $3
+         END`;
+
     // Count first so the UI can page and show true totals.
     const pendingCountRows: Record<string, any>[] = await this.orderRepository.query(
       `SELECT COUNT(o.id) AS count, COALESCE(SUM(o."totalValue"), 0) AS total_value
        FROM "order" o
+       LEFT JOIN shipping_method sm ON sm.id = o."shippingMethodId"
        WHERE o."orderStatus" NOT IN ('delivered', 'cancelled')
          AND o."createdAt" >= COALESCE($1::timestamptz, '1900-01-01'::timestamptz)
          AND o."createdAt" <= COALESCE($2::timestamptz, '2999-01-01'::timestamptz)
-         AND EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0 > $3`,
+         AND EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0 > ${pendingThresholdExpr}`,
       [from ?? null, to ?? null, thresholdHours],
     );
     const pendingTotal = parseInt(pendingCountRows[0]?.count, 10) || 0;
@@ -3051,6 +3063,7 @@ export class OrderService {
       `SELECT o.id, o."orderNo", o."orderStatus", o."totalValue",
               o."createdAt" AS order_date,
               EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0 AS hours,
+              ${pendingThresholdExpr} AS threshold,
               c.name AS customer_name, c."mobileNumber",
               sm.name AS shipping_method_name,
               COALESCE(dm.name, 'Unassigned') AS delivery_man_name
@@ -3061,7 +3074,7 @@ export class OrderService {
        WHERE o."orderStatus" NOT IN ('delivered', 'cancelled')
          AND o."createdAt" >= COALESCE($1::timestamptz, '1900-01-01'::timestamptz)
          AND o."createdAt" <= COALESCE($2::timestamptz, '2999-01-01'::timestamptz)
-         AND EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0 > $3
+         AND EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0 > ${pendingThresholdExpr}
        ORDER BY o."createdAt" ASC
        LIMIT $4 OFFSET $5`,
       [
@@ -3190,6 +3203,7 @@ export class OrderService {
       totalValue: parseFloat(row.totalValue) || 0,
       orderDate: row.order_date,
       hours: Math.round((parseFloat(row.hours) || 0) * 10) / 10,
+      threshold: parseFloat(row.threshold) || 0,
     }));
 
     return {
