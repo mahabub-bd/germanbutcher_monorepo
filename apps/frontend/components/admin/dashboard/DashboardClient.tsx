@@ -12,6 +12,7 @@ import { OrderStatsGrid } from "./OrderStatsGrid";
 
 interface DashboardClientProps {
   initialChartData: OrderSummary[];
+  allTimeChartData?: OrderSummary[];
   initialStatsData: DashboardReports["statistics"];
   productsCount: number;
   customersCount: number;
@@ -25,6 +26,7 @@ interface DashboardClientProps {
 
 export default function DashboardClient({
   initialChartData,
+  allTimeChartData,
   initialStatsData,
   productsCount,
   customersCount,
@@ -39,6 +41,7 @@ export default function DashboardClient({
     <>
       <DashboardStatsGrid
         chartData={initialChartData}
+        allTimeData={allTimeChartData}
         productsCount={productsCount}
         customersCount={customersCount}
         statsData={initialStatsData}

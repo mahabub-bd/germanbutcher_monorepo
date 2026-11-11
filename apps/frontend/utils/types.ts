@@ -128,6 +128,7 @@ export type DeliveryPerformance = {
 export type DashboardReports = {
   statistics: OrderStatistics;
   monthly: OrderSummary[];
+  monthlyAllTime?: OrderSummary[];
   last30DaysDelivered: Last30DaysData[];
   paymentMethodShare: PaymentMethodShare[];
   categorySales: CategorySales[];
