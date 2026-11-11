@@ -1,8 +1,8 @@
 "use client";
 
-import type { DocumentProps } from "@react-pdf/renderer";
 import { PdfDownloadButton } from "@/components/admin/reports/pdf-download-button";
 import { Button } from "@/components/ui/button";
+import type { DocumentProps } from "@react-pdf/renderer";
 import { FileText } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";

@@ -8,8 +8,8 @@ import {
 import { BogoUsageLogService } from 'src/bogo-usage-log/bogo-usage-log.service';
 import { CancellationReason, OrderStatus, PaymentStatus } from 'src/common/enums';
 import { formatDhakaDate, getDateRangeFromPreset, parseReportDate, } from 'src/common/utils/report-date-range.util';
-import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { CouponService } from 'src/coupon/coupon.service';
+import { Coupon } from 'src/coupon/entities/coupon.entity';
 import { DeliveryMan } from 'src/delivery-man/entities/delivery-man.entity';
 import {
   computeFlashPrice,
@@ -20,8 +20,6 @@ import { FreeDeliveryCampaignsService } from 'src/free-delivery-campaigns/free-d
 import { FreeDeliveryUsageLogService } from 'src/free-delivery-usage-log/free-delivery-usage-log.service';
 
 import { SmsService } from 'src/auth/sms.service';
-import { StockMovementType } from 'src/stock-movement/entities/stock-movement.entity';
-import { StockMovementService } from 'src/stock-movement/stock-movement.service';
 import { generateOrderConfirmationSMS } from 'src/auth/templates/order-confirmation-sms.template';
 import { DiscountType } from 'src/common/enums';
 import { CouponUsageLogService } from 'src/coupon-usage-log/coupon-usage-log.service';
@@ -31,6 +29,8 @@ import { OrderPaymentMethod } from 'src/order-payment-method/entities/order-paym
 import { OrderPaymentService } from 'src/order-payment/order-payment.service';
 import { Product } from 'src/product/entities/product.entity';
 import { ShippingMethod } from 'src/shipping-methods/entities/shipping-method.entity';
+import { StockMovementType } from 'src/stock-movement/entities/stock-movement.entity';
+import { StockMovementService } from 'src/stock-movement/stock-movement.service';
 import { User } from 'src/user/entities/user.entity';
 import {
   LessThan,
@@ -41,8 +41,8 @@ import {
 import { CancelOrderDto } from './dto/cancel-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItem } from './entities/order-item.entity';
-import { OrderStatusTrack } from './entities/order-status-track.entity';
 import { OrderNote } from './entities/order-note.entity';
+import { OrderStatusTrack } from './entities/order-status-track.entity';
 import { Order } from './entities/order.entity';
 
 /** System identifier of the offline payment method (order_payment_method.code) */
@@ -1039,6 +1039,7 @@ export class OrderService {
     const [
       statistics,
       monthlyReport,
+      monthlyAllTime,
       last30DaysDelivered,
       paymentMethodShare,
       categorySales,
@@ -1046,7 +1047,6 @@ export class OrderService {
       todaySnapshot,
       paymentDue,
       deliveryPerformance,
-      monthlyAllTime,
     ] = await Promise.all([
       this.getOrderStatistics(),
       // Rolling 12-month window for the dashboard chart
@@ -1065,8 +1065,7 @@ export class OrderService {
 
     return {
       statistics,
-      // getMonthlyOrderReport wraps its rows — expose the array itself so the
-      // payload matches the standalone /reports/monthly endpoint.
+      
       monthly: monthlyReport.monthlyData,
       monthlyAllTime: monthlyAllTime.monthlyData,
       last30DaysDelivered,
@@ -1079,10 +1078,7 @@ export class OrderService {
     };
   }
 
-  /** Delivery widget data: average time from order placement to the
-   * delivered status track, plus top delivery men by delivered orders over
-   * the last 30 days. Used by getDashboardReports and the delivery summary
-   * endpoint. */
+
   async getDeliveryPerformanceSummary(): Promise<{
     avgDeliveryHours: number | null;
     deliveredOrders30d: number;
