@@ -76,6 +76,7 @@ export default async function LateDeliveryReportPage({
       totalValue: number;
       orderDate: string;
       hours: number;
+      threshold?: number;
     }[];
     deliveredOrders: {
       orderId: number;

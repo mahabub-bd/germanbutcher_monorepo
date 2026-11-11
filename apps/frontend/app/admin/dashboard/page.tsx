@@ -2,8 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { Suspense } from "react";
 
-import { AnalyticsWidget } from "@/components/admin/analytics";
 import { AdminPageContainer } from "@/components/admin/admin-page-container";
+import { AnalyticsWidget } from "@/components/admin/analytics";
 import CombinedOrdersSalesChart from "@/components/admin/dashboard/combined-order-saleschart";
 import DashboardClient from "@/components/admin/dashboard/DashboardClient";
 

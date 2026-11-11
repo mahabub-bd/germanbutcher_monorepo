@@ -166,6 +166,7 @@ export function CustomerOrdersTable({
                                         createdAt={order.createdAt}
                                         deliveredAt={order.deliveredAt}
                                         cancelledAt={order.cancelledAt}
+                                        shippingMethod={order.shippingMethod?.name}
                                     />
                                 </TableCell>
                                 <TableCell className="text-right font-medium whitespace-nowrap tabular-nums">

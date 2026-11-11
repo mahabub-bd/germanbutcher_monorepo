@@ -650,6 +650,7 @@ export function OrderList({
                       createdAt={order.createdAt}
                       deliveredAt={order.deliveredAt}
                       cancelledAt={order.cancelledAt}
+                      shippingMethod={order.shippingMethod?.name}
                     />
                   </TableCell>
 
