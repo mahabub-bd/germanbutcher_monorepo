@@ -58,7 +58,8 @@ export interface PaymentRecord {
   amount: string;
   paymentDate: string;
   sslPaymentId: string | null;
-  order: OrderSummary;
+  /** Null for orphaned payments whose order no longer exists. */
+  order: OrderSummary | null;
   paymentMethod: PaymentMethod;
   createdBy: UserInfo | null;
   updatedBy: UserInfo | null;
@@ -122,7 +123,7 @@ export default function OrderPaymentList({
                 p.paymentDate,
                 parseFloat(p.amount),
                 p.paymentMethod.name,
-                p.order.orderNo,
+                p.order?.orderNo || "",
                 p.sslPaymentId || "",
               ])}
               summary={[
@@ -211,12 +212,12 @@ export default function OrderPaymentList({
           <StatsCard
             title="Paid Orders"
             value={String(
-              payments.filter((p) => p.order.paymentStatus === "paid")
+              payments.filter((p) => p.order?.paymentStatus === "paid")
                 .length
             )}
             count={formatCurrencyEnglish(
               payments
-                .filter((p) => p.order.paymentStatus === "paid")
+                .filter((p) => p.order?.paymentStatus === "paid")
                 .reduce((sum, p) => sum + parseFloat(p.amount), 0),
               0
             )}
@@ -288,12 +289,18 @@ export default function OrderPaymentList({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Link
-                      href={`/admin/order/${p.order.orderNo}/view`}
-                      className="font-medium hover:text-blue-600 hover:underline dark:hover:text-blue-400"
-                    >
-                      {p.order.orderNo}
-                    </Link>
+                    {p.order ? (
+                      <Link
+                        href={`/admin/order/${p.order.orderNo}/view`}
+                        className="font-medium hover:text-blue-600 hover:underline dark:hover:text-blue-400"
+                      >
+                        {p.order.orderNo}
+                      </Link>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        Order deleted
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="whitespace-nowrap font-mono text-xs">
                     {p.sslPaymentId || "—"}
