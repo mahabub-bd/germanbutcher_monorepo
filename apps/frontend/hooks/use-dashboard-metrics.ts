@@ -28,7 +28,10 @@ const EMPTY_MONTH: OrderSummary = {
 const growth = (curr: number, prev: number) =>
   prev === 0 ? 0 : ((curr - prev) / prev) * 100;
 
-export function useDashboardMetrics(chartData: OrderSummary[]) {
+export function useDashboardMetrics(
+  chartData: OrderSummary[],
+  allTimeData?: OrderSummary[]
+) {
   return useMemo(() => {
     const sorted = [...chartData].sort(
       (a, b) =>
@@ -39,7 +42,10 @@ export function useDashboardMetrics(chartData: OrderSummary[]) {
     const current = sorted.at(-1) ?? EMPTY_MONTH;
     const previous = sorted.at(-2) ?? EMPTY_MONTH;
 
-    const totals = chartData.reduce(
+    // Totals come from the unbounded dataset when provided, so "Total Sales"
+    // is truly all-time while the chart/month cards stay on the 12-month set.
+    const totalsSource = allTimeData?.length ? allTimeData : chartData;
+    const totals = totalsSource.reduce(
       (acc, cur) => {
         acc.sales += cur.totalValue;
         acc.orders += cur.orderCount;
@@ -60,5 +66,5 @@ export function useDashboardMetrics(chartData: OrderSummary[]) {
         previous.cancelValue ?? 0
       ),
     };
-  }, [chartData]);
+  }, [chartData, allTimeData]);
 }

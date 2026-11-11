@@ -48,6 +48,7 @@ async function DashboardReportsSection() {
     <div className="flex flex-col gap-4">
       <DashboardClient
         initialChartData={reports.monthly}
+        allTimeChartData={reports.monthlyAllTime ?? reports.monthly}
         initialStatsData={reports.statistics}
         productsCount={stockSummary.totalProducts}
         customersCount={customers.data.pagination.total}

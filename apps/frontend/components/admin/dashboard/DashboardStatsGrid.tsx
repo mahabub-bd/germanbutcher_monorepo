@@ -42,6 +42,7 @@ function toSharePieData(rows: { name: string; totalValue: number }[]) {
 
 interface DashboardStatsGridProps {
   chartData: OrderSummary[];
+  allTimeData?: OrderSummary[];
   productsCount: number;
   customersCount: number;
   statsData?: {
@@ -68,6 +69,7 @@ interface DashboardStatsGridProps {
 
 export default function DashboardStatsGrid({
   chartData,
+  allTimeData,
   productsCount,
   customersCount,
   statsData,
@@ -78,7 +80,7 @@ export default function DashboardStatsGrid({
   paymentDue,
   stockAlerts,
 }: DashboardStatsGridProps) {
-  const { current, previous, totals, salesGrowth, cancelGrowth } = useDashboardMetrics(chartData);
+  const { current, previous, totals, salesGrowth, cancelGrowth } = useDashboardMetrics(chartData, allTimeData);
 
   /**
    * Dynamic labels

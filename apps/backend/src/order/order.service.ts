@@ -1046,8 +1046,13 @@ export class OrderService {
       todaySnapshot,
       paymentDue,
       deliveryPerformance,
+      monthlyAllTime,
     ] = await Promise.all([
       this.getOrderStatistics(),
+      // Rolling 12-month window for the dashboard chart
+      this.getMonthlyOrderReport(undefined, { last12Months: true }),
+      // Unbounded monthly data so the "Total Sales" cards can show true
+      // all-time totals while the chart stays capped at 12 bars.
       this.getMonthlyOrderReport(),
       this.getLast30DaysDeliveredOrders(),
       this.getPaymentMethodShare(),
@@ -1063,6 +1068,7 @@ export class OrderService {
       // getMonthlyOrderReport wraps its rows — expose the array itself so the
       // payload matches the standalone /reports/monthly endpoint.
       monthly: monthlyReport.monthlyData,
+      monthlyAllTime: monthlyAllTime.monthlyData,
       last30DaysDelivered,
       paymentMethodShare,
       categorySales,
@@ -3285,7 +3291,10 @@ export class OrderService {
     return { summary, areas };
   }
 
-  async getMonthlyOrderReport(year?: number) {
+  async getMonthlyOrderReport(
+    year?: number,
+    opts?: { last12Months?: boolean },
+  ) {
     // Group by the Dhaka (UTC+6) calendar month, not UTC, so months align
     // with the Dhaka-based bounds the other report endpoints filter by.
     // createdAt stores UTC wall-clock in a timezone-less column.
@@ -3298,17 +3307,21 @@ export class OrderService {
           year,
         });
       }
-      // No year requested → rolling last 12 months (current Dhaka month plus
-      // the 11 before it), so the dashboard chart never grows past 12 bars.
-      const dhakaNow = new Date(Date.now() + 6 * 3600_000);
-      const startYear = dhakaNow.getUTCFullYear();
-      const startMonth = dhakaNow.getUTCMonth() - 11;
-      const startUtc = new Date(
-        Date.UTC(startYear, startMonth, 1) - 6 * 3600_000,
-      );
-      return qb.andWhere('order.createdAt >= :from', {
-        from: startUtc.toISOString(),
-      });
+      // Only the dashboard chart asks for the rolling last 12 months
+      // (current Dhaka month plus the 11 before it), so it never grows
+      // past 12 bars. The report endpoints default to all time.
+      if (opts?.last12Months) {
+        const dhakaNow = new Date(Date.now() + 6 * 3600_000);
+        const startYear = dhakaNow.getUTCFullYear();
+        const startMonth = dhakaNow.getUTCMonth() - 11;
+        const startUtc = new Date(
+          Date.UTC(startYear, startMonth, 1) - 6 * 3600_000,
+        );
+        return qb.andWhere('order.createdAt >= :from', {
+          from: startUtc.toISOString(),
+        });
+      }
+      return qb;
     };
 
     // Query for all orders (regardless of status)
