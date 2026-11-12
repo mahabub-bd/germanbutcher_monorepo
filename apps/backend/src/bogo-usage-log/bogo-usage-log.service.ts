@@ -60,6 +60,8 @@ export class BogoUsageLogService {
       .createQueryBuilder('log')
       .leftJoinAndSelect('log.campaign', 'campaign')
       .leftJoinAndSelect('log.order', 'order')
+      // Order's shipping address — the report shows the customer's area
+      .leftJoinAndSelect('order.address', 'address')
       .leftJoinAndSelect('log.user', 'user')
       .orderBy('log.createdAt', 'DESC')
       .skip(skip)

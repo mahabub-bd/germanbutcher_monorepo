@@ -11,7 +11,15 @@ import {
 } from "@/components/admin/reports/report-date-filters";
 import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -21,12 +29,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime } from "@/lib/utils";
-import { fetchDataPagination } from "@/utils/api-utils";
+import { formatDateTime, shortenArea } from "@/lib/utils";
+import { fetchDataPagination, fetchProtectedData } from "@/utils/api-utils";
 import { format } from "date-fns";
 import {
   Download,
   Loader2,
+  MapPin,
   Tag,
   Ticket,
   TrendingUp,
@@ -44,8 +53,13 @@ interface CouponUsageLogRow {
   discountAmount: number;
   orderTotal: number;
   createdAt: string;
-  user?: { id: number; name: string; email: string } | null;
-  order?: { id: number; orderNo: string } | null;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    mobileNumber: string;
+  } | null;
+  order?: { id: number; orderNo: string; area?: string | null } | null;
 }
 
 interface ReportStats {
@@ -60,12 +74,15 @@ interface CouponUsageReportProps {
   initialPreset?: string;
   initialFromDate?: string;
   initialToDate?: string;
+  initialCouponCode?: string;
 }
 
 const EXPORT_HEADERS = [
   "Date",
   "Coupon",
   "Customer",
+  "Mobile",
+  "Area",
   "Order No",
   "Discount",
   "Order Total",
@@ -114,6 +131,7 @@ export function CouponUsageReport({
   initialPreset,
   initialFromDate,
   initialToDate,
+  initialCouponCode,
 }: CouponUsageReportProps) {
   const router = useRouter();
   const [filters, setFilters] = useState<ReportFilterParams>({
@@ -121,6 +139,9 @@ export function CouponUsageReport({
     fromDate: initialFromDate,
     toDate: initialToDate,
   });
+  // Coupon-code filter — a Select over every code that has redemptions.
+  const [couponCode, setCouponCode] = useState(initialCouponCode ?? "");
+  const [couponCodes, setCouponCodes] = useState<string[]>([]);
   const [rows, setRows] = useState<CouponUsageLogRow[]>([]);
   const [stats, setStats] = useState<ReportStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -143,8 +164,15 @@ export function CouponUsageReport({
     setMounted(true);
   }, []);
 
+  // Codes for the filter dropdown — every code that appears in the logs.
+  useEffect(() => {
+    fetchProtectedData<string[]>("coupon-usage-logs/codes")
+      .then((codes) => setCouponCodes(Array.isArray(codes) ? codes : []))
+      .catch(() => setCouponCodes([]));
+  }, []);
+
   const range = useMemo(() => resolveRange(filters), [filters]);
-  const exportKey = `${range.fromDate ?? ""}|${range.toDate ?? ""}`;
+  const exportKey = `${range.fromDate ?? ""}|${range.toDate ?? ""}|${couponCode}`;
   const exportRows =
     exportState && exportState.key === exportKey ? exportState.rows : null;
 
@@ -157,9 +185,10 @@ export function CouponUsageReport({
       }
       if (range.fromDate) params.set("fromDate", range.fromDate);
       if (range.toDate) params.set("toDate", range.toDate);
+      if (couponCode) params.set("couponCode", couponCode);
       return params.toString();
     },
-    [range, limit]
+    [range, limit, couponCode]
   );
 
   const fetchReport = useCallback(
@@ -199,10 +228,15 @@ export function CouponUsageReport({
   const handleFilterApply = (params: ReportFilterParams) => {
     setFilters(params);
     setCurrentPage(1);
+    // An explicit Clear (params.clear) also resets the coupon-code filter.
+    if (params.clear) {
+      setCouponCode("");
+    }
     const search = new URLSearchParams();
     if (params.preset) search.set("preset", params.preset);
     if (params.fromDate) search.set("fromDate", params.fromDate);
     if (params.toDate) search.set("toDate", params.toDate);
+    if (couponCode) search.set("couponCode", couponCode);
     router.push(`/admin/reports/coupon-usage?${search.toString()}`, {
       scroll: false,
     });
@@ -221,6 +255,7 @@ export function CouponUsageReport({
         params.set("limit", "500");
         if (range.fromDate) params.set("fromDate", range.fromDate);
         if (range.toDate) params.set("toDate", range.toDate);
+        if (couponCode) params.set("couponCode", couponCode);
         const response = await fetchDataPagination<{
           data: CouponUsageLogRow[];
           totalPages: number;
@@ -248,6 +283,8 @@ export function CouponUsageReport({
     formatDateTime(row.createdAt),
     row.couponCode,
     row.user?.name || "-",
+    row.user?.mobileNumber || "-",
+    row.order?.area || "-",
     row.order?.orderNo || "-",
     formatMoney(row.discountAmount),
     formatMoney(row.orderTotal),
@@ -300,6 +337,8 @@ export function CouponUsageReport({
                     { header: "Date", width: 2 },
                     { header: "Coupon", width: 1.1 },
                     { header: "Customer", width: 1.6 },
+                    { header: "Mobile", width: 1.2 },
+                    { header: "Area", width: 1.3 },
                     { header: "Order No", width: 1.3 },
                     { header: "Discount", width: 1, align: "right" },
                     { header: "Order Total", width: 1, align: "right" },
@@ -336,6 +375,31 @@ export function CouponUsageReport({
         preset={filters.preset}
         fromDate={filters.fromDate}
         toDate={filters.toDate}
+        extraLabel="Coupon Code"
+        extra={
+          <Select
+            value={couponCode || "all"}
+            onValueChange={(value) => {
+              setCouponCode(value === "all" ? "" : value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="w-full text-xs md:w-40 md:shrink-0 2xl:w-44 2xl:text-sm">
+              <SelectValue placeholder="All coupons" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All coupons</SelectItem>
+              {(couponCode && !couponCodes.includes(couponCode)
+                ? [...couponCodes, couponCode].sort()
+                : couponCodes
+              ).map((code) => (
+                <SelectItem key={code} value={code}>
+                  {code}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        }
         onApply={handleFilterApply}
       />
 
@@ -415,7 +479,10 @@ export function CouponUsageReport({
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="pl-4">Coupon</TableHead>
+                  <TableHead>Date &amp; Time</TableHead>
                   <TableHead>Customer</TableHead>
+                  <TableHead>Mobile Number</TableHead>
+                  <TableHead>Area</TableHead>
                   <TableHead>Order</TableHead>
                   <TableHead className="text-right">Discount</TableHead>
                   <TableHead className="pr-4 text-right">Order Total</TableHead>
@@ -425,15 +492,13 @@ export function CouponUsageReport({
                 {rows.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell className="py-2.5 pl-4">
-                      {/* One line: coupon code + date, both at 14px */}
-                      <div className="flex items-center gap-2 whitespace-nowrap">
-                        <PillBadge tone="violet" className="shrink-0">
-                          {row.couponCode}
-                        </PillBadge>
-                        <span className="truncate text-sm text-muted-foreground">
-                          {formatDateTime(row.createdAt)}
-                        </span>
-                      </div>
+                      <PillBadge tone="violet">{row.couponCode}</PillBadge>
+                    </TableCell>
+
+                    <TableCell>
+                      <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                        {formatDateTime(row.createdAt)}
+                      </span>
                     </TableCell>
 
                     <TableCell>
@@ -443,6 +508,38 @@ export function CouponUsageReport({
                       >
                         {row.user?.name || "N/A"}
                       </p>
+                    </TableCell>
+
+                    <TableCell>
+                      {row.user?.mobileNumber ? (
+                        <a
+                          href={`tel:${row.user.mobileNumber}`}
+                          className="whitespace-nowrap text-sm text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          {row.user.mobileNumber}
+                        </a>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+
+                    <TableCell>
+                      {row.order?.area ? (
+                        <Badge
+                          variant="secondary"
+                          className="max-w-40 truncate border-transparent bg-violet-100 font-normal text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
+                          title={row.order.area}
+                        >
+                          <span className="flex min-w-0 items-center gap-1">
+                            <MapPin className="size-3 shrink-0" />
+                            <span className="truncate">
+                              {shortenArea(row.order.area, 4)}
+                            </span>
+                          </span>
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
                     </TableCell>
 
                     <TableCell>
@@ -477,7 +574,7 @@ export function CouponUsageReport({
                   <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Page total
                   </TableCell>
-                  <TableCell colSpan={2} />
+                  <TableCell colSpan={5} />
                   <TableCell className="text-right">
                     <span className="text-sm font-bold tabular-nums text-amber-600 dark:text-amber-400">
                       −{bare(pageTotals.discount)}
@@ -516,12 +613,27 @@ export function CouponUsageReport({
 
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
                   <span className="font-medium">{row.user?.name || "N/A"}</span>
+                  {row.user?.mobileNumber && (
+                    <a
+                      href={`tel:${row.user.mobileNumber}`}
+                      className="text-blue-600 hover:underline dark:text-blue-400"
+                    >
+                      {row.user.mobileNumber}
+                    </a>
+                  )}
                   {row.user?.email && (
                     <span className="truncate text-muted-foreground">
                       {row.user.email}
                     </span>
                   )}
                 </div>
+
+                {row.order?.area && (
+                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <MapPin className="size-3 shrink-0" />
+                    {row.order.area}
+                  </p>
+                )}
 
                 <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-2.5">
                   <div>

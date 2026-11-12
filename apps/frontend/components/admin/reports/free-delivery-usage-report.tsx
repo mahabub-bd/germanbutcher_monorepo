@@ -11,6 +11,7 @@ import {
 } from "@/components/admin/reports/report-date-filters";
 import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { PillBadge } from "@/components/common/pill-badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -21,12 +22,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, shortenArea } from "@/lib/utils";
 import { fetchDataPagination } from "@/utils/api-utils";
 import { format } from "date-fns";
 import {
   Download,
   Loader2,
+  MapPin,
   Ticket,
   TrendingUp,
   Truck,
@@ -44,8 +46,17 @@ interface FreeDeliveryUsageRow {
   shippingWaived: string | number;
   orderTotal: string | number;
   createdAt: string;
-  user?: { id: number; name: string; email: string } | null;
-  order?: { id: number; orderNo: string } | null;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    mobileNumber: string;
+  } | null;
+  order?: {
+    id: number;
+    orderNo: string;
+    address?: { area?: string | null } | null;
+  } | null;
 }
 
 interface ReportStats {
@@ -65,6 +76,8 @@ interface FreeDeliveryUsageReportProps {
 const EXPORT_HEADERS = [
   "Date",
   "Customer",
+  "Mobile",
+  "Area",
   "Order No",
   "Campaign",
   "Waived",
@@ -247,6 +260,8 @@ export function FreeDeliveryUsageReport({
   const exportData = (exportRows ?? []).map((row) => [
     formatDateTime(row.createdAt),
     row.user?.name || "-",
+    row.user?.mobileNumber || "-",
+    row.order?.address?.area || "-",
     row.order?.orderNo || "-",
     row.campaignName,
     formatMoney(row.shippingWaived),
@@ -302,6 +317,8 @@ export function FreeDeliveryUsageReport({
                   columns={[
                     { header: "Date", width: 2 },
                     { header: "Customer", width: 1.6 },
+                    { header: "Mobile", width: 1.2 },
+                    { header: "Area", width: 1.3 },
                     { header: "Order No", width: 1.3 },
                     { header: "Campaign", width: 1.6 },
                     { header: "Waived", width: 1.1, align: "right" },
@@ -418,7 +435,10 @@ export function FreeDeliveryUsageReport({
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="pl-4">Campaign</TableHead>
+                  <TableHead>Date &amp; Time</TableHead>
                   <TableHead>Customer</TableHead>
+                  <TableHead>Mobile Number</TableHead>
+                  <TableHead>Area</TableHead>
                   <TableHead>Order</TableHead>
                   <TableHead className="text-right">Shipping Waived</TableHead>
                   <TableHead className="pr-4 text-right">Order Total</TableHead>
@@ -428,19 +448,19 @@ export function FreeDeliveryUsageReport({
                 {rows.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell className="py-2.5 pl-4">
-                      {/* One line: campaign + date, both at 14px */}
-                      <div className="flex items-center gap-2 whitespace-nowrap">
-                        <PillBadge
-                          tone="violet"
-                          className="max-w-44 shrink-0 truncate font-normal"
-                          title={row.campaignName}
-                        >
-                          {row.campaignName}
-                        </PillBadge>
-                        <span className="truncate text-sm text-muted-foreground">
-                          {formatDateTime(row.createdAt)}
-                        </span>
-                      </div>
+                      <PillBadge
+                        tone="violet"
+                        className="max-w-44 shrink-0 truncate font-normal"
+                        title={row.campaignName}
+                      >
+                        {row.campaignName}
+                      </PillBadge>
+                    </TableCell>
+
+                    <TableCell>
+                      <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                        {formatDateTime(row.createdAt)}
+                      </span>
                     </TableCell>
 
                     <TableCell>
@@ -450,6 +470,38 @@ export function FreeDeliveryUsageReport({
                       >
                         {row.user?.name || "N/A"}
                       </p>
+                    </TableCell>
+
+                    <TableCell>
+                      {row.user?.mobileNumber ? (
+                        <a
+                          href={`tel:${row.user.mobileNumber}`}
+                          className="whitespace-nowrap text-sm text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          {row.user.mobileNumber}
+                        </a>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+
+                    <TableCell>
+                      {row.order?.address?.area ? (
+                        <Badge
+                          variant="secondary"
+                          className="max-w-40 truncate border-transparent bg-violet-100 font-normal text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
+                          title={row.order.address.area}
+                        >
+                          <span className="flex min-w-0 items-center gap-1">
+                            <MapPin className="size-3 shrink-0" />
+                            <span className="truncate">
+                              {shortenArea(row.order.address.area, 4)}
+                            </span>
+                          </span>
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
                     </TableCell>
 
                     <TableCell>
@@ -484,7 +536,7 @@ export function FreeDeliveryUsageReport({
                   <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Page total
                   </TableCell>
-                  <TableCell colSpan={2} />
+                  <TableCell colSpan={6} />
                   <TableCell className="text-right">
                     <span className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
                       −{bare(pageTotals.waived)}
@@ -529,12 +581,27 @@ export function FreeDeliveryUsageReport({
 
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
                   <span className="font-medium">{row.user?.name || "N/A"}</span>
+                  {row.user?.mobileNumber && (
+                    <a
+                      href={`tel:${row.user.mobileNumber}`}
+                      className="text-blue-600 hover:underline dark:text-blue-400"
+                    >
+                      {row.user.mobileNumber}
+                    </a>
+                  )}
                   {row.user?.email && (
                     <span className="truncate text-muted-foreground">
                       {row.user.email}
                     </span>
                   )}
                 </div>
+
+                {row.order?.address?.area && (
+                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <MapPin className="size-3 shrink-0" />
+                    {row.order.address.area}
+                  </p>
+                )}
 
                 <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-2.5">
                   <div>
