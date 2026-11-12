@@ -2,6 +2,7 @@
 
 import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { TableSearch } from "@/components/common/table-search";
+import { TableRowsSkeleton } from "@/components/admin/dashboard/dashboard-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +28,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ProductImage } from "../image-wrapper";
-import { LoadingIndicator } from "../loading-indicator";
 
 interface LowStockReportProps {
   initialPage?: number;
@@ -230,11 +230,19 @@ export function LowStockReport({
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
-                  <LoadingIndicator message="Loading..." />
-                </TableCell>
-              </TableRow>
+              <TableRowsSkeleton
+                rows={limit}
+                cells={[
+                  "avatar",
+                  "text",
+                  "badge",
+                  "badge",
+                  "center",
+                  "badge",
+                  "right",
+                  "right",
+                ]}
+              />
             ) : products.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-12">
@@ -355,11 +363,7 @@ export function LowStockReport({
       </div>
 
       {renderActiveFilters()}
-      {isLoading ? (
-        <LoadingIndicator message="Loading low stock report..." />
-      ) : (
-        renderTableView()
-      )}
+      {renderTableView()}
     </div>
   );
 }

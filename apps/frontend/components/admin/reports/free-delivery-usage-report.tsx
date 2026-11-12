@@ -431,17 +431,24 @@ export function FreeDeliveryUsageReport({
 
           {/* Desktop table */}
           <div className="hidden md:block">
-            <Table className="report-table">
+            {/* Fixed layout: percentage widths keep every column — including
+                the Page-total footer cells — in a stable grid at any content
+                length. No minimum width: the table always fits its container. */}
+            <Table className="report-table table-fixed">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-4">Campaign</TableHead>
-                  <TableHead>Date &amp; Time</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Mobile Number</TableHead>
-                  <TableHead>Area</TableHead>
-                  <TableHead>Order</TableHead>
-                  <TableHead className="text-right">Shipping Waived</TableHead>
-                  <TableHead className="pr-4 text-right">Order Total</TableHead>
+                  <TableHead className="w-[16%] pl-4">Campaign</TableHead>
+                  <TableHead className="w-[14%]">Date &amp; Time</TableHead>
+                  <TableHead className="w-[13%]">Customer</TableHead>
+                  <TableHead className="w-[12%]">Mobile Number</TableHead>
+                  <TableHead className="w-[12%]">Area</TableHead>
+                  <TableHead className="w-[10%]">Order</TableHead>
+                  <TableHead className="w-[11%] text-right">
+                    Shipping Waived
+                  </TableHead>
+                  <TableHead className="w-[12%] pr-4 text-right">
+                    Order Total
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -458,7 +465,7 @@ export function FreeDeliveryUsageReport({
                     </TableCell>
 
                     <TableCell>
-                      <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                      <span className="text-sm tabular-nums text-muted-foreground">
                         {formatDateTime(row.createdAt)}
                       </span>
                     </TableCell>
@@ -536,7 +543,7 @@ export function FreeDeliveryUsageReport({
                   <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Page total
                   </TableCell>
-                  <TableCell colSpan={6} />
+                  <TableCell colSpan={5} />
                   <TableCell className="text-right">
                     <span className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
                       −{bare(pageTotals.waived)}

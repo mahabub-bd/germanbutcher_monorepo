@@ -1,10 +1,11 @@
 export const dynamic = "force-dynamic";
 
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import MonthlyOrderReportList, {
   type MonthlyData,
+  type MonthlyTotals,
 } from "@/components/admin/reports/monthly-orders/monthly-order-list";
 import { fetchProtectedData } from "@/utils/api-utils";
-import { AdminPageContainer } from "@/components/admin/admin-page-container";
 
 export default async function MonthlyOrderReportPage({
   searchParams,
@@ -17,14 +18,24 @@ export default async function MonthlyOrderReportPage({
   const year = /^\d{4}$/.test(yearParam) ? Number(yearParam) : undefined;
 
   let monthlyData: MonthlyData[] = [];
+  let totals: MonthlyTotals | null = null;
   let availableYears: number[] = [];
 
   try {
     const endpoint = year
       ? `orders/reports/monthly?year=${year}`
       : `orders/reports/monthly`;
-    const response = await fetchProtectedData(endpoint);
-    monthlyData = Array.isArray(response) ? (response as MonthlyData[]) : [];
+    const response = await fetchProtectedData<{
+      monthlyData: MonthlyData[];
+      totals?: MonthlyTotals;
+    }>(endpoint);
+    if (Array.isArray(response)) {
+      // Old envelope (array only) — no backend totals available.
+      monthlyData = response as MonthlyData[];
+    } else {
+      monthlyData = response?.monthlyData ?? [];
+      totals = response?.totals ?? null;
+    }
   } catch (error) {
     console.error("❌ Failed to fetch monthly order report:", error);
     monthlyData = [];
@@ -44,6 +55,7 @@ export default async function MonthlyOrderReportPage({
         monthlyData={monthlyData}
         availableYears={availableYears}
         selectedYear={year}
+        totals={totals}
       />
     </AdminPageContainer>
   );

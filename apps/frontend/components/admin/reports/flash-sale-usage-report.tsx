@@ -533,7 +533,7 @@ export function FlashSaleUsageReport({
                   <TableCell className="pl-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Page total
                   </TableCell>
-                  <TableCell colSpan={6} />
+                  <TableCell colSpan={5} />
                   <TableCell className="text-right">
                     <span className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
                       −{bare(pageTotals.discount)}

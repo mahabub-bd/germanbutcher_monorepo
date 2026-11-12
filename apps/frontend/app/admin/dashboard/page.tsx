@@ -6,6 +6,10 @@ import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { AnalyticsWidget } from "@/components/admin/analytics";
 import CombinedOrdersSalesChart from "@/components/admin/dashboard/combined-order-saleschart";
 import DashboardClient from "@/components/admin/dashboard/DashboardClient";
+import {
+  AnalyticsSkeleton,
+  DashboardReportsSkeleton,
+} from "@/components/admin/dashboard/dashboard-skeleton";
 
 import Last30DaysDeliveredChart from "@/components/admin/dashboard/last-30-days-delivered-chart";
 
@@ -85,29 +89,15 @@ async function AnalyticsSection() {
   }
 }
 
-// Pulse placeholders so the shell paints instantly and each section streams
-// in as its data resolves.
-function ReportsSkeleton() {
-  return (
-    <AdminPageContainer className="md:p-4 p-2 space-y-6 rounded-sm flex flex-col gap-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="h-27.5 animate-pulse rounded-lg bg-muted" />
-        ))}
-      </div>
-      <div className="h-87.5 animate-pulse rounded-lg bg-muted" />
-      <div className="h-87.5 animate-pulse rounded-lg bg-muted" />
-    </AdminPageContainer>
-  );
-}
-
+// Layout-matched placeholders so the shell paints instantly and each section
+// streams in as its data resolves.
 export default function DashboardPage() {
   return (
     <AdminPageContainer className="md:p-4 p-2 space-y-6 rounded-sm flex flex-col gap-4">
-      <Suspense fallback={<ReportsSkeleton />}>
+      <Suspense fallback={<DashboardReportsSkeleton />}>
         <DashboardReportsSection />
       </Suspense>
-      <Suspense fallback={null}>
+      <Suspense fallback={<AnalyticsSkeleton />}>
         <AnalyticsSection />
       </Suspense>
       <OrderList initialPage={1} initialLimit={10} />

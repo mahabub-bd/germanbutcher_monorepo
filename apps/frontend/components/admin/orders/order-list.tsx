@@ -5,6 +5,7 @@ import type React from "react";
 import { AddPaymentModal } from "@/components/admin/orders/add-payment-modal";
 import { EditOrderModal } from "@/components/admin/orders/edit-order-modal";
 import { PageHeader } from "@/components/admin/page-header";
+import { TableRowsSkeleton } from "@/components/admin/dashboard/dashboard-skeleton";
 import { usePermissions } from "@/components/admin/permissions/use-permissions";
 import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
 import { TableSearch } from "@/components/common/table-search";
@@ -17,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -444,46 +446,21 @@ export function OrderList({
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              [...Array(limit)].map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
-                      <div className="h-3 w-28 bg-gray-200 rounded animate-pulse" />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="h-4 w-28 bg-gray-200 rounded animate-pulse" />
-                      <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="h-6 w-24 bg-gray-200 rounded-full animate-pulse" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="h-6 w-24 bg-gray-200 rounded-full animate-pulse" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="mx-auto h-4 w-12 bg-gray-200 rounded animate-pulse" />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse ml-auto" />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="h-8 w-8 bg-gray-200 rounded animate-pulse ml-auto" />
-                  </TableCell>
-                </TableRow>
-              ))
+              <TableRowsSkeleton
+                rows={limit}
+                cells={[
+                  "lines",
+                  "lines",
+                  "badge",
+                  "badge",
+                  "badge",
+                  "badge",
+                  "badge",
+                  "center",
+                  "right",
+                  "action",
+                ]}
+              />
             ) : orders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10} className="text-center py-12">
@@ -739,11 +716,11 @@ export function OrderList({
       {/* Loading Pagination Skeleton — inset divider inside the card */}
       {isLoading && (
         <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 md:flex-row">
-          <div className="h-4 w-36 bg-gray-200 rounded animate-pulse md:w-48" />
+          <Skeleton className="h-4 w-36 md:w-48" />
           <div className="flex gap-1">
-            <div className="h-8 w-8 md:h-9 md:w-9 bg-gray-200 rounded animate-pulse" />
-            <div className="h-8 w-8 md:h-9 md:w-9 bg-gray-200 rounded animate-pulse" />
-            <div className="h-8 w-8 md:h-9 md:w-9 bg-gray-200 rounded animate-pulse" />
+            <Skeleton className="size-8 md:size-9" />
+            <Skeleton className="size-8 md:size-9" />
+            <Skeleton className="size-8 md:size-9" />
           </div>
         </div>
       )}

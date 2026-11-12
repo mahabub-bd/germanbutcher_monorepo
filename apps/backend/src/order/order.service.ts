@@ -2915,6 +2915,8 @@ export class OrderService {
     thresholdHoursParam?: string,
     pendingPageParam?: string,
     pendingLimitParam?: string,
+    paidPageParam?: string,
+    paidLimitParam?: string,
     deliveredPageParam?: string,
     deliveredLimitParam?: string,
   ) {
@@ -3034,6 +3036,13 @@ export class OrderService {
       200,
       Math.max(1, parseInt(pendingLimitParam ?? '25', 10) || 25),
     );
+    // Paid and Unpaid are paginated independently so each section's row
+    // list and badge total always describe the same set.
+    const paidPage = Math.max(1, parseInt(paidPageParam ?? '1', 10) || 1);
+    const paidLimit = Math.min(
+      200,
+      Math.max(1, parseInt(paidLimitParam ?? '25', 10) || 25),
+    );
 
     // Same per-method timelines as the delivered/late logic above — an
     // Inside Dhaka order only turns "long pending" after 48h, not the flat
@@ -3085,6 +3094,7 @@ export class OrderService {
        LEFT JOIN shipping_method sm ON sm.id = o."shippingMethodId"
        LEFT JOIN delivery_man dm ON o."deliveryManId" = dm.id
        WHERE o."orderStatus" NOT IN ('delivered', 'cancelled')
+         AND o."paymentStatus" <> 'paid'
          AND o."createdAt" >= COALESCE($1::timestamptz, '1900-01-01'::timestamptz)
          AND o."createdAt" <= COALESCE($2::timestamptz, '2999-01-01'::timestamptz)
          AND EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0 > ${pendingThresholdExpr}
@@ -3096,6 +3106,36 @@ export class OrderService {
         thresholdHours,
         pendingLimit,
         (pendingPage - 1) * pendingLimit,
+      ],
+    );
+
+    // Same list restricted to fully paid orders — the "Long pending — Paid"
+    // section, with its own page slice.
+    const paidRows: Record<string, any>[] = await this.orderRepository.query(
+      `SELECT o.id, o."orderNo", o."orderStatus", o."paymentStatus", o."totalValue",
+              o."createdAt" AS order_date,
+              EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0 AS hours,
+              ${pendingThresholdExpr} AS threshold,
+              c.name AS customer_name, c."mobileNumber",
+              sm.name AS shipping_method_name,
+              COALESCE(dm.name, 'Unassigned') AS delivery_man_name
+       FROM "order" o
+       LEFT JOIN "user" c ON o."userId" = c.id
+       LEFT JOIN shipping_method sm ON sm.id = o."shippingMethodId"
+       LEFT JOIN delivery_man dm ON o."deliveryManId" = dm.id
+       WHERE o."orderStatus" NOT IN ('delivered', 'cancelled')
+         AND o."paymentStatus" = 'paid'
+         AND o."createdAt" >= COALESCE($1::timestamptz, '1900-01-01'::timestamptz)
+         AND o."createdAt" <= COALESCE($2::timestamptz, '2999-01-01'::timestamptz)
+         AND EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0 > ${pendingThresholdExpr}
+       ORDER BY o."createdAt" ASC
+       LIMIT $4 OFFSET $5`,
+      [
+        from ?? null,
+        to ?? null,
+        thresholdHours,
+        paidLimit,
+        (paidPage - 1) * paidLimit,
       ],
     );
 
@@ -3210,7 +3250,7 @@ export class OrderService {
         (parseFloat(row.hours) || 0) > (parseFloat(row.threshold) || 0),
     }));
 
-    const pendingOrders = pendingRows.map((row) => ({
+    const mapPendingRow = (row: Record<string, any>) => ({
       orderId: parseInt(row.id, 10),
       orderNo: row.orderNo,
       status: row.orderStatus,
@@ -3223,16 +3263,25 @@ export class OrderService {
       orderDate: row.order_date,
       hours: Math.round((parseFloat(row.hours) || 0) * 10) / 10,
       threshold: parseFloat(row.threshold) || 0,
-    }));
+    });
+
+    const pendingOrders = pendingRows.map(mapPendingRow);
+    const paidOrders = paidRows.map(mapPendingRow);
 
     return {
       summary,
       deliveryMen,
       lateOrders,
       pendingOrders,
+      paidOrders,
       deliveredOrders,
       /** Pagination state echoed back so the UI can render controls. */
-      pending: { page: pendingPage, limit: pendingLimit, total: pendingTotal },
+      pending: {
+        page: pendingPage,
+        limit: pendingLimit,
+        total: pendingUnpaidTotal,
+      },
+      paid: { page: paidPage, limit: paidLimit, total: pendingPaidTotal },
       delivered: { page: deliveredPage, limit: deliveredLimit, total: deliveredTotal },
     };
   }
@@ -3534,7 +3583,47 @@ export class OrderService {
         return monthB - monthA;
       });
 
-    return { monthlyData: formattedData };
+    // Range-wide totals for the stat cards — one aggregate row using the same
+    // per-status FILTERs as getOrderStatistics (dashboard), honoring the year
+    // filter, so the cards are authoritative instead of summed client-side.
+    // NOTE: raw select strings pass through verbatim — "order" must be fully
+    // quoted because it is a Postgres reserved word.
+    const totalsRows: Record<string, any>[] = await withYearFilter(
+      this.orderRepository
+        .createQueryBuilder('order')
+        .select([
+          'COUNT("order"."id") AS all_order_count',
+          'COALESCE(SUM("order"."totalValue"), 0) AS all_order_value',
+          `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.DELIVERED}') AS delivered_count`,
+          `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.DELIVERED}'), 0) AS delivered_value`,
+          `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.PENDING}') AS pending_count`,
+          `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.PENDING}'), 0) AS pending_value`,
+          `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.PROCESSING}') AS processing_count`,
+          `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.PROCESSING}'), 0) AS processing_value`,
+          `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.ON_HOLD}') AS on_hold_count`,
+          `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.ON_HOLD}'), 0) AS on_hold_value`,
+          `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.CANCELLED}') AS cancelled_count`,
+          `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.CANCELLED}'), 0) AS cancelled_value`,
+        ]),
+    ).getRawMany();
+
+    const totalsRow = totalsRows[0] ?? {};
+    const totals = {
+      totalOrders: parseInt(totalsRow.all_order_count, 10) || 0,
+      totalValue: parseFloat(totalsRow.all_order_value) || 0,
+      deliveredCount: parseInt(totalsRow.delivered_count, 10) || 0,
+      deliveredValue: parseFloat(totalsRow.delivered_value) || 0,
+      pendingCount: parseInt(totalsRow.pending_count, 10) || 0,
+      pendingValue: parseFloat(totalsRow.pending_value) || 0,
+      processingCount: parseInt(totalsRow.processing_count, 10) || 0,
+      processingValue: parseFloat(totalsRow.processing_value) || 0,
+      onHoldCount: parseInt(totalsRow.on_hold_count, 10) || 0,
+      onHoldValue: parseFloat(totalsRow.on_hold_value) || 0,
+      cancelledCount: parseInt(totalsRow.cancelled_count, 10) || 0,
+      cancelledValue: parseFloat(totalsRow.cancelled_value) || 0,
+    };
+
+    return { monthlyData: formattedData, totals };
   }
 
   async getMonthlyOrderReportYears() {

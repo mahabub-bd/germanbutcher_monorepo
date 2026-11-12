@@ -37,7 +37,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { LoadingIndicator } from "../loading-indicator";
+import { TopProductsSkeleton } from "./dashboard-skeleton";
 
 interface ProductUnit {
   id: number;
@@ -128,13 +128,7 @@ export default function TopSaleProductsList() {
   }, [limit, timeFilter]);
 
   if (loading) {
-    return (
-      <Card className="w-full gap-0 overflow-hidden rounded-xl border-border/70 py-0 shadow-sm">
-        <div className="flex min-h-50 items-center justify-center">
-          <LoadingIndicator message="Loading top selling products..." />
-        </div>
-      </Card>
-    );
+    return <TopProductsSkeleton rows={limit} />;
   }
 
   return (
