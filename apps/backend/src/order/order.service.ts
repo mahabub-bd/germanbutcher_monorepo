@@ -3045,9 +3045,16 @@ export class OrderService {
            ELSE $3
          END`;
 
-    // Count first so the UI can page and show true totals.
+    // Count first so the UI can page and show true totals. Paid/Unpaid are
+    // counted separately so the two "Long pending" sections can show their
+    // own totals, not just the current page's share.
     const pendingCountRows: Record<string, any>[] = await this.orderRepository.query(
-      `SELECT COUNT(o.id) AS count, COALESCE(SUM(o."totalValue"), 0) AS total_value
+      `SELECT COUNT(o.id) AS count,
+              COALESCE(SUM(o."totalValue"), 0) AS total_value,
+              COUNT(o.id) FILTER (WHERE o."paymentStatus" = 'paid') AS paid_count,
+              COALESCE(SUM(o."totalValue") FILTER (WHERE o."paymentStatus" = 'paid'), 0) AS paid_value,
+              COUNT(o.id) FILTER (WHERE o."paymentStatus" <> 'paid') AS unpaid_count,
+              COALESCE(SUM(o."totalValue") FILTER (WHERE o."paymentStatus" <> 'paid'), 0) AS unpaid_value
        FROM "order" o
        LEFT JOIN shipping_method sm ON sm.id = o."shippingMethodId"
        WHERE o."orderStatus" NOT IN ('delivered', 'cancelled')
@@ -3058,9 +3065,15 @@ export class OrderService {
     );
     const pendingTotal = parseInt(pendingCountRows[0]?.count, 10) || 0;
     const pendingValue = parseFloat(pendingCountRows[0]?.total_value) || 0;
+    const pendingPaidTotal = parseInt(pendingCountRows[0]?.paid_count, 10) || 0;
+    const pendingPaidValue = parseFloat(pendingCountRows[0]?.paid_value) || 0;
+    const pendingUnpaidTotal =
+      parseInt(pendingCountRows[0]?.unpaid_count, 10) || 0;
+    const pendingUnpaidValue =
+      parseFloat(pendingCountRows[0]?.unpaid_value) || 0;
 
     const pendingRows: Record<string, any>[] = await this.orderRepository.query(
-      `SELECT o.id, o."orderNo", o."orderStatus", o."totalValue",
+      `SELECT o.id, o."orderNo", o."orderStatus", o."paymentStatus", o."totalValue",
               o."createdAt" AS order_date,
               EXTRACT(EPOCH FROM (NOW() - o."createdAt")) / 3600.0 AS hours,
               ${pendingThresholdExpr} AS threshold,
@@ -3173,6 +3186,11 @@ export class OrderService {
       /** True totals for the two paginated lists below. */
       pendingTotal,
       pendingValue,
+      /** Paid/Unpaid split of the long-pending list for its two sections. */
+      pendingPaidTotal,
+      pendingPaidValue,
+      pendingUnpaidTotal,
+      pendingUnpaidValue,
       deliveredTotal,
     };
 
@@ -3196,6 +3214,7 @@ export class OrderService {
       orderId: parseInt(row.id, 10),
       orderNo: row.orderNo,
       status: row.orderStatus,
+      paymentStatus: row.paymentStatus,
       customerName: row.customer_name ?? 'Unknown',
       mobileNumber: row.mobileNumber ?? null,
       deliveryMan: row.delivery_man_name,

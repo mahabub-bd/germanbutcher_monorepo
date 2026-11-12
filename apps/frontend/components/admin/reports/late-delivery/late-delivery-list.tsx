@@ -14,6 +14,7 @@ import {
 import { ReportTablePDF } from "@/components/admin/reports/report-pdf-document";
 import { PillBadge } from "@/components/common/pill-badge";
 import { ListPaginationFooter } from "@/components/common/list-pagination-footer";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -26,6 +27,14 @@ import {
 } from "@/components/ui/table";
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish, formatDateTime } from "@/lib/utils";
+import {
+  getOrderStatusColor,
+  getPaymentStatusColor,
+  getPaymentStatusLabel,
+  getShippingMethodColor,
+  getShippingMethodIcon,
+  getStatusIcon,
+} from "@/utils/order-helper";
 import {
   AlarmClockOff,
   PackageCheck,
@@ -63,6 +72,7 @@ interface PendingOrderRow {
   orderId: number;
   orderNo: string;
   status: string;
+  paymentStatus: string;
   customerName: string;
   mobileNumber: string | null;
   deliveryMan: string;
@@ -102,6 +112,9 @@ interface Summary {
   lateMenCount: number;
   pendingTotal?: number;
   pendingValue?: number;
+  /** Paid/Unpaid split of the long-pending list for its two sections. */
+  pendingPaidTotal?: number;
+  pendingUnpaidTotal?: number;
   deliveredTotal?: number;
 }
 
@@ -234,18 +247,209 @@ export default function LateDeliveryList({
     hours1(dm.worstHours),
   ]);
 
-  const pendingExportRows = pendingOrders.map((o) => [
-    o.orderNo,
-    o.status,
-    o.customerName,
-    o.mobileNumber ?? "",
-    o.deliveryMan,
-    o.shippingMethod ?? "",
-    formatDateTime(o.orderDate),
-    timelineLabel(o.threshold),
-    durationLabel(o.hours),
-    bare(o.totalValue),
-  ]);
+  // Long pending split by payment state — unpaid first (needs collection),
+  // paid second (only waiting on delivery). Paid = paymentStatus "paid";
+  // everything else (pending, partial, failed, refunded) counts as unpaid.
+  const pendingUnpaid = pendingOrders.filter((o) => o.paymentStatus !== "paid");
+  const pendingPaid = pendingOrders.filter((o) => o.paymentStatus === "paid");
+
+  /** Excel rows for one pending section. */
+  const pendingExportRowsFor = (rows: PendingOrderRow[]) =>
+    rows.map((o) => [
+      o.orderNo,
+      o.status,
+      o.customerName,
+      o.mobileNumber ?? "",
+      o.deliveryMan,
+      o.shippingMethod ?? "",
+      formatDateTime(o.orderDate),
+      timelineLabel(o.threshold),
+      durationLabel(o.hours),
+      bare(o.totalValue),
+    ]);
+
+  /** One "Long pending" card — the Unpaid and Paid sections differ only in
+   *  title, rows, total, badge tone and export file name. */
+  const renderPendingSection = (
+    title: string,
+    rows: PendingOrderRow[],
+    total: number,
+    badgeTone: "red" | "amber",
+    fileName: string
+  ) => (
+    <div className="mt-6 overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+        <div>
+          <h3 className="text-sm font-semibold">{title}</h3>
+          <p className="text-xs text-muted-foreground">
+            Undelivered past the method timeline ({thresholdNote}) · oldest
+            first
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <PillBadge tone={badgeTone} className="font-medium tabular-nums">
+            {total} order{total === 1 ? "" : "s"}
+          </PillBadge>
+          {mounted && rows.length > 0 && (
+            <ReportExcelButton
+              title={title}
+              subtitle={rangeLabel}
+              headers={[
+                "Order",
+                "Status",
+                "Customer",
+                "Mobile",
+                "Delivery Man",
+                "Method",
+                "Placed",
+                "Timeline",
+                "Waiting",
+                "Value",
+              ]}
+              rows={pendingExportRowsFor(rows)}
+              summary={[
+                {
+                  label: "Undelivered past the method timeline",
+                  value: `${rows.length} orders`,
+                },
+              ]}
+              fileName={fileName}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block">
+        <Table className="report-table">
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="pl-4">Order</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Payment</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Delivery Man</TableHead>
+              <TableHead>Method</TableHead>
+              <TableHead>Placed</TableHead>
+              <TableHead className="text-right">Timeline</TableHead>
+              <TableHead className="text-right">Waiting</TableHead>
+              <TableHead className="pr-4 text-right">Value</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((order) => (
+              <TableRow key={order.orderId}>
+                <TableCell className="py-2 pl-4">
+                  <Link
+                    href={`/admin/order/${order.orderNo}/view`}
+                    className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    {order.orderNo}
+                  </Link>
+                </TableCell>
+                <TableCell>
+                  {/* Same badge pair as the order list so colors/icons match */}
+                  <Badge
+                    variant="secondary"
+                    className={`capitalize ${getOrderStatusColor(order.status)}`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {getStatusIcon(order.status)}
+                      {order.status}
+                    </span>
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant="secondary"
+                    className={`capitalize ${getPaymentStatusColor(order.paymentStatus)}`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {getStatusIcon(order.paymentStatus)}
+                      {getPaymentStatusLabel(order.paymentStatus)}
+                    </span>
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{order.customerName}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">
+                    {order.deliveryMan || "Unassigned"}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    title={order.shippingMethod || undefined}
+                    className={`max-w-40 truncate ${getShippingMethodColor(order.shippingMethod || "")}`}
+                  >
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      {getShippingMethodIcon(order.shippingMethod || "")}
+                      <span className="truncate">
+                        {order.shippingMethod || "N/A"}
+                      </span>
+                    </span>
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                    {formatDateTime(order.orderDate)}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                    {timelineLabel(order.threshold)}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <span className="text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">
+                    {durationLabel(order.hours)}
+                  </span>
+                </TableCell>
+                <TableCell className="pr-4 text-right">
+                  <span className="text-sm font-semibold tabular-nums">
+                    {bare(order.totalValue)}
+                  </span>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="divide-y md:hidden">
+        {rows.map((order) => (
+          <article key={order.orderId} className="space-y-2 p-3.5">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <Link
+                  href={`/admin/order/${order.orderNo}/view`}
+                  className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  {order.orderNo}
+                </Link>
+                <p className="truncate text-xs text-muted-foreground">
+                  {order.customerName}
+                </p>
+              </div>
+              <PillBadge tone={badgeTone} className="shrink-0 tabular-nums">
+                {durationLabel(order.hours)}
+              </PillBadge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {order.status.replace("_", " ")} ·{" "}
+              {getPaymentStatusLabel(order.paymentStatus)} ·{" "}
+              {order.deliveryMan || "Unassigned"} ·{" "}
+              {durationLabel(order.hours)} of{" "}
+              {timelineLabel(order.threshold)} · {bare(order.totalValue)}
+            </p>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
 
   const deliveredExportRows = deliveredByTimeTaken.map((o) => [
     o.orderNo,
@@ -548,154 +752,31 @@ export default function LateDeliveryList({
             </div>
           </div>
 
-          {/* Long pending — undelivered past the threshold */}
+          {/* Long pending — undelivered past the method timeline, split by
+              payment status so unpaid orders get attention first. A section
+              with a zero total is hidden entirely instead of rendering an
+              empty card. */}
           {pendingOrders.length > 0 && (
-            <div className="mt-6 overflow-hidden rounded-xl border bg-card shadow-xs">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
-                <div>
-                  <h3 className="text-sm font-semibold">Long pending orders</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Undelivered past the method timeline ({thresholdNote}) ·
-                    oldest first
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <PillBadge tone="red" className="font-medium tabular-nums">
-                    {pendingTotal} order{pendingTotal === 1 ? "" : "s"}
-                  </PillBadge>
-                  {mounted && pendingExportRows.length > 0 && (
-                    <ReportExcelButton
-                      title="Long Pending Orders"
-                      subtitle={rangeLabel}
-                      headers={[
-                        "Order",
-                        "Status",
-                        "Customer",
-                        "Mobile",
-                        "Delivery Man",
-                        "Method",
-                        "Placed",
-                        "Timeline",
-                        "Waiting",
-                        "Value",
-                      ]}
-                      rows={pendingExportRows}
-                      summary={[
-                        {
-                          label: "Undelivered past the method timeline",
-                          value: `${pendingOrders.length} orders`,
-                        },
-                      ]}
-                      fileName="long-pending-orders"
-                    />
-                  )}
-                </div>
-              </div>
+            <>
+              {(summary?.pendingUnpaidTotal ?? pendingUnpaid.length) > 0 &&
+                renderPendingSection(
+                  "Long pending — Unpaid",
+                  pendingUnpaid,
+                  summary?.pendingUnpaidTotal ?? pendingUnpaid.length,
+                  "red",
+                  "long-pending-orders-unpaid"
+                )}
+              {(summary?.pendingPaidTotal ?? pendingPaid.length) > 0 &&
+                renderPendingSection(
+                  "Long pending — Paid",
+                  pendingPaid,
+                  summary?.pendingPaidTotal ?? pendingPaid.length,
+                  "amber",
+                  "long-pending-orders-paid"
+                )}
 
-              {/* Desktop table */}
-              <div className="hidden md:block">
-                <Table className="report-table">
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="pl-4">Order</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Delivery Man</TableHead>
-                      <TableHead>Method</TableHead>
-                      <TableHead>Placed</TableHead>
-                      <TableHead className="text-right">Timeline</TableHead>
-                      <TableHead className="text-right">Waiting</TableHead>
-                      <TableHead className="pr-4 text-right">Value</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingOrders.map((order) => (
-                      <TableRow key={order.orderId}>
-                        <TableCell className="py-2 pl-4">
-                          <Link
-                            href={`/admin/order/${order.orderNo}/view`}
-                            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                          >
-                            {order.orderNo}
-                          </Link>
-                        </TableCell>
-                        <TableCell>
-                          <PillBadge className="capitalize">
-                            {order.status.replace("_", " ")}
-                          </PillBadge>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">{order.customerName}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">
-                            {order.deliveryMan || "Unassigned"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {order.shippingMethod || "—"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
-                            {formatDateTime(order.orderDate)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
-                            {timelineLabel(order.threshold)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">
-                            {durationLabel(order.hours)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="pr-4 text-right">
-                          <span className="text-sm font-semibold tabular-nums">
-                            {bare(order.totalValue)}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Mobile cards */}
-              <div className="divide-y md:hidden">
-                {pendingOrders.map((order) => (
-                  <article key={order.orderId} className="space-y-2 p-3.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <Link
-                          href={`/admin/order/${order.orderNo}/view`}
-                          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                        >
-                          {order.orderNo}
-                        </Link>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {order.customerName}
-                        </p>
-                      </div>
-                      <PillBadge tone="red" className="shrink-0 tabular-nums">
-                        {durationLabel(order.hours)}
-                      </PillBadge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {order.status.replace("_", " ")} ·{" "}
-                      {order.deliveryMan || "Unassigned"} ·{" "}
-                      {durationLabel(order.hours)} of{" "}
-                      {timelineLabel(order.threshold)} · {bare(order.totalValue)}
-                    </p>
-                  </article>
-                ))}
-              </div>
-
-              {/* Pagination — shared footer */}
+              {/* Pagination — one shared footer for both sections */}
               <ListPaginationFooter
-                variant="inset"
                 currentPage={pendingPage}
                 limit={pendingLimit}
                 totalItems={pendingTotal}
@@ -705,7 +786,7 @@ export default function LateDeliveryList({
                   startTransition(() => router.push(listPageUrl("pending", page)))
                 }
               />
-            </div>
+            </>
           )}
 
           {/* All delivered orders in range */}
@@ -788,9 +869,18 @@ export default function LateDeliveryList({
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {order.shippingMethod || "—"}
-                          </span>
+                          <Badge
+                            variant="outline"
+                            title={order.shippingMethod || undefined}
+                            className={`max-w-40 truncate ${getShippingMethodColor(order.shippingMethod || "")}`}
+                          >
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              {getShippingMethodIcon(order.shippingMethod || "")}
+                              <span className="truncate">
+                                {order.shippingMethod || "N/A"}
+                              </span>
+                            </span>
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
