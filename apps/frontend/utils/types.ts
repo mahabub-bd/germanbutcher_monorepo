@@ -231,8 +231,6 @@ export enum DiscountType {
   FIXED = "fixed",
 }
 
-/** Lightweight product shape from the `products/all` endpoint — enough for
- * pickers and discount previews without the full product payload. */
 export interface MinimalProduct {
   id: number;
   name: string;
@@ -257,9 +255,7 @@ export interface Gallery {
   updatedAt: string;
 }
 
-/** Active flash sale campaign info attached to product responses by the
- * backend; null/undefined = no flash sale. Display-only — the order service
- * recomputes authoritatively. */
+
 export interface FlashSaleInfo {
   campaignId: number;
   name: string;
@@ -305,15 +301,15 @@ export interface Product {
   flashSale?: FlashSaleInfo | null;
   effectivePrice?: number;
 
-  /** Active BOGO campaign covering this product (display-only, backend-attached) */
+
   bogo?: {
     campaignId: number;
     name: string;
     buyQuantity: number;
     getQuantity: number;
-    /** Per-order free-group cap (0 = unlimited) — cart blocks quantity past this */
+    
     maxGroupsPerOrder: number;
-    /** Per-customer lifetime free-unit cap (0 = unlimited) */
+    
     maxFreePerUser: number;
     endsAt: string | null;
   } | null;

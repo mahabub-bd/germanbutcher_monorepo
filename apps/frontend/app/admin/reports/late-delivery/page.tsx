@@ -44,6 +44,8 @@ export default async function LateDeliveryReportPage({
       lateMenCount: number;
       pendingTotal: number;
       pendingValue: number;
+      pendingPaidTotal: number;
+      pendingUnpaidTotal: number;
       deliveredTotal: number;
     };
     deliveryMen: {
@@ -69,6 +71,7 @@ export default async function LateDeliveryReportPage({
       orderId: number;
       orderNo: string;
       status: string;
+      paymentStatus: string;
       customerName: string;
       mobileNumber: string;
       deliveryMan: string;
