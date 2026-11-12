@@ -19,6 +19,10 @@ export default async function CouponUsageReportPage({ searchParams }: Props) {
     typeof resolvedParams.fromDate === "string" ? resolvedParams.fromDate : undefined;
   const toDate =
     typeof resolvedParams.toDate === "string" ? resolvedParams.toDate : undefined;
+  const couponCode =
+    typeof resolvedParams.couponCode === "string"
+      ? resolvedParams.couponCode
+      : undefined;
 
   return (
     <AdminPageContainer>
@@ -26,6 +30,7 @@ export default async function CouponUsageReportPage({ searchParams }: Props) {
         initialPreset={preset}
         initialFromDate={fromDate}
         initialToDate={toDate}
+        initialCouponCode={couponCode}
       />
     </AdminPageContainer>
   );

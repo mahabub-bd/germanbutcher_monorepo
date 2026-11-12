@@ -58,12 +58,14 @@ export class CouponUsageLogController {
     @Query('limit') limit: number = 10,
     @Query('fromDate') fromDate?: string,
     @Query('toDate') toDate?: string,
+    @Query('couponCode') couponCode?: string,
   ) {
     const { data, total } = await this.couponUsageLogService.findAll({
       page: +page,
       limit: +limit,
       fromDate,
       toDate,
+      couponCode,
     });
     return {
       message: 'Coupon usage logs retrieved successfully',
@@ -179,6 +181,33 @@ export class CouponUsageLogController {
     const data = await this.couponUsageLogService.getCouponUsageStats(couponCode);
     return {
       message: `Coupon usage statistics for ${couponCode} retrieved successfully`,
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
+
+  @Get('codes')
+  @ApiOperation({
+    summary: 'Distinct coupon codes present in the usage logs',
+    description: 'Powers the coupon-code filter dropdown on the usage report.',
+  })
+  @ApiOkResponse({
+    description: 'Coupon codes retrieved successfully',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponseDto) },
+        {
+          properties: {
+            data: { type: 'array', items: { type: 'string' } },
+          },
+        },
+      ],
+    },
+  })
+  async getCouponCodes(): Promise<ApiResponseDto<string[]>> {
+    const data = await this.couponUsageLogService.getDistinctCodes();
+    return {
+      message: 'Coupon codes retrieved successfully',
       statusCode: HttpStatus.OK,
       data,
     };

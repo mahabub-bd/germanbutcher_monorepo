@@ -9,6 +9,8 @@ export interface FindAllUsageLogsOptions {
   limit?: number;
   fromDate?: string;
   toDate?: string;
+  /** Case-insensitive "contains" match on the coupon code (report filter). */
+  couponCode?: string;
 }
 
 export interface CouponReportStatsOptions {
@@ -47,11 +49,14 @@ export class CouponUsageLogService {
   }
 
   async findAll(options: FindAllUsageLogsOptions = {}): Promise<any> {
-    return this.findPaginated({}, options);
+    return this.findPaginated(
+      { couponCodeContains: options.couponCode },
+      options,
+    );
   }
 
   private async findPaginated(
-    filter: { couponCode?: string },
+    filter: { couponCode?: string; couponCodeContains?: string },
     { page = 1, limit = 10, fromDate, toDate }: FindAllUsageLogsOptions,
   ): Promise<{ data: any[]; total: number }> {
     const skip = (page - 1) * limit;
@@ -61,20 +66,30 @@ export class CouponUsageLogService {
       .createQueryBuilder('log')
       .leftJoinAndSelect('log.coupon', 'coupon')
       .leftJoinAndSelect('log.order', 'order')
+      // Order's shipping address — the report shows the customer's area
+      .leftJoinAndSelect('order.address', 'address')
       .leftJoinAndSelect('log.user', 'user')
       .orderBy('log.createdAt', 'DESC')
       .skip(skip)
       .take(limit);
 
-    // Join-free count — the only filter is on a log column
+    // Join-free count — the only filters are on log columns
     const countQuery = this.couponUsageLogRepository.createQueryBuilder('log');
 
+    // The coupon/:code endpoint matches exactly; the report filter contains.
     if (filter.couponCode) {
       dataQuery.where('log.couponCode = :couponCode', {
         couponCode: filter.couponCode,
       });
       countQuery.where('log.couponCode = :couponCode', {
         couponCode: filter.couponCode,
+      });
+    } else if (filter.couponCodeContains) {
+      dataQuery.where('log.couponCode ILIKE :code', {
+        code: `%${filter.couponCodeContains}%`,
+      });
+      countQuery.where('log.couponCode ILIKE :code', {
+        code: `%${filter.couponCodeContains}%`,
       });
     }
 
@@ -104,10 +119,21 @@ export class CouponUsageLogService {
     return { data: logs.map((log) => this.formatLogResponse(log)), total };
   }
 
+  /** Distinct coupon codes present in the usage logs — the report page's
+   *  filter dropdown. Only codes that actually have redemptions appear. */
+  async getDistinctCodes(): Promise<string[]> {
+    const rows: Record<string, any>[] = await this.couponUsageLogRepository
+      .createQueryBuilder('log')
+      .select('DISTINCT log.couponCode', 'code')
+      .orderBy('log.couponCode', 'ASC')
+      .getRawMany();
+    return rows.map((row) => row.code);
+  }
+
   async findOne(id: number): Promise<any> {
     const log = await this.couponUsageLogRepository.findOne({
       where: { id },
-      relations: ['coupon', 'order', 'user'],
+      relations: ['coupon', 'order', 'order.address', 'user'],
     });
 
     if (!log) {
@@ -144,6 +170,7 @@ export class CouponUsageLogService {
             totalValue: Number(log.order.totalValue),
             totalDiscount: Number(log.order.totalDiscount),
             createdAt: log.order.createdAt,
+            area: log.order.address?.area ?? null,
           }
         : null,
       user: log.user
@@ -190,7 +217,11 @@ export class CouponUsageLogService {
       .addSelect('COUNT(DISTINCT log.couponCode)', 'uniqueCoupons');
 
     if (couponCode) {
-      query.where('log.couponCode = :couponCode', { couponCode });
+      // Contains match, mirroring the list endpoint's coupon filter so the
+      // stat cards and the table always describe the same rows.
+      query.where('log.couponCode ILIKE :couponCode', {
+        couponCode: `%${couponCode}%`,
+      });
     }
     if (fromDate) {
       query.andWhere('log.createdAt >= :fromDate', {
