@@ -895,6 +895,8 @@ export class OrderController {
     @Query('thresholdHours') thresholdHours?: string,
     @Query('pendingPage') pendingPage?: string,
     @Query('pendingLimit') pendingLimit?: string,
+    @Query('paidPage') paidPage?: string,
+    @Query('paidLimit') paidLimit?: string,
     @Query('deliveredPage') deliveredPage?: string,
     @Query('deliveredLimit') deliveredLimit?: string,
   ): Promise<ApiResponseDto<any>> {
@@ -905,6 +907,8 @@ export class OrderController {
       thresholdHours,
       pendingPage,
       pendingLimit,
+      paidPage,
+      paidLimit,
       deliveredPage,
       deliveredLimit,
     );
@@ -1058,8 +1062,8 @@ export class OrderController {
   async getMonthlyOrderReport(
     @Query('year') year?: string,
   ): Promise<
-    ApiResponseDto<
-      {
+    ApiResponseDto<{
+      monthlyData: {
         year: number;
         month: string;
         allOrderCount: number;
@@ -1068,8 +1072,28 @@ export class OrderController {
         totalValue: number;
         cancelOrderCount: number;
         cancelValue: number;
-      }[]
-    >
+        pendingOrderCount: number;
+        pendingValue: number;
+        processingOrderCount: number;
+        processingValue: number;
+        onHoldOrderCount: number;
+        onHoldValue: number;
+      }[];
+      totals: {
+        totalOrders: number;
+        totalValue: number;
+        deliveredCount: number;
+        deliveredValue: number;
+        pendingCount: number;
+        pendingValue: number;
+        processingCount: number;
+        processingValue: number;
+        onHoldCount: number;
+        onHoldValue: number;
+        cancelledCount: number;
+        cancelledValue: number;
+      };
+    }>
   > {
     // Validate year when provided
     let yearNumber: number | undefined;
@@ -1087,7 +1111,11 @@ export class OrderController {
     return {
       message: 'Monthly order statistics retrieved successfully',
       statusCode: HttpStatus.OK,
-      data: data.monthlyData,
+      data: {
+        monthlyData: data.monthlyData,
+        /** Range-wide per-status totals for the stat cards. */
+        totals: data.totals,
+      },
     };
   }
 

@@ -50,10 +50,28 @@ export interface MonthlyData {
   onHoldValue: number;
 }
 
+export interface MonthlyTotals {
+  totalOrders: number;
+  totalValue: number;
+  deliveredCount: number;
+  deliveredValue: number;
+  pendingCount: number;
+  pendingValue: number;
+  processingCount: number;
+  processingValue: number;
+  onHoldCount: number;
+  onHoldValue: number;
+  cancelledCount: number;
+  cancelledValue: number;
+}
+
 interface Props {
   monthlyData: MonthlyData[];
   availableYears: number[];
   selectedYear?: number;
+  /** Authoritative range totals from the backend aggregate; when absent the
+   *  cards fall back to summing the month rows client-side. */
+  totals?: MonthlyTotals | null;
 }
 
 /** Color triplet per status: value text, % chip, progress bar / legend dot. */
@@ -155,11 +173,13 @@ export default function MonthlyOrderReportList({
   monthlyData,
   availableYears,
   selectedYear,
+  totals: apiTotals,
 }: Props) {
   const router = useRouter();
   const settings = useBusinessSettings();
   const [mounted, setMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
+
 
   useEffect(() => {
     setMounted(true);
@@ -177,33 +197,61 @@ export default function MonthlyOrderReportList({
   const handleYearChange = (value: string) =>
     navigate(value === "all" ? "?" : `?year=${value}`);
 
-  const totals = useMemo(
-    () =>
-      monthlyData.reduce(
-        (sum, item) => ({
-          allOrders: sum.allOrders + item.allOrderCount,
-          allValue: sum.allValue + item.allOrderValue,
-          byStatus: STATUS_COLUMNS.reduce(
-            (acc, column) => ({
-              ...acc,
-              [column.key]: {
-                value:
-                  (acc[column.key]?.value ?? 0) + column.value(item),
-                count:
-                  (acc[column.key]?.count ?? 0) + column.count(item),
-              },
-            }),
-            {} as Record<string, { value: number; count: number }>
-          ),
-        }),
-        {
-          allOrders: 0,
-          allValue: 0,
-          byStatus: {} as Record<string, { value: number; count: number }>,
-        }
-      ),
-    [monthlyData]
-  );
+  // Card totals: the backend aggregate when present (authoritative, honors
+  // the year filter), else the client-side sum over the month rows.
+  const totals = useMemo(() => {
+    if (apiTotals) {
+      return {
+        allOrders: apiTotals.totalOrders,
+        allValue: apiTotals.totalValue,
+        byStatus: {
+          delivered: {
+            value: apiTotals.deliveredValue,
+            count: apiTotals.deliveredCount,
+          },
+          pending: {
+            value: apiTotals.pendingValue,
+            count: apiTotals.pendingCount,
+          },
+          processing: {
+            value: apiTotals.processingValue,
+            count: apiTotals.processingCount,
+          },
+          onHold: {
+            value: apiTotals.onHoldValue,
+            count: apiTotals.onHoldCount,
+          },
+          cancelled: {
+            value: apiTotals.cancelledValue,
+            count: apiTotals.cancelledCount,
+          },
+        } as Record<string, { value: number; count: number }>,
+      };
+    }
+    return monthlyData.reduce(
+      (sum, item) => ({
+        allOrders: sum.allOrders + item.allOrderCount,
+        allValue: sum.allValue + item.allOrderValue,
+        byStatus: STATUS_COLUMNS.reduce(
+          (acc, column) => ({
+            ...acc,
+            [column.key]: {
+              value:
+                (acc[column.key]?.value ?? 0) + column.value(item),
+              count:
+                (acc[column.key]?.count ?? 0) + column.count(item),
+            },
+          }),
+          {} as Record<string, { value: number; count: number }>
+        ),
+      }),
+      {
+        allOrders: 0,
+        allValue: 0,
+        byStatus: {} as Record<string, { value: number; count: number }>,
+      }
+    );
+  }, [apiTotals, monthlyData]);
 
   const statusTotals = (key: string) =>
     totals.byStatus[key] ?? { value: 0, count: 0 };

@@ -28,9 +28,11 @@ export default async function LateDeliveryReportPage({
   const preset =
     asString(resolvedParams.preset) ?? (fromDate || toDate ? undefined : "this_month");
 
-  // Independent pagination for the two order lists.
+  // Independent pagination for the three order lists.
   const pendingPage = asString(resolvedParams.pendingPage) ?? "1";
   const pendingLimit = asString(resolvedParams.pendingLimit) ?? "25";
+  const paidPage = asString(resolvedParams.paidPage) ?? "1";
+  const paidLimit = asString(resolvedParams.paidLimit) ?? "25";
   const deliveredPage = asString(resolvedParams.deliveredPage) ?? "1";
   const deliveredLimit = asString(resolvedParams.deliveredLimit) ?? "25";
 
@@ -81,6 +83,20 @@ export default async function LateDeliveryReportPage({
       hours: number;
       threshold?: number;
     }[];
+    paidOrders: {
+      orderId: number;
+      orderNo: string;
+      status: string;
+      paymentStatus: string;
+      customerName: string;
+      mobileNumber: string;
+      deliveryMan: string;
+      shippingMethod: string | null;
+      totalValue: number;
+      orderDate: string;
+      hours: number;
+      threshold?: number;
+    }[];
     deliveredOrders: {
       orderId: number;
       orderNo: string;
@@ -96,6 +112,7 @@ export default async function LateDeliveryReportPage({
       late?: boolean;
     }[];
     pending: { page: number; limit: number; total: number };
+    paid: { page: number; limit: number; total: number };
     delivered: { page: number; limit: number; total: number };
   } | null = null;
 
@@ -109,6 +126,8 @@ export default async function LateDeliveryReportPage({
     if (thresholdHours) queryParams.append("thresholdHours", thresholdHours);
     queryParams.append("pendingPage", pendingPage);
     queryParams.append("pendingLimit", pendingLimit);
+    queryParams.append("paidPage", paidPage);
+    queryParams.append("paidLimit", paidLimit);
     queryParams.append("deliveredPage", deliveredPage);
     queryParams.append("deliveredLimit", deliveredLimit);
 
@@ -129,10 +148,14 @@ export default async function LateDeliveryReportPage({
         deliveryMen={reportData?.deliveryMen ?? []}
         lateOrders={reportData?.lateOrders ?? []}
         pendingOrders={reportData?.pendingOrders ?? []}
+        paidOrders={reportData?.paidOrders ?? []}
         deliveredOrders={reportData?.deliveredOrders ?? []}
         pendingPage={reportData?.pending?.page ?? 1}
         pendingLimit={reportData?.pending?.limit ?? Number(pendingLimit)}
         pendingTotal={reportData?.pending?.total ?? 0}
+        paidPage={reportData?.paid?.page ?? 1}
+        paidLimit={reportData?.paid?.limit ?? Number(paidLimit)}
+        paidTotal={reportData?.paid?.total ?? 0}
         deliveredPage={reportData?.delivered?.page ?? 1}
         deliveredLimit={reportData?.delivered?.limit ?? Number(deliveredLimit)}
         deliveredTotal={reportData?.delivered?.total ?? 0}

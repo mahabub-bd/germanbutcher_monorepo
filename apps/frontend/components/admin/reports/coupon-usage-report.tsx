@@ -475,28 +475,35 @@ export function CouponUsageReport({
 
           {/* Desktop table */}
           <div className="hidden md:block">
-            <Table className="report-table">
+            {/* Fixed layout: percentage widths keep every column — including
+                the Page-total footer cells — in a stable grid at any content
+                length. No minimum width: the table always fits its container. */}
+            <Table className="report-table table-fixed">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-4">Coupon</TableHead>
-                  <TableHead>Date &amp; Time</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Mobile Number</TableHead>
-                  <TableHead>Area</TableHead>
-                  <TableHead>Order</TableHead>
-                  <TableHead className="text-right">Discount</TableHead>
-                  <TableHead className="pr-4 text-right">Order Total</TableHead>
+                  <TableHead className="w-[12%] pl-4">Coupon</TableHead>
+                  <TableHead className="w-[15%]">Date &amp; Time</TableHead>
+                  <TableHead className="w-[14%]">Customer</TableHead>
+                  <TableHead className="w-[13%]">Mobile Number</TableHead>
+                  <TableHead className="w-[12%]">Area</TableHead>
+                  <TableHead className="w-[11%]">Order</TableHead>
+                  <TableHead className="w-[11%] text-right">Discount</TableHead>
+                  <TableHead className="w-[12%] pr-4 text-right">
+                    Order Total
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell className="py-2.5 pl-4">
-                      <PillBadge tone="violet">{row.couponCode}</PillBadge>
+                      <PillBadge tone="violet" className="max-w-full truncate">
+                        {row.couponCode}
+                      </PillBadge>
                     </TableCell>
 
                     <TableCell>
-                      <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                      <span className="text-sm tabular-nums text-muted-foreground">
                         {formatDateTime(row.createdAt)}
                       </span>
                     </TableCell>

@@ -29,7 +29,7 @@ import { BarChart3, Phone, ShoppingBag, Users, Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { LoadingIndicator } from "../loading-indicator";
+import { TopCustomersSkeleton } from "./dashboard-skeleton";
 
 interface CustomerStatistics {
   totalOrders: number;
@@ -95,13 +95,7 @@ export function TopCustomersList() {
   }, [limit, sortBy, timeFilter]);
 
   if (loading) {
-    return (
-      <Card className="w-full gap-0 overflow-hidden rounded-xl border-border/70 py-0 shadow-sm">
-        <div className="flex min-h-50 items-center justify-center">
-          <LoadingIndicator message="Loading top customers..." />
-        </div>
-      </Card>
-    );
+    return <TopCustomersSkeleton rows={limit} />;
   }
 
   return (

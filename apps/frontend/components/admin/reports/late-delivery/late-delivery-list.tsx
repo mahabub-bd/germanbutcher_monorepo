@@ -125,11 +125,17 @@ interface LateDeliveryListProps {
   summary: Summary | null;
   deliveryMen: DeliveryManRow[];
   lateOrders: LateOrderRow[];
+  /** Long-pending rows that are NOT fully paid (backend-filtered slice). */
   pendingOrders: PendingOrderRow[];
+  /** Long-pending rows that ARE fully paid (backend-filtered slice). */
+  paidOrders: PendingOrderRow[];
   deliveredOrders: DeliveredOrderRow[];
   pendingPage: number;
   pendingLimit: number;
   pendingTotal: number;
+  paidPage: number;
+  paidLimit: number;
+  paidTotal: number;
   deliveredPage: number;
   deliveredLimit: number;
   deliveredTotal: number;
@@ -179,10 +185,14 @@ export default function LateDeliveryList({
   deliveryMen,
   lateOrders,
   pendingOrders,
+  paidOrders,
   deliveredOrders,
   pendingPage,
   pendingLimit,
   pendingTotal,
+  paidPage,
+  paidLimit,
+  paidTotal,
   deliveredPage,
   deliveredLimit,
   deliveredTotal,
@@ -220,14 +230,24 @@ export default function LateDeliveryList({
   );
 
   /** URL for a given list page, preserving every other query param. */
-  const listPageUrl = (list: "pending" | "delivered", page: number) => {
+  const listPageUrl = (list: "pending" | "paid" | "delivered", page: number) => {
     const qs = new URLSearchParams(window.location.search);
     qs.set(`${list}Page`, String(page));
-    qs.set(`${list}Limit`, String(list === "pending" ? pendingLimit : deliveredLimit));
+    qs.set(
+      `${list}Limit`,
+      String(
+        list === "pending"
+          ? pendingLimit
+          : list === "paid"
+            ? paidLimit
+            : deliveredLimit
+      )
+    );
     return `?${qs.toString()}`;
   };
 
   const pendingPageCount = Math.max(1, Math.ceil(pendingTotal / pendingLimit));
+  const paidPageCount = Math.max(1, Math.ceil(paidTotal / paidLimit));
   const deliveredPageCount = Math.max(1, Math.ceil(deliveredTotal / deliveredLimit));
 
   // Column sums for the delivery-men footer.
@@ -247,12 +267,6 @@ export default function LateDeliveryList({
     hours1(dm.worstHours),
   ]);
 
-  // Long pending split by payment state — unpaid first (needs collection),
-  // paid second (only waiting on delivery). Paid = paymentStatus "paid";
-  // everything else (pending, partial, failed, refunded) counts as unpaid.
-  const pendingUnpaid = pendingOrders.filter((o) => o.paymentStatus !== "paid");
-  const pendingPaid = pendingOrders.filter((o) => o.paymentStatus === "paid");
-
   /** Excel rows for one pending section. */
   const pendingExportRowsFor = (rows: PendingOrderRow[]) =>
     rows.map((o) => [
@@ -269,13 +283,18 @@ export default function LateDeliveryList({
     ]);
 
   /** One "Long pending" card — the Unpaid and Paid sections differ only in
-   *  title, rows, total, badge tone and export file name. */
+   *  title, rows, pagination state and export file name. Each carries its own
+   *  pagination footer so its row list and badge total always agree. */
   const renderPendingSection = (
     title: string,
     rows: PendingOrderRow[],
     total: number,
     badgeTone: "red" | "amber",
-    fileName: string
+    fileName: string,
+    listKey: "pending" | "paid",
+    page: number,
+    pageCount: number,
+    limit: number
   ) => (
     <div className="mt-6 overflow-hidden rounded-xl border bg-card shadow-xs">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
@@ -448,6 +467,20 @@ export default function LateDeliveryList({
           </article>
         ))}
       </div>
+
+      {/* Per-section pagination — rows and badge total come from the same
+          query, so the count can never describe an empty table. */}
+      <ListPaginationFooter
+        variant="inset"
+        currentPage={page}
+        limit={limit}
+        totalItems={total}
+        totalPages={pageCount}
+        entityLabel="order"
+        onPageChange={(next) =>
+          startTransition(() => router.push(listPageUrl(listKey, next)))
+        }
+      />
     </div>
   );
 
@@ -753,39 +786,37 @@ export default function LateDeliveryList({
           </div>
 
           {/* Long pending — undelivered past the method timeline, split by
-              payment status so unpaid orders get attention first. A section
-              with a zero total is hidden entirely instead of rendering an
-              empty card. */}
-          {pendingOrders.length > 0 && (
+              payment status. Paid orders sit on top (the shop owes them a
+              delivery); unpaid below. A section with a zero total is hidden
+              entirely instead of rendering an empty card, and each section
+              paginates independently so its badge can't describe an empty
+              table. */}
+          {(paidOrders.length > 0 || pendingOrders.length > 0) && (
             <>
-              {(summary?.pendingUnpaidTotal ?? pendingUnpaid.length) > 0 &&
-                renderPendingSection(
-                  "Long pending — Unpaid",
-                  pendingUnpaid,
-                  summary?.pendingUnpaidTotal ?? pendingUnpaid.length,
-                  "red",
-                  "long-pending-orders-unpaid"
-                )}
-              {(summary?.pendingPaidTotal ?? pendingPaid.length) > 0 &&
+              {(summary?.pendingPaidTotal ?? paidOrders.length) > 0 &&
                 renderPendingSection(
                   "Long pending — Paid",
-                  pendingPaid,
-                  summary?.pendingPaidTotal ?? pendingPaid.length,
+                  paidOrders,
+                  summary?.pendingPaidTotal ?? paidOrders.length,
                   "amber",
-                  "long-pending-orders-paid"
+                  "long-pending-orders-paid",
+                  "paid",
+                  paidPage,
+                  paidPageCount,
+                  paidLimit
                 )}
-
-              {/* Pagination — one shared footer for both sections */}
-              <ListPaginationFooter
-                currentPage={pendingPage}
-                limit={pendingLimit}
-                totalItems={pendingTotal}
-                totalPages={pendingPageCount}
-                entityLabel="order"
-                onPageChange={(page) =>
-                  startTransition(() => router.push(listPageUrl("pending", page)))
-                }
-              />
+              {(summary?.pendingUnpaidTotal ?? pendingOrders.length) > 0 &&
+                renderPendingSection(
+                  "Long pending — Unpaid",
+                  pendingOrders,
+                  summary?.pendingUnpaidTotal ?? pendingOrders.length,
+                  "red",
+                  "long-pending-orders-unpaid",
+                  "pending",
+                  pendingPage,
+                  pendingPageCount,
+                  pendingLimit
+                )}
             </>
           )}
 

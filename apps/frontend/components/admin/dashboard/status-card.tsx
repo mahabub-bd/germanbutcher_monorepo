@@ -21,7 +21,7 @@ function Badge({ children, color = "default" }: BadgeProps) {
   return (
     <div
       className={cn(
-        "flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] sm:text-[12px] lg:text-[13px] font-medium lg:font-semibold whitespace-nowrap",
+        "flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium whitespace-nowrap",
         colorClasses[color]
       )}
     >
@@ -51,13 +51,7 @@ interface StatusCardProps {
   };
 }
 
-/**
- * Single-row layout at every breakpoint:
- *   icon + title + value + badge on one line.
- * The title never breaks mid-word — it truncates with an ellipsis
- * (full name shown on hover) when the column is too narrow, while
- * the value and badge stay fully visible (shrink-0).
- */
+
 export function StatusCard({
   className,
   title,
@@ -96,7 +90,7 @@ export function StatusCard({
 
       {/* Value + badge — never squeezed */}
       <div className="flex items-center gap-1.5 shrink-0 relative z-10">
-        <span className="text-sm sm:text-base lg:text-lg font-bold lg:font-extrabold text-gray-900 dark:text-white whitespace-nowrap drop-shadow-sm">
+        <span className="text-base font-bold text-gray-900 dark:text-white whitespace-nowrap drop-shadow-sm">
           {value}
         </span>
 
