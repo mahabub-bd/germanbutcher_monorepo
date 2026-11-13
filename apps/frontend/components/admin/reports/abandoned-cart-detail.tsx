@@ -20,6 +20,7 @@ import {
   ArrowLeft,
   Clock,
   Mail,
+  MessageSquareText,
   Package,
   Phone,
   ShoppingCart,
@@ -59,6 +60,7 @@ export function AbandonedCartDetail() {
   const [detail, setDetail] = useState<AbandonedCartDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isSendingSms, setIsSendingSms] = useState(false);
 
   const fetchDetail = useCallback(async () => {
     setIsLoading(true);
@@ -103,6 +105,25 @@ export function AbandonedCartDetail() {
     }
   };
 
+  const sendReminderSms = async () => {
+    setIsSendingSms(true);
+    try {
+      const response = await postData<{ sentTo: string }>(
+        `cart/reports/abandoned/${cartId}/remind-sms`
+      );
+      toast.success(response.message || "Reminder SMS sent.");
+    } catch (error) {
+      console.error("Error sending reminder SMS:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not send the reminder SMS."
+      );
+    } finally {
+      setIsSendingSms(false);
+    }
+  };
+
   if (isLoading) {
     return <LoadingIndicator message="Loading abandoned cart..." />;
   }
@@ -135,15 +156,16 @@ export function AbandonedCartDetail() {
         className="mb-0"
       >
         {detail.userId > 0 && (
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" className="text-xs" asChild>
             <Link href={`/admin/customer/${detail.userId}/view`}>
-              <UserIcon className="h-4 w-4 sm:mr-2" />
+              <UserIcon className="size-3.5 sm:mr-1.5" />
               <span className="hidden sm:inline">View customer</span>
             </Link>
           </Button>
         )}
         <Button
           size="sm"
+          className="text-xs"
           onClick={sendReminder}
           disabled={isSending || !detail.email}
           title={
@@ -153,20 +175,41 @@ export function AbandonedCartDetail() {
           }
         >
           <Mail
-            className={cn("h-4 w-4 sm:mr-2", isSending && "animate-pulse")}
+            className={cn("size-3.5 sm:mr-1.5", isSending && "animate-pulse")}
           />
           <span className="hidden sm:inline">
-            {isSending ? "Sending..." : "Send reminder email"}
+            {isSending ? "Sending..." : "Send Mail"}
           </span>
         </Button>
-        <Button variant="outline" size="sm" onClick={backToReport}>
-          <ArrowLeft className="h-4 w-4 sm:mr-2" />
+        <Button
+          size="sm"
+          className="text-xs"
+          onClick={sendReminderSms}
+          disabled={isSendingSms || !detail.mobileNumber}
+          title={
+            detail.mobileNumber
+              ? `Send a reminder SMS to ${detail.mobileNumber}`
+              : "This customer has no mobile number on file"
+          }
+        >
+          <MessageSquareText
+            className={cn(
+              "size-3.5 sm:mr-1.5",
+              isSendingSms && "animate-pulse"
+            )}
+          />
+          <span className="hidden sm:inline">
+            {isSendingSms ? "Sending..." : "Send SMS"}
+          </span>
+        </Button>
+        <Button variant="outline" size="sm" className="text-xs" onClick={backToReport}>
+          <ArrowLeft className="size-3.5 sm:mr-1.5" />
           <span className="hidden sm:inline">Back to report</span>
         </Button>
       </PageHeader>
 
       {/* Customer + abandonment summary */}
-      <div className="rounded-lg border bg-card p-4 space-y-4">
+      <div className="mt-4 rounded-lg border bg-card p-4 space-y-4">
         <div className="flex items-center gap-3">
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border bg-muted text-xl font-semibold uppercase text-muted-foreground">
             {detail.userName?.charAt(0) || "?"}
