@@ -1,5 +1,8 @@
+import { vi } from 'vitest';
+
 import {
   applyBogoDiscount,
+  BogoCampaignsService,
   BogoPricingDetail,
 } from './bogo-campaigns.service';
 
@@ -118,5 +121,57 @@ describe('applyBogoDiscount', () => {
     ]);
     expect(result2.totalDiscount).toBe(200);
     expect(result2.usages[0].freeUnits).toBe(2);
+  });
+});
+
+describe('BogoCampaignsService.getActiveCampaigns', () => {
+  function makeService() {
+    const queryBuilder = {
+      leftJoinAndSelect: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      andWhere: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockReturnThis(),
+      getMany: vi.fn().mockResolvedValue([]),
+    };
+    const campaignRepository = {
+      createQueryBuilder: vi.fn().mockReturnValue(queryBuilder),
+      findOne: vi.fn(),
+      save: vi.fn(async (value) => value),
+      remove: vi.fn(),
+    };
+    const service = new BogoCampaignsService(
+      campaignRepository as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+    return { service, campaignRepository };
+  }
+
+  it('queries the DB once and reuses the in-process cache', async () => {
+    const { service, campaignRepository } = makeService();
+
+    await service.getActiveCampaigns();
+    await service.getActiveCampaigns();
+
+    expect(campaignRepository.createQueryBuilder).toHaveBeenCalledTimes(1);
+  });
+
+  it('invalidates the cache after an admin mutation', async () => {
+    const { service, campaignRepository } = makeService();
+    campaignRepository.findOne.mockResolvedValue({
+      id: 1,
+      isActive: true,
+      validFrom: null,
+      validUntil: null,
+      products: [],
+      categories: [],
+    });
+
+    await service.getActiveCampaigns();
+    await service.update(1, {} as any);
+    await service.getActiveCampaigns();
+
+    expect(campaignRepository.createQueryBuilder).toHaveBeenCalledTimes(2);
   });
 });

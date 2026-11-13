@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { AttachmentService } from 'src/attachment/attachment.service';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { Product } from 'src/product/entities/product.entity';
+import { SwrCache } from 'src/common/utils/swr-cache';
 import { User } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -28,6 +29,24 @@ interface FindAllOptions {
 
 @Injectable()
 export class CategoryService {
+  /**
+   * findAllWithMergedProducts feeds the storefront category grids (homepage,
+   * /products, /recipes, nav). It joins every active product + unit +
+   * attachment + recipe per category — the heaviest storefront query — and is
+   * read on nearly every render, so cache it: fresh 60s, stale 10min. Category
+   * mutations invalidate below; product mutations (new/renamed/deactivated
+   * products changing a category's grid) propagate within the fresh window
+   * via SWR, same tolerance as the campaign-driven product lists.
+   */
+  private readonly mergedCache = new SwrCache<[Category[], number]>(
+    60_000,
+    600_000,
+  );
+
+  private invalidateMergedCache(): void {
+    this.mergedCache.invalidate();
+  }
+
   constructor(
     @InjectRepository(Category)
     private categoryRepository: Repository<Category>,
@@ -53,7 +72,9 @@ export class CategoryService {
       category.parent = await this.getParentCategory(dto.parentId);
     }
 
-    return this.categoryRepository.save(category);
+    const saved = await this.categoryRepository.save(category);
+    this.invalidateMergedCache();
+    return saved;
   }
 
   async findAll(options: FindAllOptions): Promise<[Category[], number]> {
@@ -250,7 +271,17 @@ export class CategoryService {
 
   //   return [categories, total];
   // }
+  /** Cached storefront read — the loader does the heavy joined query and the
+   * children-products merge ONCE; later calls share that result. */
   async findAllWithMergedProducts(
+    options: FindAllOptions,
+  ): Promise<[Category[], number]> {
+    return this.mergedCache.get(`merged_${JSON.stringify(options)}`, () =>
+      this.loadMergedProducts(options),
+    );
+  }
+
+  private async loadMergedProducts(
     options: FindAllOptions,
   ): Promise<[Category[], number]> {
     const {
@@ -462,12 +493,15 @@ export class CategoryService {
         : null;
     }
 
-    return this.categoryRepository.save(category);
+    const saved = await this.categoryRepository.save(category);
+    this.invalidateMergedCache();
+    return saved;
   }
 
   async remove(id: number): Promise<void> {
     const category = await this.findOne(id);
     await this.categoryRepository.remove(category);
+    this.invalidateMergedCache();
 
     if (category.attachment?.id) {
       await this.attachmentService.deleteFile(category.attachment.id);

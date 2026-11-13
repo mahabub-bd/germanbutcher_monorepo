@@ -1,4 +1,3 @@
-import { CacheTTL } from '@nestjs/cache-manager';
 import {
   Body,
   Controller,
@@ -145,9 +144,6 @@ export class CategoryController {
       },
     },
   })
-  // No fixed @CacheKey: the interceptor keys on the request URL, so every
-  // search/filter/page combination is cached separately for the 30s TTL.
-  @CacheTTL(30)
   async findAll(
     @Query('page') page = 1,
     @Query('limit') limit = 90,

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 
 import { AttachmentService } from 'src/attachment/attachment.service';
 import { Category } from 'src/category/entities/category.entity';
+import { SwrCache } from 'src/common/utils/swr-cache';
 import { User } from 'src/user/entities/user.entity';
 import { CreateRecipeDto } from './dto/create-recipe.dto';
 import { UpdateRecipeDto } from './dto/update-recipe.dto';
@@ -11,6 +12,29 @@ import { Recipe } from './entities/recipe.entity';
 
 @Injectable()
 export class RecipeService {
+  /**
+   * Storefront recipe list + detail: fresh 60s / 30s, stale 10min / 5min.
+   * Recipes change rarely but the pages render on every storefront request.
+   * Mutations invalidate via invalidateCaches().
+   */
+  private readonly listCache = new SwrCache<{
+    data: Recipe[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>(60_000, 600_000);
+
+  private readonly detailCache = new SwrCache<Recipe | null>(
+    30_000,
+    300_000,
+  );
+
+  private invalidateCaches(): void {
+    this.listCache.invalidate();
+    this.detailCache.invalidate();
+  }
+
   constructor(
     @InjectRepository(Recipe)
     private recipeRepository: Repository<Recipe>,
@@ -37,7 +61,9 @@ export class RecipeService {
       createdBy: user?.userId,
     });
 
-    return this.recipeRepository.save(recipe);
+    const saved = await this.recipeRepository.save(recipe);
+    this.invalidateCaches();
+    return saved;
   }
 
   async findAll(
@@ -109,20 +135,30 @@ export class RecipeService {
 
     query.orderBy('recipe.createdAt', 'DESC');
 
-    const [data, total] = await query.getManyAndCount();
-
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages,
-    };
+    return this.listCache.get(
+      `recipes_${page}_${limit}_${isPublished ?? 'all'}_${recipesearch ?? ''}_${
+        categorySlug ?? ''
+      }`,
+      async () => {
+        const [data, total] = await query.getManyAndCount();
+        return {
+          data,
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        };
+      },
+    );
   }
 
-  async findOne(id: number): Promise<Recipe> {
+  /** Storefront detail page fetch — cached via detailCache (nulls included:
+   * a missing id stays missing). */
+  async findOne(id: number): Promise<Recipe | null> {
+    return this.detailCache.get(`id:${id}`, () => this.findEntity(id));
+  }
+
+  private findEntity(id: number): Promise<Recipe | null> {
     return this.recipeRepository
       .createQueryBuilder('recipe')
       .leftJoinAndSelect('recipe.attachment', 'attachment')
@@ -164,7 +200,7 @@ export class RecipeService {
     updateRecipeDto: UpdateRecipeDto,
     user: User,
   ): Promise<Recipe> {
-    const recipe = await this.findOne(id);
+    const recipe = await this.findEntity(id);
 
     if (!recipe) {
       throw new NotFoundException(`Recipe with ID ${id} not found`);
@@ -176,7 +212,9 @@ export class RecipeService {
 
     Object.assign(recipe, updateRecipeDto);
 
-    return await this.recipeRepository.save(recipe);
+    const saved = await this.recipeRepository.save(recipe);
+    this.invalidateCaches();
+    return saved;
   }
   private async validateCategory(id: number): Promise<Category> {
     const category = await this.categoryRepository.findOneBy({ id });
@@ -185,9 +223,10 @@ export class RecipeService {
     return category;
   }
   async remove(id: number): Promise<void> {
-    const recipe = await this.findOne(id);
+    const recipe = await this.findEntity(id);
     const attachmentId = recipe?.attachment?.id;
     await this.recipeRepository.remove(recipe);
     await this.attachmentService.deleteFile(attachmentId);
+    this.invalidateCaches();
   }
 }

@@ -11,7 +11,6 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -148,8 +147,6 @@ export class BannerController {
     description: 'Active banners retrieved successfully',
     type: ApiResponseDto<Banner[]>,
   })
-  @CacheKey('banners_active')
-  @CacheTTL(60000) // Cache for 60 seconds
   async findActive(): Promise<ApiResponseDto<Banner[]>> {
     const data = await this.bannerService.findActiveBanners();
     return {

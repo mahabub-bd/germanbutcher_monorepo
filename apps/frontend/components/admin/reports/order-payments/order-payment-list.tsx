@@ -10,6 +10,8 @@ import {
   type ReportFilterParams,
 } from "@/components/admin/reports/report-date-filters";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { PillBadge } from "@/components/common/pill-badge";
 import {
   Select,
   SelectContent,
@@ -28,10 +30,10 @@ import {
 import { useBusinessSettings } from "@/hooks/use-business-settings";
 import { formatCurrencyEnglish } from "@/lib/utils";
 import { getPaymentMethodColor, getPaymentMethodIcon } from "@/utils/order-helper";
-import { CheckCircle, CreditCard, Layers } from "lucide-react";
+import { CheckCircle, CreditCard, Layers, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { PaymentReportPDF } from "./PaymentReportPDF";
 
 interface PaymentMethod {
@@ -46,6 +48,8 @@ interface OrderSummary {
   paymentStatus: string;
   totalValue: string;
   paidAmount: string;
+  /** Order's customer, included for the report's name/mobile columns. */
+  user?: { name?: string | null; mobileNumber?: string | null } | null;
 }
 interface UserInfo {
   name: string;
@@ -71,24 +75,43 @@ export default function OrderPaymentList({
   toDate,
   preset,
   orderStatus,
+  initialSearch,
 }: {
   payments: PaymentRecord[];
   fromDate?: string;
   toDate?: string;
   preset?: string;
   orderStatus?: string;
+  initialSearch?: string;
 }) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
   const settings = useBusinessSettings();
 
   const [selectedOrderStatus, setSelectedOrderStatus] = useState<string>(
     orderStatus || "all"
   );
+  // Server-side search: the input is debounced into the ?search= query param
+  // and the backend filters by order no / customer name / mobile number.
+  const [searchInput, setSearchInput] = useState(initialSearch ?? "");
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const next = searchInput.trim();
+      const qs = new URLSearchParams(window.location.search);
+      const current = qs.get("search") || "";
+      if (next === current) return;
+      if (next) qs.set("search", next);
+      else qs.delete("search");
+      startTransition(() => router.push(`?${qs.toString()}`));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput, router]);
 
   // --- filter handlers (shared date-range bar + local order status) ---
   const handleFilterApply = (params: ReportFilterParams) => {
@@ -98,6 +121,7 @@ export default function OrderPaymentList({
     if (params.toDate) qs.set("toDate", params.toDate);
     if (selectedOrderStatus && selectedOrderStatus !== "all")
       qs.set("orderStatus", selectedOrderStatus);
+    if (searchInput.trim()) qs.set("search", searchInput.trim());
     router.push(`?${qs.toString()}`);
   };
 
@@ -239,80 +263,140 @@ export default function OrderPaymentList({
         </div>
       )}
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <Table className="report-table min-w-180 text-sm [&_th]:text-sm [&_td]:text-sm">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs">Payment No</TableHead>
-              <TableHead className="text-xs">Date</TableHead>
-              <TableHead className="text-xs">Amount</TableHead>
-              <TableHead className="text-xs">Method</TableHead>
-              <TableHead className="text-xs">
-                Order
-              </TableHead>
-              <TableHead className="text-xs">SSL Transaction ID</TableHead>
-              <TableHead className="text-xs">
-                Created By
-              </TableHead>
-            </TableRow>
-          </TableHeader>
+      {/* Search + table */}
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+        {/* Search bar — server-side, filters by order no / customer name / mobile */}
+        <div className="flex items-center gap-2 border-b px-3 py-2.5">
+          <div className="relative min-w-0 flex-1 sm:max-w-sm">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search by order no, customer name, mobile…"
+              className="h-9 pl-8 text-xs"
+            />
+          </div>
+          <PillBadge className="shrink-0 font-medium tabular-nums">
+            {payments.length} payment{payments.length === 1 ? "" : "s"}
+          </PillBadge>
+        </div>
 
-          <TableBody>
-            {payments.length === 0 ? (
+        <div className="overflow-x-auto">
+          <Table className="report-table table-fixed min-w-220 text-sm [&_th]:text-xs [&_td]:text-[13px]">
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="text-center py-8 text-muted-foreground"
-                >
-                  No payments found
-                </TableCell>
+                <TableHead className="w-[11%] pl-4">Order No</TableHead>
+                <TableHead className="w-[11%]">Payment No</TableHead>
+                <TableHead className="w-[11%]">Customer Name</TableHead>
+                <TableHead className="w-[11%]">Mobile Number</TableHead>
+                <TableHead className="w-[11%]">Date</TableHead>
+                <TableHead className="w-[11%] pr-3 text-right">Amount</TableHead>
+                <TableHead className="w-[11%] pl-3">Method</TableHead>
+                <TableHead className="w-[12%]">SSL Transaction ID</TableHead>
+                <TableHead className="w-[12%] pr-4">Created By</TableHead>
               </TableRow>
-            ) : (
-              payments.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>{p.paymentNumber}</TableCell>
-                  <TableCell>{p.paymentDate}</TableCell>
-                  <TableCell>
-                    {formatCurrencyEnglish(parseFloat(p.amount))}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      title={p.paymentMethod?.name || undefined}
-                      className={`capitalize ${getPaymentMethodColor(p.paymentMethod?.name)}`}
-                    >
-                      <span className="flex items-center gap-1.5">
-                        {getPaymentMethodIcon(p.paymentMethod?.name || "")}
-                        {p.paymentMethod?.name || "N/A"}
-                      </span>
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {p.order ? (
-                      <Link
-                        href={`/admin/order/${p.order.orderNo}/view`}
-                        className="font-medium hover:text-blue-600 hover:underline dark:hover:text-blue-400"
-                      >
-                        {p.order.orderNo}
-                      </Link>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">
-                        Order deleted
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap font-mono text-xs">
-                    {p.sslPaymentId || "—"}
-                  </TableCell>
-                  <TableCell>
-                    {p.createdBy ? p.createdBy.name : "System"}
+            </TableHeader>
+
+            <TableBody>
+              {payments.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={9}
+                    className="text-center py-8 text-muted-foreground"
+                  >
+                    {searchInput.trim()
+                      ? "No payments match your search"
+                      : "No payments found"}
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                payments.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="pl-4">
+                      {p.order ? (
+                        <Link
+                          href={`/admin/order/${p.order.orderNo}/view`}
+                          className="font-mono text-sm font-semibold whitespace-nowrap text-primary hover:text-blue-600 hover:underline dark:hover:text-blue-400"
+                        >
+                          {p.order.orderNo}
+                        </Link>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          Order deleted
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-mono text-[13px]">
+                      {p.paymentNumber}
+                    </TableCell>
+                    <TableCell>
+                      <span className="block truncate text-sm font-medium">
+                        {p.order?.user?.name || "Unknown"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {p.order?.user?.mobileNumber ? (
+                        <a
+                          href={`tel:${p.order.user.mobileNumber}`}
+                          className="whitespace-nowrap text-sm text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          {p.order.user.mobileNumber}
+                        </a>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="leading-tight">
+                        {/* Two-line stack keeps the column narrow */}
+                        <span className="whitespace-nowrap text-[13px]">
+                          {new Date(p.paymentDate).toLocaleDateString("en-US", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            timeZone: "Asia/Dhaka",
+                          })}
+                        </span>
+                        <span className="block whitespace-nowrap text-xs text-muted-foreground">
+                          {new Date(p.paymentDate).toLocaleTimeString("en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                            timeZone: "Asia/Dhaka",
+                          })}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="pr-3 text-right">
+                      <span className="font-semibold tabular-nums">
+                        {formatCurrencyEnglish(parseFloat(p.amount))}
+                      </span>
+                    </TableCell>
+                    <TableCell className="pl-3">
+                      <Badge
+                        variant="outline"
+                        title={p.paymentMethod?.name || undefined}
+                        className={`capitalize ${getPaymentMethodColor(p.paymentMethod?.name)}`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          {getPaymentMethodIcon(p.paymentMethod?.name || "")}
+                          {p.paymentMethod?.name || "N/A"}
+                        </span>
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-mono text-xs">
+                      {p.sslPaymentId || "—"}
+                    </TableCell>
+                    <TableCell className="pr-4">
+                      {p.createdBy ? p.createdBy.name : "System"}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   );

@@ -7,13 +7,14 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { Category } from 'src/category/entities/category.entity';
 import { BogoUsageLogService } from 'src/bogo-usage-log/bogo-usage-log.service';
-import { Product } from 'src/product/entities/product.entity';
+import { Category } from 'src/category/entities/category.entity';
+import { SwrCache } from 'src/common/utils/swr-cache';
 import {
   computeFlashPrice,
   FlashSaleCampaignsService,
 } from 'src/flash-sale-campaigns/flash-sale-campaigns.service';
+import { Product } from 'src/product/entities/product.entity';
 import { CreateBogoCampaignDto } from './dto/create-bogo-campaign.dto';
 import { UpdateBogoCampaignDto } from './dto/update-bogo-campaign.dto';
 import { BogoCampaign } from './entities/bogo-campaign.entity';
@@ -229,6 +230,14 @@ export function applyBogoDiscount(
 export class BogoCampaignsService {
   private readonly logger = new Logger(BogoCampaignsService.name);
 
+  /**
+   * Active campaigns are read on every product-list/cart request, so keep them
+   * in process instead of hitting the DB each time. 30s fresh / 5min stale —
+   * the same tolerance the old (inert) TypeORM `.cache()` intended, applied to
+   * the raw rows here; validFrom/validUntil are re-evaluated per call.
+   */
+  private readonly activeCache = new SwrCache<BogoCampaign[]>(30_000, 300_000);
+
   constructor(
     @InjectRepository(BogoCampaign)
     private readonly campaignRepository: Repository<BogoCampaign>,
@@ -247,6 +256,7 @@ export class BogoCampaignsService {
     const campaign = this.campaignRepository.create(rest);
     this.assignRelations(campaign, productIds, categoryIds);
     await this.campaignRepository.save(campaign);
+    this.activeCache.invalidate();
     return this.findOne(campaign.id);
   }
 
@@ -273,6 +283,7 @@ export class BogoCampaignsService {
     }
     this.assignRelations(campaign, productIds, categoryIds);
     await this.campaignRepository.save(campaign);
+    this.activeCache.invalidate();
     return this.findOne(id);
   }
 
@@ -299,6 +310,7 @@ export class BogoCampaignsService {
   async remove(id: number): Promise<void> {
     const campaign = await this.findEntity(id);
     await this.campaignRepository.remove(campaign);
+    this.activeCache.invalidate();
   }
 
   /** Raw entity fetch for the mutation paths — findOne() returns a summary. */
@@ -367,21 +379,27 @@ export class BogoCampaignsService {
   /**
    * Active campaigns (isActive + within date range + under maxUsage),
    * ordered by id — the lowest id claims eligible units first when
-   * campaigns overlap. Results are cached 30s: campaign start/end and
-   * usage exhaustion lag the storefront by at most that long. Order-time
-   * pricing always re-resolves, so no money is lost to staleness.
+   * campaigns overlap. Results are cached in process for 30s (5min stale
+   * window): campaign start/end and usage exhaustion lag the storefront by at
+   * most that long. Order-time pricing always re-resolves, so no money is lost
+   * to staleness.
    */
   async getActiveCampaigns(): Promise<BogoCampaign[]> {
     const now = Date.now();
-    const campaigns = await this.campaignRepository
-      .createQueryBuilder('campaign')
-      .leftJoinAndSelect('campaign.products', 'product')
-      .leftJoinAndSelect('campaign.categories', 'category')
-      .where('campaign.isActive = :isActive', { isActive: true })
-      .andWhere('(campaign.maxUsage = 0 OR campaign.timesUsed < campaign.maxUsage)')
-      .orderBy('campaign.id', 'ASC')
-      .cache('active_bogo_campaigns', 30_000)
-      .getMany();
+    // Only the DB-filtered rows are cached; the date window is applied after
+    // every read so a campaign starting or ending is honoured immediately.
+    const campaigns = await this.activeCache.get('active', () =>
+      this.campaignRepository
+        .createQueryBuilder('campaign')
+        .leftJoinAndSelect('campaign.products', 'product')
+        .leftJoinAndSelect('campaign.categories', 'category')
+        .where('campaign.isActive = :isActive', { isActive: true })
+        .andWhere(
+          '(campaign.maxUsage = 0 OR campaign.timesUsed < campaign.maxUsage)',
+        )
+        .orderBy('campaign.id', 'ASC')
+        .getMany(),
+    );
 
     return campaigns.filter(
       (campaign) =>

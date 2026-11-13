@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { CacheModule } from '@nestjs/cache-manager';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Attachment } from 'src/attachment/entities/attachment.entity';
 import { User } from 'src/user/entities/user.entity';
@@ -10,7 +9,6 @@ import { Banner } from './entities/banner.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Banner, Attachment, User]),
-    CacheModule.register(),
   ],
   controllers: [BannerController],
   providers: [BannerService],

@@ -103,12 +103,14 @@ export class OrderPaymentController {
     @Query('toDate') toDate?: string,
     @Query('preset') preset?: DateRangePreset,
     @Query('orderStatus') orderStatus?: OrderStatus,
+    @Query('search') search?: string,
   ): Promise<ApiResponseDto<OrderPayment[]>> {
     const data = await this.paymentService.findAll(
       fromDate,
       toDate,
       preset,
       orderStatus,
+      search,
     );
     return {
       message: 'Payments retrieved successfully',

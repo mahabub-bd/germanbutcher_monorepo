@@ -32,6 +32,8 @@ export default async function PaymentsPage({ searchParams }: Props) {
     typeof resolvedParams.orderStatus === "string"
       ? resolvedParams.orderStatus
       : undefined;
+  const search =
+    typeof resolvedParams.search === "string" ? resolvedParams.search : undefined;
 
   let payments: PaymentRecord[] = [];
 
@@ -44,6 +46,7 @@ export default async function PaymentsPage({ searchParams }: Props) {
       if (toDate) queryParams.append("toDate", toDate);
     }
     if (orderStatus) queryParams.append("orderStatus", orderStatus);
+    if (search) queryParams.append("search", search);
 
     const endpoint = `orders/payments/all${
       queryParams.toString() ? `?${queryParams.toString()}` : ""
@@ -63,6 +66,7 @@ export default async function PaymentsPage({ searchParams }: Props) {
         toDate={toDate}
         preset={preset}
         orderStatus={orderStatus}
+        initialSearch={search}
       />
     </AdminPageContainer>
   );

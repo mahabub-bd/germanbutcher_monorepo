@@ -43,6 +43,8 @@ export default async function DailySummaryReportPage({ searchParams }: Props) {
       pendingValue: number;
       processingOrders: number;
       processingValue: number;
+      shippedOrders: number;
+      shippedValue: number;
       onHoldOrders: number;
       onHoldValue: number;
       paidAmount: number;
@@ -60,6 +62,8 @@ export default async function DailySummaryReportPage({ searchParams }: Props) {
       pendingValue: number;
       processingCount: number;
       processingValue: number;
+      shippedCount: number;
+      shippedValue: number;
       onHoldCount: number;
       onHoldValue: number;
       paidAmount: number;

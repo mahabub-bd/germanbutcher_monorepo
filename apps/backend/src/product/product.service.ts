@@ -1,13 +1,10 @@
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   BadRequestException,
   ConflictException,
-  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Cache } from 'cache-manager';
 import { AttachmentService } from 'src/attachment/attachment.service';
 import { Attachment } from 'src/attachment/entities/attachment.entity';
 import { Brand } from 'src/brand/entities/brand.entity';
@@ -78,8 +75,6 @@ export class ProductService {
     private bogoCampaignsService: BogoCampaignsService,
     private productHistoryService: ProductHistoryService,
     private stockMovementService: StockMovementService,
-    @Inject(CACHE_MANAGER)
-    private cacheManager: Cache,
   ) {}
 
   /** Attach fresh flash-sale + BOGO info AFTER cache retrieval — cached
@@ -120,9 +115,47 @@ export class ProductService {
     600_000,
   );
 
-  /** Drop all cached product-list results (call after any product mutation). */
+  /**
+   * Campaign-driven lists (flash sale, BOGO): fresh 30s, stale 2min. These
+   * can't be invalidated on campaign mutations (the campaign services can't
+   * inject this service without a DI cycle), so staleness on campaign
+   * create/update is bounded by TTL instead — the same 30s tolerance the
+   * inert TypeORM .cache() promised. Product mutations DO invalidate.
+   */
+  private readonly campaignListCache = new SwrCache<[Product[], number]>(
+    30_000,
+    120_000,
+  );
+
+  /**
+   * Storefront detail pages (findBySlug): fresh 30s, stale 5min — the same
+   * tolerance the inert TypeORM .cache() promised. Invalidated on every
+   * product mutation.
+   */
+  private readonly detailCache = new SwrCache<Product>(30_000, 300_000);
+
+  /**
+   * Bestseller ranking: fresh 60s, stale 5min. Driven by delivered orders,
+   * which don't touch product rows, so there is no write path to invalidate
+   * it — SWR keeps ranking drift bounded instead.
+   */
+  private readonly bestsellerCache = new SwrCache<Product[]>(60_000, 300_000);
+
+  /**
+   * Admin product-picker payload (findAllMinimal): fresh 30s, stale 2min.
+   * Cheap query but hit by every admin product selector; product mutations
+   * invalidate via invalidateListCache().
+   */
+  private readonly minimalCache = new SwrCache<
+    Awaited<ReturnType<ProductService['findAllMinimal']>>
+  >(30_000, 120_000);
+
+  /** Drop cached product-list and detail results after a product mutation. */
   private invalidateListCache(): void {
     this.listCache.invalidate();
+    this.campaignListCache.invalidate();
+    this.detailCache.invalidate();
+    this.minimalCache.invalidate();
   }
 
   /**
@@ -453,30 +486,31 @@ export class ProductService {
       );
     }
 
-    const rows: Record<string, string | null>[] = await query
-      .cache(
-        `products_minimal_${categoryId ?? 'all'}_${isActive ?? 'all'}_${
-          search ?? ''
-        }_${supplierId ?? 'all'}`,
-        30000,
-      )
-      .getRawMany();
+    return this.minimalCache.get(
+      `minimal_${categoryId ?? 'all'}_${isActive ?? 'all'}_${search ?? ''}_${
+        supplierId ?? 'all'
+      }`,
+      async () => {
+        const rows: Record<string, string | null>[] = await query
+          .getRawMany();
 
-    return rows.map((row) => ({
-      id: parseInt(row.id, 10),
-      name: row.name,
-      slug: row.slug,
-      sellingPrice: parseFloat(row.sellingPrice) || 0,
-      purchasePrice: parseFloat(row.purchasePrice) || 0,
-      discountType: row.discountType,
-      discountValue:
-        row.discountValue === null ? null : parseFloat(row.discountValue),
-      weight: row.weight === null ? null : parseFloat(row.weight),
-      unitName: row.unitName,
-      attachmentUrl: row.attachmentUrl,
-      categoryId: parseInt(row.categoryId, 10),
-      categoryName: row.categoryName,
-    }));
+        return rows.map((row) => ({
+          id: parseInt(row.id, 10),
+          name: row.name,
+          slug: row.slug,
+          sellingPrice: parseFloat(row.sellingPrice) || 0,
+          purchasePrice: parseFloat(row.purchasePrice) || 0,
+          discountType: row.discountType,
+          discountValue:
+            row.discountValue === null ? null : parseFloat(row.discountValue),
+          weight: row.weight === null ? null : parseFloat(row.weight),
+          unitName: row.unitName,
+          attachmentUrl: row.attachmentUrl,
+          categoryId: parseInt(row.categoryId, 10),
+          categoryName: row.categoryName,
+        }));
+      },
+    );
   }
 
   /** Start date for a top-products time filter — mirrors the top-customers
@@ -546,54 +580,59 @@ export class ProductService {
     isActive?: boolean,
     timeFilter: string = 'all_time',
   ): Promise<Product[]> {
-    const range = getTimeFilterRange(timeFilter);
+    // Whole ranking cached per (window, size, active) — SWR keeps delivered-
+    // order drift bounded without any write path invalidating it.
+    return this.bestsellerCache.get(
+      `bestsellers_${timeFilter}_${limit}_${isActive ?? 'all'}`,
+      async () => {
+        const range = getTimeFilterRange(timeFilter);
 
     // Sold quantity from delivered orders (no date window = all time).
-    const salesWindow = this.productRepository.manager
-      .createQueryBuilder(OrderItem, 'orderItem')
-      .select('orderItem.productId', 'productId')
-      .addSelect('SUM(orderItem.quantity)', 'sold')
-      .innerJoin('orderItem.order', 'order')
-      .where('order.orderStatus = :status', { status: 'delivered' });
-    if (range?.start) {
-      salesWindow.andWhere('order.createdAt >= :startDate', {
-        startDate: range.start,
-      });
-    }
-    if (range?.end) {
-      salesWindow.andWhere('order.createdAt < :endDate', { endDate: range.end });
-    }
-    const rows = await salesWindow
-      .groupBy('orderItem.productId')
-      .orderBy('sold', 'DESC')
-      .limit(limit)
-      .cache(
-        `bestselling_products_${timeFilter}_${limit}_${isActive ?? 'all'}`,
-        30000,
-      )
-      .getRawMany();
+        const salesWindow = this.productRepository.manager
+          .createQueryBuilder(OrderItem, 'orderItem')
+          .select('orderItem.productId', 'productId')
+          .addSelect('SUM(orderItem.quantity)', 'sold')
+          .innerJoin('orderItem.order', 'order')
+          .where('order.orderStatus = :status', { status: 'delivered' });
+        if (range?.start) {
+          salesWindow.andWhere('order.createdAt >= :startDate', {
+            startDate: range.start,
+          });
+        }
+        if (range?.end) {
+          salesWindow.andWhere('order.createdAt < :endDate', {
+            endDate: range.end,
+          });
+        }
+        const rows = await salesWindow
+          .groupBy('orderItem.productId')
+          .orderBy('sold', 'DESC')
+          .limit(limit)
+          .getRawMany();
 
-    const soldById = new Map(
-      rows.map((row) => [Number(row.productId), Number(row.sold)]),
-    );
-    if (soldById.size === 0) return [];
+        const soldById = new Map(
+          rows.map((row) => [Number(row.productId), Number(row.sold)]),
+        );
+        if (soldById.size === 0) return [];
 
-    const idQuery = this.buildBestsellerQuery().where(
-      'product.id IN (:...ids)',
-      { ids: [...soldById.keys()] },
-    );
-    if (isActive !== undefined) {
-      idQuery.andWhere('product.isActive = :isActive', { isActive });
-    }
-    const products = await idQuery.getMany();
+        const idQuery = this.buildBestsellerQuery().where(
+          'product.id IN (:...ids)',
+          { ids: [...soldById.keys()] },
+        );
+        if (isActive !== undefined) {
+          idQuery.andWhere('product.isActive = :isActive', { isActive });
+        }
+        const products = await idQuery.getMany();
 
-    // Replace the lifetime counter with the in-window sold quantity and
-    // restore the sold-desc order the aggregation produced.
-    for (const product of products) {
-      product.saleCount = soldById.get(product.id) ?? 0;
-    }
-    return products.sort(
-      (a, b) => (soldById.get(b.id) ?? 0) - (soldById.get(a.id) ?? 0),
+        // Replace the lifetime counter with the in-window sold quantity and
+        // restore the sold-desc order the aggregation produced.
+        for (const product of products) {
+          product.saleCount = soldById.get(product.id) ?? 0;
+        }
+        return products.sort(
+          (a, b) => (soldById.get(b.id) ?? 0) - (soldById.get(a.id) ?? 0),
+        );
+      },
     );
   }
 
@@ -660,15 +699,17 @@ export class ProductService {
       query.andWhere('product.isActive = :isActive', { isActive });
     }
 
-    const [products, total] = await query
-      .orderBy('product.name', 'ASC')
-      .skip((page - 1) * limit)
-      .take(limit)
-      .cache(
-        `discounted_products_page_${page}_${limit}_${isActive ?? 'all'}`,
-        30000,
-      )
-      .getManyAndCount();
+    const [products, total] = await this.listCache.get(
+      `discounted_${page}_${limit}_${isActive ?? 'all'}`,
+      async () => {
+        const [products, count] = await query
+          .orderBy('product.name', 'ASC')
+          .skip((page - 1) * limit)
+          .take(limit)
+          .getManyAndCount();
+        return [products, count] as [Product[], number];
+      },
+    );
     await this.withFlashSale(products);
     return [products, total] as [Product[], number];
   }
@@ -759,15 +800,17 @@ export class ProductService {
       query.andWhere('product.isActive = :isActive', { isActive });
     }
 
-    const [products, total] = await query
-      .orderBy('product.name', 'ASC')
-      .skip((page - 1) * limit)
-      .take(limit)
-      .cache(
-        `flash_sale_products_page_${page}_${limit}_${isActive ?? 'all'}`,
-        30000,
-      )
-      .getManyAndCount();
+    const [products, total] = await this.campaignListCache.get(
+      `flash_sale_${page}_${limit}_${isActive ?? 'all'}`,
+      async () => {
+        const [products, count] = await query
+          .orderBy('product.name', 'ASC')
+          .skip((page - 1) * limit)
+          .take(limit)
+          .getManyAndCount();
+        return [products, count] as [Product[], number];
+      },
+    );
     await this.withFlashSale(products);
     return [products, total] as [Product[], number];
   }
@@ -857,12 +900,17 @@ export class ProductService {
       query.andWhere('product.isActive = :isActive', { isActive });
     }
 
-    const [products, total] = await query
-      .orderBy('product.name', 'ASC')
-      .skip((page - 1) * limit)
-      .take(limit)
-      .cache(`bogo_products_page_${page}_${limit}_${isActive ?? 'all'}`, 30000)
-      .getManyAndCount();
+    const [products, total] = await this.campaignListCache.get(
+      `bogo_${page}_${limit}_${isActive ?? 'all'}`,
+      async () => {
+        const [products, count] = await query
+          .orderBy('product.name', 'ASC')
+          .skip((page - 1) * limit)
+          .take(limit)
+          .getManyAndCount();
+        return [products, count] as [Product[], number];
+      },
+    );
     await this.withFlashSale(products);
     return [products, total] as [Product[], number];
   }
@@ -957,7 +1005,6 @@ export class ProductService {
         'updatedBy.id',
         'updatedBy.name',
       ])
-      .cache(`product_id_${id}`, 30000)
       .getOne();
 
     if (!product) {
@@ -967,7 +1014,25 @@ export class ProductService {
     await this.withFlashSale([product]);
     return product;
   }
+  /** Storefront detail page fetch — cached via detailCache. The loader only
+   * resolves the entity (not-found throws, so misses aren't cached); the
+   * inactive-404 and campaign enrichment run on every call. */
   async findBySlug(slug: string): Promise<Product> {
+    const product = await this.detailCache.get(`slug:${slug}`, () =>
+      this.findSlugEntity(slug),
+    );
+
+    // Storefront detail page — inactive products must 404 so stale
+    // links (search engines, old shares) can't be ordered from
+    if (!product.isActive) {
+      throw new NotFoundException(`Product with slug '${slug}' not found`);
+    }
+
+    await this.withFlashSale([product]);
+    return product;
+  }
+
+  private async findSlugEntity(slug: string): Promise<Product> {
     const product = await this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect(
@@ -1057,20 +1122,12 @@ export class ProductService {
         'updatedBy.id',
         'updatedBy.name',
       ])
-      .cache(`product_slug_${slug}`, 30000)
       .getOne();
 
     if (!product) {
       throw new NotFoundException(`Product with slug '${slug}' not found`);
     }
 
-    // Storefront detail page — inactive products must 404 so stale
-    // links (search engines, old shares) can't be ordered from
-    if (!product.isActive) {
-      throw new NotFoundException(`Product with slug '${slug}' not found`);
-    }
-
-    await this.withFlashSale([product]);
     return product;
   }
   async findSimilarBestSelling(options: {
@@ -1234,9 +1291,8 @@ export class ProductService {
     const savedProduct = await this.productRepository.save(product);
     await this.logUpdateHistory(product.id, savedProduct, before, user);
 
-    // Clear relevant caches
-    await this.cacheManager.del(`product_id_${id}`);
-    await this.cacheManager.del(`product_slug_${savedProduct.slug}`);
+    // Clear relevant caches (old and new slug both map to the same detail page)
+    this.detailCache.invalidate();
     this.invalidateListCache();
 
     return savedProduct;
@@ -1252,6 +1308,7 @@ export class ProductService {
       user,
     });
     await this.productRepository.remove(product);
+    this.detailCache.invalidate();
     this.invalidateListCache();
 
     if (product.attachment) {
