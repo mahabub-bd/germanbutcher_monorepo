@@ -260,4 +260,25 @@ export class CartController {
       data,
     };
   }
+
+  @Post('reports/abandoned/:id/remind-sms')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ModulePermissions('/admin/crm/abandoned-carts')
+  @ApiOperation({
+    summary: 'Send an abandoned-cart reminder SMS',
+    description:
+      'Texts the customer their abandoned cart value with a link back to the storefront cart',
+  })
+  async sendAbandonedCartReminderSms(
+    @Param('id') id: string,
+  ): Promise<ApiResponseDto<{ sentTo: string }>> {
+    const data = await this.cartService.sendAbandonedCartReminderSms(
+      Math.max(1, parseInt(id, 10) || 0),
+    );
+    return {
+      message: `Reminder SMS sent to ${data.sentTo}`,
+      statusCode: HttpStatus.OK,
+      data,
+    };
+  }
 }

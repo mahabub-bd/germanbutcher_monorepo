@@ -6,6 +6,7 @@ import {
   FlashSaleCampaignsService,
 } from 'src/flash-sale-campaigns/flash-sale-campaigns.service';
 import { EmailService } from 'src/email/email.service';
+import { SmsService } from 'src/auth/sms.service';
 import { Product } from 'src/product/entities/product.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
@@ -25,6 +26,7 @@ export class CartService {
     private readonly flashSaleCampaignsService: FlashSaleCampaignsService,
     private readonly bogoCampaignsService: BogoCampaignsService,
     private readonly emailService: EmailService,
+    private readonly smsService: SmsService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -484,5 +486,43 @@ export class CartService {
     });
 
     return { sentTo: detail.email };
+  }
+
+  /** Sends the abandoned-cart reminder SMS. Same freshness guard as the
+   *  email reminder (a cart that has since checked out 404s), so a customer
+   *  is never texted about an order they already completed. */
+  async sendAbandonedCartReminderSms(
+    cartId: number,
+  ): Promise<{ sentTo: string }> {
+    const detail = await this.getAbandonedCartDetail(cartId);
+
+    if (!detail.mobileNumber) {
+      throw new BadRequestException(
+        'This customer has no mobile number on file — reach out by email instead.',
+      );
+    }
+
+    const frontendUrl =
+      this.configService.get<string>('frontendUrl') ||
+      'https://www.germanbutcherbd.com';
+
+    // ASCII-only (Tk, not ৳) — keeps the SMS in a single GSM-7 segment and
+    // avoids per-segment unicode splitting on the bulksmsbd gateway.
+    const message =
+      `Assalamu alaikum ${detail.userName || 'Customer'}, you left Tk ${Math.round(detail.subtotal)} of items in your German Butcher cart. Complete your order: ${frontendUrl}/cart`;
+
+    const ok = await this.smsService.sendSms(
+      detail.mobileNumber,
+      message,
+      'Abandoned Cart Reminder',
+    );
+
+    if (!ok) {
+      throw new BadRequestException(
+        'SMS gateway rejected the number — try the email reminder instead.',
+      );
+    }
+
+    return { sentTo: detail.mobileNumber };
   }
 }

@@ -435,17 +435,15 @@ export function CrmDashboard() {
         <div className="mb-4 grid gap-3 xl:grid-cols-3">
           {champions.length > 0 ? (
             <div className="overflow-hidden rounded-xl border bg-card shadow-xs xl:col-span-2">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-linear-to-r from-amber-50/80 to-transparent px-4 py-3 dark:from-amber-950/20">
-                <div className="min-w-0">
-                  <h3 className="flex items-center gap-2 text-sm font-semibold">
-                    <Crown className="size-4 text-amber-500" />
-                    Top champions
-                    <PillBadge tone="amber">Top {champions.length}</PillBadge>
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-linear-to-r from-amber-50/80 to-transparent px-3 py-2 dark:from-amber-950/20">
+                <h3 className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-sm font-semibold">
+                  <Crown className="size-3.5 text-amber-500" />
+                  Top champions
+                  <PillBadge tone="amber">Top {champions.length}</PillBadge>
+                  <span className="text-[11px] font-normal text-muted-foreground">
                     Ranked by lifetime spend among champions
-                  </p>
-                </div>
+                  </span>
+                </h3>
                 <Link
                   href="/admin/crm/customers?segment=champions"
                   className={cn(
@@ -462,21 +460,21 @@ export function CrmDashboard() {
                   <div
                     key={customer.id}
                     className={cn(
-                      "flex flex-col gap-3 px-4 py-3 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between",
+                      "flex flex-col gap-2.5 px-3 py-2 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between",
                       index === 0 &&
                       "bg-linear-to-r from-amber-50/60 to-transparent dark:from-amber-950/15",
                     )}
                   >
-                    <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
                       <span
                         className={cn(
-                          "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums",
+                          "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums",
                           TOP_RANK_STYLES[index] ??
                           "bg-muted text-muted-foreground",
                         )}
                         title={`Rank ${index + 1}`}
                       >
-                        {index === 0 ? <Crown className="size-4" /> : index + 1}
+                        {index === 0 ? <Crown className="size-3.5" /> : index + 1}
                       </span>
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -513,7 +511,7 @@ export function CrmDashboard() {
                       </div>
                     </div>
 
-                    <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
+                    <div className="grid shrink-0 grid-cols-2 gap-1.5 sm:grid-cols-4">
                       {[
                         {
                           label: "Lifetime spend",
@@ -535,14 +533,14 @@ export function CrmDashboard() {
                       ].map((stat) => (
                         <div
                           key={stat.label}
-                          className="rounded-lg border bg-muted/30 px-2.5 py-1.5"
+                          className="rounded-lg border bg-muted/30 px-2 py-1"
                         >
                           <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase whitespace-nowrap">
                             {stat.label}
                           </p>
                           <p
                             className={cn(
-                              "mt-0.5 text-sm font-semibold tabular-nums",
+                              "mt-0.5 text-[13px] font-semibold tabular-nums",
                               stat.highlight &&
                               "text-amber-700 dark:text-amber-400",
                             )}
@@ -638,10 +636,10 @@ export function CrmDashboard() {
 
         {/* Segment distribution */}
         <div className="mb-4 overflow-hidden rounded-xl border bg-card shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
-            <div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
               <h3 className="text-sm font-semibold">Customer segments</h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="truncate text-[11px] text-muted-foreground">
                 RFM distribution · select a segment to open the filtered list
               </p>
             </div>
@@ -651,15 +649,15 @@ export function CrmDashboard() {
           </div>
 
           {segmentRows.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
               No customers have been segmented yet.
             </div>
           ) : (
-            <div className="p-4">
+            <div className="p-3">
               {/* One read-off bar + health roll-up, so the mix is legible at a
                   glance before the per-segment detail. */}
-              <div className="mb-4">
-                <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
+              <div className="mb-3">
+                <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
                   {barSegments.map((segment) => (
                     <Link
                       key={segment}
@@ -675,7 +673,7 @@ export function CrmDashboard() {
                     />
                   ))}
                 </div>
-                <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
+                <div className="mt-2 flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
                   {HEALTH_GROUPS.map((group) => {
                     const count = group.segments.reduce(
                       (sum, s) => sum + countOf(s),
@@ -684,7 +682,7 @@ export function CrmDashboard() {
                     return (
                       <span
                         key={group.label}
-                        className="flex items-center gap-1.5 text-[11px] whitespace-nowrap text-muted-foreground"
+                        className="flex items-center gap-1 text-[11px] whitespace-nowrap text-muted-foreground"
                         title={group.segments
                           .map(
                             (s) =>
@@ -708,7 +706,7 @@ export function CrmDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
                 {segmentRows.map(([segment, count]) => {
                   const share = percentOf(count, totalCustomers);
                   return (
@@ -716,7 +714,7 @@ export function CrmDashboard() {
                       key={segment}
                       href={`/admin/crm/customers?segment=${segment}`}
                       className={cn(
-                        "rounded-lg border px-3 py-2.5 transition-colors hover:border-primaryColor/40 hover:bg-muted/40",
+                        "rounded-lg border px-2.5 py-1.5 transition-colors hover:border-primaryColor/40 hover:bg-muted/40",
                         FOCUS_CLASS,
                       )}
                     >
@@ -726,7 +724,7 @@ export function CrmDashboard() {
                           {formatCount(count)}
                         </span>
                       </div>
-                      <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
+                      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
                         <div
                           className={cn(
                             "h-full rounded-full",
@@ -735,7 +733,7 @@ export function CrmDashboard() {
                           style={{ width: `${Math.max(share, 2)}%` }}
                         />
                       </div>
-                      <p className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+                      <p className="mt-0.5 text-[10px] text-muted-foreground tabular-nums">
                         {share}% of customers
                       </p>
                     </Link>
@@ -748,16 +746,14 @@ export function CrmDashboard() {
 
         {/* Top VIP customers */}
         <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
-            <div>
-              <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <Trophy className="size-4 text-primaryColor" />
-                Top VIP customers
-              </h3>
-              <p className="text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2">
+            <h3 className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-sm font-semibold">
+              <Trophy className="size-3.5 text-primaryColor" />
+              Top VIP customers
+              <span className="text-[11px] font-normal text-muted-foreground">
                 Ranked by lifetime spend · delivered orders only
-              </p>
-            </div>
+              </span>
+            </h3>
             <div className="flex items-center gap-2">
               <PillBadge className="font-medium tabular-nums">
                 {vipRows.length} customer{vipRows.length === 1 ? "" : "s"}
@@ -775,7 +771,7 @@ export function CrmDashboard() {
           </div>
 
           {vipRows.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 px-6 py-14 text-center">
+            <div className="flex flex-col items-center justify-center gap-2 px-6 py-10 text-center">
               <div className="rounded-full bg-muted p-3">
                 <Users className="size-5 text-muted-foreground" />
               </div>
@@ -791,23 +787,26 @@ export function CrmDashboard() {
                   flexible share, so the table fills the card edge to edge
                   instead of leaving dead space on the right. */}
               <div className="hidden md:block">
-                <Table className="table-fixed w-full [&_td]:text-sm [&_th]:text-sm">
+                <Table className="table-fixed w-full [&_td]:py-1.5 [&_td]:text-[13px] [&_th]:text-xs">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="w-[6%] pl-3">
                         #
                       </TableHead>
-                      <TableHead className="w-[24%]">Customer</TableHead>
-                      <TableHead className="w-[13%]">Mobile</TableHead>
-                      <TableHead className="w-[13%]">Segment</TableHead>
-                      <TableHead className="w-[14%]">Area</TableHead>
-                      <TableHead className="w-[9%] text-center">
+                      <TableHead className="w-[20%]">Customer</TableHead>
+                      <TableHead className="w-[12%]">Mobile</TableHead>
+                      <TableHead className="w-[12%]">Segment</TableHead>
+                      <TableHead className="w-[12%]">Area</TableHead>
+                      <TableHead className="w-[8%] text-center">
                         Orders
                       </TableHead>
-                      <TableHead className="w-[11%] text-right">
+                      <TableHead className="w-[12%] text-right">
                         Total spent
                       </TableHead>
-                      <TableHead className="w-[10%] pr-3 text-right">
+                      <TableHead className="w-[10%] text-right">
+                        Avg / order
+                      </TableHead>
+                      <TableHead className="w-[8%] pr-3 text-right">
                         Last order
                       </TableHead>
                     </TableRow>
@@ -815,7 +814,7 @@ export function CrmDashboard() {
                   <TableBody>
                     {vipRows.map((customer, index) => (
                       <TableRow key={customer.id}>
-                        <TableCell className="py-2 pl-3">
+                        <TableCell className="py-1.5 pl-3">
                           <span
                             className={cn(
                               "text-sm font-bold tabular-nums",
@@ -838,28 +837,16 @@ export function CrmDashboard() {
                             >
                               {customer.name?.charAt(0) || "?"}
                             </span>
-                            {/* Name and email share one line so every column
-                                stays a single row high. */}
-                            <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
-                              <Link
-                                href={`/admin/crm/customers/${customer.id}`}
-                                className={cn(
-                                  "max-w-[60%] shrink-0 truncate text-sm font-semibold hover:text-primaryColor hover:underline",
-                                  FOCUS_CLASS,
-                                )}
-                                title={customer.name}
-                              >
-                                {customer.name}
-                              </Link>
-                              {customer.email && (
-                                <span
-                                  className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground"
-                                  title={customer.email}
-                                >
-                                  {customer.email}
-                                </span>
+                            <Link
+                              href={`/admin/crm/customers/${customer.id}`}
+                              className={cn(
+                                "min-w-0 flex-1 truncate text-sm font-semibold hover:text-primaryColor hover:underline",
+                                FOCUS_CLASS,
                               )}
-                            </div>
+                              title={customer.name}
+                            >
+                              {customer.name}
+                            </Link>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -908,9 +895,10 @@ export function CrmDashboard() {
                           <span className="block text-sm font-semibold tabular-nums">
                             {formatMoney(customer.rfm.totalSpent)}
                           </span>
-                          <span className="block text-[11px] text-muted-foreground tabular-nums">
-                            {formatMoney(customer.rfm.averageOrderValue)} avg /
-                            order
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="block text-sm text-muted-foreground tabular-nums">
+                            {formatMoney(customer.rfm.averageOrderValue)}
                           </span>
                         </TableCell>
                         <TableCell className="pr-3 text-right">
@@ -938,9 +926,10 @@ export function CrmDashboard() {
                         <span className="block text-sm font-bold tabular-nums">
                           {formatMoney(vipSpend)}
                         </span>
-                        <span className="block text-[11px] text-muted-foreground tabular-nums">
-                          {formatMoney(vipOrders > 0 ? vipSpend / vipOrders : 0)}{" "}
-                          avg / order
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="block text-sm text-muted-foreground tabular-nums">
+                          {formatMoney(vipOrders > 0 ? vipSpend / vipOrders : 0)}
                         </span>
                       </TableCell>
                       <TableCell className="pr-3 text-right">
