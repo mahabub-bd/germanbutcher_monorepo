@@ -1,5 +1,4 @@
 // src/product/product.module.ts
-import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Brand } from 'src/brand/entities/brand.entity';
@@ -36,7 +35,6 @@ import { ProductService } from './product.service';
       Gallery,
       Coupon,
     ]),
-    CacheModule.register(),
     FlashSaleCampaignsModule,
     BogoCampaignsModule,
     ProductHistoryModule,

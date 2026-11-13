@@ -12,7 +12,6 @@ import { FlashSaleCampaignsService } from 'src/flash-sale-campaigns/flash-sale-c
 import { BogoCampaignsService } from 'src/bogo-campaigns/bogo-campaigns.service';
 import { ProductHistoryService } from 'src/product-history/product-history.service';
 import { StockMovementService } from 'src/stock-movement/stock-movement.service';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ProductService } from './product.service';
 
 const createMock = () => ({});
@@ -50,7 +49,6 @@ describe('ProductService', () => {
       { provide: BogoCampaignsService, useValue: createMock() },
       { provide: ProductHistoryService, useValue: createMock() },
       { provide: StockMovementService, useValue: createMock() },
-      { provide: CACHE_MANAGER, useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn() } },
       ],
     }).compile();
 

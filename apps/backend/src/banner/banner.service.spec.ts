@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Banner, BannerPosition, BannerType } from './entities/banner.entity';
 import { Attachment } from 'src/attachment/entities/attachment.entity';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { DataSource, In, Repository } from 'typeorm';
 import { BannerService } from './banner.service';
 
@@ -31,7 +30,6 @@ describe('BannerService', () => {
         BannerService,
       { provide: getRepositoryToken(Banner), useValue: createMockRepository() },
       { provide: getRepositoryToken(Attachment), useValue: createMockRepository() },
-      { provide: CACHE_MANAGER, useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn() } },
       { provide: DataSource, useValue: createMock() },
       ],
     }).compile();

@@ -33,6 +33,7 @@ import { StockMovementType } from 'src/stock-movement/entities/stock-movement.en
 import { StockMovementService } from 'src/stock-movement/stock-movement.service';
 import { User } from 'src/user/entities/user.entity';
 import {
+  In,
   LessThan,
   MoreThan,
   Repository,
@@ -119,7 +120,16 @@ export class OrderService {
     const lastOrder = await this.orderRepository
       .createQueryBuilder('order')
       .select('order.orderNo', 'orderNo')
-      .where('order.orderNo LIKE :pattern', { pattern: `%${currentYear}-%` })
+      // Prefix patterns (current `YYYY-`, legacy `ORD-YYYY-`) keep the unique
+      // orderNo index usable; a leading-wildcard LIKE cannot use it and scans
+      // every historical row on each checkout.
+      .where(
+        '(order.orderNo LIKE :currentPattern OR order.orderNo LIKE :legacyPattern)',
+        {
+          currentPattern: `${currentYear}-%`,
+          legacyPattern: `ORD-${currentYear}-%`,
+        },
+      )
       .orderBy(
         "lpad(REGEXP_REPLACE(order.orderNo, '^.*-', ''), 10, '0')::bigint",
         'DESC',
@@ -143,16 +153,16 @@ export class OrderService {
       ...orderDetails
     } = createOrderDto;
 
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    const address = await this.addressRepository.findOne({
-      where: { id: addressId },
-    });
-    const shippingMethod = await this.shippingMethodRepository.findOne({
-      where: { id: shippingMethodId },
-    });
-    const paymentMethod = await this.orderpaymentMethodRepository.findOne({
-      where: { id: paymentMethodId },
-    });
+    const [user, address, shippingMethod, paymentMethod] = await Promise.all([
+      this.userRepository.findOne({ where: { id: userId } }),
+      this.addressRepository.findOne({ where: { id: addressId } }),
+      this.shippingMethodRepository.findOne({
+        where: { id: shippingMethodId },
+      }),
+      this.orderpaymentMethodRepository.findOne({
+        where: { id: paymentMethodId },
+      }),
+    ]);
 
     let coupon: Coupon | null = null;
     if (couponId) {
@@ -236,10 +246,19 @@ export class OrderService {
       { campaign: (typeof flashCampaigns)[number]; discount: number }
     >();
 
+    // Load every ordered product in one query instead of one per line item.
+    // Products are validated in the loop below so the first invalid item still
+    // produces the same error as before.
+    const productIds = [...new Set(items.map((item) => item.productId))];
+    const products = await this.productRepository.find({
+      where: { id: In(productIds) },
+    });
+    const productById = new Map(
+      products.map((product) => [product.id, product]),
+    );
+
     for (const item of items) {
-      const product = await this.productRepository.findOne({
-        where: { id: item.productId },
-      });
+      const product = productById.get(item.productId);
       if (!product)
         throw new NotFoundException(
           `Product with ID ${item.productId} not found`,
@@ -3386,12 +3405,17 @@ export class OrderService {
     // createdAt stores UTC wall-clock in a timezone-less column.
     const dhakaCreatedAt =
       "(order.createdAt AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka')";
-    // Optional year filter applied to all three queries
+    // Optional year filter. Bounds are computed in Dhaka time as plain
+    // createdAt comparisons so the index on order.createdAt can be used;
+    // wrapping createdAt in EXTRACT(...) would force a sequential scan.
     const withYearFilter = (qb: SelectQueryBuilder<Order>) => {
       if (year) {
-        return qb.andWhere(`EXTRACT(YEAR FROM ${dhakaCreatedAt}) = :year`, {
-          year,
-        });
+        const from = new Date(Date.UTC(year, 0, 1) - 6 * 3600_000);
+        const to = new Date(Date.UTC(year + 1, 0, 1) - 6 * 3600_000);
+        return qb.andWhere(
+          'order.createdAt >= :from AND order.createdAt < :to',
+          { from: from.toISOString(), to: to.toISOString() },
+        );
       }
       // Only the dashboard chart asks for the rolling last 12 months
       // (current Dhaka month plus the 11 before it), so it never grows
@@ -3410,8 +3434,11 @@ export class OrderService {
       return qb;
     };
 
-    // Query for all orders (regardless of status)
-    const allOrdersResult = await withYearFilter(
+    // One grouped scan feeds every column of the report. This used to run
+    // five separate aggregate queries (all, delivered, cancelled, per-status,
+    // totals) over the same rows; the dashboard calls this method twice, so
+    // that was ten scans per request.
+    const monthlyRows: Record<string, any>[] = await withYearFilter(
       this.orderRepository
         .createQueryBuilder('order')
         .select([
@@ -3419,179 +3446,44 @@ export class OrderService {
           `TO_CHAR(${dhakaCreatedAt}, 'Month') AS month_name`,
           `EXTRACT(MONTH FROM ${dhakaCreatedAt}) AS month_number`,
           'COUNT(order.id) AS all_order_count',
-          'SUM(order.totalValue) AS all_order_value',
+          'COALESCE(SUM(order.totalValue), 0) AS all_order_value',
+          `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.DELIVERED}') AS delivered_count`,
+          `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.DELIVERED}'), 0) AS delivered_value`,
+          `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.CANCELLED}') AS cancelled_count`,
+          `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.CANCELLED}'), 0) AS cancelled_value`,
+          `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.PENDING}') AS pending_count`,
+          `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.PENDING}'), 0) AS pending_value`,
+          `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.PROCESSING}') AS processing_count`,
+          `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.PROCESSING}'), 0) AS processing_value`,
+          `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.SHIPPED}') AS shipped_count`,
+          `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.SHIPPED}'), 0) AS shipped_value`,
+          `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.ON_HOLD}') AS on_hold_count`,
+          `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.ON_HOLD}'), 0) AS on_hold_value`,
         ]),
     )
       .groupBy('year, month_name, month_number')
       .orderBy('year, month_number', 'ASC')
       .getRawMany();
 
-    // Query for delivered orders
-    // Note: base .where() must come before withYearFilter so the year
-    // filter is appended via andWhere (a later .where() would replace it)
-    const deliveredResult = await withYearFilter(
-      this.orderRepository
-        .createQueryBuilder('order')
-        .select([
-          `EXTRACT(YEAR FROM ${dhakaCreatedAt}) AS year`,
-          `TO_CHAR(${dhakaCreatedAt}, 'Month') AS month_name`,
-          `EXTRACT(MONTH FROM ${dhakaCreatedAt}) AS month_number`,
-          'COUNT(order.id) AS order_count',
-          'SUM(order.totalValue) AS total_value',
-        ])
-        .where('order.orderStatus = :status', { status: OrderStatus.DELIVERED }),
-    )
-      .groupBy('year, month_name, month_number')
-      .orderBy('year, month_number', 'ASC')
-      .getRawMany();
-
-    // Query for cancelled orders
-    const cancelledResult = await withYearFilter(
-      this.orderRepository
-        .createQueryBuilder('order')
-        .select([
-          `EXTRACT(YEAR FROM ${dhakaCreatedAt}) AS year`,
-          `TO_CHAR(${dhakaCreatedAt}, 'Month') AS month_name`,
-          `EXTRACT(MONTH FROM ${dhakaCreatedAt}) AS month_number`,
-          'COUNT(order.id) AS cancel_order_count',
-          'SUM(order.totalValue) AS cancel_value',
-        ])
-        .where('order.orderStatus = :status', { status: OrderStatus.CANCELLED }),
-    )
-      .groupBy('year, month_name, month_number')
-      .orderBy('year, month_number', 'ASC')
-      .getRawMany();
-
-    // Single grouped query for pending, processing, shipped and on-hold orders
-    const statusResult = await withYearFilter(
-      this.orderRepository
-        .createQueryBuilder('order')
-        .select([
-          `EXTRACT(YEAR FROM ${dhakaCreatedAt}) AS year`,
-          `TO_CHAR(${dhakaCreatedAt}, 'Month') AS month_name`,
-          `EXTRACT(MONTH FROM ${dhakaCreatedAt}) AS month_number`,
-          `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.PENDING}') AS pending_order_count`,
-          `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.PENDING}'), 0) AS pending_value`,
-          `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.PROCESSING}') AS processing_order_count`,
-          `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.PROCESSING}'), 0) AS processing_value`,
-          `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.SHIPPED}') AS shipped_order_count`,
-          `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.SHIPPED}'), 0) AS shipped_value`,
-          `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.ON_HOLD}') AS on_hold_order_count`,
-          `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.ON_HOLD}'), 0) AS on_hold_value`,
-        ])
-        .where('order.orderStatus IN (:...statuses)', {
-          statuses: [
-            OrderStatus.PENDING,
-            OrderStatus.PROCESSING,
-            OrderStatus.SHIPPED,
-            OrderStatus.ON_HOLD,
-          ],
-        }),
-    )
-      .groupBy('year, month_name, month_number')
-      .orderBy('year, month_number', 'ASC')
-      .getRawMany();
-
-    // Create maps for each query result
-    const allOrdersMap = new Map();
-    allOrdersResult.forEach((row) => {
-      const key = `${row.year}-${row.month_number}`;
-      allOrdersMap.set(key, {
-        allOrderCount: parseInt(row.all_order_count),
-        allOrderValue: parseFloat(row.all_order_value || 0),
-      });
-    });
-
-    const deliveredMap = new Map();
-    deliveredResult.forEach((row) => {
-      const key = `${row.year}-${row.month_number}`;
-      deliveredMap.set(key, {
-        orderCount: parseInt(row.order_count),
-        totalValue: parseFloat(row.total_value || 0),
-      });
-    });
-
-    const cancelledMap = new Map();
-    cancelledResult.forEach((row) => {
-      const key = `${row.year}-${row.month_number}`;
-      cancelledMap.set(key, {
-        cancelOrderCount: parseInt(row.cancel_order_count),
-        cancelValue: parseFloat(row.cancel_value || 0),
-      });
-    });
-
-    const statusMap = new Map();
-    statusResult.forEach((row) => {
-      const key = `${row.year}-${row.month_number}`;
-      statusMap.set(key, {
-        pendingOrderCount: parseInt(row.pending_order_count) || 0,
-        pendingValue: parseFloat(row.pending_value || 0),
-        processingOrderCount: parseInt(row.processing_order_count) || 0,
-        processingValue: parseFloat(row.processing_value || 0),
-        shippedOrderCount: parseInt(row.shipped_order_count) || 0,
-        shippedValue: parseFloat(row.shipped_value || 0),
-        onHoldOrderCount: parseInt(row.on_hold_order_count) || 0,
-        onHoldValue: parseFloat(row.on_hold_value || 0),
-      });
-    });
-
-    // Get all unique month keys from all queries
-    const allKeys = new Set([
-      ...allOrdersMap.keys(),
-      ...deliveredMap.keys(),
-      ...cancelledMap.keys(),
-      ...statusMap.keys(),
-    ]);
-
-    // Combine the results
-    const formattedData = Array.from(allKeys)
-      .map((key) => {
-        const [year, _monthNumber] = key.split('-');
-        const allData = allOrdersMap.get(key) || {
-          allOrderCount: 0,
-          allOrderValue: 0,
-        };
-        const deliveredData = deliveredMap.get(key) || {
-          orderCount: 0,
-          totalValue: 0,
-        };
-        const cancelData = cancelledMap.get(key) || {
-          cancelOrderCount: 0,
-          cancelValue: 0,
-        };
-        const statusData = statusMap.get(key) || {
-          pendingOrderCount: 0,
-          pendingValue: 0,
-          processingOrderCount: 0,
-          processingValue: 0,
-          shippedOrderCount: 0,
-          shippedValue: 0,
-          onHoldOrderCount: 0,
-          onHoldValue: 0,
-        };
-
-        return {
-          year: parseInt(year),
-          month: allOrdersResult.find((r) => `${r.year}-${r.month_number}` === key)?.month_name.trim() ||
-               deliveredResult.find((r) => `${r.year}-${r.month_number}` === key)?.month_name.trim() ||
-               cancelledResult.find((r) => `${r.year}-${r.month_number}` === key)?.month_name.trim() ||
-               statusResult.find((r) => `${r.year}-${r.month_number}` === key)?.month_name.trim(),
-          allOrderCount: allData.allOrderCount,
-          allOrderValue: allData.allOrderValue,
-          orderCount: deliveredData.orderCount,
-          totalValue: deliveredData.totalValue,
-          cancelOrderCount: cancelData.cancelOrderCount,
-          cancelValue: cancelData.cancelValue,
-          pendingOrderCount: statusData.pendingOrderCount,
-          pendingValue: statusData.pendingValue,
-          processingOrderCount: statusData.processingOrderCount,
-          processingValue: statusData.processingValue,
-          shippedOrderCount: statusData.shippedOrderCount,
-          shippedValue: statusData.shippedValue,
-          onHoldOrderCount: statusData.onHoldOrderCount,
-          onHoldValue: statusData.onHoldValue,
-        };
-      })
+    const monthlyData = monthlyRows
+      .map((row) => ({
+        year: parseInt(row.year, 10),
+        month: (row.month_name ?? '').trim(),
+        allOrderCount: parseInt(row.all_order_count, 10) || 0,
+        allOrderValue: parseFloat(row.all_order_value) || 0,
+        orderCount: parseInt(row.delivered_count, 10) || 0,
+        totalValue: parseFloat(row.delivered_value) || 0,
+        cancelOrderCount: parseInt(row.cancelled_count, 10) || 0,
+        cancelValue: parseFloat(row.cancelled_value) || 0,
+        pendingOrderCount: parseInt(row.pending_count, 10) || 0,
+        pendingValue: parseFloat(row.pending_value) || 0,
+        processingOrderCount: parseInt(row.processing_count, 10) || 0,
+        processingValue: parseFloat(row.processing_value) || 0,
+        shippedOrderCount: parseInt(row.shipped_count, 10) || 0,
+        shippedValue: parseFloat(row.shipped_value) || 0,
+        onHoldOrderCount: parseInt(row.on_hold_count, 10) || 0,
+        onHoldValue: parseFloat(row.on_hold_value) || 0,
+      }))
       .sort((a, b) => {
         // Newest first, so the current month sits at the top of the table
         if (a.year !== b.year) return b.year - a.year;
@@ -3600,51 +3492,45 @@ export class OrderService {
         return monthB - monthA;
       });
 
-    // Range-wide totals for the stat cards — one aggregate row using the same
-    // per-status FILTERs as getOrderStatistics (dashboard), honoring the year
-    // filter, so the cards are authoritative instead of summed client-side.
-    // NOTE: raw select strings pass through verbatim — "order" must be fully
-    // quoted because it is a Postgres reserved word.
-    const totalsRows: Record<string, any>[] = await withYearFilter(
-      this.orderRepository
-        .createQueryBuilder('order')
-        .select([
-          'COUNT("order"."id") AS all_order_count',
-          'COALESCE(SUM("order"."totalValue"), 0) AS all_order_value',
-          `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.DELIVERED}') AS delivered_count`,
-          `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.DELIVERED}'), 0) AS delivered_value`,
-          `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.PENDING}') AS pending_count`,
-          `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.PENDING}'), 0) AS pending_value`,
-          `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.PROCESSING}') AS processing_count`,
-          `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.PROCESSING}'), 0) AS processing_value`,
-          `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.SHIPPED}') AS shipped_count`,
-          `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.SHIPPED}'), 0) AS shipped_value`,
-          `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.ON_HOLD}') AS on_hold_count`,
-          `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.ON_HOLD}'), 0) AS on_hold_value`,
-          `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.CANCELLED}') AS cancelled_count`,
-          `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.CANCELLED}'), 0) AS cancelled_value`,
-        ]),
-    ).getRawMany();
+    // Range-wide totals for the stat cards — the grouped rows already carry
+    // every status, so summing them here avoids a fifth aggregate query.
+    const totals = monthlyData.reduce(
+      (acc, row) => {
+        acc.totalOrders += row.allOrderCount;
+        acc.totalValue += row.allOrderValue;
+        acc.deliveredCount += row.orderCount;
+        acc.deliveredValue += row.totalValue;
+        acc.pendingCount += row.pendingOrderCount;
+        acc.pendingValue += row.pendingValue;
+        acc.processingCount += row.processingOrderCount;
+        acc.processingValue += row.processingValue;
+        acc.shippedCount += row.shippedOrderCount;
+        acc.shippedValue += row.shippedValue;
+        acc.onHoldCount += row.onHoldOrderCount;
+        acc.onHoldValue += row.onHoldValue;
+        acc.cancelledCount += row.cancelOrderCount;
+        acc.cancelledValue += row.cancelValue;
+        return acc;
+      },
+      {
+        totalOrders: 0,
+        totalValue: 0,
+        deliveredCount: 0,
+        deliveredValue: 0,
+        pendingCount: 0,
+        pendingValue: 0,
+        processingCount: 0,
+        processingValue: 0,
+        shippedCount: 0,
+        shippedValue: 0,
+        onHoldCount: 0,
+        onHoldValue: 0,
+        cancelledCount: 0,
+        cancelledValue: 0,
+      },
+    );
 
-    const totalsRow = totalsRows[0] ?? {};
-    const totals = {
-      totalOrders: parseInt(totalsRow.all_order_count, 10) || 0,
-      totalValue: parseFloat(totalsRow.all_order_value) || 0,
-      deliveredCount: parseInt(totalsRow.delivered_count, 10) || 0,
-      deliveredValue: parseFloat(totalsRow.delivered_value) || 0,
-      pendingCount: parseInt(totalsRow.pending_count, 10) || 0,
-      pendingValue: parseFloat(totalsRow.pending_value) || 0,
-      processingCount: parseInt(totalsRow.processing_count, 10) || 0,
-      processingValue: parseFloat(totalsRow.processing_value) || 0,
-      shippedCount: parseInt(totalsRow.shipped_count, 10) || 0,
-      shippedValue: parseFloat(totalsRow.shipped_value) || 0,
-      onHoldCount: parseInt(totalsRow.on_hold_count, 10) || 0,
-      onHoldValue: parseFloat(totalsRow.on_hold_value) || 0,
-      cancelledCount: parseInt(totalsRow.cancelled_count, 10) || 0,
-      cancelledValue: parseFloat(totalsRow.cancelled_value) || 0,
-    };
-
-    return { monthlyData: formattedData, totals };
+    return { monthlyData, totals };
   }
 
   async getMonthlyOrderReportYears() {

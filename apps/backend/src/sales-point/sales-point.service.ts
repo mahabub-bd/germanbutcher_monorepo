@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Attachment } from 'src/attachment/entities/attachment.entity';
+import { SwrCache } from 'src/common/utils/swr-cache';
 import { Repository } from 'typeorm';
 import { CreateSalesPointDto } from './dto/create-sales-point.dto';
 import { QuerySalesPointDto } from './dto/query-sales-point.dto';
@@ -13,6 +14,25 @@ import { SalesPoint } from './entities/sales-point.entity';
 
 @Injectable()
 export class SalesPointService {
+  /**
+   * /where-to-buy listings: fresh 60s, stale 10min. Sales-point mutations
+   * invalidate below. Shop rows are managed by SalesPointShopService (another
+   * module) — those changes propagate within the fresh window via SWR.
+   */
+  private readonly listCache = new SwrCache<{
+    message: string;
+    statusCode: number;
+    data: SalesPoint[];
+    total: number;
+    page: string;
+    limit: string;
+    totalPages: number;
+  }>(60_000, 600_000);
+
+  private invalidateListCache(): void {
+    this.listCache.invalidate();
+  }
+
   constructor(
     @InjectRepository(SalesPoint)
     private readonly salesPointRepository: Repository<SalesPoint>,
@@ -33,6 +53,7 @@ export class SalesPointService {
 
       const salesPoint = this.salesPointRepository.create(createSalesPointDto);
       const savedSalesPoint = await this.salesPointRepository.save(salesPoint);
+      this.invalidateListCache();
 
       return await this.findOne(savedSalesPoint.id);
     } catch (error) {
@@ -102,22 +123,27 @@ export class SalesPointService {
       .orderBy('sales_point.order', 'ASC')
       .addOrderBy('sales_point.createdAt', 'DESC');
 
-    const [data, total] = await queryBuilder
-      .skip(skip)
-      .take(limit)
-      .getManyAndCount();
+    return this.listCache.get(
+      `salespoints_${page}_${limit}_${shopSearch ?? ''}_${division ?? ''}_${
+        district ?? ''
+      }_${isActive ?? 'all'}`,
+      async () => {
+        const [data, total] = await queryBuilder
+          .skip(skip)
+          .take(limit)
+          .getManyAndCount();
 
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      message: 'Sales points retrieved successfully',
-      statusCode: 200,
-      data,
-      total,
-      page: page.toString(),
-      limit: limit.toString(),
-      totalPages,
-    };
+        return {
+          message: 'Sales points retrieved successfully',
+          statusCode: 200,
+          data,
+          total,
+          page: page.toString(),
+          limit: limit.toString(),
+          totalPages: Math.ceil(total / limit),
+        };
+      },
+    );
   }
 
   async findOne(id: number): Promise<SalesPoint> {
@@ -153,6 +179,7 @@ export class SalesPointService {
     // loaded relation objects — overwriting a changed logoAttachmentId /
     // bannerAttachmentId scalar with the OLD attachment id.
     await this.salesPointRepository.update(id, updateSalesPointDto);
+    this.invalidateListCache();
 
     return await this.findOne(id);
   }
@@ -160,6 +187,7 @@ export class SalesPointService {
   async remove(id: number): Promise<void> {
     const salesPoint = await this.findOne(id);
     await this.salesPointRepository.remove(salesPoint);
+    this.invalidateListCache();
   }
 
   private async validateLogoAttachment(attachmentId: number) {

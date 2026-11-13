@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 
 import { Category } from 'src/category/entities/category.entity';
 import { DiscountType } from 'src/common/enums/index';
+import { SwrCache } from 'src/common/utils/swr-cache';
 import { Product } from 'src/product/entities/product.entity';
 import { CreateFlashSaleCampaignDto } from './dto/create-flash-sale-campaign.dto';
 import { UpdateFlashSaleCampaignDto } from './dto/update-flash-sale-campaign.dto';
@@ -83,6 +84,17 @@ export function computeFlashPrice(
 export class FlashSaleCampaignsService {
   private readonly logger = new Logger(FlashSaleCampaignsService.name);
 
+  /**
+   * Active campaigns are read on every product-list request, so keep them in
+   * process instead of hitting the DB each time. 30s fresh / 5min stale — the
+   * same tolerance the old (inert) TypeORM `.cache()` intended, applied to the
+   * raw rows here; validFrom/validUntil are re-evaluated per call.
+   */
+  private readonly activeCache = new SwrCache<FlashSaleCampaign[]>(
+    30_000,
+    300_000,
+  );
+
   constructor(
     @InjectRepository(FlashSaleCampaign)
     private readonly campaignRepository: Repository<FlashSaleCampaign>,
@@ -100,6 +112,7 @@ export class FlashSaleCampaignsService {
     const campaign = this.campaignRepository.create(rest);
     this.assignRelations(campaign, productIds, categoryIds);
     await this.campaignRepository.save(campaign);
+    this.activeCache.invalidate();
     return this.findOne(campaign.id);
   }
 
@@ -130,6 +143,7 @@ export class FlashSaleCampaignsService {
     }
     this.assignRelations(campaign, productIds, categoryIds);
     await this.campaignRepository.save(campaign);
+    this.activeCache.invalidate();
     return this.findOne(id);
   }
 
@@ -156,6 +170,7 @@ export class FlashSaleCampaignsService {
   async remove(id: number): Promise<void> {
     const campaign = await this.findEntity(id);
     await this.campaignRepository.remove(campaign);
+    this.activeCache.invalidate();
   }
 
   /** Raw entity fetch for the mutation paths — findOne() returns a summary. */
@@ -240,21 +255,26 @@ export class FlashSaleCampaignsService {
   /**
    * Active campaigns (isActive + within date range + under maxUsage),
    * ordered by id — the lowest id wins when campaigns overlap.
-   * Results are cached 30s: campaign start/end and usage exhaustion lag the
-   * storefront by at most that long. Order-time pricing always re-resolves,
-   * so no money is lost to staleness.
+   * Results are cached in process for 30s (5min stale window): campaign
+   * start/end and usage exhaustion lag the storefront by at most that long.
+   * Order-time pricing always re-resolves, so no money is lost to staleness.
    */
   async getActiveCampaigns(): Promise<FlashSaleCampaign[]> {
     const now = Date.now();
-    const campaigns = await this.campaignRepository
-      .createQueryBuilder('campaign')
-      .leftJoinAndSelect('campaign.products', 'product')
-      .leftJoinAndSelect('campaign.categories', 'category')
-      .where('campaign.isActive = :isActive', { isActive: true })
-      .andWhere('(campaign.maxUsage = 0 OR campaign.timesUsed < campaign.maxUsage)')
-      .orderBy('campaign.id', 'ASC')
-      .cache('active_flash_sale_campaigns', 30_000)
-      .getMany();
+    // Only the DB-filtered rows are cached; the date window is applied after
+    // every read so a campaign starting or ending is honoured immediately.
+    const campaigns = await this.activeCache.get('active', () =>
+      this.campaignRepository
+        .createQueryBuilder('campaign')
+        .leftJoinAndSelect('campaign.products', 'product')
+        .leftJoinAndSelect('campaign.categories', 'category')
+        .where('campaign.isActive = :isActive', { isActive: true })
+        .andWhere(
+          '(campaign.maxUsage = 0 OR campaign.timesUsed < campaign.maxUsage)',
+        )
+        .orderBy('campaign.id', 'ASC')
+        .getMany(),
+    );
 
     return campaigns.filter(
       (campaign) =>

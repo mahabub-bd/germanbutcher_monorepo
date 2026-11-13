@@ -1,11 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Attachment } from 'src/attachment/entities/attachment.entity';
 
 import { User } from 'src/user/entities/user.entity';
-import { Cache } from 'cache-manager';
-import { Inject } from '@nestjs/common';
+import { SwrCache } from 'src/common/utils/swr-cache';
 import { DataSource, In, Repository } from 'typeorm';
 import { CreateBannerDto } from './dto/create-banner.dto';
 import { ReorderBannersDto } from './dto/reorder-banner.dto';
@@ -22,19 +20,24 @@ interface FindAllOptions {
 }
 @Injectable()
 export class BannerService {
+  /**
+   * Active banners feed the homepage carousel — read on every storefront
+   * render, so cache in process: fresh 60s, stale 5min. Any banner write
+   * invalidates via invalidateCaches().
+   */
+  private readonly activeCache = new SwrCache<Banner[]>(60_000, 300_000);
+
   constructor(
     @InjectRepository(Banner)
     private bannerRepository: Repository<Banner>,
     @InjectRepository(Attachment)
     private attachmentRepository: Repository<Attachment>,
-    @Inject(CACHE_MANAGER)
-    private cacheManager: Cache,
     private dataSource: DataSource,
   ) {}
 
   /** Invalidates the banner list caches after any write. */
   private async invalidateCaches(): Promise<void> {
-    await this.cacheManager.del('banners_active');
+    this.activeCache.invalidate();
   }
 
   async create(createBannerDto: CreateBannerDto, user: User): Promise<Banner> {
@@ -161,27 +164,28 @@ export class BannerService {
     return { data, total };
   }
   async findActiveBanners(): Promise<Banner[]> {
-    return this.bannerRepository
-      .createQueryBuilder('banner')
-      .leftJoin('banner.image', 'image')
-      .select([
-        'banner.id',
-        'banner.title',
-        'banner.description',
-        'banner.targetUrl',
-        'banner.position',
-        'banner.type',
-        'banner.isActive',
-        'banner.displayOrder',
-        'image.id',
-        'image.fileName',
-        'image.url',
-        'image.originalName',
-      ])
-      .where('banner.isActive = :isActive', { isActive: true })
-      .orderBy('banner.displayOrder', 'ASC')
-      .cache('active_banners', 60000) // Cache for 60 seconds
-      .getMany();
+    return this.activeCache.get('active', () =>
+      this.bannerRepository
+        .createQueryBuilder('banner')
+        .leftJoin('banner.image', 'image')
+        .select([
+          'banner.id',
+          'banner.title',
+          'banner.description',
+          'banner.targetUrl',
+          'banner.position',
+          'banner.type',
+          'banner.isActive',
+          'banner.displayOrder',
+          'image.id',
+          'image.fileName',
+          'image.url',
+          'image.originalName',
+        ])
+        .where('banner.isActive = :isActive', { isActive: true })
+        .orderBy('banner.displayOrder', 'ASC')
+        .getMany(),
+    );
   }
 
   async findOne(id: number): Promise<Banner> {

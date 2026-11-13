@@ -28,7 +28,7 @@ export class OrderPaymentService {
   async create(createPaymentDto: CreateOrderPaymentDto, user: User) {
     const order = await this.orderRepository.findOne({
       where: { id: createPaymentDto.orderId },
-      relations: ['payments', 'paymentMethod'],
+      relations: ['paymentMethod'],
     });
 
     if (!order) throw new NotFoundException('Order not found');
@@ -105,6 +105,7 @@ export class OrderPaymentService {
         'order.paymentStatus',
         'order.totalValue',
         'order.paidAmount',
+        'customer.id',
         'customer.name',
         'customer.mobileNumber',
         'paymentMethod.name',
@@ -196,23 +197,34 @@ export class OrderPaymentService {
   }
 
   private async updateOrderPaymentStatus(orderId: number) {
-    const order = await this.orderRepository.findOne({
-      where: { id: orderId },
-      relations: ['payments'],
+    const row = await this.getOrderPaidTotal(orderId);
+    if (!row) throw new NotFoundException('Order not found');
+
+    const totalPaid = parseFloat(row.paid) || 0;
+    const totalValue = parseFloat(row.totalValue) || 0;
+
+    await this.orderRepository.update(orderId, {
+      paidAmount: totalPaid,
+      paymentStatus: this.calculatePaymentStatus(totalPaid, totalValue),
     });
+  }
 
-    const totalPaid = order.payments.reduce(
-      (sum, payment) => sum + Number(payment.amount),
-      0,
-    );
-
-    order.paidAmount = totalPaid;
-    order.paymentStatus = this.calculatePaymentStatus(
-      totalPaid,
-      order.totalValue,
-    );
-
-    await this.orderRepository.save(order);
+  /**
+   * One aggregate row for the order total and the sum of its payments.
+   * The old code loaded the order with every payment row — plus each
+   * payment's eager order/method/user relations — just to add the amounts.
+   */
+  private async getOrderPaidTotal(
+    orderId: number,
+  ): Promise<{ totalValue: string; paid: string } | null> {
+    return this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoin('order.payments', 'payment')
+      .select('order.totalValue', 'totalValue')
+      .addSelect('COALESCE(SUM(payment.amount), 0)', 'paid')
+      .where('order.id = :orderId', { orderId })
+      .groupBy('order.id')
+      .getRawOne<{ totalValue: string; paid: string }>();
   }
 
   /**
@@ -266,7 +278,19 @@ export class OrderPaymentService {
     const last = await this.paymentRepository
       .createQueryBuilder('payment')
       .select('payment.paymentNumber', 'paymentNumber')
-      .where('payment.paymentNumber LIKE :pattern', { pattern: `%${year}-%` })
+      // Prefix patterns (current `YYYY-`, legacy `PAY-YYYY-` / `REF-YYYY-`)
+      // keep the unique paymentNumber index usable instead of scanning the
+      // whole table with a leading wildcard.
+      .where(
+        `(payment.paymentNumber LIKE :currentPattern
+          OR payment.paymentNumber LIKE :paymentPattern
+          OR payment.paymentNumber LIKE :refundPattern)`,
+        {
+          currentPattern: `${year}-%`,
+          paymentPattern: `PAY-${year}-%`,
+          refundPattern: `REF-${year}-%`,
+        },
+      )
       // Strip to the last `-` segment and pad to a fixed width for a plain
       // numeric max — length-then-lexicographic breaks on mixed prefix
       // lengths, and RIGHT(paymentNumber, 4) truncates longer tails
@@ -336,33 +360,26 @@ export class OrderPaymentService {
   }
 
   private async updateOrderPaymentStatusAfterRefund(orderId: number) {
-    const order = await this.orderRepository.findOne({
-      where: { id: orderId },
-      relations: ['payments'],
-    });
+    const row = await this.getOrderPaidTotal(orderId);
+    if (!row) return;
 
-    if (!order) return;
-
-    // Calculate total paid (including negative refund amounts)
-    const totalPaid = order.payments.reduce(
-      (sum, payment) => sum + Number(payment.amount),
-      0,
-    );
-
-    order.paidAmount = Math.max(0, totalPaid); // Don't allow negative paid amount
+    const totalPaid = parseFloat(row.paid) || 0;
+    const totalValue = parseFloat(row.totalValue) || 0;
+    const paidAmount = Math.max(0, totalPaid); // Don't allow negative paid amount
 
     // Update payment status based on refund status
+    let paymentStatus: PaymentStatus;
     if (totalPaid <= 0) {
       // Fully refunded
-      order.paymentStatus = PaymentStatus.REFUND_COMPLETE;
-    } else if (totalPaid < order.totalValue) {
+      paymentStatus = PaymentStatus.REFUND_COMPLETE;
+    } else if (totalPaid < totalValue) {
       // Partially refunded
-      order.paymentStatus = PaymentStatus.PARTIAL_REFUND;
+      paymentStatus = PaymentStatus.PARTIAL_REFUND;
     } else {
       // Still has remaining paid amount
-      order.paymentStatus = PaymentStatus.PAID;
+      paymentStatus = PaymentStatus.PAID;
     }
 
-    await this.orderRepository.save(order);
+    await this.orderRepository.update(orderId, { paidAmount, paymentStatus });
   }
 }

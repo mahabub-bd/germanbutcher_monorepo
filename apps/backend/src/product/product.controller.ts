@@ -1,4 +1,3 @@
-import { CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import {
   Body,
   Controller,
@@ -279,8 +278,6 @@ export class ProductController {
     description: 'Discounted products retrieved successfully',
     type: [ProductResponseDto],
   })
-  @CacheKey('products_discounted')
-  @CacheTTL(60000) // Cache for 1 minute
   async getActiveDiscountedProducts(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
@@ -335,8 +332,6 @@ export class ProductController {
     description: 'Flash sale products retrieved successfully',
     type: [ProductResponseDto],
   })
-  @CacheKey('products_flash_sale')
-  @CacheTTL(60000) // Cache for 1 minute
   async getFlashSaleProducts(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
@@ -391,8 +386,6 @@ export class ProductController {
     description: 'BOGO products retrieved successfully',
     type: [ProductResponseDto],
   })
-  @CacheKey('products_bogo')
-  @CacheTTL(60000) // Cache for 1 minute
   async getBogoProducts(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
@@ -439,8 +432,6 @@ export class ProductController {
     description: 'Sales window for ranking (delivered orders only)',
     example: 'all_time',
   })
-  @CacheKey('products_bestsellers')
-  @CacheTTL(60000) // Cache for 1 minute
   async getBestsellingProducts(
     @Query('limit') limit: number = 10,
     @Query('isActive') isActive?: boolean,
@@ -468,8 +459,6 @@ export class ProductController {
     example: 10,
     type: Number,
   })
-  @CacheKey('products_featured')
-  @CacheTTL(60000) // Cache for 1 minute
   async getFeaturedProducts(@Query('limit') limit: number = 10) {
     const [products] = await this.productService.findAll({
       page: 1,
@@ -503,8 +492,6 @@ export class ProductController {
       },
     },
   })
-  @CacheKey('product_tags')
-  @CacheTTL(300000) // Cache for 5 minutes
   async getAllTags() {
     const tags = await this.productService.getAllTags();
     return this.formatResponse(
@@ -995,8 +982,6 @@ export class ProductController {
       },
     },
   })
-  @CacheKey('similar_products_key')
-  @CacheTTL(60)
   async getSimilarProducts(
     @Param('id') id: number,
     @Query('limit') limit = 8,
