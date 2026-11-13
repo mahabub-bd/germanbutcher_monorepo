@@ -79,6 +79,7 @@ export class OrderPaymentService {
     toDate?: string,
     dateRangePreset?: string,
     orderStatus?: OrderStatus,
+    search?: string,
   ) {
     // Dhaka (UTC+6) bounds via the shared report date-range helper
     const { from, to } = resolveReportRange(fromDate, toDate, dateRangePreset);
@@ -86,6 +87,8 @@ export class OrderPaymentService {
     const query = this.paymentRepository
       .createQueryBuilder('payment')
       .leftJoinAndSelect('payment.order', 'order')
+      // Order's customer — the payment report shows customer name + mobile
+      .leftJoin('order.user', 'customer')
       .leftJoinAndSelect('payment.paymentMethod', 'paymentMethod')
       .leftJoinAndSelect('payment.createdBy', 'createdBy')
       .leftJoinAndSelect('payment.updatedBy', 'updatedBy')
@@ -102,6 +105,8 @@ export class OrderPaymentService {
         'order.paymentStatus',
         'order.totalValue',
         'order.paidAmount',
+        'customer.name',
+        'customer.mobileNumber',
         'paymentMethod.name',
         'paymentMethod.code',
         'paymentMethod.description',
@@ -129,6 +134,16 @@ export class OrderPaymentService {
     // Apply order status filter
     if (orderStatus) {
       query.andWhere('order.orderStatus = :orderStatus', { orderStatus });
+    }
+
+    // Free-text search across order no, customer name and mobile number
+    if (search?.trim()) {
+      query.andWhere(
+        `(order.orderNo ILIKE :search
+          OR customer.name ILIKE :search
+          OR customer.mobileNumber ILIKE :search)`,
+        { search: `%${search.trim()}%` },
+      );
     }
 
     return query.getMany();

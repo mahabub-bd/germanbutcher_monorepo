@@ -281,8 +281,8 @@ export function UserActivityList({
   const renderFilterControls = (mode: "bar" | "sheet") => {
     const triggerClass =
       mode === "bar"
-        ? "h-9 w-full text-xs font-medium"
-        : "h-11 w-full px-3 text-xs font-medium";
+        ? "h-9 w-full text-sm font-medium"
+        : "h-11 w-full px-3 text-sm font-medium";
 
     return [
       {
@@ -625,7 +625,7 @@ export function UserActivityList({
               }}
               aria-pressed={active}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 sm:px-4 sm:py-2",
+                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 sm:px-4 sm:py-2",
                 active ? tab.activeColors : tab.colors
               )}
             >
@@ -645,7 +645,7 @@ export function UserActivityList({
               onOpenChange={setFilterSheetOpen}
             >
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-sm">
                   <SlidersHorizontal className="size-3.5" />
                   Filters
                   {activeFilterCount > 0 && (
@@ -668,7 +668,7 @@ export function UserActivityList({
 
                 {renderFilterControls("sheet").map((control) => (
                   <div key={control.key} className="px-4 pt-4">
-                    <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <p className="mb-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground">
                       {control.label}
                     </p>
                     {control.node}
@@ -709,7 +709,7 @@ export function UserActivityList({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 shrink-0 text-xs font-medium text-muted-foreground"
+                className="h-9 shrink-0 text-sm font-medium text-muted-foreground"
                 onClick={clearFilters}
                 title={activeFilterSummary}
               >

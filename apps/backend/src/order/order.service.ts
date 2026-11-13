@@ -1822,6 +1822,8 @@ export class OrderService {
          COALESCE(SUM(CASE WHEN "orderStatus" = 'pending' THEN "totalValue" END), 0) AS pending_value,
          COALESCE(SUM(CASE WHEN "orderStatus" = 'processing' THEN 1 END), 0) AS processing_count,
          COALESCE(SUM(CASE WHEN "orderStatus" = 'processing' THEN "totalValue" END), 0) AS processing_value,
+         COALESCE(SUM(CASE WHEN "orderStatus" = 'shipped' THEN 1 END), 0) AS shipped_count,
+         COALESCE(SUM(CASE WHEN "orderStatus" = 'shipped' THEN "totalValue" END), 0) AS shipped_value,
          COALESCE(SUM(CASE WHEN "orderStatus" = 'on_hold' THEN 1 END), 0) AS on_hold_count,
          COALESCE(SUM(CASE WHEN "orderStatus" = 'on_hold' THEN "totalValue" END), 0) AS on_hold_value,
          COALESCE(SUM("paidAmount"), 0) AS paid_amount,
@@ -1845,6 +1847,8 @@ export class OrderService {
       pendingValue: parseFloat(row.pending_value) || 0,
       processingCount: parseInt(row.processing_count, 10) || 0,
       processingValue: parseFloat(row.processing_value) || 0,
+      shippedCount: parseInt(row.shipped_count, 10) || 0,
+      shippedValue: parseFloat(row.shipped_value) || 0,
       onHoldCount: parseInt(row.on_hold_count, 10) || 0,
       onHoldValue: parseFloat(row.on_hold_value) || 0,
       paidAmount: parseFloat(row.paid_amount) || 0,
@@ -1862,6 +1866,8 @@ export class OrderService {
         pendingValue: acc.pendingValue + d.pendingValue,
         processingOrders: acc.processingOrders + d.processingCount,
         processingValue: acc.processingValue + d.processingValue,
+        shippedOrders: acc.shippedOrders + d.shippedCount,
+        shippedValue: acc.shippedValue + d.shippedValue,
         onHoldOrders: acc.onHoldOrders + d.onHoldCount,
         onHoldValue: acc.onHoldValue + d.onHoldValue,
         paidAmount: acc.paidAmount + d.paidAmount,
@@ -1877,6 +1883,8 @@ export class OrderService {
         pendingValue: 0,
         processingOrders: 0,
         processingValue: 0,
+        shippedOrders: 0,
+        shippedValue: 0,
         onHoldOrders: 0,
         onHoldValue: 0,
         paidAmount: 0,
@@ -3454,7 +3462,7 @@ export class OrderService {
       .orderBy('year, month_number', 'ASC')
       .getRawMany();
 
-    // Single grouped query for pending, processing and on-hold orders
+    // Single grouped query for pending, processing, shipped and on-hold orders
     const statusResult = await withYearFilter(
       this.orderRepository
         .createQueryBuilder('order')
@@ -3466,6 +3474,8 @@ export class OrderService {
           `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.PENDING}'), 0) AS pending_value`,
           `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.PROCESSING}') AS processing_order_count`,
           `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.PROCESSING}'), 0) AS processing_value`,
+          `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.SHIPPED}') AS shipped_order_count`,
+          `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.SHIPPED}'), 0) AS shipped_value`,
           `COUNT(order.id) FILTER (WHERE order.orderStatus = '${OrderStatus.ON_HOLD}') AS on_hold_order_count`,
           `COALESCE(SUM(order.totalValue) FILTER (WHERE order.orderStatus = '${OrderStatus.ON_HOLD}'), 0) AS on_hold_value`,
         ])
@@ -3473,6 +3483,7 @@ export class OrderService {
           statuses: [
             OrderStatus.PENDING,
             OrderStatus.PROCESSING,
+            OrderStatus.SHIPPED,
             OrderStatus.ON_HOLD,
           ],
         }),
@@ -3517,6 +3528,8 @@ export class OrderService {
         pendingValue: parseFloat(row.pending_value || 0),
         processingOrderCount: parseInt(row.processing_order_count) || 0,
         processingValue: parseFloat(row.processing_value || 0),
+        shippedOrderCount: parseInt(row.shipped_order_count) || 0,
+        shippedValue: parseFloat(row.shipped_value || 0),
         onHoldOrderCount: parseInt(row.on_hold_order_count) || 0,
         onHoldValue: parseFloat(row.on_hold_value || 0),
       });
@@ -3551,6 +3564,8 @@ export class OrderService {
           pendingValue: 0,
           processingOrderCount: 0,
           processingValue: 0,
+          shippedOrderCount: 0,
+          shippedValue: 0,
           onHoldOrderCount: 0,
           onHoldValue: 0,
         };
@@ -3571,6 +3586,8 @@ export class OrderService {
           pendingValue: statusData.pendingValue,
           processingOrderCount: statusData.processingOrderCount,
           processingValue: statusData.processingValue,
+          shippedOrderCount: statusData.shippedOrderCount,
+          shippedValue: statusData.shippedValue,
           onHoldOrderCount: statusData.onHoldOrderCount,
           onHoldValue: statusData.onHoldValue,
         };
@@ -3600,6 +3617,8 @@ export class OrderService {
           `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.PENDING}'), 0) AS pending_value`,
           `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.PROCESSING}') AS processing_count`,
           `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.PROCESSING}'), 0) AS processing_value`,
+          `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.SHIPPED}') AS shipped_count`,
+          `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.SHIPPED}'), 0) AS shipped_value`,
           `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.ON_HOLD}') AS on_hold_count`,
           `COALESCE(SUM("order"."totalValue") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.ON_HOLD}'), 0) AS on_hold_value`,
           `COUNT("order"."id") FILTER (WHERE "order"."orderStatus" = '${OrderStatus.CANCELLED}') AS cancelled_count`,
@@ -3617,6 +3636,8 @@ export class OrderService {
       pendingValue: parseFloat(totalsRow.pending_value) || 0,
       processingCount: parseInt(totalsRow.processing_count, 10) || 0,
       processingValue: parseFloat(totalsRow.processing_value) || 0,
+      shippedCount: parseInt(totalsRow.shipped_count, 10) || 0,
+      shippedValue: parseFloat(totalsRow.shipped_value) || 0,
       onHoldCount: parseInt(totalsRow.on_hold_count, 10) || 0,
       onHoldValue: parseFloat(totalsRow.on_hold_value) || 0,
       cancelledCount: parseInt(totalsRow.cancelled_count, 10) || 0,

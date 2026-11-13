@@ -37,6 +37,7 @@ import {
   PauseCircle,
   RefreshCw,
   ShoppingCart,
+  Truck,
   Wallet,
   XCircle,
 } from "lucide-react";
@@ -53,6 +54,8 @@ interface DailySummary {
   pendingValue: number;
   processingOrders: number;
   processingValue: number;
+  shippedOrders: number;
+  shippedValue: number;
   onHoldOrders: number;
   onHoldValue: number;
   paidAmount: number;
@@ -71,6 +74,8 @@ interface DailyRow {
   pendingValue: number;
   processingCount: number;
   processingValue: number;
+  shippedCount: number;
+  shippedValue: number;
   onHoldCount: number;
   onHoldValue: number;
   paidAmount: number;
@@ -91,6 +96,7 @@ type SortKey =
   | "delivered"
   | "pending"
   | "processing"
+  | "shipped"
   | "onHold"
   | "cancelled"
   | "paid"
@@ -170,6 +176,13 @@ const STATUS_COLUMNS: StatusColumn[] = [
     count: (row) => row.processingCount || 0,
   },
   {
+    key: "shipped",
+    label: "Shipped",
+    tone: tones.teal,
+    value: (row) => row.shippedValue || 0,
+    count: (row) => row.shippedCount || 0,
+  },
+  {
     key: "onHold",
     label: "On hold",
     tone: tones.purple,
@@ -213,6 +226,7 @@ const statusTotal = (row: DailyRow) =>
   (row.cancelledCount || 0) +
   (row.pendingCount || 0) +
   (row.processingCount || 0) +
+  (row.shippedCount || 0) +
   (row.onHoldCount || 0);
 
 /** Weekday caption for the API's `YYYY-MM-DD` day key, without timezone shifts. */
@@ -240,6 +254,8 @@ const sortValue = (row: DailyRow, key: SortKey): number | string => {
       return row.pendingValue;
     case "processing":
       return row.processingValue;
+    case "shipped":
+      return row.shippedValue;
     case "onHold":
       return row.onHoldValue;
     case "cancelled":
@@ -300,7 +316,7 @@ export default function DailySummaryList({
   );
 
   // The API summary has no cancelled value, but every order carries a total,
-  // so the cancelled bucket is whatever the other four statuses don't cover.
+  // so the cancelled bucket is whatever the other statuses don't cover.
   const summaryCancelledValue = summary
     ? Math.max(
         0,
@@ -308,6 +324,7 @@ export default function DailySummaryList({
           (summary.deliveredValue || 0) -
           (summary.pendingValue || 0) -
           (summary.processingValue || 0) -
+          (summary.shippedValue || 0) -
           (summary.onHoldValue || 0)
       )
     : 0;
@@ -338,6 +355,10 @@ export default function DailySummaryList({
     )}%)`,
     `${formatCurrency(row.processingValue)} / ${row.processingCount} (${percentOf(
       row.processingCount,
+      statusTotal(row)
+    )}%)`,
+    `${formatCurrency(row.shippedValue)} / ${row.shippedCount} (${percentOf(
+      row.shippedCount,
       statusTotal(row)
     )}%)`,
     `${formatCurrency(row.onHoldValue)} / ${row.onHoldCount} (${percentOf(
@@ -373,6 +394,13 @@ export default function DailySummaryList({
       )}%)`,
     },
     {
+      label: "Shipped",
+      value: `${summary?.shippedOrders ?? 0} (${percentOf(
+        summary?.shippedOrders ?? 0,
+        summary?.totalOrders ?? 0
+      )}%)`,
+    },
+    {
       label: "On Hold",
       value: `${summary?.onHoldOrders ?? 0} (${percentOf(
         summary?.onHoldOrders ?? 0,
@@ -397,6 +425,7 @@ export default function DailySummaryList({
     "Cancelled",
     "Pending",
     "Processing",
+    "Shipped",
     "On Hold",
     "Paid",
     "Due",
@@ -430,8 +459,8 @@ export default function DailySummaryList({
                   title="Daily Summary Report"
                   orientation="landscape"
                   headers={exportHeaders}
-                  flexes={[1.2, 1.4, 1.4, 1.4, 1.4, 1.4, 1.4, 0.9, 1]}
-                  alignRight={[1, 2, 3, 4, 5, 6, 7, 8]}
+                  flexes={[1.2, 1.4, 1.4, 1.4, 1.4, 1.4, 1.4, 1.4, 0.9, 1]}
+                  alignRight={[1, 2, 3, 4, 5, 6, 7, 8, 9]}
                   rows={pdfRows}
                   summary={pdfSummary}
                   settings={settings}
@@ -519,6 +548,17 @@ export default function DailySummaryList({
                 )}% being processed`}
                 icon={RefreshCw}
                 bgColor="indigo"
+              />
+              <StatsCard
+                title="Shipped"
+                value={amount(summary.shippedValue)}
+                count={String(summary.shippedOrders)}
+                description={`${percentOf(
+                  summary.shippedOrders,
+                  summary.totalOrders
+                )}% in transit`}
+                icon={Truck}
+                bgColor="violet"
               />
               <StatsCard
                 title="On hold"
@@ -729,6 +769,12 @@ export default function DailySummaryList({
                           value: summary.processingValue,
                           count: summary.processingOrders,
                           tone: tones.blue,
+                        },
+                        {
+                          key: "shipped",
+                          value: summary.shippedValue,
+                          count: summary.shippedOrders,
+                          tone: tones.teal,
                         },
                         {
                           key: "onHold",

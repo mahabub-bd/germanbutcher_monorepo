@@ -46,6 +46,8 @@ export interface MonthlyData {
   pendingValue: number;
   processingOrderCount: number;
   processingValue: number;
+  shippedOrderCount: number;
+  shippedValue: number;
   onHoldOrderCount: number;
   onHoldValue: number;
 }
@@ -59,6 +61,8 @@ export interface MonthlyTotals {
   pendingValue: number;
   processingCount: number;
   processingValue: number;
+  shippedCount: number;
+  shippedValue: number;
   onHoldCount: number;
   onHoldValue: number;
   cancelledCount: number;
@@ -92,6 +96,12 @@ const tones = {
     text: "text-blue-600 dark:text-blue-400",
     badge: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
     bar: "bg-blue-500",
+  },
+  teal: {
+    text: "text-teal-600 dark:text-teal-400",
+    badge:
+      "bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-400",
+    bar: "bg-teal-500",
   },
   purple: {
     text: "text-violet-600 dark:text-violet-400",
@@ -138,6 +148,13 @@ const STATUS_COLUMNS: StatusColumn[] = [
     tone: tones.blue,
     value: (row) => row.processingValue || 0,
     count: (row) => row.processingOrderCount || 0,
+  },
+  {
+    key: "shipped",
+    label: "Shipped",
+    tone: tones.teal,
+    value: (row) => row.shippedValue || 0,
+    count: (row) => row.shippedOrderCount || 0,
   },
   {
     key: "onHold",
@@ -217,6 +234,10 @@ export default function MonthlyOrderReportList({
             value: apiTotals.processingValue,
             count: apiTotals.processingCount,
           },
+          shipped: {
+            value: apiTotals.shippedValue,
+            count: apiTotals.shippedCount,
+          },
           onHold: {
             value: apiTotals.onHoldValue,
             count: apiTotals.onHoldCount,
@@ -273,6 +294,8 @@ export default function MonthlyOrderReportList({
     "Pending Amount",
     "Processing",
     "Processing Amount",
+    "Shipped",
+    "Shipped Amount",
     "On Hold",
     "On Hold Amount",
     "Cancelled",
@@ -291,6 +314,8 @@ export default function MonthlyOrderReportList({
     item.pendingValue || 0,
     item.processingOrderCount || 0,
     item.processingValue || 0,
+    item.shippedOrderCount || 0,
+    item.shippedValue || 0,
     item.onHoldOrderCount || 0,
     item.onHoldValue || 0,
     item.cancelOrderCount || 0,
